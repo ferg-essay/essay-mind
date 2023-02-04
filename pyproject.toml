@@ -1,7 +1,7 @@
 [build-system]
 requires = [
   "maturin>=0.14,<0.15",
-  "setuptools>=64"
+  "setuptools>=64",
 ]
 build-backend = "maturin"
 
@@ -12,6 +12,9 @@ classifiers = [
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
+]
+dependencies = [
+    "numpy",
 ]
 
 [tool.maturin]
