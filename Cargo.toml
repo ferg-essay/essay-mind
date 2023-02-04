@@ -1,0 +1,21 @@
+[package]
+name = "essaymind"
+version = "0.1.0"
+edition = "2023"
+publish=false
+
+[lib]
+name = "essaymind"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.18.0", features = ["extension-module"] }
+core_lib = { path = "core_lib"}
+
+[workspace]
+members = [
+    "core_lib",
+]
+
+[package.metadata.maturin]
+name="essaymind._essaymind"
