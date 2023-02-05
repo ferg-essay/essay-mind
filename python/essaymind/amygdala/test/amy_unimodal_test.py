@@ -22,7 +22,7 @@ class AmyUnimodalTest(unittest.TestCase):
         
         test = TestValue(body, 'test')
         amy.on_value(test)
-        
+
         body.build()
         
         assert str(test) == 'test[]'
