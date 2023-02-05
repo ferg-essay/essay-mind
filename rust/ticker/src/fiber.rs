@@ -9,15 +9,6 @@ pub struct FiberId {
     pub name: String,
 }
 
-impl FiberId {
-    fn new(id: i32, name: &str) -> FiberId {
-        Self {
-            id,
-            name: String::from(name),
-        }
-    }
-}
-
 impl Clone for FiberId {
     fn clone(&self) -> FiberId {
         FiberId { id: self.id, name: self.name.clone(), }
@@ -29,25 +20,6 @@ impl fmt::Display for FiberId {
         write!(f, "FiberId[{},{}]", self.id, self.name)
     }
 }
-
-/*
-pub struct FiberToBind<T>
-{
-    callback: Box<FiberFn<T>>,
-}
-
-impl<T> FiberToBind<T> {
-    pub fn new(cb : Box<FiberFn<T>>) -> FiberToBind<T>
-    {
-        Self { callback : cb }
-    }
-
-    fn send(&self, id: &FiberId, args: &T)
-    {
-        (self.callback)(id, args)
-    }
-}
-*/
 
 pub struct Fiber<T>
 {
@@ -93,15 +65,8 @@ impl<T> FiberBuilder<T> {
             to: Vec::new(),
         }
     }
-    /*
-    pub fn to_bind(&mut self, bind: FiberToBind<T>) {
-        self.to.push(bind);
-    }
-    */
     
     pub fn to(&mut self, callback: Box<FiberFn<T>>) -> &mut FiberBuilder<T> {
-        //let bind = FiberToBind { callback: callback };
-
         self.to.push(callback);
 
         self
