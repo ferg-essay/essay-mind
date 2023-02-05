@@ -2,7 +2,7 @@ import logging
 import unittest
 
 from essaymind import FiberKeyValue
-from essaymind._essaymind import FiberIdBuilderRust, FiberKeyBuilderRust, MindNodeRust
+from essaymind._essaymind import MindBuilderRust, FiberKeyBuilderRust, MindNodeRust
 
 logging.basicConfig(level=logging.DEBUG,
                     format='%(levelname)-5s:%(name)-10s: %(message)s')
@@ -14,11 +14,11 @@ class RustNodeTest(unittest.TestCase):
     def test_basic(self):
         log.info("test")
 
-        builder = FiberIdBuilderRust()
-        log.info(builder)
+        mind_builder = MindBuilderRust()
+        log.info(mind_builder)
 
         #fiber = builder.fiber_key("a")
-        fiber_builder = FiberKeyBuilderRust(builder, "a");
+        fiber_builder = mind_builder.fiber_key("a")
         fiber_builder.to(test_fn)
 
         #log.info(builder.fiber_key("b"))

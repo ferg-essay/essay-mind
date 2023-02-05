@@ -3,12 +3,10 @@ use std::fmt;
 
 use pyo3::prelude::*;
 
-use core_lib::FiberIdBuilder;
-use core_lib::FiberId;
-use core_lib::Fiber;
-use core_lib::FiberBuilder;
-use core_lib::MindNode;
-use core_lib::FiberFn;
+//use core_lib::FiberIdBuilder;
+//use ticker::{FiberId, Fiber, FiberBuilder, Ticker, TickerSystemBuilder, FiberFn};
+use ticker::{Ticker, TickerSystemBuilder};
+use ticker::fiber::{FiberId, FiberFn, Fiber, FiberBuilder};
 
 /// Formats the sum of two numbers as string.
 //#[pyfunction]
@@ -17,6 +15,7 @@ use core_lib::FiberFn;
 // Ok((a + b).to_string())
 //}
 
+/*
 #[pyclass]
 pub struct FiberIdBuilderRust {
     builder : FiberIdBuilder,
@@ -35,6 +34,7 @@ impl FiberIdBuilderRust {
     //    Ok(FiberKey { fiber, })
     //}
 }
+*/
 
 struct FnWrapper {
     cb : Py<PyAny>,
@@ -49,7 +49,6 @@ impl FnWrapper {
             Ok(_v) => { }
             Err(err) => { panic!("{}", err); }
         }
-        println!("after call");
     }
 
     fn wrap(cb: &PyAny)->FnWrapper
@@ -65,7 +64,7 @@ impl FnWrapper {
 type KeyArgs = (String,f32,f32);
 type KeyFn = FiberFn<KeyArgs>;
 
-#[pyclass]
+#[pyclass(unsendable)]
 pub struct FiberKeyBuilderRust {
     builder: FiberBuilder<KeyArgs>,
 
@@ -85,11 +84,13 @@ impl fmt::Display for FiberKeyRust {
 
 #[pymethods]
 impl FiberKeyBuilderRust {
+    /* 
     #[new]
     fn new(mut builder_ref: PyRefMut<FiberIdBuilderRust>, name: &str) -> PyResult<FiberKeyBuilderRust> {
         Ok(Self {
             builder: builder_ref.builder.fiber(name),
         })
+        */
     //fn new(builder_ref: &PyAny, name: &str) -> PyResult<FiberKeyRust> {
     /*
         Python::with_gil(|py| {
@@ -112,11 +113,10 @@ impl FiberKeyBuilderRust {
                 fiber : Fiber::new(&mut bb.builder, name),
             })
         })
-        */
     }
+        */
 
-    fn to(&mut self, cb: &PyAny)
-    {
+    fn to(&mut self, cb: &PyAny) {
         let cb_safe = FnWrapper::wrap(cb);
         
         self.builder.to(Box::new(move |fiber_id, args| cb_safe.call(fiber_id, &args.0, args.1, args.2)));
@@ -124,9 +124,8 @@ impl FiberKeyBuilderRust {
         //self.to.push(Box::new(move |fiber_id, args| cb_safe.call(fiber_id, &args.0, args.1, args.2)));
     }
 
-    fn build(&mut self) -> FiberKeyRust
-    {
-        FiberKeyRust { fiber : self.builder.build() }        
+    fn build(&mut self) -> FiberKeyRust {
+        FiberKeyRust { fiber : self.builder.build(), }        
     }
 }
 
@@ -148,15 +147,15 @@ impl FiberKeyRust {
 }
 
 #[pyclass]
-pub struct MindNodeRust {
-    _node : MindNode,
+pub struct TickerRust {
+    _node : Ticker,
 }
 
 #[pymethods]
-impl MindNodeRust {
+impl TickerRust {
     #[new]
     pub fn new(s : &str) -> PyResult<Self> {
-        Ok(MindNodeRust { _node: MindNode { name : String::from(s) }})
+        Ok(TickerRust { _node: Ticker { name : String::from(s) }})
     }
 
     fn __str__(&self) -> PyResult<String> {
@@ -164,12 +163,30 @@ impl MindNodeRust {
     }
 }
 
+#[pyclass(unsendable)]
+pub struct MindBuilderRust {
+    builder : TickerSystemBuilder,
+}
+
+#[pymethods]
+impl MindBuilderRust {
+    #[new]
+    pub fn new() -> PyResult<MindBuilderRust> {
+        Ok(Self { builder: TickerSystemBuilder::new() })
+    }
+
+    pub fn fiber_key(&mut self, name: &str)->PyResult<FiberKeyBuilderRust> {
+        Ok(FiberKeyBuilderRust { builder: self.builder.fiber(name) })
+    }
+}
+
 /// A Python module implemented in Rust.
 #[pymodule]
 fn _essaymind(_py: Python, m: &PyModule) -> PyResult<()> {
     //m.add_function(wrap_pyfunction!(sum_as_string, m)?)?;
-    m.add_class::<FiberIdBuilderRust>()?;
-    m.add_class::<MindNodeRust>()?;
+    //m.add_class::<FiberIdBuilderRust>()?;
+    m.add_class::<MindBuilderRust>()?;
+    m.add_class::<TickerRust>()?;
     m.add_class::<FiberKeyBuilderRust>()?;
 
     //add_node_functions(m)?;

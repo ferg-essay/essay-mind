@@ -11,11 +11,11 @@ path = "rust/src/lib.rs"
 
 [dependencies]
 pyo3 = { version = "0.18.0", features = ["extension-module"] }
-core_lib = { path = "rust/core_lib"}
+ticker = { path = "rust/ticker"}
 
 [workspace]
 members = [
-    "rust/core_lib",
+    "rust/ticker",
 ]
 
 [package.metadata.maturin]
