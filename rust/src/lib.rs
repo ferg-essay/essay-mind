@@ -1,6 +1,6 @@
 use pyo3::prelude::*;
 
-use ticker::{TickerSystemBuilder, Ticker, FiberId, Fiber, FiberBuilder, TickerBuilder};
+use ticker::{TickerSystem, TickerSystemBuilder, Ticker, FiberId, Fiber, FiberBuilder, TickerBuilder};
 
 type KeyArgs = (String,f32,f32);
 
@@ -75,11 +75,47 @@ impl FiberKeyBuilderRust {
 pub struct TickerBuilderRust {
     builder: TickerBuilder,
 }
+struct OnTickWrapper {
+    on_tick : Py<PyAny>,
+}
+
+impl OnTickWrapper {
+    fn call(&self, ticks: i32) {
+        match Python::with_gil(|py|->PyResult<Py<PyAny>> {
+            self.on_tick.call1(py, (ticks, ))
+        }) {
+            Ok(_v) => { }
+            Err(err) => { panic!("{}", err); }
+        }
+    }
+}
 
 #[pymethods]
 impl TickerBuilderRust {
+    fn on_tick(&mut self, on_tick_py: &PyAny) {
+        let on_tick = OnTickWrapper { on_tick: on_tick_py.into(), };
+        
+        self.builder.on_tick(Box::new(move |ticks: i32| on_tick.call(ticks)));
+
+    }
 }
 
+
+#[pyclass(unsendable)]
+pub struct TickerSystemRust {
+   system: TickerSystem,
+}
+
+#[pymethods]
+impl TickerSystemRust {
+    pub fn ticks(&self) -> i32 {
+        self.system.ticks()
+    }
+
+    pub fn tick(&self) {
+        self.system.tick();
+    }
+}
 
 #[pyclass(unsendable)]
 pub struct TickerSystemBuilderRust {
@@ -93,8 +129,18 @@ impl TickerSystemBuilderRust {
         Ok(Self { builder: TickerSystemBuilder::new() })
     }
 
-    pub fn fiber_key(&mut self, name: &str)->PyResult<FiberKeyBuilderRust> {
+    pub fn fiber(&mut self, name: &str)->PyResult<FiberKeyBuilderRust> {
         Ok(FiberKeyBuilderRust { builder: self.builder.fiber(name) })
+    }
+
+    pub fn ticker(&mut self, name: &str)->PyResult<TickerBuilderRust> {
+        Ok(TickerBuilderRust { builder: self.builder.ticker(name) })
+    }
+
+    pub fn build(&mut self) -> TickerSystemRust {
+        TickerSystemRust {
+            system: self.builder.build()
+        }
     }
 }
 

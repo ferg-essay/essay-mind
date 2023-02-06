@@ -20,54 +20,77 @@ impl TickerBuilderData {
     }
 }
 
-
 pub struct TickerBuilder {
-    pub name: String,
-
-    ticker: Rc<RefCell<TickerBuilderImpl>>,
+    builder: Rc<RefCell<TickerBuilderImpl>>,
 }
 
 impl TickerBuilder {
-    pub fn when<T>(&self, fiber: &FiberBuilder<T>, cb: Box<FiberFn<T>>) -> &Self {
-        assert!(! self.ticker.borrow().is_built());
+    pub fn on_tick(&self, on_tick: Box<TickFn>) -> &Self {
+        assert!(! self.builder.borrow().is_built());
 
-        fiber.builder.borrow_mut().to(&self.ticker, cb);
+        self.builder.borrow_mut().on_tick(on_tick);
+
+        self
+    }
+
+    pub fn on_fiber<T>(&self, fiber: &FiberBuilder<T>, cb: Box<FiberFn<T>>) -> &Self {
+        assert!(! self.builder.borrow().is_built());
+
+        fiber.builder.borrow_mut().to(&self.builder, cb);
 
         self
     }
 }
 
-pub struct TickerBuilderImpl {
+struct TickerBuilderImpl {
     parent: Rc<RefCell<TickerBuilderData>>,
 
     name: String,
 
     ticker: Option<Rc<RefCell<TickerImpl>>>,
+
+    on_tick: Option<Box<TickFn>>,
 }
 
 impl TickerBuilderImpl {
-    pub fn new(parent: &Rc<RefCell<TickerBuilderData>>, name: &str)->Self {
+    fn new(parent: &Rc<RefCell<TickerBuilderData>>, name: &str)->Self {
         assert!(! parent.borrow().is_built);
 
         Self {
             parent: Rc::clone(&parent),
             name: String::from(name),
             ticker: None,
+            on_tick: None,
         }
     }
-    /*
-    pub fn when<T>(&mut self, fiber: FiberBuilder<T>, callback: Box<FiberFn<T>>) -> &mut Self {
-        assert!(! self.parent.borrow().is_built);
 
-        fiber.to(self, callback);
+    fn on_tick(&mut self, on_tick: Box<TickFn>) -> &mut Self {
+        assert!(! self.is_built());
+
+        self.on_tick = Some(on_tick);
 
         self
     }
-    */
-
+    
     fn is_built(&self) -> bool {
         self.parent.borrow().is_built
     }
+
+    fn build(&mut self) -> Rc<RefCell<TickerImpl>> {
+        assert!(match self.ticker { None=>true, _=> false });
+
+        let ticker_impl = TickerImpl {
+            name: self.name.clone(),
+            on_tick: self.on_tick.take(),
+        };
+
+        let ticker_ref = Rc::new(RefCell::new(ticker_impl));
+
+        self.ticker = Some(ticker_ref.clone());
+
+        ticker_ref
+    }
+
 }
 
 pub struct FiberBuilder<T> {
@@ -76,7 +99,7 @@ pub struct FiberBuilder<T> {
 
 impl<T> FiberBuilder<T> {
     pub fn to(&mut self, ticker: &TickerBuilder, callback: Box<FiberFn<T>>) -> &mut Self {
-        self.builder.borrow_mut().to(&ticker.ticker, callback);
+        self.builder.borrow_mut().to(&ticker.builder, callback);
 
         self
     }
@@ -156,7 +179,9 @@ impl<T> FiberBuilderImpl<T> {
 
 
 pub struct TickerSystemBuilder {
-    data : Rc<RefCell<TickerBuilderData>>,
+    data: Rc<RefCell<TickerBuilderData>>,
+
+    tickers: Vec<Rc<RefCell<TickerBuilderImpl>>>,
 }
 
 impl TickerSystemBuilder {
@@ -165,7 +190,8 @@ impl TickerSystemBuilder {
             data: Rc::new(RefCell::new(TickerBuilderData { 
                 is_built: false,
                 fiber_id: 0,
-            }))
+            })),
+            tickers: Vec::new(),
         }
     }
 
@@ -177,10 +203,44 @@ impl TickerSystemBuilder {
         }
     }
 
+    pub fn ticker(&mut self, name: &str) -> TickerBuilder {
+        assert!(! self.data.borrow().is_built);
+
+        let ticker = Rc::new(RefCell::new(TickerBuilderImpl::new(&self.data, name)));
+
+        self.tickers.push(ticker.clone());
+
+        TickerBuilder {
+            builder: ticker,
+        }
+    }
+
     pub fn build(&mut self) -> TickerSystem {
         self.data.borrow_mut().build();
 
+        let mut tickers: Vec<Rc<RefCell<TickerImpl>>> = Vec::new();
+        let mut on_tickers: Vec<Rc<RefCell<TickerImpl>>> = Vec::new();
+
+        for builder in self.tickers.drain(..) {
+            let mut builder_impl = builder.borrow_mut();
+            let ticker: Rc<RefCell<TickerImpl>> = builder_impl.build();
+
+            match &ticker.borrow().on_tick {
+                Some(_) => { on_tickers.push(ticker.clone()) },
+                _ => {},
+            }
+
+            tickers.push(ticker);
+        }
+
+        let system_impl = TickerSystemImpl {
+            ticks: 0,
+            tickers: tickers,
+            on_tickers: on_tickers,
+        };
+
         TickerSystem {
+            system: Rc::new(RefCell::new(system_impl)),
         }
     }
 }
