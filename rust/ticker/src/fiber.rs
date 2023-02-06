@@ -1,9 +1,12 @@
-use std::{fmt, cell::RefCell, rc::Rc};
+//! Fibers communicate between tickers.
 
-use crate::builder::TickerBuilderData;
+use std::{fmt, cell::RefCell, rc::Rc, error::Error};
+
+use crate::{Ticker, ticker::TickerImpl};
 
 pub type FiberFn<T> = dyn Fn(&FiberId,&T)->() + Send;
 
+/// Unique identifier for a fiber.
 pub struct FiberId {
     pub id: i32,
     pub name: String,
@@ -21,18 +24,19 @@ impl fmt::Display for FiberId {
     }
 }
 
+/// Message channel to `Ticker` targets, where each target is
+/// a callback in a Ticker's context.
 pub struct Fiber<T>
 {
     pub id: FiberId,
 
-    to: Vec<Box<FiberFn<T>>>,
+    fiber: Rc<RefCell<FiberImpl<T>>>,
 }
 
 impl<T> Fiber<T> {
+    /// send a message to the fiber targets.
     pub fn send(&self, args: &T) {
-        for to in &self.to {
-            to(&self.id, args)
-        }
+        self.fiber.borrow().send(args);
     }
 }
 
@@ -42,53 +46,35 @@ impl<T> fmt::Display for Fiber<T> {
     }
 }
 
-pub struct FiberBuilder<T>
+pub fn new_fiber<T>(fiber_ref: &Rc<RefCell<FiberImpl<T>>>) -> Fiber<T>
 {
-    parent: Rc<RefCell<TickerBuilderData>>,
-
-    name: String,
-
-    is_built: bool,
-
-    //to: Vec<FiberToBind<T>>,
-    to: Vec<Box<FiberFn<T>>>,
+    Fiber {
+        id: fiber_ref.borrow().id.clone(),
+        fiber: fiber_ref.clone(),
+    }
 }
 
-impl<T> FiberBuilder<T> {
-    pub fn new(parent: &Rc<RefCell<TickerBuilderData>>, name: &str)->FiberBuilder<T> {
-        assert!(! parent.borrow().is_built);
+pub struct FiberImpl<T>
+{
+    pub id: FiberId,
 
+    to: Vec<(Rc<RefCell<TickerImpl>>,Box<FiberFn<T>>)>,
+}
+
+impl<T> FiberImpl<T> {
+    pub fn new(id: i32, name: String, to: Vec<(Rc<RefCell<TickerImpl>>,Box<FiberFn<T>>)>) -> Self {
         Self {
-            parent: Rc::clone(&parent),
-            name: String::from(name),
-            is_built: false,
-            to: Vec::new(),
-        }
-    }
-    
-    pub fn to(&mut self, callback: Box<FiberFn<T>>) -> &mut FiberBuilder<T> {
-        self.to.push(callback);
-
-        self
-    }
-
-    pub fn build(&mut self) -> Fiber<T> {
-        assert!(! self.parent.borrow().is_built);
-        assert!(! self.is_built);
-        self.is_built = true;
-
-        let mut fiber_vec : Vec<Box<FiberFn<T>>> = Vec::new();
-
-        for v in self.to.drain(..) {
-            fiber_vec.push(v);
-        }
-
-        Fiber {
-            id: FiberId { 
-                id: self.parent.borrow_mut().fiber_id(),
-                name: self.name.clone(),
+            id: FiberId {
+                id,
+                name,
             },
-            to: fiber_vec,
+            to,
+        }
+    }
+    /// send a message to the fiber targets.
+    pub fn send(&self, args: &T) {
+        for (ticker, cb) in &self.to {
+            cb(&self.id, args)
         }
     }
 }
