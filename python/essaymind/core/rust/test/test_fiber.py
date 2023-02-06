@@ -20,15 +20,15 @@ class RustNodeTest(unittest.TestCase):
         ticker_a = system_builder.ticker("a")
         #fiber = builder.fiber_key("a")
         fiber_builder = system_builder.fiber("a")
-        fiber_builder.to(ticker_a, test_fn)
+        ticker_a.on_fiber(fiber_builder, test_fn)
 
         #log.info(builder.fiber_key("b"))
 
-        fiber_builder.to(ticker_a, test_fn)
+        ticker_a.on_fiber(fiber_builder, test_fn)
         test = Test()
-        fiber_builder.to(ticker_a, test.my_call)
-        fiber = fiber_builder.fiber()
+        ticker_a.on_fiber(fiber_builder, test.my_call)
         system_builder.build()
+        fiber = fiber_builder.fiber()
         log.info(fiber)
 
         my_call = test.my_call

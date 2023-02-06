@@ -56,12 +56,8 @@ pub struct FiberKeyBuilderRust {
 
 #[pymethods]
 impl FiberKeyBuilderRust {
-    fn to(&mut self, ticker: &TickerBuilderRust, cb: &PyAny) {
-        let cb_safe = FnWrapper { cb: cb.into() };
-        
-        self.builder.to(&ticker.builder, 
-            Box::new(move |fiber_id : &FiberId, args: &KeyArgs| cb_safe.call(fiber_id.id, &args.0, args.1, args.2)));
-
+    fn name(&mut self, name: &str) {
+        self.builder.name(name);
     }
 
     fn fiber(&mut self) -> PyResult<FiberKeyRust> {
@@ -92,11 +88,22 @@ impl OnTickWrapper {
 
 #[pymethods]
 impl TickerBuilderRust {
+    fn name(&mut self, name: &str) {
+        self.builder.name(name);
+    }
+
     fn on_tick(&mut self, on_tick_py: &PyAny) {
         let on_tick = OnTickWrapper { on_tick: on_tick_py.into(), };
         
         self.builder.on_tick(Box::new(move |ticks: i32| on_tick.call(ticks)));
 
+    }
+
+    fn on_fiber(&mut self, fiber: &FiberKeyBuilderRust, on_fiber_py: &PyAny) {
+        let on_fiber = FnWrapper { cb: on_fiber_py.into() };
+        
+        self.builder.on_fiber(&fiber.builder, 
+            Box::new(move |fiber_id : &FiberId, args: &KeyArgs| on_fiber.call(fiber_id.id, &args.0, args.1, args.2)));
     }
 }
 
@@ -129,12 +136,26 @@ impl TickerSystemBuilderRust {
         Ok(Self { builder: TickerSystemBuilder::new() })
     }
 
-    pub fn fiber(&mut self, name: &str)->PyResult<FiberKeyBuilderRust> {
-        Ok(FiberKeyBuilderRust { builder: self.builder.fiber(name) })
+    pub fn fiber(&mut self, name: Option<&str>) -> PyResult<FiberKeyBuilderRust> {
+        let mut fiber = FiberKeyBuilderRust { builder: self.builder.fiber() };
+
+        match &name {
+            Some(name) => { fiber.name(name); }
+            _ => {}
+        }
+
+        Ok(fiber)
     }
 
-    pub fn ticker(&mut self, name: &str)->PyResult<TickerBuilderRust> {
-        Ok(TickerBuilderRust { builder: self.builder.ticker(name) })
+    pub fn ticker(&mut self, name: Option<&str>) -> PyResult<TickerBuilderRust> {
+        let mut ticker = TickerBuilderRust { builder: self.builder.ticker() };
+
+        match &name {
+            Some(name) => { ticker.name(name); }
+            _ => {}
+        }
+
+        Ok(ticker)
     }
 
     pub fn build(&mut self) -> TickerSystemRust {

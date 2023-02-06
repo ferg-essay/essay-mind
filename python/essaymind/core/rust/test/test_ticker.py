@@ -22,15 +22,21 @@ class TickerTest(unittest.TestCase):
         ticker_a.on_tick(test_a.tick)
 
         test_b = TestTicker("b")
-        ticker_b = system_builder.ticker("b")
+        ticker_b = system_builder.ticker()
+        ticker_b.name("b")
         ticker_b.on_tick(test_b.tick)
 
         test_b1 = TestTicker("b1")
-        ticker_b1 = system_builder.ticker("b1")
+        ticker_b1 = system_builder.ticker()
+        ticker_b1.name("b1")
         ticker_b1.on_tick(test_b1.tick)
 
+        test_b_nil = TestTicker("b_nil")
+        ticker_b_nil = system_builder.ticker()
+        ticker_b_nil.on_tick(test_b_nil.tick)
+
         test_none = TestTicker("none")
-        ticker_none = system_builder.ticker("none")
+        ticker_none = system_builder.ticker()
 
         system = system_builder.build()
         
