@@ -1,6 +1,7 @@
 use pyo3::prelude::*;
 
 use ticker::{TickerSystem, TickerSystemBuilder, Ticker, FiberId, Fiber, FiberBuilder, TickerBuilder};
+use ticker::test_thread;
 
 type KeyArgs = (String,f32,f32);
 
@@ -9,7 +10,7 @@ struct FnWrapper {
 }
 
 impl FnWrapper {
-    fn call(&self, id: i32, key: &String, value: f32, p: f32) {
+    fn call(&self, id: usize, key: &String, value: f32, p: f32) {
         match Python::with_gil(|py|->PyResult<Py<PyAny>> {
             self.cb.call1(py, (id, key, value, p))
         }) {
@@ -28,7 +29,7 @@ pub struct FiberKeyRust {
 #[pymethods]
 impl FiberKeyRust {
    fn __call__(&self, key:String, value : f32, p : f32) {
-       self.fiber.send(&(key, value, p));
+       self.fiber.send((key, value, p));
    }
 
    fn __str__(&self) -> PyResult<String> {
@@ -39,7 +40,7 @@ impl FiberKeyRust {
 
 #[pyclass(unsendable)]
 pub struct TickerRust {
-   ticker : Ticker,
+   ticker : Ticker<KeyArgs>,
 }
 
 #[pymethods]
@@ -69,14 +70,14 @@ impl FiberKeyBuilderRust {
 
 #[pyclass(unsendable)]
 pub struct TickerBuilderRust {
-    builder: TickerBuilder,
+    builder: TickerBuilder<KeyArgs>,
 }
 struct OnTickWrapper {
     on_tick : Py<PyAny>,
 }
 
 impl OnTickWrapper {
-    fn call(&self, ticks: i32) {
+    fn call(&self, ticks: u32) {
         match Python::with_gil(|py|->PyResult<Py<PyAny>> {
             self.on_tick.call1(py, (ticks, ))
         }) {
@@ -95,7 +96,7 @@ impl TickerBuilderRust {
     fn on_tick(&mut self, on_tick_py: &PyAny) {
         let on_tick = OnTickWrapper { on_tick: on_tick_py.into(), };
         
-        self.builder.on_tick(Box::new(move |ticks: i32| on_tick.call(ticks)));
+        self.builder.on_tick(Box::new(move |ticks: u32| on_tick.call(ticks)));
 
     }
 
@@ -110,12 +111,12 @@ impl TickerBuilderRust {
 
 #[pyclass(unsendable)]
 pub struct TickerSystemRust {
-   system: TickerSystem,
+   system: TickerSystem<KeyArgs>,
 }
 
 #[pymethods]
 impl TickerSystemRust {
-    pub fn ticks(&self) -> i32 {
+    pub fn ticks(&self) -> u32 {
         self.system.ticks()
     }
 
@@ -126,7 +127,7 @@ impl TickerSystemRust {
 
 #[pyclass(unsendable)]
 pub struct TickerSystemBuilderRust {
-    builder : TickerSystemBuilder,
+    builder : TickerSystemBuilder<KeyArgs>,
 }
 
 #[pymethods]
@@ -165,9 +166,16 @@ impl TickerSystemBuilderRust {
     }
 }
 
+#[pyfunction]
+fn test_thread_py()
+{
+    test_thread();
+}
+
 /// A Python module implemented in Rust.
 #[pymodule]
 fn _essaymind(_py: Python, m: &PyModule) -> PyResult<()> {
+    m.add_function(wrap_pyfunction!(test_thread_py, m)?)?;
     m.add_class::<TickerSystemBuilderRust>()?;
 
     Ok(())
