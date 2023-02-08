@@ -1,48 +1,149 @@
 use std::{cell::RefCell, rc::Rc, sync::{Mutex, Arc}};
 
-use crate::{fiber::*, ticker::*};
+use crate::{fiber::*, ticker::*, system::{TickerSystem, PanicToThread}};
 
-type TickerBuilderShared<T> = Rc<RefCell<TickerBuilderImpl<T>>>;
-type FiberBuilderShared<T> = Rc<RefCell<FiberBuilderImpl<T>>>;
+type SystemBuilderRef<T> = Rc<RefCell<SystemBuilderInner<T>>>;
+type TickerBuilderRef<T> = Rc<RefCell<TickerBuilderInner<T>>>;
+type FiberBuilderRef<T> = Rc<RefCell<FiberBuilderInner<T>>>;
 
-pub struct TickerBuilderData {
-    is_built : bool,
+pub struct SystemBuilder<T:Clone> {
+    builder: SystemBuilderRef<T>,
 
-    fiber_id : usize,
-
-    ticker_id : usize,
+    //fiber_build: Vec<Box<dyn Builder>>,
+    //fiber_build: Vec<Box<dyn FnMut ()>>,
 }
 
-impl TickerBuilderData {
-    fn next_fiber_id(&mut self) -> usize {
-        let id = self.fiber_id;
-        self.fiber_id += 1;
-        id
-    }
+pub struct SystemBuilderInner<T:Clone> {
+    is_built : bool,
 
-    fn next_ticker_id(&mut self) -> usize {
-        let id = self.ticker_id;
-        self.ticker_id += 1;
-        id
-    }
-
-    fn build(&mut self) {
-        assert!(! self.is_built);
-        self.is_built = true;
-    }
+    tickers: Vec<TickerBuilderRef<T>>,
+    fibers: Vec<FiberBuilderRef<T>>,
 }
 
 pub struct TickerBuilder<T:Clone> {
-    builder: TickerBuilderShared<T>,
+    builder: TickerBuilderRef<T>,
 }
 
-impl<T:Clone> TickerBuilder<T> {
+struct TickerBuilderInner<T:Clone> {
+    id: usize,
+
+    name: Option<String>,
+
+    on_tick: Option<Box<TickFn>>,
+
+    on_fibers: Vec<Box<OnFiberFn<T>>>,
+
+    to_tickers: Vec<ToTicker<T>>,
+    from_tickers: Vec<ToTicker<T>>,
+
+    system: SystemBuilderRef<T>,
+
+    // the built ticker
+    //ticker_ref: Option<Ticker>,
+}
+
+pub struct FiberBuilder<T:Clone> {
+    builder: FiberBuilderRef<T>,
+}
+
+struct FiberBuilderInner<T:Clone>
+{
+    id: usize,
+    name: Option<String>,
+
+    from_ticker: TickerBuilderRef<T>,
+
+    to: Vec<(ToTicker<T>,usize)>,
+
+    system: SystemBuilderRef<T>,
+
+    fiber_ref: Option<Fiber<T>>,
+}
+
+//
+// Implementation
+//
+
+impl<T:Clone + 'static> SystemBuilder<T> {
+    pub fn new() -> SystemBuilder<T> {
+        let builder_ref = Rc::new(RefCell::new(SystemBuilderInner {
+            is_built: false,
+            tickers: Vec::new(),
+            fibers: Vec::new(),
+        }));
+
+        let mut builder = Self {
+            builder: builder_ref,
+        };
+
+        let mut ticker = builder.ticker();
+        ticker.name("essay::system");
+        let fiber = ticker.fiber();
+        fiber.name("essay::system");
+
+        builder
+    }
+
+    pub fn ticker(&mut self) -> TickerBuilder<T> {
+        assert!(! self.builder.borrow().is_built);
+
+        let ticker: TickerBuilderRef<T> = TickerBuilderInner::new(&self.builder);
+
+        let mut builder = self.builder.borrow_mut();
+
+        builder.tickers.push(Rc::clone(&ticker));
+
+        TickerBuilder {
+            builder: ticker,
+        }
+    }
+
+    pub fn build(&mut self) -> TickerSystem<T> {
+        // let builder = self.builder.borrow_mut();
+        self.builder.borrow_mut().build()
+    }
+}
+
+
+impl<T:Clone + 'static> SystemBuilderInner<T> {
+    fn build(&mut self) -> TickerSystem<T> {
+        assert!(! self.is_built);
+        self.is_built = true;
+
+        let mut tickers: Vec<TickerRef<T>> = Vec::new();
+        for ticker_ref in self.tickers.drain(..) {
+            tickers.push(ticker_ref.borrow_mut().build());
+        }
+
+        for fiber in self.fibers.drain(..) {
+            fiber.borrow_mut().build();
+        }
+
+        let spawn_threads = 0;
+
+        TickerSystem::new(tickers, spawn_threads)
+    }
+}
+
+impl<T:Clone + 'static> TickerBuilder<T> {
     pub fn name(&self, name: &str) -> &Self {
         assert!(! self.builder.borrow().is_built());
 
         self.builder.borrow_mut().name(name);
 
         self
+    }
+
+    pub fn fiber(&mut self) -> FiberBuilder<T> {
+        assert!(! self.builder.borrow().is_built());
+
+        let fiber: FiberBuilderRef<T> = FiberBuilderInner::new(&self.builder);
+        
+        //self.ticker.borrow().fibers.push(Rc::clone(&fiber));
+
+        FiberBuilder {
+            builder: fiber,
+        }
     }
 
     pub fn on_tick(&self, on_tick: Box<TickFn>) -> &Self {
@@ -53,123 +154,122 @@ impl<T:Clone> TickerBuilder<T> {
         self
     }
 
-    pub fn on_fiber(&self, fiber: &FiberBuilder<T>, on_fiber: Box<FiberFn<T>>) -> &Self {
+    pub fn on_fiber(&self, fiber: &FiberBuilder<T>, on_fiber: Box<OnFiberFn<T>>) -> &Self {
         assert!(! self.builder.borrow().is_built());
 
-        self.builder.borrow_mut().on_fiber(fiber, on_fiber);
+        self.builder.borrow_mut().on_fiber(&fiber.builder, on_fiber);
 
         self
     }
 }
 
-struct TickerBuilderImpl<T:Clone> {
-    parent: Rc<RefCell<TickerBuilderData>>,
+impl<T:Clone + 'static> TickerBuilderInner<T> {
+    fn new(system_ref: &SystemBuilderRef<T>)->TickerBuilderRef<T> {
+        let mut system = system_ref.borrow_mut();
 
-    id: usize,
+        let id = system.tickers.len();
 
-    name: Option<String>,
-
-    on_tick: Option<Box<TickFn>>,
-
-    on_fibers: Vec<(usize, Box<FiberFn<T>>)>,
-
-    /// the built ticker
-    ticker: Option<Ticker<T>>,
-}
-
-struct OnFiberBuilder<T> {
-    on_fiber_i: usize,
-
-    on_fiber: Box<FiberFn<T>>,
-}
-
-impl<T:Clone> TickerBuilderImpl<T> {
-    fn new(parent: &Rc<RefCell<TickerBuilderData>>)->Self {
-        let mut parent_ref = parent.borrow_mut();
-        assert!(! parent_ref.is_built);
-
-        Self {
-            parent: Rc::clone(&parent),
-            id: parent_ref.next_ticker_id(),
+        let ticker = Rc::new(RefCell::new(Self {
+            id: id,
             name: None,
-            ticker: None,
             on_tick: None,
             on_fibers: Vec::new(),
-        }
+            to_tickers: Vec::new(),
+            from_tickers: Vec::new(),
+            system: Rc::clone(&system_ref),
+        }));
+
+        system.tickers.push(Rc::clone(&ticker));
+
+        ticker
     }
 
-    fn name(&mut self, name: &str) -> &mut Self {
+    fn name(&mut self, name: &str) {
         self.name = Some(String::from(name));
-
-        self
     }
 
-    fn on_tick(&mut self, on_tick: Box<TickFn>) -> &mut Self {
+    fn on_tick(&mut self, on_tick: Box<TickFn>) {
         assert!(! self.is_built());
 
         self.on_tick = Some(on_tick);
-
-        self
     }
 
-    fn on_fiber(&mut self, fiber: &FiberBuilder<T>, on_fiber: Box<FiberFn<T>>) -> &mut Self {
+    fn on_fiber(&mut self, fiber_ref: &FiberBuilderRef<T>, on_fiber: Box<OnFiberFn<T>>) {
         assert!(! self.is_built());
 
-        let on_fiber_i = self.on_fibers.len();
+        let mut fiber = fiber_ref.borrow_mut();
 
-        self.on_fibers.push((fiber.builder.borrow().id, on_fiber));
+        let on_fiber_id = self.on_fibers.len();
 
-        fiber.builder.borrow_mut().to(self.id, on_fiber_i);
+        self.on_fibers.push(on_fiber);
 
-        self
+        let from_ticker = fiber.to(self.id, on_fiber_id);
+
+        match &self.from_tickers.iter().filter(|from_ticker| from_ticker.from_ticker == self.id).next() {
+            Some(to_ticker) => {},
+            None => { self.from_tickers.push(from_ticker.clone()); }
+        }
     }
 
-    fn ticker(&self) -> Ticker<T> {
-        match &self.ticker {
-            Some(ticker) => ticker.clone(),
-            _ => panic!("ticker() is not available because the system is not built yet"),
+    fn to_ticker(&mut self, to_ticker_id: usize) -> ToTicker<T> {
+        match self.to_tickers.iter().filter(|to_ticker| to_ticker.to_ticker == to_ticker_id).next() {
+            Some(to_ticker) => to_ticker.clone(),
+            None => {
+                let to_ticker = ToTicker::new(
+                    self.id, 
+                    to_ticker_id, 
+                    &PanicToThread::new(
+                        &format!("ticker {}->{} is not initialized.",
+                            self.id,
+                            to_ticker_id
+                        )
+                    ),
+                );
+
+                self.to_tickers.push(to_ticker.clone());
+
+                to_ticker
+            }
         }
     }
     
     fn is_built(&self) -> bool {
-        self.parent.borrow().is_built
+        self.system.borrow().is_built
     }
 
-    fn build(&mut self, system: &mut TickerSystemBuilder<T>) -> Ticker<T> {
-        assert!(match self.ticker { None=>true, _=> false });
+    fn build(&mut self) -> TickerRef<T> {
+        // assert!(match self.ticker_ref { None=>true, _=> false });
 
         let name = match &self.name {
             Some(name) => name.clone(),
             None => format!("ticker-{}", self.id),
         };
 
-        let mut on_fibers: Vec<(FiberId, Box<FiberFn<T>>)> = Vec::new();
+        let on_fibers = self.on_fibers.drain(..).collect();
 
-        for (id, fun) in self.on_fibers.drain(..) {
-            on_fibers.push((system.fiber_id(id), fun));
-        }
+        let ticker = TickerInner::new(
+            self.id, 
+            name,
+            self.to_tickers.drain(..).collect(),
+            self.from_tickers.drain(..).collect(),
+            self.on_tick.take(), 
+            on_fibers
+        );
 
-        let ticker = TickerImpl::new(self.id, name, self.on_tick.take(), on_fibers);
-
-        self.ticker = Some(ticker.clone());
+        //self.ticker_ref = Some(ticker.clone());
 
         ticker
     }
-
 }
 
-pub struct FiberBuilder<T> {
-    builder: Rc<RefCell<FiberBuilderImpl<T>>>,
-}
-
-impl<T:Clone> FiberBuilder<T> {
+impl<T:Clone + 'static> FiberBuilder<T> {
     pub fn name(&self, name: &str) -> &Self {
         self.builder.borrow_mut().name(name);
 
         self
     }
 
-    pub fn to(&self, ticker: &TickerBuilder<T>, on_fiber: Box<FiberFn<T>>) -> &Self {
+    pub fn to(&self, ticker: &TickerBuilder<T>, on_fiber: Box<OnFiberFn<T>>) -> &Self {
         ticker.on_fiber(self, on_fiber);
 
         self
@@ -180,177 +280,64 @@ impl<T:Clone> FiberBuilder<T> {
     }
 }
 
-struct FiberBuilderImpl<T>
-{
-    parent: Rc<RefCell<TickerBuilderData>>,
+impl<T:Clone + 'static> FiberBuilderInner<T> {
+    fn new(ticker_ref: &TickerBuilderRef<T>)->FiberBuilderRef<T> {
+        let ticker = ticker_ref.borrow();
+        let system_ref = &ticker.system;
+        let mut system = system_ref.borrow_mut();
 
-    id: usize,
+        assert!(! system.is_built);
 
-    name: Option<String>,
+        let id = system.fibers.len();
 
-    //to: Vec<FiberToBind<T>>,
-    to: Vec<(usize,usize)>,
-
-    fiber_ref: Option<Rc<RefCell<FiberImpl<T>>>>,
-}
-
-impl<T:Clone> FiberBuilderImpl<T> {
-    fn new(parent: &Rc<RefCell<TickerBuilderData>>)->Self {
-        assert!(! parent.borrow().is_built);
-
-        Self {
-            parent: Rc::clone(&parent),
-            id: parent.borrow_mut().next_fiber_id(),
+        let fiber = Rc::new(RefCell::new(Self {
+            id: id,
             name: None,
+            from_ticker: Rc::clone(ticker_ref),
             to: Vec::new(),
+            system: Rc::clone(system_ref),
+
             fiber_ref: None,
-        }
+        }));
+
+        system.fibers.push(Rc::clone(&fiber));
+
+        fiber
     }
     
     fn name(&mut self, name: &str) {
         self.name = Some(String::from(name));
     }
-
-    fn fiber_id(&self) -> FiberId {
-        let name = match &self.name {
-            Some(name) => name.clone(),
-            None => format!("fiber-{}", self.id),
-        };
-
-        FiberId {
-            id: self.id,
-            name: name,
-        }
-    }
     
-    fn to(&mut self, ticker_i: usize, on_fiber_i: usize) {
-        self.to.push((ticker_i, on_fiber_i));
+    fn to(&mut self, to_ticker_id: usize, on_fiber: usize) -> ToTicker<T> {
+        let to_ticker = self.from_ticker.borrow_mut().to_ticker(to_ticker_id);
+
+        self.to.push((to_ticker.clone(), on_fiber));
+
+        to_ticker
+    }
+
+    fn from_ticker_id(&self) -> usize {
+        self.from_ticker.borrow().id
     }
 
     fn fiber(&self) -> Fiber<T> {
         match &self.fiber_ref {
-            Some(fiber) => {
-                new_fiber(fiber)
-            }
+            Some(fiber) => { fiber.clone() },
             None => {
                 panic!("fiber() is not available because the system is not built yet");
             }
         }
     }
 
-    fn build(&mut self, system: &mut TickerSystemBuilder<T>) {
+    fn build(&mut self) {
         let name = match &self.name {
             Some(name) => name.clone(),
             None => format!("fiber-{}", self.id),
         };
 
-        let mut fiber_vec : Vec<(Ticker<T>, usize)> = Vec::new();
+        let fiber = Fiber::new(self.id, name, self.to.drain(..).collect());
 
-        for (ticker_i, on_fiber_i) in self.to.drain(..) {
-            let ticker = system.get_ticker(ticker_i);
-
-            fiber_vec.push((ticker, on_fiber_i));
-        }
-
-        let fiber = FiberImpl::new(self.id, name, fiber_vec);
-
-        self.fiber_ref = Some(Rc::new(RefCell::new(fiber)));
-    }
-}
-
-pub struct TickerSystemBuilder<T:Clone> {
-    data: Rc<RefCell<TickerBuilderData>>,
-
-    tickers: Vec<Rc<RefCell<TickerBuilderImpl<T>>>>,
-    fibers: Vec<Rc<RefCell<FiberBuilderImpl<T>>>>,
-
-    //fiber_build: Vec<Box<dyn Builder>>,
-    //fiber_build: Vec<Box<dyn FnMut ()>>,
-}
-
-impl<T:Clone> TickerSystemBuilder<T> {
-    pub fn new() -> TickerSystemBuilder<T> {
-        let data = Rc::new(RefCell::new(TickerBuilderData {
-            is_built: false,
-            ticker_id: 0,
-            fiber_id: 0,
-        }));
-
-        let mut builder = Self {
-            data: data,
-            tickers: Vec::new(),
-            fibers: Vec::new(),
-      //      fiber_build: Vec::new(),
-        };
-
-        builder.ticker().name("essay::system");
-        builder.fiber().name("essay::system");
-
-        //let fiber2 = builder.fiber().name("test");
-
-        builder
-    }
-
-    fn fiber_id(&self, fiber_i: usize) -> FiberId {
-        self.fibers[fiber_i].borrow().fiber_id()
-    }
-
-    pub fn fiber(&mut self) -> FiberBuilder<T> {
-        assert!(! self.data.borrow().is_built);
-
-        let fiber = Rc::new(RefCell::new(FiberBuilderImpl::new(&self.data)));
-        
-        self.fibers.push(fiber.clone());
-
-        FiberBuilder {
-            builder: fiber,
-        }
-    }
-
-    pub fn ticker(&mut self) -> TickerBuilder<T> {
-        assert!(! self.data.borrow().is_built);
-
-        let ticker = Rc::new(RefCell::new(TickerBuilderImpl::new(&self.data)));
-
-        self.tickers.push(ticker.clone());
-
-        TickerBuilder {
-            builder: ticker,
-        }
-    }
-
-    fn get_ticker(&self, ticker_i: usize) -> Ticker<T> {
-        self.tickers[ticker_i].borrow().ticker()
-    }
-
-    pub fn build(&mut self) -> TickerSystem<T> {
-        self.data.borrow_mut().build();
-
-        let mut ticker_builders : Vec<TickerBuilderShared<T>> = self.tickers.clone();
-
-        //let mut on_tickers: Vec<Rc<RefCell<TickerImpl<T>>>> = Vec::new();
-
-        /*
-        for ticker in self.tickers.drain(..) {
-            ticker_builders.push(ticker);
-        }
-        */
-
-        let mut tickers: Vec<Ticker<T>> = Vec::new();
-        for ticker_builder in ticker_builders {
-            let mut ticker_impl = ticker_builder.borrow_mut();
-            // let ticker: Rc<RefCell<TickerImpl<T>>> = builder_impl.build();
-
-            tickers.push(ticker_impl.build(self));
-        }
-
-        //let mut fiber_builders : Vec<FiberBuilderShared<T>> = self.fibers.drain(..).collect();
-        let mut fiber_builders : Vec<FiberBuilderShared<T>> = self.fibers.clone();
-
-        for mut fiber_build in fiber_builders {
-            fiber_build.borrow_mut().build(self);
-        }
-
-        TickerSystemImpl::new(tickers)
+        self.fiber_ref = Some(fiber);
     }
 }

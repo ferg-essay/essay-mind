@@ -1,9 +1,9 @@
-mod thread;
+mod system;
 mod ticker;
 mod builder;
 mod fiber;
 
-pub use self::fiber::{FiberId, Fiber, FiberFn};
-pub use self::ticker::{Ticker, TickerSystem};
-pub use self::builder::{FiberBuilder, TickerBuilder, TickerSystemBuilder};
-pub use self::thread::test_thread;
+pub use self::fiber::{Fiber, OnFiberFn};
+//pub use self::ticker::{Ticker;
+pub use self::builder::{FiberBuilder, TickerBuilder, SystemBuilder};
+pub use self::system::{TickerSystem,test_thread};
