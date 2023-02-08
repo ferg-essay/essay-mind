@@ -154,12 +154,30 @@ impl<T:Clone + 'static> TickerBuilder<T> {
         self
     }
 
-    pub fn on_fiber(&self, fiber: &FiberBuilder<T>, on_fiber: Box<OnFiberFn<T>>) -> &Self {
+    pub fn on_fiber(&self, fiber: &mut FiberBuilder<T>, on_fiber: Box<OnFiberFn<T>>) -> &Self {
         assert!(! self.builder.borrow().is_built());
 
-        self.builder.borrow_mut().on_fiber(&fiber.builder, on_fiber);
+        let to_ticker_id = self.builder.borrow().id;
+        let to = fiber.to_ticker(to_ticker_id);
+
+        let on_fiber_id = self.add_fiber(on_fiber);
+
+        /*
+        let mut fiber_inner = fiber.builder.borrow_mut();
+        let mut from_ticker = fiber_inner.from_ticker.borrow_mut();
+        */
+
+
+        //let from_ticker = fiber.to(to_ticker, on_fiber_id);
+
+
+        fiber.builder.borrow_mut().to(to, on_fiber_id);
 
         self
+    }
+
+    fn add_fiber(&self, on_fiber: Box<OnFiberFn<T>>) -> usize {
+        self.builder.borrow_mut().on_fiber(on_fiber)
     }
 }
 
@@ -194,18 +212,25 @@ impl<T:Clone + 'static> TickerBuilderInner<T> {
         self.on_tick = Some(on_tick);
     }
 
-    fn on_fiber(&mut self, fiber_ref: &FiberBuilderRef<T>, on_fiber: Box<OnFiberFn<T>>) {
+    fn on_fiber(&mut self, on_fiber: Box<OnFiberFn<T>>) -> usize {
         assert!(! self.is_built());
-
-        let mut fiber = fiber_ref.borrow_mut();
 
         let on_fiber_id = self.on_fibers.len();
 
         self.on_fibers.push(on_fiber);
 
-        let from_ticker = fiber.to(self.id, on_fiber_id);
+        //let to_ticker = self.from_ticker.borrow_mut().to_ticker(to_ticker_id);
+/*
+        let to_ticker = from_ticker.to_ticker(self.id);
 
-        match &self.from_tickers.iter().filter(|from_ticker| from_ticker.from_ticker == self.id).next() {
+        let from_ticker = fiber.to(to_ticker, on_fiber_id);
+        */
+
+        on_fiber_id
+    }
+
+    fn add_from(&mut self, from_ticker: &ToTicker<T>) {
+        match self.from_tickers.iter().filter(|from_ticker| from_ticker.from_ticker == self.id).next() {
             Some(to_ticker) => {},
             None => { self.from_tickers.push(from_ticker.clone()); }
         }
@@ -219,10 +244,7 @@ impl<T:Clone + 'static> TickerBuilderInner<T> {
                     self.id, 
                     to_ticker_id, 
                     &PanicToThread::new(
-                        &format!("ticker {}->{} is not initialized.",
-                            self.id,
-                            to_ticker_id
-                        )
+                        &format!("{}->{}", self.id, to_ticker_id)
                     ),
                 );
 
@@ -269,10 +291,19 @@ impl<T:Clone + 'static> FiberBuilder<T> {
         self
     }
 
-    pub fn to(&self, ticker: &TickerBuilder<T>, on_fiber: Box<OnFiberFn<T>>) -> &Self {
+    pub fn to(&mut self, ticker: &TickerBuilder<T>, on_fiber: Box<OnFiberFn<T>>) -> &Self {
         ticker.on_fiber(self, on_fiber);
 
         self
+    }
+
+    fn from_ticker(&self) -> TickerBuilderRef<T> {
+         self.builder.borrow().from_ticker.clone()
+    }
+
+    fn to_ticker(&mut self, to_ticker_id: usize) -> ToTicker<T>
+    {
+        return self.from_ticker().borrow_mut().to_ticker(to_ticker_id);
     }
 
     pub fn fiber(&self) -> Fiber<T> {
@@ -309,12 +340,10 @@ impl<T:Clone + 'static> FiberBuilderInner<T> {
         self.name = Some(String::from(name));
     }
     
-    fn to(&mut self, to_ticker_id: usize, on_fiber: usize) -> ToTicker<T> {
-        let to_ticker = self.from_ticker.borrow_mut().to_ticker(to_ticker_id);
+    fn to(&mut self, to_ticker: ToTicker<T>, on_fiber: usize) {
+        //let to_ticker = self.from_ticker.borrow_mut().to_ticker(to_ticker_id);
 
-        self.to.push((to_ticker.clone(), on_fiber));
-
-        to_ticker
+        self.to.push((to_ticker, on_fiber));
     }
 
     fn from_ticker_id(&self) -> usize {

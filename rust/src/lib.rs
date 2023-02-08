@@ -113,7 +113,7 @@ impl TickerBuilderRust {
 
     }
 
-    fn on_fiber(&mut self, fiber: &FiberKeyBuilderRust, on_fiber_py: &PyAny) {
+    fn on_fiber(&mut self, fiber: &mut FiberKeyBuilderRust, on_fiber_py: &PyAny) {
         let on_fiber = FnWrapper { cb: on_fiber_py.into() };
         
         let fun: Box<OnFiberFn<KeyArgs>> = Box::new(
@@ -121,7 +121,7 @@ impl TickerBuilderRust {
             on_fiber.call(from_ticker, &args.0, args.1, args.2)
         );
 
-        self.builder.on_fiber(&fiber.builder, Box::new(fun));
+        self.builder.on_fiber(&mut fiber.builder, Box::new(fun));
     }
 }
 
