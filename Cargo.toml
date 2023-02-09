@@ -7,17 +7,16 @@ publish=false
 [lib]
 name = "essaymind"
 crate-type = ["cdylib"]
-path = "rust/src/lib.rs"
+path = "crates/src/lib.rs"
 
 [dependencies]
-pyo3 = { version = "0.18.1", features = ["extension-module"] }
 env_logger = { version = "0.10.0" }
 log = { version = "0.4.17" }
-ticker = { path = "rust/ticker"}
+ticker = { path = "crates/ticker"}
 
 [workspace]
 members = [
-    "rust/ticker",
+    "crates/ticker",
 ]
 
 [package.metadata.maturin]
