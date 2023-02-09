@@ -1,0 +1,24 @@
+[package]
+name = "essaymind"
+version = "0.1.0"
+edition = "2021"
+publish=false
+
+[lib]
+name = "essaymind"
+crate-type = ["cdylib"]
+path = "rust/src/lib.rs"
+
+[dependencies]
+pyo3 = { version = "0.18.1", features = ["extension-module"] }
+env_logger = { version = "0.10.0" }
+log = { version = "0.4.17" }
+ticker = { path = "rust/ticker"}
+
+[workspace]
+members = [
+    "rust/ticker",
+]
+
+[package.metadata.maturin]
+name="essaymind._essaymind"
