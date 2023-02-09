@@ -2,7 +2,7 @@ import logging
 import unittest
 
 from essaymind import FiberKeyValue
-from essaymind._essaymind import TickerSystemBuilderRust
+from essaymind._essaymind import TickerSystemBuilderRust, ticks
 
 logging.basicConfig(level=logging.DEBUG,
                     format='%(levelname)-5s:%(name)-10s: %(message)s')
@@ -11,9 +11,37 @@ log = logging.getLogger("Test")
 
 class TickerTest(unittest.TestCase):
 
-    def test_basic(self):
-        log.info("test")
+    def test_one(self):
+        system_builder = TickerSystemBuilderRust()
 
+        test_a = TestTicker("a")
+        ticker_a = system_builder.ticker("a")
+        ticker_a.on_tick(test_a.ticks)
+
+        log.info(ticks())
+        assert ticks() == 0
+
+        log.info(str(test_a))
+        assert test_a.take() == "a[]"
+
+        system = system_builder.build()
+        assert ticks() == 0
+        assert test_a.take() == "a[]"
+
+        system.tick()
+        assert ticks() == 1
+        log.info(str(test_a))
+        assert test_a.take() == "a['a-ticks(1,1)']"
+
+        system.tick()
+        system.tick()
+        system.tick()
+        assert ticks() == 4
+        log.info(str(test_a))
+        assert test_a.take() == "a['a-ticks(2,2)', 'a-ticks(3,3)', 'a-ticks(4,4)']"
+        pass
+
+    def xtest_multi(self):
         system_builder = TickerSystemBuilderRust()
         log.info(system_builder)
 
@@ -77,17 +105,27 @@ class TickerTest(unittest.TestCase):
 class TestTicker:
     def __init__(self, name):
         self.name = name
-        self.count = 0
-        self.value = None
+        self.values = []
+
+    def build(self):
+        self.values.append(f"{self.name}-build")
 
     def tick(self, ticks):
-        self.count += 2
-        self.value = f"{self.name}-Ticker ticks={ticks} count={self.count}"
+        self.values.append(f"{self.name}-tick({ticks})")
+
+    def tick2(self, ticks):
+        self.values.append(f"{self.name}-tick2({ticks})")
+
+    def ticks(self, n_ticks):
+        self.values.append(f"{self.name}-ticks({n_ticks},{ticks()})")
 
     def take(self):
-        value = self.value
-        self.value = None
+        value = str(self)
+        self.values = []
         return value
+
+    def __str__(self):
+        return f"{self.name}{self.values}"
 
 if __name__ == "__main__":
     unittest.main()

@@ -2,8 +2,9 @@
 /// 
 /// 
 
-use std::{rc::Rc, sync::{Arc, RwLock, Mutex}, fmt};
+use std::{rc::Rc, sync::{Arc, RwLock, Mutex}, fmt, cell::RefCell};
 use std::sync::mpsc;
+use std::thread;
 
 use crate::ticker::{TickerInner, ToTicker};
 //extern crate env_logger;
@@ -13,6 +14,8 @@ use crate::ticker::{TickerInner, ToTicker};
 type ThreadRef<T> = Arc<RwLock<ThreadInner<T>>>;
 
 pub type ToThreadRef<T> = Rc<Box<dyn ToThread<T>>>;
+
+thread_local!(static TICKS: RefCell<u64> = RefCell::new(0));
 
 pub struct TickerSystem<T> {
     ticks: u64,
@@ -174,6 +177,16 @@ impl<T:'static> TickerThread<T> {
     }
 }
 
+pub fn ticks() -> u64 {
+    let mut ticks: u64 = 0;
+
+    TICKS.with(|f| {
+        ticks = *f.borrow();
+    });
+
+    ticks
+}
+
 impl<T:'static> ThreadInner<T> {
     fn new(
         system: &mut TickerSystem<T>, 
@@ -286,6 +299,8 @@ impl<T:'static> ThreadInner<T> {
     }
 
     fn tick(&self, ticks: u64) {
+        self.set_ticks(ticks);
+
         self.receive();
 
         self.on_ticks(ticks);
@@ -302,6 +317,12 @@ impl<T:'static> ThreadInner<T> {
                 )
             }
         }
+    }
+
+    fn set_ticks(&self, ticks: u64) {
+        TICKS.with(|f| {
+            *f.borrow_mut() = ticks;
+        });
     }
 
     fn on_build(&self) {

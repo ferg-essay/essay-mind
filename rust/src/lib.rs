@@ -14,7 +14,13 @@ struct FnWrapper {
 impl FnWrapper {
     fn call(&self, id: usize, key: &String, value: f32, p: f32) {
         match Python::with_gil(|py|->PyResult<Py<PyAny>> {
-            self.cb.call1(py, (id, key, value, p))
+            match self.cb.call1(py, (id, key, value, p)) {
+                Ok(_v) => { Ok(_v) }
+                Err(err) => {
+                    err.print(py);
+                    Err(err)
+                }
+            }
         }) {
             Ok(_v) => { }
             Err(err) => { panic!("{}", err); }
@@ -30,7 +36,6 @@ pub struct FiberKeyRust {
 #[pymethods]
 impl FiberKeyRust {
    fn __call__(&self, key:String, value : f32, p : f32) {
-        info!("call {}", key);
         self.fiber.send((key, value, p));
    }
 
@@ -84,8 +89,14 @@ struct OnTickWrapper {
 impl OnTickWrapper {
     fn call(&self, ticks: u64) {
         match Python::with_gil(|py|->PyResult<Py<PyAny>> {
-            self.on_tick.call1(py, (ticks, ))
-        }) {
+            match self.on_tick.call1(py, (ticks, )) {
+                Ok(_v) => { Ok(_v) }
+                Err(err) => {
+                    err.print(py);
+                    Err(err)
+                }
+            }
+    }) {
             Ok(_v) => { }
             Err(err) => { panic!("{}", err); }
         }
@@ -98,10 +109,18 @@ struct OnBuildWrapper {
 impl OnBuildWrapper {
     fn call(&self) {
         match Python::with_gil(|py|->PyResult<Py<PyAny>> {
-            self.on_build.call0(py)
+            match self.on_build.call0(py) {
+                Ok(_v) => { Ok(_v) }
+                Err(err) => {
+                    err.print(py);
+                    Err(err)
+                }
+            }
         }) {
             Ok(_v) => { }
-            Err(err) => { panic!("{}", err); }
+            Err(err) => { 
+                panic!("python error {}", err);
+             }
         }
     }
 }
@@ -144,7 +163,7 @@ impl TickerBuilderRust {
             move |from_ticker: usize, args: KeyArgs| 
             on_fiber.call(from_ticker, &args.0, args.1, args.2)
         );
-        info!("on_fiber");
+
         self.builder.on_fiber(&mut fiber.builder, Box::new(fun));
     }
 }
@@ -213,6 +232,11 @@ fn test_thread_py()
     test_thread();
 }
 
+#[pyfunction]
+fn ticks() -> u64 {
+    ticker::ticks()
+}
+
 /// A Python module implemented in Rust.
 #[pymodule]
 fn _essaymind(_py: Python, m: &PyModule) -> PyResult<()> {
@@ -222,13 +246,10 @@ fn _essaymind(_py: Python, m: &PyModule) -> PyResult<()> {
     )
     .format_timestamp(None)
     .init();
-    info!("logging-more");
-    //log!("logging");
 
-
-
-    m.add_function(wrap_pyfunction!(test_thread_py, m)?)?;
     m.add_class::<TickerSystemBuilderRust>()?;
+    m.add_function(wrap_pyfunction!(test_thread_py, m)?)?;
+    m.add_function(wrap_pyfunction!(ticks, m)?)?;
 
     Ok(())
 }

@@ -120,7 +120,12 @@ class TestTicker:
         self.values = []
 
     def build(self):
+        self.err()
         self.values.append(f"{self.name}-build")
+
+    def err(self):
+        v = 3
+        v()
 
     def build2(self):
         self.values.append(f"{self.name}-build2")
