@@ -1,6 +1,6 @@
 use pyo3::prelude::*;
 
-use ticker::{TickerSystem, SystemBuilder, Fiber, FiberBuilder, TickerBuilder, OnFiberFn};
+use ticker::{TickerSystem, SystemBuilder, Fiber, FiberBuilder, TickerBuilder, OnFiber};
 use ticker::test_thread;
 extern crate env_logger;
 use log::info;
@@ -91,6 +91,20 @@ impl OnTickWrapper {
         }
     }
 }
+struct OnBuildWrapper {
+    on_build : Py<PyAny>,
+}
+
+impl OnBuildWrapper {
+    fn call(&self) {
+        match Python::with_gil(|py|->PyResult<Py<PyAny>> {
+            self.on_build.call0(py)
+        }) {
+            Ok(_v) => { }
+            Err(err) => { panic!("{}", err); }
+        }
+    }
+}
 
 #[pymethods]
 impl TickerBuilderRust {
@@ -109,6 +123,13 @@ impl TickerBuilderRust {
         Ok(fiber)
     }
 
+    fn on_build(&mut self, on_build_py: &PyAny) {
+        let on_build = OnBuildWrapper { on_build: on_build_py.into(), };
+        
+        self.builder.on_build(Box::new(move || on_build.call()));
+
+    }
+
     fn on_tick(&mut self, on_tick_py: &PyAny) {
         let on_tick = OnTickWrapper { on_tick: on_tick_py.into(), };
         
@@ -119,7 +140,7 @@ impl TickerBuilderRust {
     fn on_fiber(&mut self, fiber: &mut FiberKeyBuilderRust, on_fiber_py: &PyAny) {
         let on_fiber = FnWrapper { cb: on_fiber_py.into() };
         
-        let fun: Box<OnFiberFn<KeyArgs>> = Box::new(
+        let fun: Box<OnFiber<KeyArgs>> = Box::new(
             move |from_ticker: usize, args: KeyArgs| 
             on_fiber.call(from_ticker, &args.0, args.1, args.2)
         );

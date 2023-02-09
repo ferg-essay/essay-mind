@@ -39,9 +39,38 @@ class TickerTest(unittest.TestCase):
         ticker_none = system_builder.ticker()
 
         system = system_builder.build()
+
+        assert test_a.take() == None
+        assert test_b.take() == None
+        assert test_b1.take() == None
+        assert test_b_nil.take() == None
         
         system.tick()
+
+        log.debug(test_a.value)
+        assert test_a.take() == "a-Ticker ticks=1 count=2"
+        log.debug(test_b.value)
+        assert test_b.take() == "b-Ticker ticks=1 count=2"
+        log.debug(test_b1.value)
+        assert test_b1.take() == "b1-Ticker ticks=1 count=2"
+        log.debug(test_b_nil.value)
+        assert test_b_nil.take() == "b_nil-Ticker ticks=1 count=2"
+
+        assert test_a.take() == None
+        assert test_b.take() == None
+        assert test_b1.take() == None
+        assert test_b_nil.take() == None
+        
         system.tick()
+
+        log.debug(test_a.value)
+        assert test_a.take() == "a-Ticker ticks=2 count=4"
+        log.debug(test_b.value)
+        assert test_b.take() == "b-Ticker ticks=2 count=4"
+        log.debug(test_b1.value)
+        assert test_b1.take() == "b1-Ticker ticks=2 count=4"
+        log.debug(test_b_nil.value)
+        assert test_b_nil.take() == "b_nil-Ticker ticks=2 count=4"
 
         pass
 
@@ -49,10 +78,16 @@ class TestTicker:
     def __init__(self, name):
         self.name = name
         self.count = 0
+        self.value = None
 
     def tick(self, ticks):
         self.count += 2
-        print(f"{self.name}-Ticker ticks={ticks} count={self.count}")
+        self.value = f"{self.name}-Ticker ticks={ticks} count={self.count}"
+
+    def take(self):
+        value = self.value
+        self.value = None
+        return value
 
 if __name__ == "__main__":
     unittest.main()

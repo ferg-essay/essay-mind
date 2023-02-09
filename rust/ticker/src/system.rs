@@ -106,6 +106,7 @@ impl<T:'static> TickerSystem<T> {
             system.assign_ticker(main.id, ticker);
         }
 
+        system.on_build();
 
         system
     }
@@ -142,6 +143,10 @@ impl<T:'static> TickerSystem<T> {
 
         self.threads[1].tick(self.ticks);
     }
+
+    fn on_build(&mut self) {
+        self.threads[1].on_build();
+    }
 }
 
 impl<T:'static> TickerThread<T> {
@@ -162,6 +167,10 @@ impl<T:'static> TickerThread<T> {
 
     fn tick(&mut self, ticks: u64) {
         self.ptr.write().unwrap().tick(ticks);
+    }
+
+    fn on_build(&mut self) {
+        self.ptr.write().unwrap().on_build();
     }
 }
 
@@ -291,6 +300,14 @@ impl<T:'static> ThreadInner<T> {
                     self,
                     ticker_id
                 )
+            }
+        }
+    }
+
+    fn on_build(&self) {
+        for ticker_opt in &self.tickers {
+            if let Some(ticker) = ticker_opt {
+                ticker.on_build();
             }
         }
     }

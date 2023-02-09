@@ -6,7 +6,7 @@ use std::{fmt, cell::RefCell, rc::Rc, error::Error};
 
 use crate::{ticker::{ToTicker, ToTickerRef}, system::ToThreadRef};
 
-pub type OnFiberFn<T> = dyn Fn(usize, T)->() + Send;
+pub type OnFiber<T> = dyn Fn(usize, T)->() + Send;
 type FiberRef<T> = Rc<Box<dyn FiberInner<T>>>;
 
 /// Message channel to `Ticker` targets, where each target is

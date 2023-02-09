@@ -1,41 +1,33 @@
 //! Single ticking node
 
-//use log::info;
-
-use crate::{fiber::*, TickerSystem};
+use crate::{fiber::*};
 use crate::system::{ToThreadRef, ThreadInner};
 
 //use log::{log};
 
 use std::cell::RefCell;
-use std::sync::Arc;
 use std::{fmt, rc::Rc};
 
-pub type TickFn = dyn Fn(u64)->() + Send;
+pub type OnBuild = dyn Fn()->() + Send;
+pub type OnTick = dyn Fn(u64)->() + Send;
 
-//pub type TickerRef<T> = Arc<RwLock<TickerInner<T>>>;
 pub type ToTickerRef<T> = Rc<RefCell<ToTickerInner<T>>>;
 
 pub struct Ticker {
     pub id: usize,
     pub name: String,
-
-    //group: ThreadGroupShared<T>,
-
-    //ticker_ref: TickerRef<T>,
 }
 
 pub struct TickerInner<T> {
     pub id: usize,
     name: String,
 
-    pub(crate) thread_id: usize,
-
     to_tickers: Vec<ToTicker<T>>,
     from_tickers: Vec<ToTicker<T>>,
 
-    pub on_tick: Option<Box<TickFn>>,
-    on_fiber: Vec<Box<OnFiberFn<T>>>,
+    pub on_build: Option<Box<OnBuild>>,
+    pub on_tick: Option<Box<OnTick>>,
+    on_fiber: Vec<Box<OnFiber<T>>>,
 }
 
 
@@ -96,16 +88,17 @@ impl<T:'static> TickerInner<T> {
         name: String,
         to_tickers: Vec<ToTicker<T>>,
         from_tickers: Vec<ToTicker<T>>,
-        on_tick: Option<Box<TickFn>>,
-        on_fibers: Vec<Box<OnFiberFn<T>>>
+        on_tick: Option<Box<OnTick>>,
+        on_build: Option<Box<OnBuild>>,
+        on_fibers: Vec<Box<OnFiber<T>>>
     ) -> TickerInner<T> {
         TickerInner {
             id,
             name: name,
-            thread_id: 0,
             to_tickers: to_tickers,
             from_tickers: from_tickers,
-            on_tick : on_tick,
+            on_tick,
+            on_build,
             on_fiber: on_fibers,
         }
     }
@@ -137,6 +130,12 @@ impl<T:'static> TickerInner<T> {
         match &self.on_tick {
             Some(on_tick) => on_tick(ticks),
             None => panic!("{}.tick called but no on_tick was defined.", self),
+        }
+    }
+
+    pub fn on_build(&self) {
+        if let Some(on_build) = &self.on_build {
+            on_build();
         }
     }
 
