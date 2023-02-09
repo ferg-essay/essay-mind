@@ -1,3 +1,0 @@
-CARGO_LOG=cargo::core::compiler::fingerprint=info
-PYO3_ENVIRONMENT_SIGNATURE=cpython-3.10-64bit
-
