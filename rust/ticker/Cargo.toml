@@ -3,5 +3,7 @@ name = "ticker"
 version = "0.1.0"
 edition = "2021"
 
-[lib]
-name = "ticker"
+[dependencies]
+log = { version = "0.4.17" }
+env_logger = { version = "0.10.0" }
+

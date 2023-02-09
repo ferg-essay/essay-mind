@@ -1,5 +1,7 @@
 use std::{cell::RefCell, rc::Rc, sync::{Mutex, Arc}};
 
+//use log::info;
+
 use crate::{fiber::*, ticker::*, system::{TickerSystem, PanicToThread}};
 
 type SystemBuilderRef<T> = Rc<RefCell<SystemBuilderInner<T>>>;
@@ -76,10 +78,8 @@ impl<T:Clone + 'static> SystemBuilder<T> {
             builder: builder_ref,
         };
 
-        let mut ticker = builder.ticker();
-        ticker.name("essay::system");
-        let fiber = ticker.fiber();
-        fiber.name("essay::system");
+        let ticker = builder.ticker();
+        ticker.name("essay::external");
 
         builder
     }
@@ -89,13 +89,32 @@ impl<T:Clone + 'static> SystemBuilder<T> {
 
         let ticker: TickerBuilderRef<T> = TickerBuilderInner::new(&self.builder);
 
-        let mut builder = self.builder.borrow_mut();
+        //let mut builder = self.builder.borrow_mut();
 
-        builder.tickers.push(Rc::clone(&ticker));
+        //builder.tickers.push(Rc::clone(&ticker));
 
         TickerBuilder {
             builder: ticker,
         }
+    }
+
+    /// fiber from an external source
+    pub fn external_fiber(&mut self) -> FiberBuilder<T> {
+        //let system = self.builder.borrow();
+
+        //assert!(! system.is_built);
+
+        //let ticker = Rc::clone(&system.tickers[0]);
+
+        FiberBuilderInner::new(&self.external_ticker())
+    }
+
+    fn external_ticker(&self) -> TickerBuilderRef<T> {
+        let system = self.builder.borrow();
+
+        assert!(! system.is_built);
+
+        Rc::clone(&system.tickers[0])
     }
 
     pub fn build(&mut self) -> TickerSystem<T> {
@@ -110,7 +129,7 @@ impl<T:Clone + 'static> SystemBuilderInner<T> {
         assert!(! self.is_built);
         self.is_built = true;
 
-        let mut tickers: Vec<TickerRef<T>> = Vec::new();
+        let mut tickers: Vec<TickerInner<T>> = Vec::new();
         for ticker_ref in self.tickers.drain(..) {
             tickers.push(ticker_ref.borrow_mut().build());
         }
@@ -137,13 +156,7 @@ impl<T:Clone + 'static> TickerBuilder<T> {
     pub fn fiber(&mut self) -> FiberBuilder<T> {
         assert!(! self.builder.borrow().is_built());
 
-        let fiber: FiberBuilderRef<T> = FiberBuilderInner::new(&self.builder);
-        
-        //self.ticker.borrow().fibers.push(Rc::clone(&fiber));
-
-        FiberBuilder {
-            builder: fiber,
-        }
+        FiberBuilderInner::new(&self.builder)
     }
 
     pub fn on_tick(&self, on_tick: Box<TickFn>) -> &Self {
@@ -162,6 +175,7 @@ impl<T:Clone + 'static> TickerBuilder<T> {
 
         let on_fiber_id = self.add_fiber(on_fiber);
 
+        fiber.on_fiber(to_ticker_id, on_fiber_id);
         /*
         let mut fiber_inner = fiber.builder.borrow_mut();
         let mut from_ticker = fiber_inner.from_ticker.borrow_mut();
@@ -169,9 +183,7 @@ impl<T:Clone + 'static> TickerBuilder<T> {
 
 
         //let from_ticker = fiber.to(to_ticker, on_fiber_id);
-
-
-        fiber.builder.borrow_mut().to(to, on_fiber_id);
+        self.builder.borrow_mut().add_from(&to);
 
         self
     }
@@ -259,7 +271,7 @@ impl<T:Clone + 'static> TickerBuilderInner<T> {
         self.system.borrow().is_built
     }
 
-    fn build(&mut self) -> TickerRef<T> {
+    fn build(&mut self) -> TickerInner<T> {
         // assert!(match self.ticker_ref { None=>true, _=> false });
 
         let name = match &self.name {
@@ -301,9 +313,14 @@ impl<T:Clone + 'static> FiberBuilder<T> {
          self.builder.borrow().from_ticker.clone()
     }
 
-    fn to_ticker(&mut self, to_ticker_id: usize) -> ToTicker<T>
-    {
+    fn to_ticker(&mut self, to_ticker_id: usize) -> ToTicker<T> {
         return self.from_ticker().borrow_mut().to_ticker(to_ticker_id);
+    }
+
+    fn on_fiber(&mut self, to_ticker_id: usize, on_fiber: usize) {
+        let to_ticker = self.to_ticker(to_ticker_id);
+
+        return self.builder.borrow_mut().to(to_ticker, on_fiber);
     }
 
     pub fn fiber(&self) -> Fiber<T> {
@@ -312,7 +329,7 @@ impl<T:Clone + 'static> FiberBuilder<T> {
 }
 
 impl<T:Clone + 'static> FiberBuilderInner<T> {
-    fn new(ticker_ref: &TickerBuilderRef<T>)->FiberBuilderRef<T> {
+    fn new(ticker_ref: &TickerBuilderRef<T>)->FiberBuilder<T> {
         let ticker = ticker_ref.borrow();
         let system_ref = &ticker.system;
         let mut system = system_ref.borrow_mut();
@@ -333,7 +350,7 @@ impl<T:Clone + 'static> FiberBuilderInner<T> {
 
         system.fibers.push(Rc::clone(&fiber));
 
-        fiber
+        FiberBuilder { builder: fiber }
     }
     
     fn name(&mut self, name: &str) {

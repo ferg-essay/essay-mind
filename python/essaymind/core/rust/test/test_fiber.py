@@ -1,7 +1,7 @@
 import logging
 import unittest
 
-from essaymind import FiberKeyValue
+# from essay import FiberKeyValue
 from essaymind._essaymind import TickerSystemBuilderRust
 
 logging.basicConfig(level=logging.DEBUG,
@@ -19,22 +19,26 @@ class RustNodeTest(unittest.TestCase):
 
         ticker_a = system_builder.ticker("a")
         #fiber = builder.fiber_key("a")
-        fiber_builder = ticker_a.fiber("a")
+        fiber_builder = system_builder.external_fiber("a")
         ticker_a.on_fiber(fiber_builder, test_fn)
 
         #log.info(builder.fiber_key("b"))
 
+        ticker_a.on_tick(fn_on_tick)
         ticker_a.on_fiber(fiber_builder, test_fn)
         test = Test()
         ticker_a.on_fiber(fiber_builder, test.my_call)
-        system_builder.build()
+        system = system_builder.build()
+
         fiber = fiber_builder.fiber()
         log.info(fiber)
-
         my_call = test.my_call
         log.info(my_call)
 
         fiber("zorp", 1.3, 0.5)
+
+        system.tick()
+        system.tick()
 
         # node_life()
         pass
@@ -45,6 +49,9 @@ class Test:
 
 def test_fn(id, key, value, p):
     print(f"test {id} {key} {value} {p}")
+
+def fn_on_tick(ticks):
+    print(f"on_tick {ticks}")
 
 if __name__ == "__main__":
     unittest.main()

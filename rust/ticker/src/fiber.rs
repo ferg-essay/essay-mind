@@ -2,7 +2,9 @@
 
 use std::{fmt, cell::RefCell, rc::Rc, error::Error};
 
-use crate::{ticker::{TickerRef, ToTicker}, system::ToThreadRef};
+//use log::info;
+
+use crate::{ticker::{ToTicker, ToTickerRef}, system::ToThreadRef};
 
 pub type OnFiberFn<T> = dyn Fn(usize, T)->() + Send;
 type FiberRef<T> = Rc<Box<dyn FiberInner<T>>>;
@@ -96,13 +98,13 @@ impl<T> FiberInner<T> for FiberZero {
     }
 }
 
-impl<T:Clone> FiberInner<T> for FiberOne<T> {
+impl<T:Clone + 'static> FiberInner<T> for FiberOne<T> {
     fn send(&self, args: T) {
         self.to.send(self.on_fiber, args);
     }
 }
 
-impl<T:Clone> FiberInner<T> for FiberMany<T> {
+impl<T:Clone + 'static> FiberInner<T> for FiberMany<T> {
     fn send(&self, args: T) {
         for (to, on_fiber) in &self.to {
             to.send(*on_fiber, args.clone());

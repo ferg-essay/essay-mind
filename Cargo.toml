@@ -10,7 +10,9 @@ crate-type = ["cdylib"]
 path = "rust/src/lib.rs"
 
 [dependencies]
-pyo3 = { version = "0.18.0", features = ["extension-module"] }
+pyo3 = { version = "0.18.1", features = ["extension-module"] }
+env_logger = { version = "0.10.0" }
+log = { version = "0.4.17" }
 ticker = { path = "rust/ticker"}
 
 [workspace]
