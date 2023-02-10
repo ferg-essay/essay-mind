@@ -10,15 +10,15 @@ use std::io::Error;
 use std::result;
 use std::{fmt, rc::Rc};
 
-pub type OnBuild = dyn FnOnce()->();
-pub type OnTickFn = dyn FnMut(u64)->() + 'static;
+pub type OnBuild = dyn FnMut()->();
+pub type OnTickFn = dyn Fn(u64)->();
 
 pub type ToTickerRef<T> = Rc<RefCell<ToTickerInner<T>>>;
-type Result<T> = result::Result<T, Error>;
+pub type Result<T> = result::Result<T, Error>;
 
 pub trait Ticker {
-    fn tick(&mut self, ticks: u64) -> Result<()>;
-    fn build(&mut self) -> Result<()>;
+    fn tick(&mut self, ticks: u64);
+    fn build(&mut self);
 }
 
 pub struct TickerOuter {
@@ -33,8 +33,8 @@ pub struct TickerInner<T> {
     to_tickers: Vec<ToTicker<T>>,
     from_tickers: Vec<ToTicker<T>>,
 
-    pub on_build: Option<Box<OnBuild>>,
-    pub on_tick: Option<Box<OnTickFn>>,
+    pub on_build: Box<OnBuild>,
+    pub on_tick: Box<OnTickFn>,
     on_fiber: Vec<Box<OnFiber<T>>>,
 }
 
@@ -100,8 +100,8 @@ impl<T:'static> TickerInner<T> {
         name: String,
         to_tickers: Vec<ToTicker<T>>,
         from_tickers: Vec<ToTicker<T>>,
-        on_tick: Option<Box<OnTickFn>>,
-        on_build: Option<Box<OnBuild>>,
+        on_tick: Box<OnTickFn>,
+        on_build: Box<OnBuild>,
         on_fibers: Vec<Box<OnFiber<T>>>
     ) -> TickerInner<T> {
         TickerInner {
@@ -138,17 +138,12 @@ impl<T:'static> TickerInner<T> {
         ids
     }
 
-    pub fn tick(&mut self, ticks: u64) {
-        match &mut self.on_tick {
-            Some(on_tick) => on_tick(ticks),
-            None => panic!("{}.tick called but no on_tick was defined.", self),
-        }
+    pub fn tick(&self, ticks: u64) {
+        (self.on_tick)(ticks);
     }
 
     pub fn on_build(&mut self) {
-        if let Some(on_build) = self.on_build.take() {
-            on_build();
-        }
+        (self.on_build)();
     }
 
     pub fn send(&self, on_fiber: usize, from_ticker: usize, args: T) {

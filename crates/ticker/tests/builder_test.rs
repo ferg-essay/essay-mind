@@ -1,6 +1,4 @@
-use std::{rc::Rc, cell::RefCell};
-
-use ticker::SystemBuilder;
+use ticker::{SystemBuilder, Ticker};
 
 #[test]
 fn empty_build() {
@@ -9,87 +7,56 @@ fn empty_build() {
 }
 
 #[test]
-fn build_on_tick() {
+fn build_on_build_on_tick() {
     let mut builder = SystemBuilder::<i32>::new();
 
-    let counter = Rc::new(RefCell::new(TestCounter { value: 0 }));
-    let counter2 = Rc::clone(&counter);
+    let ticker = builder.ticker(TestAdder::new());
+    let counter_ptr = ticker.ptr();
+    
+    assert!(counter_ptr.borrow_mut().take() == "[]");
 
-    let ticker = builder.ticker();
-    ticker.on_tick(move |_ticks| counter.borrow_mut().update());
     let mut system = builder.build();
 
-    assert!(counter2.borrow().value == 0);
+    assert!(counter_ptr.borrow_mut().take() == "[\"build\"]");
     system.tick();
-    assert!(counter2.borrow().value == 1);
+
+    assert!(counter_ptr.borrow_mut().take() == "[\"tick(1)\"]");
     system.tick();
     system.tick();
-    assert!(counter2.borrow().value == 3);
+
+    assert!(counter_ptr.borrow_mut().take() == "[\"tick(2)\", \"tick(3)\"]");
 }
 
-struct TestCounter {
-    value: u64,
+struct TestAdder {
+    values: Vec<String>,
 }
 
-impl TestCounter {
-    fn update(&mut self) {
-        self.value += 1;
-    }
-}
-
-#[test]
-fn item_builder() {
-    let mut system = SystemBuilder::<i32>::new();
-
-    let item = TestItem { value: 0};
-    let test_builder = TestBuilder::new(&mut system, item);
-
-    let mut system = system.build();
-
-    system.tick();
-    print!("help\n");
-}
-
-struct TestBuilder<T> {
-    ptr: Rc<RefCell<TestBuilderInner<T>>>,
-}
-
-impl<T:Builder + 'static> TestBuilder<T> {
-    fn new(system: &mut SystemBuilder<i32>, item: T) -> Self {
-        let builder_ref = Rc::new(RefCell::new(TestBuilderInner { item }));
-
-        let builder_ref2 = builder_ref.clone();
-
-        let ticker = system.ticker();
-        ticker.on_build(move || builder_ref2.borrow_mut().build());
-
+impl TestAdder {
+    fn new() -> Self {
         Self {
-            ptr: builder_ref
+            values: Vec::new(),
         }
     }
-}
 
-struct TestBuilderInner<T> {
-    item: T,
-}
+    fn peek(&self) -> String {
+        format!("{:?}", self.values)
+    }
 
-impl<T:Builder> TestBuilderInner<T> {
-    fn build(&mut self) {
-        self.item.build();
+    fn take(&mut self) -> String {
+        let msg = self.peek();
+
+        self.values.drain(..);
+
+        msg
     }
 }
 
-trait Builder {
-    fn build(&mut self);
-}
+impl Ticker for TestAdder {
+    fn tick(&mut self, ticks: u64) {
+        self.values.push(format!("tick({})", ticks));
+    }
 
-
-struct TestItem {
-    value: i32,
-}
-
-impl Builder for TestItem {
     fn build(&mut self) {
-        self.value = 1;
+        self.values.push(format!("build"));
     }
 }

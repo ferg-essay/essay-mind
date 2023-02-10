@@ -269,12 +269,10 @@ impl<T:'static> ThreadInner<T> {
     fn assign_ticker(&mut self, ticker: TickerInner<T>) {
         let ticker_id = ticker.id;
 
-        if ticker.on_tick.is_some() {
-            self.on_ticks.push(ticker_id);
-        }
+        self.on_ticks.push(ticker_id);
 
+        assert!(self.tickers[ticker_id].is_none());
         self.tickers[ticker_id] = Some(ticker);
-
     }
 
     fn update_ticker(&self, ticker_id: usize) -> Vec<usize> {
@@ -301,9 +299,9 @@ impl<T:'static> ThreadInner<T> {
         self.on_ticks(ticks);
     }
 
-    fn on_ticks(&mut self, ticks: u64) {
-        for ticker_id in self.on_ticks.iter() {
-            match &mut self.tickers[*ticker_id] {
+    fn on_ticks(&self, ticks: u64) {
+        for ticker_id in &self.on_ticks {
+            match &self.tickers[*ticker_id] {
                 Some(ticker) => ticker.tick(ticks),
                 None => panic!(
                     "{} on_tick to ticker #{} but not assigned",
@@ -322,8 +320,8 @@ impl<T:'static> ThreadInner<T> {
 
     fn on_build(&mut self) {
         for ticker_opt in &mut self.tickers {
-            if ticker_opt.is_some() {
-                ticker_opt.take().expect("TODO").on_build();
+            if let Some(ticker) = ticker_opt {
+                ticker.on_build();
             }
         }
     }
