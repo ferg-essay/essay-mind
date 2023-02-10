@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc, fmt, error::Error};
+use std::{cell::RefCell, rc::Rc, fmt};
 
 use crate::{fiber::*, ticker::*, system::{TickerSystem, PanicToThread}};
 
