@@ -4,7 +4,6 @@
 
 use std::{rc::Rc, sync::{Arc, RwLock, Mutex}, fmt, cell::RefCell};
 use std::sync::mpsc;
-use std::thread;
 
 use crate::ticker::{TickerInner, ToTicker};
 //extern crate env_logger;
@@ -55,7 +54,7 @@ pub trait ToThread<T> {
 }
 
 struct ChannelToThread<T> {
-    name: String,
+    _name: String,
     to: mpsc::Sender<Message<T>>,
 }
 
@@ -294,11 +293,7 @@ impl<T:'static> ThreadInner<T> {
         Rc::clone(&self.to[thread_id])
     }
 
-    fn send(&self, thread_id: usize, to_ticker: usize, on_fiber: usize, from_ticker: usize, args: T) {
-        self.to[thread_id].send(to_ticker, on_fiber, from_ticker, args);
-    }
-
-    fn tick(&self, ticks: u64) {
+    fn tick(&mut self, ticks: u64) {
         self.set_ticks(ticks);
 
         self.receive();
@@ -306,9 +301,9 @@ impl<T:'static> ThreadInner<T> {
         self.on_ticks(ticks);
     }
 
-    fn on_ticks(&self, ticks: u64) {
+    fn on_ticks(&mut self, ticks: u64) {
         for ticker_id in self.on_ticks.iter() {
-            match &self.tickers[*ticker_id] {
+            match &mut self.tickers[*ticker_id] {
                 Some(ticker) => ticker.tick(ticks),
                 None => panic!(
                     "{} on_tick to ticker #{} but not assigned",
@@ -325,15 +320,15 @@ impl<T:'static> ThreadInner<T> {
         });
     }
 
-    fn on_build(&self) {
-        for ticker_opt in &self.tickers {
-            if let Some(ticker) = ticker_opt {
-                ticker.on_build();
+    fn on_build(&mut self) {
+        for ticker_opt in &mut self.tickers {
+            if ticker_opt.is_some() {
+                ticker_opt.take().expect("TODO").on_build();
             }
         }
     }
 
-    fn receive(&self) {
+    fn receive(&mut self) {
         let receiver = &self.receiver;
 
         for msg in receiver.try_iter() {
@@ -401,7 +396,7 @@ impl<T:'static> ChannelToThread<T> {
         assert!(id_to != 0);
 
         Rc::new(Box::new(Self {
-            name: format!("{}:{}->{}:{}", id, name, id_to, name_to),
+            _name: format!("{}:{}->{}:{}", id, name, id_to, name_to),
             to,
         }))
     }
@@ -449,7 +444,7 @@ impl PanicToThread {
 }
 
 impl<T> ToThread<T> for PanicToThread {
-    fn send(&self, to_ticker: usize, on_fiber: usize, from_ticker: usize, args: T) {
+    fn send(&self, to_ticker: usize, _on_fiber: usize, from_ticker: usize, _args: T) {
         panic!(
             "{} (Ticker #{} to Ticker #{})", 
             self.msg,

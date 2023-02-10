@@ -1,12 +1,12 @@
 //! Fibers communicate between tickers.
 
-use std::{fmt, cell::RefCell, rc::Rc, error::Error};
+use std::{fmt, rc::Rc};
 
 //use log::info;
 
-use crate::{ticker::{ToTicker, ToTickerRef}, system::ToThreadRef};
+use crate::{ticker::{ToTicker}};
 
-pub type OnFiber<T> = dyn Fn(usize, T)->() + Send;
+pub type OnFiber<T> = dyn Fn(usize, T)->();
 type FiberRef<T> = Rc<Box<dyn FiberInner<T>>>;
 
 /// Message channel to `Ticker` targets, where each target is
@@ -94,7 +94,7 @@ impl<T:Clone> Clone for Fiber<T> {
 
 impl<T> FiberInner<T> for FiberZero {
     /// send a message to the fiber targets.
-    fn send(&self, args: T) {
+    fn send(&self, _args: T) {
     }
 }
 

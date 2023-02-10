@@ -6,14 +6,22 @@ use crate::system::{ToThreadRef, ThreadInner};
 //use log::{log};
 
 use std::cell::RefCell;
+use std::io::Error;
+use std::result;
 use std::{fmt, rc::Rc};
 
-pub type OnBuild = dyn Fn()->() + Send;
-pub type OnTick = dyn Fn(u64)->() + Send;
+pub type OnBuild = dyn FnOnce()->();
+pub type OnTickFn = dyn FnMut(u64)->() + 'static;
 
 pub type ToTickerRef<T> = Rc<RefCell<ToTickerInner<T>>>;
+type Result<T> = result::Result<T, Error>;
 
-pub struct Ticker {
+pub trait Ticker {
+    fn tick(&mut self, ticks: u64) -> Result<()>;
+    fn build(&mut self) -> Result<()>;
+}
+
+pub struct TickerOuter {
     pub id: usize,
     pub name: String,
 }
@@ -26,8 +34,12 @@ pub struct TickerInner<T> {
     from_tickers: Vec<ToTicker<T>>,
 
     pub on_build: Option<Box<OnBuild>>,
-    pub on_tick: Option<Box<OnTick>>,
+    pub on_tick: Option<Box<OnTickFn>>,
     on_fiber: Vec<Box<OnFiber<T>>>,
+}
+
+pub trait OnTick {
+    fn tick(ticks: u32) -> Result<()>;
 }
 
 
@@ -45,10 +57,10 @@ pub struct ToTickerInner<T> {
 // Implementations
 //
 
-impl Ticker {
+impl TickerOuter {
 }
 
-impl fmt::Display for Ticker {
+impl fmt::Display for TickerOuter {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Ticker:{}[{}]", self.id, self.name)
     }
@@ -88,7 +100,7 @@ impl<T:'static> TickerInner<T> {
         name: String,
         to_tickers: Vec<ToTicker<T>>,
         from_tickers: Vec<ToTicker<T>>,
-        on_tick: Option<Box<OnTick>>,
+        on_tick: Option<Box<OnTickFn>>,
         on_build: Option<Box<OnBuild>>,
         on_fibers: Vec<Box<OnFiber<T>>>
     ) -> TickerInner<T> {
@@ -126,15 +138,15 @@ impl<T:'static> TickerInner<T> {
         ids
     }
 
-    pub fn tick(&self, ticks: u64) {
-        match &self.on_tick {
+    pub fn tick(&mut self, ticks: u64) {
+        match &mut self.on_tick {
             Some(on_tick) => on_tick(ticks),
             None => panic!("{}.tick called but no on_tick was defined.", self),
         }
     }
 
-    pub fn on_build(&self) {
-        if let Some(on_build) = &self.on_build {
+    pub fn on_build(&mut self) {
+        if let Some(on_build) = self.on_build.take() {
             on_build();
         }
     }
