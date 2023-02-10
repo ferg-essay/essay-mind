@@ -13,18 +13,18 @@ fn ticker_on_build_on_tick() {
     let ticker = builder.ticker(TestAdder::new());
     let counter_ptr = ticker.ptr();
     
-    assert!(counter_ptr.borrow_mut().take() == "[]");
+    assert_eq!(counter_ptr.borrow_mut().take(), "[]");
 
     let mut system = builder.build();
 
-    assert!(counter_ptr.borrow_mut().take() == "[\"build\"]");
+    assert_eq!(counter_ptr.borrow_mut().take(), "[\"build\"]");
     system.tick();
 
-    assert!(counter_ptr.borrow_mut().take() == "[\"tick(1)\"]");
+    assert_eq!(counter_ptr.borrow_mut().take(), "[\"tick(1)\"]");
     system.tick();
     system.tick();
 
-    assert!(counter_ptr.borrow_mut().take() == "[\"tick(2)\", \"tick(3)\"]");
+    assert_eq!(counter_ptr.borrow_mut().take(), "[\"tick(2)\", \"tick(3)\"]");
 }
 
 struct TestAdder {

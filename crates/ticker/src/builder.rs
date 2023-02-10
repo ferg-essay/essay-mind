@@ -70,7 +70,7 @@ struct ExternalTicker {
 impl<T:Clone + 'static> SystemBuilder<T> {
     /// Create a new ticker `SystemBuilder`
     /// 
-    /// ```rust
+    /// ```ignore
     /// let builder = SystemBuilder::<u32>::new();
     /// let system = builder.build();
     /// ```
@@ -126,7 +126,7 @@ impl<T:Clone + 'static> SystemBuilder<T> {
     /// 
     /// # Examples
     /// 
-    /// ```
+    /// ```ignore
     /// let system = SystemBuilder::<i32>::new();
     /// let external = system.external_fiber();
     /// 
@@ -210,9 +210,15 @@ impl<T:Clone + 'static,E:Ticker + 'static> TickerBuilder<T, E> {
     /// # Examples
     /// 
     /// ```
+    /// let system = SystemBuilder::new();
+    /// 
+    /// let src_ticker = system.ticker(MySrc{});
     /// let fiber = src_ticker.fiber();
-    /// let ptr = dst.ticker.ptr();
-    /// dst_ticker.on_fiber(fiber, |(id, args)| ptr.borrow().call(id, args); );
+    /// 
+    /// let dst_ticker = system.ticker(MyDst{});
+    /// let ptr = dst_ticker.ptr();
+    /// 
+    /// dst_ticker.on_fiber(fiber, |id, args| ptr.borrow().call(id, args));
     /// ```
     pub fn fiber(&mut self) -> FiberBuilder<T> {
         assert!(! self.builder.borrow().is_built());

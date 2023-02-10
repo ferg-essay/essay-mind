@@ -1,22 +1,24 @@
 [package]
 name = "essaymind"
-version = "0.1.0"
+version = "0.1.9"
 edition = "2021"
 publish=false
 
 [lib]
 name = "essaymind"
 crate-type = ["cdylib"]
-path = "crates/src/lib.rs"
+path = "src/lib.rs"
 
 [dependencies]
 env_logger = { version = "0.10.0" }
 log = { version = "0.4.17" }
 ticker = { path = "crates/ticker"}
+mind = { path = "crates/mind"}
 
 [workspace]
 members = [
     "crates/ticker",
+    "crates/mind",
 ]
 
 [package.metadata.maturin]
