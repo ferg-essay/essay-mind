@@ -378,7 +378,7 @@ impl<T:Clone + 'static> FiberBuilder<T> {
     pub fn to<E:Ticker + 'static>(
         &mut self, 
         target: &TickerBuilder<T,E>, 
-        on_fiber: Box<OnFiber<T>>
+        on_fiber: impl Fn(usize, T) + 'static,
     ) -> &Self {
         target.on_fiber(self, on_fiber);
 

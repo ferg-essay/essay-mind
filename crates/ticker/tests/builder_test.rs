@@ -7,7 +7,7 @@ fn empty_build() {
 }
 
 #[test]
-fn build_on_build_on_tick() {
+fn ticker_on_build_on_tick() {
     let mut builder = SystemBuilder::<i32>::new();
 
     let ticker = builder.ticker(TestAdder::new());
@@ -38,6 +38,10 @@ impl TestAdder {
         }
     }
 
+    fn add(&mut self, value: String) {
+        self.values.push(value);
+    }
+
     fn peek(&self) -> String {
         format!("{:?}", self.values)
     }
@@ -53,10 +57,75 @@ impl TestAdder {
 
 impl Ticker for TestAdder {
     fn tick(&mut self, ticks: u64) {
-        self.values.push(format!("tick({})", ticks));
+        self.add(format!("tick({})", ticks));
     }
 
     fn build(&mut self) {
-        self.values.push(format!("build"));
+        self.add(format!("build"));
     }
+}
+
+#[test]
+fn external_fiber_with_fiber_to() {
+    let mut builder = SystemBuilder::<i32>::new();
+
+    let ticker = builder.ticker(TestAdder::new());
+    let counter_ptr = ticker.ptr();
+
+    let mut fiber = builder.external_fiber();
+    let ptr = ticker.ptr();
+
+    fiber.to(&ticker, move |id, msg| {
+        ptr.borrow_mut().add(format!("on_fiber({}, {})", id, msg));
+    });
+    
+    assert_eq!(counter_ptr.borrow_mut().take(), "[]");
+
+    let mut system = builder.build();
+
+    let fiber = fiber.fiber();
+    fiber.send(27);
+
+    assert_eq!(counter_ptr.borrow_mut().take(), "[\"build\"]");
+    system.tick();
+
+    assert_eq!(counter_ptr.borrow_mut().take(), "[\"on_fiber(0, 27)\", \"tick(1)\"]");
+    system.tick();
+    system.tick();
+
+    assert_eq!(counter_ptr.borrow_mut().take(), "[\"tick(2)\", \"tick(3)\"]");
+}
+
+#[test]
+fn external_fiber_with_ticker_on_fiber() {
+    let mut builder = SystemBuilder::<i32>::new();
+
+    let ticker = builder.ticker(TestAdder::new());
+    let counter_ptr = ticker.ptr();
+
+    let mut fiber = builder.external_fiber();
+    let ptr = ticker.ptr();
+
+    ticker.on_fiber(
+        &mut fiber,
+move |id, msg| {
+            ptr.borrow_mut().add(format!("on_fiber({}, {})", id, msg));
+        }
+    );
+    
+    assert_eq!(counter_ptr.borrow_mut().take(), "[]");
+
+    let mut system = builder.build();
+
+    let fiber = fiber.fiber();
+    fiber.send(27);
+
+    assert_eq!(counter_ptr.borrow_mut().take(), "[\"build\"]");
+    system.tick();
+
+    assert_eq!(counter_ptr.borrow_mut().take(), "[\"on_fiber(0, 27)\", \"tick(1)\"]");
+    system.tick();
+    system.tick();
+
+    assert_eq!(counter_ptr.borrow_mut().take(), "[\"tick(2)\", \"tick(3)\"]");
 }
