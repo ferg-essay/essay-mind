@@ -1,5 +1,7 @@
 use std::{fmt};
 
+use crate::{Digit, digit::{NIL, MED, LOW, HIGH, MAX}};
+
 pub struct Gram {
     vec: Vec<u8>,
 }
@@ -11,8 +13,12 @@ impl Gram {
         }
     }
 
-    pub fn push(&mut self, value: u8) {
-        self.vec.push(value);
+    pub fn push(&mut self, digit: Digit) {
+        self.vec.push(digit.as_u8());
+    }
+
+    pub fn push_u8(&mut self, digit: u8) {
+        self.vec.push(digit);
     }
 
     pub fn as_bytes(&self) -> &[u8] {
@@ -53,6 +59,22 @@ impl Clone for Gram {
 impl PartialEq for Gram {
     fn eq(&self, other: &Self) -> bool {
         self.vec == other.vec
+    }
+}
+
+impl From<Digit> for Gram {
+    fn from(value: Digit) -> Self {
+        let mut gram = Gram::new();
+        gram.push(Digit::from(value));
+        gram
+    }
+}
+
+impl From<u8> for Gram {
+    fn from(value: u8) -> Self {
+        let mut gram = Gram::new();
+        gram.push(Digit::from(value));
+        gram
     }
 }
 
@@ -127,17 +149,17 @@ impl From<String> for Gram {
 fn str_to_gram(value: &str) -> Gram {
     let mut vec = Vec::<u8>::new();
 
-    let mut size: u8 = 0;
+    let mut size: u8 = 0x40;
 
     for ch in value.chars() {
         match ch {
-            '.' => { vec.push(0xff); },
-            '+' => { assert!(size == 0); size = 1 << 6; },
-            '=' => { assert!(size == 0); size = 2 << 6; },
-            ':' => { assert!(size == 0); size = 3 << 6; },
-            '0'..='9' => { vec.push(ch as u8 - b'0' + size); size = 0; },
-            'a'..='z' => { vec.push(ch as u8 - b'a' + size + 10); size = 0; },
-            'A'..='Z' => { vec.push(ch as u8 - b'A' + size + 36); size = 0; },
+            '.' => { vec.push(NIL); size = MED; },
+            '?' => { assert!(size == 0); size = LOW; },
+            '+' => { assert!(size == 0); size = HIGH; },
+            ':' => { assert!(size == 0); size = MAX; },
+            '0'..='9' => { vec.push(ch as u8 - b'0' + size); size = MED; },
+            'a'..='z' => { vec.push(ch as u8 - b'a' + size + 10); size = MED; },
+            'A'..='Z' => { vec.push(ch as u8 - b'A' + size + 36); size = MED; },
             '-' => { vec.push(size + 62); size = 0; },
             _ => { panic!("{} is an invalid Gram character.", ch)}
         }
@@ -153,7 +175,16 @@ impl From<Gram> for String {
     }
 }
 
-const U8_TO_STR: &'static [&str] = &[
+pub(crate) const U8_TO_STR: &'static [&str] = &[
+    "?0", "?1", "?2", "?3", "?4", "?5", "?6", "?7",
+    "?8", "?9", "?a", "?b", "?c", "?d", "?e", "?f",
+    "?g", "?h", "?i", "?j", "?k", "?l", "?m", "?n",
+    "?o", "?p", "?q", "?r", "?s", "?t", "?u", "?v",
+    "?w", "?x", "?y", "?z", "?A", "?B", "?C", "?D",
+    "?E", "?F", "?G", "?H", "?I", "?J", "?K", "?L",
+    "?M", "?N", "?O", "?P", "?Q", "?R", "?S", "?T",
+    "?U", "?V", "?W", "?X", "?Y", "?Z", "?-", ".",
+
     "0", "1", "2", "3", "4", "5", "6", "7",
     "8", "9", "a", "b", "c", "d", "e", "f",
     "g", "h", "i", "j", "k", "l", "m", "n",
@@ -161,7 +192,7 @@ const U8_TO_STR: &'static [&str] = &[
     "w", "x", "y", "z", "A", "B", "C", "D",
     "E", "F", "G", "H", "I", "J", "K", "L",
     "M", "N", "O", "P", "Q", "R", "S", "T",
-    "U", "V", "W", "X", "Y", "Z", "-", "?",
+    "U", "V", "W", "X", "Y", "Z", "-", ".",
 
     "+0", "+1", "+2", "+3", "+4", "+5", "+6", "+7",
     "+8", "+9", "+a", "+b", "+c", "+d", "+e", "+f",
@@ -170,23 +201,14 @@ const U8_TO_STR: &'static [&str] = &[
     "+w", "+x", "+y", "+z", "+A", "+B", "+C", "+D",
     "+E", "+F", "+G", "+H", "+I", "+J", "+K", "+L",
     "+M", "+N", "+O", "+P", "+Q", "+R", "+S", "+T",
-    "+U", "+V", "+W", "+X", "+Y", "+Z", "+-", "+?",
+    "+U", "+V", "+W", "+X", "+Y", "+Z", "+-", ".",
 
-    "=0", "=1", "=2", "=3", "=4", "=5", "=6", "=7",
-    "=8", "=9", "=a", "=b", "=c", "=d", "=e", "=f",
-    "=g", "=h", "=i", "=j", "=k", "=l", "=m", "=n",
-    "=o", "=p", "=q", "=r", "=s", "=t", "=u", "=v",
-    "=w", "=x", "=y", "=z", "=A", "=B", "=C", "=D",
-    "=E", "=F", "=G", "=H", "=I", "=J", "=K", "=L",
-    "=M", "=N", "=O", "=P", "=Q", "=R", "=S", "=T",
-    "=U", "=V", "=W", "=X", "=Y", "=Z", "=-", "=?",
-
-    ":0", ":1", ":2", ":3", ":4", ":5", ":6", ":7",
-    ":8", ":9", ":a", ":b", ":c", ":d", ":e", ":f",
-    ":g", ":h", ":i", ":j", ":k", ":l", ":m", ":n",
-    ":o", ":p", ":q", ":r", ":s", ":t", ":u", ":v",
-    ":w", ":x", ":y", ":z", ":A", ":B", ":C", ":D",
-    ":E", ":F", ":G", ":H", ":I", ":J", ":K", ":L",
-    ":M", ":N", ":O", ":P", ":Q", ":R", ":S", ":T",
-    ":U", ":V", ":W", ":X", ":Y", ":Z", ":-", ".",
+    "!0", "!1", "!2", "!3", "!4", "!5", "!6", "!7",
+    "!8", "!9", "!a", "!b", "!c", "!d", "!e", "!f",
+    "!g", "!h", "!i", "!j", "!k", "!l", "!m", "!n",
+    "!o", "!p", "!q", "!r", "!s", "!t", "!u", "!v",
+    "!w", "!x", "!y", "!z", "!A", "!B", "!C", "!D",
+    "!E", "!F", "!G", "!H", "!I", "!J", "!K", "!L",
+    "!M", "!N", "!O", "!P", "!Q", "!R", "!S", "!T",
+    "!U", "!V", "!W", "!X", "!Y", "!Z", "!-", ".",
 ];
