@@ -12,14 +12,11 @@ path = "src/lib.rs"
 [dependencies]
 env_logger = { version = "0.10.0" }
 log = { version = "0.4.17" }
-ticker = { path = "crates/ticker"}
-mind = { path = "crates/mind"}
 
 [workspace]
 members = [
-    "crates/ticker",
-    "crates/mind",
+    "crates/*",
 ]
 
-[package.metadata.maturin]
-name="essaymind._essaymind"
+[workspace.dependencies]
+ticker = { path = "./crates/ticker", version = "0.0.0" }

@@ -1,11 +1,16 @@
 [package]
 name = "mind"
-version = "0.1.9"
+version = "0.0.0"
 edition = "2021"
 
 [dependencies]
 log = { version = "0.4.17" }
 env_logger = { version = "0.10.0" }
+
+# workspace dependencies
+#ticker.workspace = true
+ticker = { path = "../ticker" }
+#ticker = {version = "0.1.9"}
 
 [lib]
 doctest = false

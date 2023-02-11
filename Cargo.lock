@@ -69,8 +69,6 @@ version = "0.1.9"
 dependencies = [
  "env_logger",
  "log",
- "mind",
- "ticker",
 ]
 
 [[package]]
@@ -136,10 +134,11 @@ checksum = "2dffe52ecf27772e601905b7522cb4ef790d2cc203488bbd0e2fe85fcb74566d"
 
 [[package]]
 name = "mind"
-version = "0.1.9"
+version = "0.0.0"
 dependencies = [
  "env_logger",
  "log",
+ "ticker",
 ]
 
 [[package]]
@@ -184,7 +183,7 @@ dependencies = [
 
 [[package]]
 name = "ticker"
-version = "0.1.9"
+version = "0.0.0"
 dependencies = [
  "env_logger",
  "log",

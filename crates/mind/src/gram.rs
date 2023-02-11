@@ -32,13 +32,13 @@ impl fmt::Display for Gram {
 
 impl fmt::Debug for Gram {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str("g\"")?;
+        f.write_str("Gram(\"")?;
 
         for data in &self.vec {
             f.write_str(U8_TO_STR[usize::from(*data)])?;
         }
 
-        f.write_str("\"")?;
+        f.write_str("\")")?;
 
         Ok(())
     }
