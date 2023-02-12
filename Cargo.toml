@@ -1,17 +1,20 @@
 [package]
-name = "essaymind"
+name = "essay-mind"
 version = "0.1.9"
 edition = "2021"
 publish=false
 
 [lib]
-name = "essaymind"
-crate-type = ["cdylib"]
+#name = "essaymind"
+# crate-type = ["rlib", "cdylib"]
+#crate-type = ["cdylib"]
+crate-type = ["rlib"]
 path = "src/lib.rs"
 
 [dependencies]
 env_logger = { version = "0.10.0" }
 log = { version = "0.4.17" }
+graphics = { path = "./crates/graphics", version = "0.0.0" }
 
 [workspace]
 members = [
@@ -20,3 +23,4 @@ members = [
 
 [workspace.dependencies]
 ticker = { path = "./crates/ticker", version = "0.0.0" }
+graphics = { path = "./crates/graphics", version = "0.0.0" }

@@ -21,6 +21,29 @@ impl Gram {
         self.vec.push(digit);
     }
 
+    fn from_str(value: &str) -> Gram {
+        let mut vec = Vec::<u8>::new();
+    
+        let mut size: u8 = 0x40;
+    
+        for ch in value.chars() {
+            match ch {
+                '.' => { vec.push(NIL); size = MED; },
+                '?' => { assert!(size == 0); size = LOW; },
+                '+' => { assert!(size == 0); size = HIGH; },
+                '!' => { assert!(size == 0); size = MAX; },
+                '0'..='9' => { vec.push(ch as u8 - b'0' + size); size = MED; },
+                'a'..='z' => { vec.push(ch as u8 - b'a' + size + 10); size = MED; },
+                'A'..='Z' => { vec.push(ch as u8 - b'A' + size + 36); size = MED; },
+                '-' => { vec.push(size + 62); size = 0; },
+                _ => { panic!("{} is an invalid Gram character.", ch)}
+            }
+    
+        }
+    
+        Gram { vec: vec }
+    }
+    
     pub fn as_bytes(&self) -> &[u8] {
         &self.vec
     }
@@ -92,81 +115,14 @@ impl From<Vec<u8>> for Gram {
 
 impl From<&str> for Gram {
     fn from(value: &str) -> Self {
-        str_to_gram(&value)
-        /*
-        let mut vec = Vec::<u8>::new();
-
-        let mut size: u8 = 0;
-
-        for ch in value.chars() {
-            match ch {
-                '.' => { vec.push(0xff); },
-                '+' => { assert!(size == 0); size = 1 << 6; },
-                '=' => { assert!(size == 0); size = 2 << 6; },
-                ':' => { assert!(size == 0); size = 3 << 6; },
-                '0'..='9' => { vec.push(ch as u8 - b'0' + size); size = 0; },
-                'a'..='z' => { vec.push(ch as u8 - b'a' + size + 10); size = 0; },
-                'A'..='Z' => { vec.push(ch as u8 - b'A' + size + 36); size = 0; },
-                '-' => { vec.push(size + 62); size = 0; },
-                _ => { panic!("{} is an invalid Gram character.", ch)}
-            }
-
-        }
-
-        Gram { vec: vec }
-        */
+        Gram::from_str(&value)
     }
 }
 
 impl From<String> for Gram {
     fn from(value: String) -> Self {
-        str_to_gram(&value)
-        /*
-        let mut vec = Vec::<u8>::new();
-
-        let mut size: u8 = 0;
-
-        for ch in value.chars() {
-            match ch {
-                '.' => { vec.push(0xff); },
-                '+' => { assert!(size == 0); size = 1 << 6; },
-                '=' => { assert!(size == 0); size = 2 << 6; },
-                ':' => { assert!(size == 0); size = 3 << 6; },
-                '0'..='9' => { vec.push(ch as u8 - b'0' + size); size = 0; },
-                'a'..='z' => { vec.push(ch as u8 - b'a' + size + 10); size = 0; },
-                'A'..='Z' => { vec.push(ch as u8 - b'A' + size + 36); size = 0; },
-                '-' => { vec.push(size + 62); size = 0; },
-                _ => { panic!("{} is an invalid Gram character.", ch)}
-            }
-
-        }
-
-        Gram { vec: vec }
-        */
+        Gram::from_str(&value)
     }
-}
-
-fn str_to_gram(value: &str) -> Gram {
-    let mut vec = Vec::<u8>::new();
-
-    let mut size: u8 = 0x40;
-
-    for ch in value.chars() {
-        match ch {
-            '.' => { vec.push(NIL); size = MED; },
-            '?' => { assert!(size == 0); size = LOW; },
-            '+' => { assert!(size == 0); size = HIGH; },
-            ':' => { assert!(size == 0); size = MAX; },
-            '0'..='9' => { vec.push(ch as u8 - b'0' + size); size = MED; },
-            'a'..='z' => { vec.push(ch as u8 - b'a' + size + 10); size = MED; },
-            'A'..='Z' => { vec.push(ch as u8 - b'A' + size + 36); size = MED; },
-            '-' => { vec.push(size + 62); size = 0; },
-            _ => { panic!("{} is an invalid Gram character.", ch)}
-        }
-
-    }
-
-    Gram { vec: vec }
 }
 
 impl From<Gram> for String {
