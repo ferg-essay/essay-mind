@@ -1,0 +1,13 @@
+[package]
+name = "wavelet"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+log = { version = "0.4.17" }
+env_logger = { version = "0.10.0" }
+rustfft = { version = "6.1.0" }
+
+[lib]
+doctest = false
+
