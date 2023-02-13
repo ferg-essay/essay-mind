@@ -734,6 +734,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9ea835d29036a4087793836fa931b08837ad5e957da9e23886b29586fb9b6650"
 
 [[package]]
+name = "duplicate"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a0a4be4cd710e92098de6ad258e6e7c24af11c29c5142f3c6f2a545652480ff8"
+dependencies = [
+ "heck",
+ "proc-macro-error",
+]
+
+[[package]]
+name = "dyn-clone"
+version = "1.0.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c9b0705efd4599c15a38151f4721f7bc388306f61084d3bfd50bd07fbca5cb60"
+
+[[package]]
 name = "ecolor"
 version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -917,8 +933,10 @@ dependencies = [
  "cpal",
  "env_logger",
  "fft",
- "graphics",
+ "fundsp",
  "log",
+ "ui-audio",
+ "ui-graphics",
 ]
 
 [[package]]
@@ -977,6 +995,36 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a9c384f161156f5260c24a097c56119f9be8c798586aecc13afbcbe7b7e26bf8"
 dependencies = [
  "percent-encoding",
+]
+
+[[package]]
+name = "fundsp"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "64abbd9a731ad53ae78a3826190f598dd064bf090d046e9a5a3c2e904cfb5b02"
+dependencies = [
+ "duplicate",
+ "dyn-clone",
+ "funutd",
+ "generic-array",
+ "lazy_static",
+ "num-complex",
+ "numeric-array",
+ "rsor",
+ "rustfft",
+ "symphonia",
+ "thingbuf",
+ "tinyvec",
+]
+
+[[package]]
+name = "funutd"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3e7b55f616d61720072602e7a85e451bad712a6cfce29189c30e71ad0c0d565d"
+dependencies = [
+ "dyn-clone",
+ "glam",
 ]
 
 [[package]]
@@ -1075,6 +1123,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "glam"
+version = "0.22.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "12f597d56c1bd55a811a1be189459e8fad2bbc272616375602443bdfb37fa774"
+
+[[package]]
 name = "glob"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1157,20 +1211,16 @@ dependencies = [
 ]
 
 [[package]]
-name = "graphics"
-version = "0.0.0"
-dependencies = [
- "eframe",
- "egui",
- "env_logger",
- "log",
-]
-
-[[package]]
 name = "hashbrown"
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a9ee70c43aaf417c914396645a0fa852624801b24ebb7ae78fe8272889ac888"
+
+[[package]]
+name = "heck"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "95505c38b4572b2d910cecb0281560f54b440a19336cbbcb27bf6ce6adc6f5a8"
 
 [[package]]
 name = "hermit-abi"
@@ -1574,6 +1624,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "numeric-array"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2c59a9b227913a685ed84aa0de5ded58274e8bcfa55760faae07bc82aee64ccf"
+dependencies = [
+ "generic-array",
+ "num-traits",
+]
+
+[[package]]
 name = "objc"
 version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1736,6 +1796,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "478c572c3d73181ff3c2539045f6eb99e5491218eae919370993b890cdbdd98e"
 
 [[package]]
+name = "pin-project"
+version = "1.0.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ad29a609b6bcd67fee905812e544992d216af9d755757c05ed2d0e15a74c6ecc"
+dependencies = [
+ "pin-project-internal",
+]
+
+[[package]]
+name = "pin-project-internal"
+version = "1.0.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "069bdb1e05adc7a8990dce9cc75370895fbe4e3d58b9b73bf1aee56359344a55"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "pin-project-lite"
 version = "0.2.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1802,6 +1882,30 @@ checksum = "66618389e4ec1c7afe67d51a9bf34ff9236480f8d51e7489b7d5ab0303c13f34"
 dependencies = [
  "once_cell",
  "toml_edit",
+]
+
+[[package]]
+name = "proc-macro-error"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "da25490ff9892aab3fcf7c36f08cfb902dd3e71ca0f9f9517bea02a73a5ce38c"
+dependencies = [
+ "proc-macro-error-attr",
+ "proc-macro2",
+ "quote",
+ "syn",
+ "version_check",
+]
+
+[[package]]
+name = "proc-macro-error-attr"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1be40180e52ecc98ad80b184934baf3d0d29f979574e439af5a55274b35f869"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "version_check",
 ]
 
 [[package]]
@@ -1915,6 +2019,12 @@ checksum = "3acd125665422973a33ac9d3dd2df85edad0f4ae9b00dafb1a05e43a9f5ef8e7"
 dependencies = [
  "winapi",
 ]
+
+[[package]]
+name = "rsor"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4b57e3964dc31a38416366d2e8f7675755402a10832d5cf4e4112d66ac77cdda"
 
 [[package]]
 name = "rustc-hash"
@@ -2109,15 +2219,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sound"
-version = "0.0.0"
-dependencies = [
- "env_logger",
- "log",
- "symphonia",
-]
-
-[[package]]
 name = "static_assertions"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2149,10 +2250,14 @@ checksum = "3671dd6f64f4f9d5c87179525054cfc1f60de23ba1f193bd6ceab812737403f1"
 dependencies = [
  "lazy_static",
  "symphonia-bundle-flac",
+ "symphonia-bundle-mp3",
+ "symphonia-codec-aac",
  "symphonia-codec-adpcm",
+ "symphonia-codec-alac",
  "symphonia-codec-pcm",
  "symphonia-codec-vorbis",
  "symphonia-core",
+ "symphonia-format-isomp4",
  "symphonia-format-mkv",
  "symphonia-format-ogg",
  "symphonia-format-wav",
@@ -2172,10 +2277,44 @@ dependencies = [
 ]
 
 [[package]]
+name = "symphonia-bundle-mp3"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "55a0846e7a2c9a8081ff799fc83a975170417ad2a143f644a77ec2e3e82a2b73"
+dependencies = [
+ "bitflags",
+ "lazy_static",
+ "log",
+ "symphonia-core",
+ "symphonia-metadata",
+]
+
+[[package]]
+name = "symphonia-codec-aac"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6fcdd4a10695ca0528572360ec020586320357350eb62791693667e7de8c871a"
+dependencies = [
+ "lazy_static",
+ "log",
+ "symphonia-core",
+]
+
+[[package]]
 name = "symphonia-codec-adpcm"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2a5cfb8d4405e26eb9593157dc45b05e102b8d774b38ed2a95946d6bb9e26e3e"
+dependencies = [
+ "log",
+ "symphonia-core",
+]
+
+[[package]]
+name = "symphonia-codec-alac"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c49e1b209318bcefa7ff452bd85f1f593210943a7d9786b7d4250e8991a7449c"
 dependencies = [
  "log",
  "symphonia-core",
@@ -2213,6 +2352,19 @@ dependencies = [
  "bytemuck",
  "lazy_static",
  "log",
+]
+
+[[package]]
+name = "symphonia-format-isomp4"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c1818f6f54b4eaba5ec004a8dbcca637c57e617eb1ff4c9addbd3fc065eba437"
+dependencies = [
+ "encoding_rs",
+ "log",
+ "symphonia-core",
+ "symphonia-metadata",
+ "symphonia-utils-xiph",
 ]
 
 [[package]]
@@ -2305,6 +2457,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "be55cf8942feac5c765c2c993422806843c9a9a45d4d5c407ad6dd2ea95eb9b6"
 dependencies = [
  "winapi-util",
+]
+
+[[package]]
+name = "thingbuf"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bee2d290fe0db0225026350bc1f0bd02b2daad43b09b56780e29e549effcd54a"
+dependencies = [
+ "parking_lot",
+ "pin-project",
 ]
 
 [[package]]
@@ -2454,6 +2616,28 @@ checksum = "ce65604324d3cce9b966701489fbd0cf318cb1f7bd9dd07ac9a4ee6fb791930d"
 dependencies = [
  "tempfile",
  "winapi",
+]
+
+[[package]]
+name = "ui-audio"
+version = "0.0.0"
+dependencies = [
+ "cpal",
+ "env_logger",
+ "fundsp",
+ "log",
+ "rustfft",
+ "symphonia",
+]
+
+[[package]]
+name = "ui-graphics"
+version = "0.0.0"
+dependencies = [
+ "eframe",
+ "egui",
+ "env_logger",
+ "log",
 ]
 
 [[package]]

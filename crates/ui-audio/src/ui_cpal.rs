@@ -1,18 +1,64 @@
 use std::{thread, time, f32::consts::PI};
-use ui_audio::AudioOut;
-use cpal;
-use fundsp::hacker::*;
 
-fn main() {
-    sub::<f32>();
+use cpal::{traits::{HostTrait, DeviceTrait, StreamTrait}, SampleFormat, StreamConfig, Sample, FromSample, Device, Stream, SampleRate};
+
+pub struct AudioOut {
+    pub config: StreamConfig,
+    pub device: Device,
+    stream: Option<Stream>,
 }
 
-fn sub<T>()
-where
-    T: cpal::Sample
-{
-    let mut audio = AudioOut::new();
-    /*
+impl AudioOut {
+    pub fn new() -> AudioOut {
+        let host = cpal::default_host();
+        // output device
+        let device = host.default_output_device().expect("no output device");
+        let mut supported_configs_range = device.supported_output_configs()
+            .expect("error while querying configs");
+
+        for cfg in supported_configs_range {
+            print!("  {:?}\n", cfg);
+        }
+
+        let supported_config = device.supported_output_configs()
+            .expect("config error")
+            .next()
+            .expect("no supported config")
+            .with_max_sample_rate();
+    
+        assert!(supported_config.sample_format() == SampleFormat::F32);
+    
+        let config: StreamConfig = supported_config.into();
+
+        Self {
+            device: device,
+            config: config,
+            stream: None,
+        }
+    }
+
+    pub fn open<D>(
+        &mut self,
+        data_cb: D,
+    ) where
+        D: FnMut(&mut [f32], &cpal::OutputCallbackInfo) + Send + 'static,
+    {
+        assert!(self.stream.is_none());
+
+        let stream = self.device.build_output_stream(
+            &self.config,
+            data_cb,
+            move |err| {
+                panic!("error\n");
+            },
+            None
+        ).unwrap();
+
+        self.stream = Some(stream);
+    }
+}
+
+fn main() {
     let host = cpal::default_host();
 
     // output device
@@ -33,27 +79,9 @@ where
 
     print!("\ninput {:?}\n", config_in);
     print!("\noutput {:?}\n", config);
-    */
 
-    let sample_rate = audio.config.sample_rate.0 as f64;
-    let channels = audio.config.channels as usize;
-
-    print!("sample: {}\n", sample_rate);
-
-    let c = 0.2 * (organ_hz(midi_hz(57.0)));
-
-    let mut c = c;
-    /*
-        >> (declick() | declick())
-        >> (dcblock() | dcblock())
-        >> limiter_stereo((1.0, 5.0));
-    */
-    c.reset(Some(sample_rate));
-
-    let mut next_value = move || c.get_stereo();
-
-    /*
-    audio.open(move |data: &mut [])
+    let sample_rate = config.sample_rate.0 as f32;
+    let channels = config.channels as usize;
 
     let mut sample_clock = 0f32;
     let mut next_value = move || {
@@ -74,37 +102,36 @@ where
           + 0.1 * (sample_clock * 440.0 * 2.0 * PI / sample_rate).sin()
         )
     };
-    */
 
     print!("sample_rate {}\n", sample_rate);
     print!("channels {}\n", channels);
 
-    audio.open(
+    let stream = device.build_output_stream(
+        &config,
         move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
+            print!("callback {}\n", data.len());
             write_data(data, channels, &mut next_value);
 
-        }
-    );
+        },
+        move |err| {
+            panic!("error\n");
+        },
+        None
+    ).unwrap();
 
-    // stream.play().unwrap();
+    stream.play().unwrap();
 
     thread::sleep(time::Duration::from_millis(1000));
     
 }
 
-fn write_data(output: &mut [f32], channels: usize, next_sample: &mut dyn FnMut() -> (f64,f64))
+fn write_data<T>(output: &mut [T], channels: usize, next_sample: &mut dyn FnMut() -> f32)
+where T: Sample + FromSample<f32>,
 {
     for frame in output.chunks_mut(channels) {
-        let (left, right) = next_sample();
-        //let left : T = cpal::Sample::from::<f32>(&(sample.0 as f32));
-        //let right: T = cpal::Sample::from::<f32>(&(sample.1 as f32));
-
-        for (channel, sample) in frame.iter_mut().enumerate() {
-            if channel & 1 == 0 {
-                *sample = left as f32;
-            } else {
-                *sample = right as f32;
-            }
+        let value: T = T::from_sample(next_sample());
+        for sample in frame.iter_mut() {
+            *sample = value;
         }
     }
 }

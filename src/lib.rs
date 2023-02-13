@@ -3,7 +3,7 @@
 //pub use ticker::SystemBuilder;
 //pub use graphics::main_loop;
 
-use graphics::main_loop::{MainLoop};
+use ui_graphics::main_loop::{MainLoop};
 
 pub fn my_test() {
     let mut main_loop = MainLoop::builder().build();

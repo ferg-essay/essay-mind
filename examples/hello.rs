@@ -1,6 +1,6 @@
 //use essaymind::my_test;
 
-use graphics::main_loop::MainLoop;
+use ui_graphics::main_loop::MainLoop;
 use log::{info, LevelFilter};
 
 pub fn main() {
