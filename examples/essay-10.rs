@@ -50,7 +50,7 @@ where
     */
     c.reset(Some(sample_rate));
 
-    let mut next_value = move || c.get_stereo();
+    let mut next_sample = move || c.get_mono() as f32; //.get_stereo();
 
     /*
     audio.open(move |data: &mut [])
@@ -79,12 +79,7 @@ where
     print!("sample_rate {}\n", sample_rate);
     print!("channels {}\n", channels);
 
-    audio.open(
-        move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
-            write_data(data, channels, &mut next_value);
-
-        }
-    );
+    audio.open(next_sample);
 
     // stream.play().unwrap();
 
