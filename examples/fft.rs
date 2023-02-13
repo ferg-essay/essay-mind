@@ -1,6 +1,6 @@
 use std::{f32::consts::PI};
 
-use wavelet::{FftWindow};
+use fft::{FftWindow};
 
 pub fn main() {
     let mut input: Vec<f32> = Vec::new();
@@ -11,7 +11,7 @@ pub fn main() {
 
         let mut v = 0.0;
 
-        v += (32.0 * 2.0 * PI * x).sin();
+        v += (PI * x).sin();
         //v += (8.0 * 2.0 * PI * x).cos();
 
         input.push(v);

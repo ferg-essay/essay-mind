@@ -15,7 +15,10 @@ path = "src/lib.rs"
 env_logger = { version = "0.10.0" }
 log = { version = "0.4.17" }
 graphics = { path = "./crates/graphics", version = "0.0.0" }
-wavelet = { path = "./crates/fft", version = "0.0.0" }
+fft = { path = "./crates/fft", version = "0.0.0" }
+# kira = { version="0.7" }
+# symphonia = { version="0.5" }
+cpal = { version="0.15" }
 
 [workspace]
 members = [
