@@ -189,9 +189,9 @@ impl FftInverse {
         self.fft.process(&mut buffer);
 
         for (i, value) in buffer.iter().enumerate() {
-            let v = (value.re * value.re + value.im * value.im).sqrt();
+            // let v = (value.re * value.re + value.im * value.im).sqrt();
 
-            output[i] = v;
+            output[i] = value.re;
         }
     }
 }
