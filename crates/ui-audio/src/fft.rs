@@ -182,7 +182,7 @@ impl FftInverse {
 
         let mut buffer = Vec::<Complex<f32>>::new();
 
-        for (i, item) in input.iter().enumerate() {
+        for item in input {
             buffer.push(Complex { re: *item, im: 0.0 });
         }
 

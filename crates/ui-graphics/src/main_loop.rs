@@ -1,28 +1,19 @@
 use eframe::{egui};
-
-/*
-pub struct MainLoop {
-    title: String,
-    width: u32,
-    height: u32,
-
-    inner: Box<MainLoopInner>,
-}
- */
+use egui::Ui;
 
 pub struct MainLoop {
     title: String,
     width: u32,
     height: u32,
 
-    container: UiContainer,
+    container: Box<UiContainer>,
 }
 
-trait UiRender {
+pub trait UiRender {
     fn render(&self, ui: &mut egui::Ui);
 }
 
-trait UiBuilder {
+pub trait UiBuilder {
     fn build(&mut self) -> Box<dyn UiRender>;
 }
 
@@ -41,14 +32,17 @@ impl MainLoop {
         }
     }
 
-    pub fn run(mut self) -> Result<(), String> {
+    pub fn run(
+        self,
+        render: impl FnMut(&mut Ui) + 'static
+    ) -> Result<(), String> {
         let options = eframe::NativeOptions {
             initial_window_size: Some(egui::vec2(self.width as f32, self.height as f32)),
             ..Default::default()
         };
 
         let inner = MainLoopInner {
-            render: self.container.build(),
+            render: Box::new(render),
         };
 
         eframe::run_native(
@@ -66,13 +60,13 @@ impl MainLoop {
 }
 
 struct MainLoopInner {
-    render: Box<dyn UiRender>,
+    render: Box<dyn FnMut(&mut Ui)>,
 }
 
 impl eframe::App for MainLoopInner {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            self.render.render(ui);
+            (self.render)(ui);
             /*
             ui.heading("Hello GUI");
             ui.horizontal(|ui| {
@@ -90,10 +84,10 @@ impl eframe::App for MainLoopInner {
 // # UiContainer
 //
 
-pub fn ui_container() -> UiContainer {
-    UiContainer {
+pub fn ui_container() -> Box<UiContainer> {
+    Box::new(UiContainer {
         items: Vec::new(),
-    }
+    })
 }
 
 pub struct UiContainer {
@@ -142,8 +136,8 @@ impl UiRender for UiContainerRender {
 // # UiLabel
 //
 
-pub fn ui_label(msg: &str) -> UiWrapperBuilder {
-    UiWrapperBuilder::new(Box::new(UiLabel { msg: String::from(msg)}))
+pub fn ui_label(msg: &str) -> Box<dyn UiBuilder> {
+    Box::new(UiWrapperBuilder::new(Box::new(UiLabel { msg: String::from(msg)})))
 }
 
 struct UiLabel {

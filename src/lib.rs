@@ -8,6 +8,6 @@ use ui_graphics::main_loop::{MainLoop};
 pub fn my_test() {
     let mut main_loop = MainLoop::new();
 
-    main_loop.run().expect("run failed");
+    main_loop.run(move |ui| {}).expect("run failed");
     print!("\nmy_test\n");
 }

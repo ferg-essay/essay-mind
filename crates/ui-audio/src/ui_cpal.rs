@@ -1,6 +1,4 @@
-use std::{thread, time, f32::consts::PI};
-
-use cpal::{traits::{HostTrait, DeviceTrait, StreamTrait}, SampleFormat, StreamConfig, Sample, FromSample, Device, Stream, SampleRate};
+use cpal::{traits::{HostTrait, DeviceTrait}, SampleFormat, StreamConfig, Device, Stream, SampleRate};
 
 pub struct AudioOut {
     config: StreamConfig,
@@ -64,7 +62,7 @@ impl AudioOut {
                     }
                 }
             },
-            move |err| {
+            move |_err| {
                 panic!("error\n");
             },
             None
@@ -99,6 +97,10 @@ impl AudioBuffer {
 
         self.index = (self.index + 1) % self.buffer.len();
 
+        self.buffer[i]
+    }
+
+    pub fn get(&self, i: usize) -> f32 {
         self.buffer[i]
     }
 

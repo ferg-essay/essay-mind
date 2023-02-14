@@ -21,6 +21,7 @@ fft = { path = "./crates/fft", version = "0.0.0" }
 # symphonia = { version="0.5" }
 cpal = { version="0.15" }
 fundsp = { version="0.12" }
+egui = { version="0.21" }
 
 [workspace]
 members = [

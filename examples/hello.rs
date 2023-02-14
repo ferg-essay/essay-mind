@@ -10,7 +10,9 @@ pub fn main() {
     .init();
 
  
-    let mut main_loop = MainLoop::new().run().expect("run failed");
+    let mut main_loop = MainLoop::new().run(move |ui| {
+        
+    }).expect("run failed");
 
     // main_loop.run().expect("run failed");
     info!("\nmy_test\n");

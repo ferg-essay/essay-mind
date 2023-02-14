@@ -931,6 +931,7 @@ name = "essay-mind"
 version = "0.1.9"
 dependencies = [
  "cpal",
+ "egui",
  "env_logger",
  "fft",
  "fundsp",
