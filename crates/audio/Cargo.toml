@@ -1,0 +1,15 @@
+[package]
+name = "audio"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies]
+log = { version = "0.4.17" }
+env_logger = { version = "0.10.0" }
+rand = { version="0.8" }
+rustfft = { version="6.1" }
+mind = { path="../mind" }
+
+[lib]
+doctest = false
+

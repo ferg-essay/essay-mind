@@ -1,4 +1,4 @@
-use crate::{FftWindow, FftInverse, buffer::AudioBuffer};
+use crate::{FftInverse, buffer::AudioBuffer};
 
 pub struct FftWave {
     len: usize,
@@ -45,7 +45,7 @@ impl FftWave {
         let end = self.data.len();
         assert!(start < end);
         let value = amplitude / (end - start) as f32;
-        let mut rng = rand::thread_rng();
+        // let mut rng = rand::thread_rng();
 
         for i in start..end {
             let v = rand::random::<f32>();
@@ -73,7 +73,7 @@ impl FftWave {
     }
 
     pub fn blur_log(&mut self, freq: f32, freq_width: f32, amplitude: f32) {
-        let freq_min = freq;
+        // let freq_min = freq;
         let freq_max = freq * (1.0 + freq_width);
 
         let factor = (2.0f32).powf(1.0 / 12.0);

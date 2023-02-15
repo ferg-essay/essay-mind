@@ -17,7 +17,6 @@ fn test_clone() {
     let none = Topos::Nil;
 
     match none.clone() {
-        Topos::Nil => {},
-        _ => panic!("non-matching clone")
+        Topos::Nil => {}
     }
 }

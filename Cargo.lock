@@ -327,6 +327,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "audio"
+version = "0.0.0"
+dependencies = [
+ "env_logger",
+ "log",
+ "mind",
+ "rand",
+ "rustfft",
+]
+
+[[package]]
 name = "autocfg"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -930,6 +941,7 @@ dependencies = [
 name = "essay-mind"
 version = "0.1.9"
 dependencies = [
+ "audio",
  "cpal",
  "egui",
  "env_logger",
@@ -2623,6 +2635,7 @@ dependencies = [
 name = "ui-audio"
 version = "0.0.0"
 dependencies = [
+ "audio",
  "cpal",
  "env_logger",
  "fundsp",

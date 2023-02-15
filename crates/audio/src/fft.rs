@@ -1,4 +1,4 @@
-use std::{f32::consts::PI, sync::Arc, cmp};
+use std::{f32::consts::PI, sync::Arc};
 
 use rustfft::{num_complex::Complex, FftPlanner, Fft};
 

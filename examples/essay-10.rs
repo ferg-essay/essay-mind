@@ -1,5 +1,5 @@
 use std::{thread, time};
-use ui_audio::{AudioOut, fft_wave::FftWave, AudioBuffer, AudioReader};
+use ui_audio::{AudioOut, AudioReader};
 use fundsp::hacker::*;
 
 fn main() {
@@ -33,9 +33,9 @@ fn main() {
     //let mut buffer = AudioReader::read("assets/blip.ogg");
     //let mut buffer = AudioReader::read("assets/sfx_exp_short_hard6.wav");
     //let mut buffer = AudioReader::read("assets/sfx_movement_footsteps1a.wav");
-    let mut space = Vec::<f32>::new();
-    space.resize(8196, 0.0);
-    let space = AudioBuffer::new(space);
+    //let mut space = Vec::<f32>::new();
+    //space.resize(8196, 0.0);
+    //let space = AudioBuffer::new(space);
     //buffer.extend(space.clone());
     //buffer.extend(AudioReader::read("assets/sfx_movement_footsteps1b.wav"));
     //buffer.extend(space);

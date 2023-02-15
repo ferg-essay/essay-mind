@@ -1,4 +1,4 @@
-use symphonia::core::audio::{SampleBuffer, AudioBufferRef, Signal};
+use symphonia::core::audio::{AudioBufferRef, Signal};
 use symphonia::core::codecs::{DecoderOptions, CODEC_TYPE_NULL};
 use symphonia::core::errors::Error;
 use symphonia::core::formats::FormatOptions;
@@ -6,7 +6,7 @@ use symphonia::core::io::MediaSourceStream;
 use symphonia::core::meta::MetadataOptions;
 use symphonia::core::probe::Hint;
 
-use crate::AudioBuffer;
+use audio::AudioBuffer;
 
 pub struct AudioReader {
 
@@ -27,7 +27,7 @@ impl AudioReader {
         let mss = MediaSourceStream::new(Box::new(src), Default::default());
 
         // Create a probe hint using the file's extension. [Optional]
-        let mut hint = Hint::new();
+        let hint = Hint::new();
         //hint.with_extension("mp3");
         //hint.with_extension("ogg");
 
@@ -102,7 +102,7 @@ impl AudioReader {
                 Ok(audio_buf) => {
                     // Consume the decoded audio samples (see below).
                     let spec = *audio_buf.spec();
-                    let duration = audio_buf.capacity() as u64;
+                    //let duration = audio_buf.capacity() as u64;
                     
                     assert!(spec.rate == 44100, "need encoding to be 44100");
 
@@ -149,8 +149,8 @@ impl AudioReader {
             }
         }
 
-        assert!(out_buffer.len() > 0, "no data read");
+        //assert!(out_buffer.len() > 0, "no data read");
 
-        out_buffer
+        //out_buffer
     }
 }

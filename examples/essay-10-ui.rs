@@ -4,12 +4,8 @@ use ui_audio::{AudioReader, FftWindow, analyze_vowel};
 use ui_graphics::*;
 use egui::plot;
 
-struct Data {
-    x_min: usize,
-    last_x_min: usize,
-}
 fn main() {
-    let buffer = AudioReader::read("assets/blip.ogg");
+    //let buffer = AudioReader::read("assets/blip.ogg");
 
     //let buffer = AudioReader::read("assets/bud.ogg");
     //let buffer = AudioReader::read("assets/pod.ogg");
@@ -27,7 +23,7 @@ fn main() {
 
     let main_loop = main_loop::MainLoop::new();
     main_loop.run(move |ui| {
-        let offset = 4000;
+        // let offset = 4000;
 
         //let wave: plot::PlotPoints = (offset..offset + len).map(|i| {
         let wave: plot::PlotPoints = (0..buffer.len()).map(|i| {

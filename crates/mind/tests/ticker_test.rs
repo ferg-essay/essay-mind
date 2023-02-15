@@ -1,14 +1,13 @@
 use mind::{Topos, Gram};
 use ticker::SystemBuilder;
 use ticker::Ticker;
-use ticker::TickerSystem;
 
 type TestArgs = (Gram, Topos);
 
 #[test]
 fn basic() {
     let mut system = SystemBuilder::<TestArgs>::new();
-    let mut ticker = system.ticker(
+    let ticker = system.ticker(
         TestTicker { val: String::new()}
     );
     let test = ticker.ptr();
@@ -46,7 +45,7 @@ impl TestTicker {
 }
 
 impl Ticker for TestTicker {
-    fn tick(&mut self, ticks: u64) {
+    fn tick(&mut self, _ticks: u64) {
     }
 
     fn build(&mut self) {
