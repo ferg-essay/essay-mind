@@ -1,4 +1,4 @@
-use std::{f32::consts::PI, sync::Arc};
+use std::{f32::consts::PI, sync::Arc, cmp};
 
 use rustfft::{num_complex::Complex, FftPlanner, Fft};
 
@@ -103,6 +103,54 @@ impl FftWindow {
             // let v = (value.re * value.re + value.im * value.im).sqrt();
 
             output[i] = value.norm();
+        }
+    }
+
+    ///
+    /// Process a windowed forward FFT transform.
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// let fft = FftWindow::new(512);
+    /// fft.process_in_place(&mut buffer);
+    /// ```
+    /// 
+    /// # Panics
+    /// * Both the input and output must equal the prepared length.
+    /// 
+    pub fn process_in_place(&self, data: &mut Vec<f32>) {
+        assert!(data.len() == self.len);
+
+        let mut buffer = Vec::<Complex<f32>>::new();
+
+        let window = &self.window;
+
+        for (i, item) in data.iter().enumerate() {
+            buffer.push(Complex { re: *item * window[i], im: 0.0 });
+        }
+
+        self.fft.process(&mut buffer);
+
+        for (i, value) in buffer.iter().enumerate() {
+            // let v = (value.re * value.re + value.im * value.im).sqrt();
+
+            data[i] = value.norm();
+        }
+    }
+    pub fn normalize(&self, data: &mut [f32]) {
+        let mut item_max = 0.0f32;
+
+        for item in data.iter() {
+            item_max = if item_max < *item { *item } else { item_max };
+        }
+
+        if item_max < 1e-3 {
+            return;
+        }
+
+        for item in data.iter_mut() {
+            *item /= item_max;
         }
     }
 

@@ -2627,6 +2627,7 @@ dependencies = [
  "env_logger",
  "fundsp",
  "log",
+ "mind",
  "rand",
  "rustfft",
  "symphonia",

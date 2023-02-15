@@ -11,6 +11,7 @@ cpal = { version="0.15" }
 rustfft = { version="6.1" }
 fundsp = { version="0.12" }
 rand = { version="0.8" }
+mind = { path = "../mind" }
 
 [lib]
 doctest = false

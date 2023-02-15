@@ -1,4 +1,4 @@
-use crate::{FftWindow, FftInverse, ui_cpal::AudioBuffer};
+use crate::{FftWindow, FftInverse, buffer::AudioBuffer};
 
 pub struct FftWave {
     len: usize,

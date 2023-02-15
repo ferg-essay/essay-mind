@@ -21,6 +21,29 @@ pub(crate) const DIGIT_MASK: u8 = 0x3f;
 
 
 impl Digit {
+    pub fn try_from_f32(value: f32, base: u8) -> Digit {
+        let base_max = base / 2;
+        let index_f = value.floor();
+
+        if index_f >= 0.0 {
+            let index = index_f as usize;
+            assert!(index < base_max as usize);
+
+            Digit::Med(index as u8)
+        }  else {
+            let index = (-index_f) as usize;
+            assert!(index <= base_max as usize);
+
+            Digit::Med(base - index as u8)
+        }
+    }
+
+    pub fn try_from_unit(value: f32, base: u8) -> Digit {
+        assert!(0.0 <= value); //  && value <= 1.0);
+
+        Digit::Med((value * base as f32) as u8)
+    }
+
     pub fn digit(&self) -> u8 {
         match *self {
             Digit::Nil => NIL,
@@ -89,5 +112,15 @@ impl From<u32> for Digit {
         assert!(digit & WEIGHT_MASK == 0 && digit != NIL);
 
         Digit::Med(digit)
+    }
+}
+
+impl TryFrom<f32> for Digit {
+    type Error = String;
+
+    fn try_from(value: f32) -> Result<Self, Self::Error> {
+        assert!(0.0 <= value && value < 64.0);
+
+        unsafe { Ok(Digit::Med(value.to_int_unchecked::<u8>())) }
     }
 }
