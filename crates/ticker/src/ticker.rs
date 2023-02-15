@@ -14,6 +14,7 @@ pub type OnBuild = dyn FnMut()->();
 pub type OnTickFn = dyn Fn(u64)->();
 
 pub type ToTickerRef<T> = Rc<RefCell<ToTickerInner<T>>>;
+#[allow(dead_code)]
 pub type Result<T> = result::Result<T, Error>;
 
 pub trait Ticker {

@@ -338,10 +338,14 @@ fn fft_base(fft: &[f32], main: usize, factor: usize) -> f32 {
 }
 
 fn fft_spike(fft: &[f32], freq: usize) -> f32 {
+    if fft.len() * 3 / 4 <= freq {
+        return 0.0;
+    }
+    
     let mut fft_max = fft[freq];
     let range = if freq > 8 { 2 } else { 1 };
 
-    for i in freq - range..=freq + range {
+    for i in freq - range..=cmp::min(freq + range, fft.len() - 1) {
         fft_max = fmax(fft_max, fft[i]);
     }
 

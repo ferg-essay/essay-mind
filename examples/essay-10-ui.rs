@@ -1,6 +1,7 @@
 use std::cmp;
 
-use ui_audio::{AudioReader, FftWindow, analyze_vowel};
+use ui_audio::AudioReader;
+use audio::{FftWindow, analyze_vowel};
 use ui_graphics::*;
 use egui::plot;
 
@@ -12,23 +13,32 @@ fn main() {
     //let buffer = AudioReader::read("assets/my.ogg");
     //let buffer = AudioReader::read("assets/kite.ogg");
     //let buffer = AudioReader::read("assets/booed.ogg");
-    let buffer = AudioReader::read("assets/above.ogg");
+    //let buffer = AudioReader::read("assets/above.ogg");
     //let buffer = AudioReader::read("assets/bead.ogg");
     //let buffer = AudioReader::read("assets/rye.ogg");
     //let buffer = AudioReader::read("assets/boy.ogg");
     //let buffer = AudioReader::read("assets/bid.ogg");
+    let buffer = AudioReader::read("assets/cymbal.wav");
+    //let buffer = AudioReader::read("assets/bird.mp3");
     let fft_len = 1024;
     let samples = 14410;
+    let offset = 0;
     let fft = FftWindow::new(fft_len);
 
     let main_loop = main_loop::MainLoop::new();
     main_loop.run(move |ui| {
         // let offset = 4000;
 
+        let in_buffer = if samples * 2 < buffer.len() {
+            &buffer[offset..offset + samples * 2]
+        } else {
+            &buffer[..]
+        };
+    
         //let wave: plot::PlotPoints = (offset..offset + len).map(|i| {
-        let wave: plot::PlotPoints = (0..buffer.len()).map(|i| {
+        let wave: plot::PlotPoints = (0..in_buffer.len()).map(|i| {
             let x = 1000.0 * i as f64 / samples as f64;
-            [x, buffer.get(i) as f64]
+            [x, in_buffer[i] as f64]
         }).collect();
 
         let line = plot::Line::new(wave);
@@ -48,7 +58,7 @@ fn main() {
 
             let fft_offset: usize = (bounds[0] * samples as f64 / 1000.0) as usize;
 
-            let fft_offset = cmp::min(buffer.len() - fft_len, fft_offset);
+            let fft_offset = cmp::min(in_buffer.len() - fft_len, fft_offset);
             let fft_offset = cmp::max(0, fft_offset);
 
             let mut vec: Vec<f32> = (fft_offset..fft_offset + fft_len).map(|i| {
