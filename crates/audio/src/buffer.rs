@@ -34,6 +34,10 @@ impl AudioBuffer {
         self.buffer[i]
     }
 
+    pub fn as_vec(&self) -> Vec<f32> {
+        self.buffer.clone()
+    }
+
     pub fn get(&self, i: usize) -> f32 {
         self.buffer[i]
     }

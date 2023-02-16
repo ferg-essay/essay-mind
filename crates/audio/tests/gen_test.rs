@@ -4,9 +4,10 @@ use audio::gen::*;
 fn sine_4() {
     let sample = 4;
 
-    let mut source = sine(1.0).resample(sample);
+    let mut source = sine(1.0);
+    source.reset(Some(sample));
 
-    let value: Vec<f32> = (0..sample).map(|_| { source.next() }).collect();
+    let value: Vec<f32> = source.take(sample).collect();
 
     assert_match(&value, &[
         0.0, 
@@ -21,9 +22,11 @@ fn sine_4_2hz() {
     let sample = 8;
     let freq = 2.0;
 
-    let mut source = sine(freq).resample(sample);
+    let mut source = sine(freq);
+    
+    source.reset(Some(sample));
 
-    let value: Vec<f32> = (0..sample).map(|_| { source.next() }).collect();
+    let value: Vec<f32> = source.take(sample).collect();
 
     assert_match(&value, &[
         0.0, 
@@ -42,9 +45,11 @@ fn sine_4_3hz() {
     let sample = 12;
     let freq = 3.0;
 
-    let mut source = sine(freq).resample(sample);
+    let mut source = sine(freq);
+    
+    source.reset(Some(sample));
 
-    let value: Vec<f32> = (0..sample).map(|_| { source.next() }).collect();
+    let value: Vec<f32> = source.take(sample).collect();
 
     assert_match(&value, &[
         0.0, 
@@ -65,9 +70,12 @@ fn sine_4_3hz() {
 #[test]
 fn sine_8() {
     let sample = 8;
-    let mut source = sine(1.0).resample(sample);
 
-    let value: Vec<f32> = (0..sample).map(|_| { source.next() }).collect();
+    let mut source = sine(1.0);
+    
+    source.reset(Some(sample));
+
+    let value: Vec<f32> = source.take(sample).collect();
 
     assert_match(&value, &[
         0.0, 
@@ -85,9 +93,11 @@ fn sine_8() {
 fn sine_12() {
     let sample = 12;
 
-    let mut source = sine(1.0).resample(sample);
+    let mut source = sine(1.0);
+    
+    source.reset(Some(sample));
 
-    let value: Vec<f32> = (0..sample).map(|_| { source.next() }).collect();
+    let value: Vec<f32> = source.take(sample).collect();
 
     assert_match(&value, &[
         0.0, 
@@ -109,11 +119,11 @@ fn sine_12() {
 fn amplitude_x2() {
     let sample = 4;
 
-    let source = 2.0 * sine(1.0);
+    let mut source = 2.0 * sine(1.0);
 
-    let mut source = source.resample(sample);
+    source.reset(Some(sample));
 
-    let value: Vec<f32> = (0..sample).map(|_| { source.next() }).collect();
+    let value: Vec<f32> = source.take(5).collect();
 
     assert_match(&value, &[
         0.0, 
@@ -127,11 +137,11 @@ fn amplitude_x2() {
 fn amplitude_x0_5() {
     let sample = 4;
 
-    let source = 0.5 * sine(1.0);
+    let mut source = 0.5 * sine(1.0);
 
-    let mut source = source.resample(sample);
+    source.reset(Some(sample));
 
-    let value: Vec<f32> = (0..sample).map(|_| { source.next() }).collect();
+    let value: Vec<f32> = source.take(sample).collect();
 
     assert_match(&value, &[
         0.0, 
@@ -145,11 +155,11 @@ fn amplitude_x0_5() {
 fn add_sine_2() {
     let sample = 8;
 
-    let source = sine(1.0) + sine(2.0);
+    let mut source = sine(1.0) + sine(2.0);
 
-    let mut source = source.resample(sample);
+    source.reset(Some(sample));
 
-    let value: Vec<f32> = (0..sample).map(|_| { source.next() }).collect();
+    let value: Vec<f32> = source.take(sample).collect();
 
     assert_match(&value, &[
         0.0, 

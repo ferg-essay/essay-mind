@@ -1,6 +1,7 @@
 use std::cmp;
 
-use ui_audio::AudioReader;
+//use ui_audio::AudioReader;
+use audio;
 use audio::{FftWindow, analyze_vowel};
 use ui_graphics::*;
 use egui::plot;
@@ -18,22 +19,22 @@ fn main() {
     //let buffer = AudioReader::read("assets/rye.ogg");
     //let buffer = AudioReader::read("assets/boy.ogg");
     //let buffer = AudioReader::read("assets/bid.ogg");
-    let buffer = AudioReader::read("assets/cymbal.wav");
+    let source = audio::file("assets/cymbal.wav").unwrap();
     //let buffer = AudioReader::read("assets/bird.mp3");
     let fft_len = 1024;
     let samples = 14410;
-    let offset = 0;
+    // let offset = 0;
     let fft = FftWindow::new(fft_len);
+
+    //let mut source = 0.2 * (sine(220.0) + 0.3 * sine(330.0) + 0.1 * sine(440.0) + 0.1 * sine(550.0));
+    let vec : Vec<f32> = source.take(2 * samples).collect();
+
 
     let main_loop = main_loop::MainLoop::new();
     main_loop.run(move |ui| {
         // let offset = 4000;
 
-        let in_buffer = if samples * 2 < buffer.len() {
-            &buffer[offset..offset + samples * 2]
-        } else {
-            &buffer[..]
-        };
+        let in_buffer = &vec[..];
     
         //let wave: plot::PlotPoints = (offset..offset + len).map(|i| {
         let wave: plot::PlotPoints = (0..in_buffer.len()).map(|i| {
@@ -62,7 +63,7 @@ fn main() {
             let fft_offset = cmp::max(0, fft_offset);
 
             let mut vec: Vec<f32> = (fft_offset..fft_offset + fft_len).map(|i| {
-                buffer.get(i)
+                in_buffer[i]
             }).collect();
     
             fft.process_in_place(&mut vec);
@@ -70,7 +71,7 @@ fn main() {
             fft.normalize(vec);
 
             let gram = analyze_vowel(
-                &buffer[fft_offset.. fft_offset + fft_len], 
+                &in_buffer[fft_offset.. fft_offset + fft_len], 
                 vec,
                 samples,
                 fft_len

@@ -335,6 +335,7 @@ dependencies = [
  "mind",
  "rand",
  "rustfft",
+ "symphonia",
 ]
 
 [[package]]
@@ -2643,7 +2644,6 @@ dependencies = [
  "mind",
  "rand",
  "rustfft",
- "symphonia",
 ]
 
 [[package]]

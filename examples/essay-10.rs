@@ -1,5 +1,6 @@
 use std::{thread, time};
-use ui_audio::{AudioOut, AudioReader};
+use ui_audio::{AudioOut};
+use audio::gen::{sine,AudioSource, self};
 use fundsp::hacker::*;
 
 fn main() {
@@ -39,10 +40,16 @@ fn main() {
     //buffer.extend(space.clone());
     //buffer.extend(AudioReader::read("assets/sfx_movement_footsteps1b.wav"));
     //buffer.extend(space);
-    let mut buffer = AudioReader::read("assets/bud.ogg");
-    print!("buffer {}\n", buffer.len());
+    //let mut buffer = AudioReader::read("assets/bud.ogg");
+    //print!("buffer {}\n", buffer.len());
     //audio.open(move || c.get_mono() as f32);
-    audio.open(move || buffer.next());
+
+    //let mut source = 0.2 * (sine(220.0) + 0.3 * sine(330.0) + 0.1 * sine(440.0) + 0.1 * sine(550.0));
+
+    let mut source = gen::file("assets/bird.mp3").unwrap();
+
+    // audio.open(move || buffer.next());
+    audio.open(move || source.next().unwrap());
 
 
     thread::sleep(time::Duration::from_millis(2000));

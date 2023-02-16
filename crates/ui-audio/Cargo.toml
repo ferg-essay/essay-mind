@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 log = { version = "0.4.17" }
 env_logger = { version = "0.10.0" }
-symphonia = { version = "0.5"}
+# symphonia = { version = "0.5"}
 cpal = { version="0.15" }
 rustfft = { version="6.1" }
 fundsp = { version="0.12" }

@@ -6,7 +6,7 @@ use symphonia::core::io::MediaSourceStream;
 use symphonia::core::meta::MetadataOptions;
 use symphonia::core::probe::Hint;
 
-use audio::AudioBuffer;
+use crate::AudioBuffer;
 
 pub struct AudioReader {
 

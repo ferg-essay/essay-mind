@@ -1,64 +1,93 @@
-use std::{f32::consts::PI, ops};
+use core::{f32::consts::PI};
+use core::ops;
+use crate::AudioBuffer;
+use crate::ui_symphonia::{AudioReader};
 
-pub trait AudioComponent {
-    fn next(&mut self) -> f32;
+pub trait AudioSource: Iterator<Item = f32> + Send {
+    fn reset(&mut self, sample: Option<usize>) { }
 }
 
-pub struct AudioSource {
+pub trait AudioFilter {
+    fn next(&mut self, source: dyn AudioSource) -> Option<f32>;
+}
+
+//
+// # multiply implementation
+//
+
+impl ops::Mul<Box<dyn AudioSource>> for f32 {
+    type Output = Box<dyn AudioSource>;
+
+    fn mul(self, rhs: Box<dyn AudioSource>) -> Self::Output {
+        Box::new(MulSource {
+            amplitude: self,
+            source: rhs,
+        })
+    }
+}
+
+struct MulSource {
     amplitude: f32,
-
-    gen: Box<dyn AudioComponent>,
+    source: Box<dyn AudioSource>,
 }
 
-impl AudioSource {
-    fn new(gen: Box<dyn AudioComponent>) -> Self {
-        AudioSource {
-            amplitude: 1.0,
-            gen,
-        }
-    }
-
-    pub fn resample(self, sample: usize) -> Self {
-        resample(self, sample)
+impl AudioSource for MulSource {
+    fn reset(&mut self, sample: Option<usize>) {
+        self.source.reset(sample);
     }
 }
 
-impl AudioComponent for AudioSource {
-    fn next(&mut self) -> f32 {
-        self.amplitude * self.gen.next()
-    }
-}
+impl Iterator for MulSource {
+    type Item = f32;
 
-//impl Clone for AudioSource {
-//    fn clone(&self) -> Self {
-//        Self { 
-//            amplitude: self.amplitude.clone(), 
-//            gen: self.gen.clone()
-//        }
-//    }
-//}
-
-impl ops::Mul<AudioSource> for f32 {
-    type Output = AudioSource;
-
-    fn mul(self, rhs: AudioSource) -> Self::Output {
-        AudioSource {
-            amplitude: self * rhs.amplitude,
-            ..rhs
+    fn next(&mut self) -> Option<f32> {
+        match self.source.next() {
+            Some(value) => Some(self.amplitude * value),
+            None => None,
         }
     }
 }
 
-impl ops::Add<AudioSource> for AudioSource {
-    type Output = AudioSource;
+//
+// # add implementation
+//
 
-    fn add(self, rhs: AudioSource) -> Self::Output {
-        AudioSource {
-            amplitude: 1.0,
-            gen: Box::new(AudioAdd {
-                lhs: self,
-                rhs: rhs,
-            })
+impl ops::Add<Box<dyn AudioSource>> for Box<dyn AudioSource> {
+    type Output = Box<dyn AudioSource>;
+
+    fn add(self, rhs: Box<dyn AudioSource>) -> Self::Output {
+        Box::new(AddSource {
+            lhs: self,
+            rhs: rhs,
+        })
+    }
+}
+
+struct AddSource {
+    lhs: Box<dyn AudioSource>,
+    rhs: Box<dyn AudioSource>,
+}
+
+impl AudioSource for AddSource {
+    fn reset(&mut self, sample: Option<usize>) {
+        self.lhs.reset(sample);
+        self.rhs.reset(sample);
+    }
+}
+
+impl Iterator for AddSource {
+    type Item = f32;
+    fn next(&mut self) -> Option<f32> {
+        match self.lhs.next() {
+            Some(left_value) => {
+                match self.rhs.next() {
+                    Some(right_value) => {
+                        Some(left_value + right_value)
+                    },
+                    None => None,
+                }
+            },
+            None => None,
         }
     }
 }
@@ -68,12 +97,12 @@ impl ops::Add<AudioSource> for AudioSource {
 //
 
 
-pub fn sine(freq: f32) -> AudioSource {
-    AudioSource::new(Box::new(Sine {
+pub fn sine(freq: f32) -> Box<dyn AudioSource> {
+    Box::new(Sine {
         freq,
         step: 1.0f32 / 14410.0f32,
         time: 0.0
-    }))
+    })
 }
 
 struct Sine {
@@ -82,76 +111,70 @@ struct Sine {
     time: f32,
 }
 
-impl AudioComponent for Sine {
-    fn next(&mut self) -> f32 {
+impl Iterator for Sine {
+    type Item = f32;
+
+    fn next(&mut self) -> Option<Self::Item> {
         let time = self.time;
 
         self.time += self.step;
 
-        (time * self.freq * 2.0 * PI).sin()
+        Some((time * self.freq * 2.0 * PI).sin())
+    }
+}
+
+impl AudioSource for Sine {
+    fn reset(&mut self, sample: Option<usize>) {
+        self.time = 0.0;
+
+        if let Some(sample) = sample {
+            self.step = 1.0 / sample as f32;
+        };
     }
 }
 
 //
-// # resample
+// # file
 //
 
-///
-/// resample the source
-///
-pub fn resample(source: AudioSource, sample: usize) -> AudioSource {
-    AudioSource::new(Box::new(
-        Resample {
-            step: 1.0 / sample as f32,
-            time: 0.0,
-
-            source_step: 1.0 / 14400.0,
-            source_time: 0.0,
-            source_value: 0.0,
-            source: source,
-        }
-    ))
+pub fn file(path: &str) -> Result<Box<dyn AudioSource>,String> {
+    let buffer = AudioReader::read(path);
+   
+    Ok(Box::new(FileBuffer {
+        buffer: buffer,
+        file_samples: 14410,
+        time: 0,
+    }))
 }
 
-struct Resample {
-    step: f32,
-    time: f32,
-
-    source_step: f32,
-    source_time: f32,
-    source_value: f32,
-    source: AudioSource,
+struct FileBuffer {
+    buffer: AudioBuffer,
+    file_samples: usize,
+    time: usize,
 }
 
-impl AudioComponent for Resample {
-    fn next(&mut self) -> f32 {
-        if self.source_time <= self.time {
-            self.source_time += self.source_step;
+impl Iterator for FileBuffer {
+    type Item = f32;
 
-            self.source_value = self.source.next()
+    fn next(&mut self) -> Option<Self::Item> {
+        let time = self.time;
+
+        self.time += 1;
+
+        if time < self.buffer.len() {
+            Some(self.buffer[time])
+        } else {
+            None
         }
-
-        let value = self.source_value;
-
-        self.time += self.step;
-
-        while self.source_time < self.time {
-            self.source_value = self.source.next();
-
-            self.source_time += self.source_step;
-        }
-
-        value
     }
 }
 
-struct AudioAdd {
-    lhs: AudioSource,
-    rhs: AudioSource,
-}
+impl AudioSource for FileBuffer {
+    fn reset(&mut self, sample: Option<usize>) {
+        self.time = 0;
 
-impl AudioComponent for AudioAdd {
-    fn next(&mut self) -> f32 {
-        self.lhs.next() + self.rhs.next()
+        if let Some(sample) = sample {
+            assert!(self.file_samples == sample);
+        };
     }
 }
