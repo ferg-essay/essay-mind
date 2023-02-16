@@ -21,6 +21,7 @@ fn main() {
     //let buffer = AudioReader::read("assets/bid.ogg");
     let source = audio::file("assets/cymbal.wav").unwrap();
     //let buffer = AudioReader::read("assets/bird.mp3");
+    let source = audio::square(220.0);
     let fft_len = 1024;
     let samples = 14410;
     // let offset = 0;

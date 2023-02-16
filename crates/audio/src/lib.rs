@@ -12,4 +12,4 @@ pub use vowel::{analyze_vowel};
 pub use ui_symphonia::AudioReader;
 
 pub use gen::{AudioSource};
-pub use gen::{file, sine};
+pub use gen::{file, sine, square};

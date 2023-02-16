@@ -307,13 +307,6 @@ impl<T:Clone +'static> TickerBuilderInner<T> {
 
         self.on_fibers.push(on_fiber);
 
-        //let to_ticker = self.from_ticker.borrow_mut().to_ticker(to_ticker_id);
-/*
-        let to_ticker = from_ticker.to_ticker(self.id);
-
-        let from_ticker = fiber.to(to_ticker, on_fiber_id);
-        */
-
         on_fiber_id
     }
 

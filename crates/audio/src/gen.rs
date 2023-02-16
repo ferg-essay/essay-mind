@@ -12,7 +12,7 @@ pub trait AudioFilter {
 }
 
 //
-// # multiply implementation
+// # float multiply implementation
 //
 
 impl ops::Mul<Box<dyn AudioSource>> for f32 {
@@ -96,22 +96,48 @@ impl Iterator for AddSource {
 // # sine implementation
 //
 
-
 pub fn sine(freq: f32) -> Box<dyn AudioSource> {
-    Box::new(Sine {
-        freq,
-        step: 1.0f32 / 14410.0f32,
-        time: 0.0
-    })
+    Box::new(TimeFunction::new(move |time| {
+        (time * freq * 2.0 * PI).sin()
+    }))
 }
 
-struct Sine {
-    freq: f32,
+//
+// # square
+//
+
+pub fn square(freq: f32) -> Box<dyn AudioSource> {
+    Box::new(TimeFunction::new(move |time| {
+        let sq_time = (time * freq) % 1.0;
+
+        if sq_time <= 0.5 { 1.0 } else { -1.0 }
+    }))
+}
+
+//
+// # time function iterators
+//
+
+struct TimeFunction {
     step: f32,
     time: f32,
+
+    fun: Box<dyn Fn(f32) -> f32 + Send>,
 }
 
-impl Iterator for Sine {
+impl TimeFunction {
+    fn new(fun: impl Fn(f32) -> f32 + Send + 'static) -> Self {
+        let sample = 14400;
+
+        TimeFunction {
+            step: 1.0 / sample as f32,
+            time: 0.0,
+            fun: Box::new(fun),
+        }
+    }
+}
+
+impl Iterator for TimeFunction {
     type Item = f32;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -119,11 +145,11 @@ impl Iterator for Sine {
 
         self.time += self.step;
 
-        Some((time * self.freq * 2.0 * PI).sin())
+        Some((self.fun)(time))
     }
 }
 
-impl AudioSource for Sine {
+impl AudioSource for TimeFunction {
     fn reset(&mut self, sample: Option<usize>) {
         self.time = 0.0;
 

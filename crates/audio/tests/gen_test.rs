@@ -84,7 +84,7 @@ fn sine_8() {
         0.707, 
         0.0, 
         -0.707, 
-        -1.0
+        -1.0,
         -0.707, 
     ], 1e-2);
 }
@@ -116,6 +116,69 @@ fn sine_12() {
 }
 
 #[test]
+fn square_4() {
+    let sample = 4;
+
+    let mut source = square(1.0);
+    source.reset(Some(sample));
+
+    let value: Vec<f32> = source.take(sample).collect();
+
+    assert_match(&value, &[
+        1.0, 
+        1.0, 
+        1.0, 
+        -1.0,
+    ], 1e-2);
+}
+
+#[test]
+fn square_8() {
+    let sample = 8;
+
+    let mut source = square(1.0);
+    source.reset(Some(sample));
+
+    let value: Vec<f32> = source.take(sample).collect();
+
+    assert_match(&value, &[
+        1.0, 
+        1.0, 
+        1.0, 
+        1.0, 
+        1.0, 
+        -1.0,
+        -1.0,
+        -1.0,
+    ], 1e-2);
+}
+
+#[test]
+fn square_8_x2() {
+    let sample = 8;
+
+    let mut source = square(2.0);
+    source.reset(Some(sample));
+
+    let value: Vec<f32> = source.take(sample).collect();
+
+    assert_match(&value, &[
+        1.0, 
+        1.0, 
+        1.0, 
+        -1.0, 
+        1.0, 
+        1.0,
+        1.0,
+        -1.0,
+    ], 1e-2);
+}
+
+//
+// # amplitude tests: 2.0 * source tests
+//
+
+#[test]
 fn amplitude_x2() {
     let sample = 4;
 
@@ -123,7 +186,7 @@ fn amplitude_x2() {
 
     source.reset(Some(sample));
 
-    let value: Vec<f32> = source.take(5).collect();
+    let value: Vec<f32> = source.take(sample).collect();
 
     assert_match(&value, &[
         0.0, 

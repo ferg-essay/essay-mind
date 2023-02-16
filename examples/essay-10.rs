@@ -46,7 +46,9 @@ fn main() {
 
     //let mut source = 0.2 * (sine(220.0) + 0.3 * sine(330.0) + 0.1 * sine(440.0) + 0.1 * sine(550.0));
 
-    let mut source = gen::file("assets/bird.mp3").unwrap();
+    //let mut source = gen::file("assets/bird.mp3").unwrap();
+    let mut source = 0.5 * sine(220.0);
+    //let mut source = 0.5 * audio::square(220.0);
 
     // audio.open(move || buffer.next());
     audio.open(move || source.next().unwrap());
