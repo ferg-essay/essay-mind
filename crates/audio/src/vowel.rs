@@ -1,6 +1,6 @@
 use std::cmp;
 
-use mind::{Gram, Digit::Med};
+use mind::{Gram};
 
 pub fn analyze_vowel(
     waves: &[f32], 
@@ -20,7 +20,7 @@ pub fn analyze_vowel(
         gram.push(mind::Digit::try_from_unit(fft[0], 16));
     }
     //gram.push(Med(u8::try_from(max_harmonic(&harmonics)).expect("can't convert")));
-    for (i, value) in harmonics[0..6].iter().enumerate() {
+    for (_, value) in harmonics[0..6].iter().enumerate() {
         let value = fmin(*value, 0.999);
 
         if value < 0.05 {
@@ -73,7 +73,7 @@ fn analyze_wave(
         };
 
         let radix = 16;
-        let value = fmax(0.0, fmin(0.99, (0.5 + value / (2.01 * max))));
+        let value = fmax(0.0, fmin(0.99, 0.5 + value / (2.01 * max)));
 
         if is_ramp(wave, pos) && false {
             gram.push(mind::Digit::Nil);
@@ -257,7 +257,7 @@ fn wave_max(wave: &[f32], min: usize, limit: usize) -> f32 {
 
     max_value
 }
-
+/*
 struct Spike {
     index: usize,
     value: f32,
@@ -270,6 +270,8 @@ fn top_spikes(fft: &[f32], spikes: &mut [f32]) {
 
     
 }
+*/
+
 ///
 /// analyze the fft to find the base frequency and fill in the first
 /// few harmonics

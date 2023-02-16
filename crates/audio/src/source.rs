@@ -4,7 +4,7 @@ use crate::AudioBuffer;
 use crate::ui_symphonia::{AudioReader};
 
 pub trait AudioSource: Iterator<Item = f32> + Send {
-    fn reset(&mut self, sample: Option<usize>) { }
+    fn reset(&mut self, _sample: Option<usize>) { }
 }
 
 pub trait AudioFilter {
@@ -99,6 +99,12 @@ impl Iterator for AddSource {
 pub fn sine(freq: f32) -> Box<dyn AudioSource> {
     Box::new(TimeFunction::new(move |time| {
         (time * freq * 2.0 * PI).sin()
+    }))
+}
+
+pub fn sine_phase(freq: f32, phase: f32) -> Box<dyn AudioSource> {
+    Box::new(TimeFunction::new(move |time| {
+        ((time * freq + phase) * 2.0 * PI).sin()
     }))
 }
 

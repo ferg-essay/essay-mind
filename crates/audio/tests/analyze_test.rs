@@ -1,4 +1,4 @@
-use audio::gen::{sine};
+use audio::source::{sine};
 use audio::analyze::power_msq;
 
 #[test]

@@ -85,7 +85,7 @@ impl FftWindow {
     /// # Panics
     /// * Both the input and output must equal the prepared length.
     /// 
-    pub fn process(&self, input: &Vec<f32>, output: &mut Vec<f32>) {
+    pub fn process(&self, input: &[f32], output: &mut [f32]) {
         assert!(input.len() == self.len);
         assert!(output.len() == self.len);
 
@@ -103,6 +103,27 @@ impl FftWindow {
             // let v = (value.re * value.re + value.im * value.im).sqrt();
 
             output[i] = value.norm();
+        }
+    }
+
+    pub fn process_sq(&self, input: &[f32], output: &mut [f32]) {
+        assert!(input.len() == self.len);
+        assert!(output.len() == self.len);
+
+        let mut buffer = Vec::<Complex<f32>>::new();
+
+        let window = &self.window;
+
+        for (i, item) in input.iter().enumerate() {
+            buffer.push(Complex { re: *item * window[i], im: 0.0 });
+        }
+
+        self.fft.process(&mut buffer);
+
+        for (i, value) in buffer.iter().enumerate() {
+            // let v = (value.re * value.re + value.im * value.im).sqrt();
+
+            output[i] = value.norm_sqr();
         }
     }
 

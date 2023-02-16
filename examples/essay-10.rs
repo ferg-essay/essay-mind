@@ -1,6 +1,6 @@
 use std::{thread, time};
 use ui_audio::{AudioOut};
-use audio::gen::{sine,AudioSource, self};
+use audio::source::{sine,AudioSource, self, sine_phase};
 use fundsp::hacker::*;
 
 fn main() {
@@ -44,10 +44,14 @@ fn main() {
     //print!("buffer {}\n", buffer.len());
     //audio.open(move || c.get_mono() as f32);
 
-    //let mut source = 0.2 * (sine(220.0) + 0.3 * sine(330.0) + 0.1 * sine(440.0) + 0.1 * sine(550.0));
+    let mut source = 
+        0.2 * (sine(220.0) + 
+        0.3 * sine_phase(330.0, 0.7) +
+        0.1 * sine_phase(440.0, 0.4)
+    );
 
-    //let mut source = gen::file("assets/bird.mp3").unwrap();
-    let mut source = 0.5 * sine(220.0);
+    //let mut source = source::file("assets/cymbal.wav").unwrap();
+    //let mut source = 0.5 * sine(220.0);
     //let mut source = 0.5 * audio::square(220.0);
 
     // audio.open(move || buffer.next());

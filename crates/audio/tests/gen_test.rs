@@ -1,4 +1,4 @@
-use audio::gen::*;
+use audio::source::*;
 
 #[test]
 fn sine_4() {
