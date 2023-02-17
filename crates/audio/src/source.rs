@@ -1,6 +1,6 @@
 use core::{f32::consts::PI};
 use core::ops;
-use crate::AudioBuffer;
+use crate::{AudioBuffer, BezierSpline};
 use rand::Rng;
 use crate::ui_symphonia::{AudioReader};
 
@@ -235,6 +235,116 @@ impl AudioSource for FileBuffer {
 }
 
 //
+// # splines
+//
+
+pub fn spline_peaks(freq: f32, points: &[(f32, f32)]) -> Box<dyn AudioSource> {
+    assert!(freq > 0.);
+    assert!(points.len() > 1);
+    assert!(points[0].0 == 0.);
+    assert!(points[points.len() - 1].0 < 1.);
+
+    let mut splines = Vec::<SplinePoint>::new();
+
+    for (i, point) in points.iter().skip(1).enumerate() {
+        let prev = &points[i];
+
+        assert!(prev.0 < point.0);
+
+        let spline = BezierSpline::new(&[
+            (0.0, prev.1),
+            (0.5, prev.1),
+            (0.5, point.1),
+            (1.0, point.1),
+        ]);
+
+        splines.push(SplinePoint {
+            x0: prev.0,
+            x1: point.0,
+            spline: spline,
+        })
+    }
+
+    let spline = BezierSpline::new(&[
+        (0.0, points[points.len() - 1].1),
+        (0.5, points[points.len() - 1].1),
+        (0.5, points[0].1),
+        (1.0, points[0].1),
+    ]);
+
+    splines.push(SplinePoint {
+        x0: points[points.len() - 1].0,
+        x1: 1.,
+        spline: spline,
+    });
+
+    let mut source = Box::new(SplineSource {
+        freq: freq,
+        splines: splines,
+        buffer: Vec::<f32>::new(),
+        time: 0,
+    });
+
+    source.reset(Some(DEFAULT_SAMPLES));
+
+    source
+}
+
+struct SplineSource {
+    freq: f32,
+
+    splines: Vec<SplinePoint>,
+
+    buffer: Vec<f32>,
+    time: usize,
+}
+
+struct SplinePoint {
+    x0: f32,
+    x1: f32,
+    spline: BezierSpline,
+}
+
+impl Iterator for SplineSource {
+    type Item = f32;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let time = self.time;
+
+        self.time = (self.time + 1) % self.buffer.len();
+
+        Some(self.buffer[time])
+    }
+}
+
+impl SplineSource {
+    fn fill_buffer(&mut self, sample: u32) {
+        let wave_len = (sample as f32 / self.freq) as usize;
+        assert!(wave_len > 1);
+
+        let wave = &mut self.buffer;
+        wave.resize(wave_len, 0.0);
+
+        for spline in &self.splines {
+            let i0 = (spline.x0 * wave_len as f32) as usize;
+            let i1 = (spline.x1 * wave_len as f32) as usize;
+
+            spline.spline.eval_as_fn(&mut wave[i0..i1]);
+        }
+    }
+}
+
+impl AudioSource for SplineSource {
+    fn reset(&mut self, sample: Option<u32>) {
+        self.time = 0;
+
+        if let Some(sample) = sample {
+            self.fill_buffer(sample);
+        };
+    }
+}
+
+//
 // # filters
 //
 
@@ -407,7 +517,7 @@ impl<const N: usize> AudioFilter for LowPassChebyshev<N> {
 
 
 //
-// # lowpass chebyshev
+// # highpass chebyshev
 //
 
 pub fn highpass(freq: f32) -> Box<dyn AudioFilter> {

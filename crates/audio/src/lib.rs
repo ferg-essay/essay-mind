@@ -1,3 +1,4 @@
+mod spline;
 mod harmonic;
 pub mod analyze;
 pub mod source;
@@ -18,3 +19,5 @@ pub use source::{AudioSource};
 pub use source::{file, sine, square, white};
 pub use source::{lowpass, lowpass_2, lowpass_4, lowpass_8};
 pub use source::{bandpass, bandpass_4, bandpass_8, bandpass_16};
+
+pub use spline::{BezierSpline};

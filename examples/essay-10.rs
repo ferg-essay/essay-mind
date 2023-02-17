@@ -1,6 +1,6 @@
 use std::{thread, time};
 use ui_audio::{AudioOut};
-use audio::source::{sine,AudioSource, self, sine_phase};
+use audio::source::{sine,AudioSource, self, sine_phase, spline_peaks};
 use fundsp::hacker::*;
 
 fn main() {
@@ -70,12 +70,22 @@ fn main() {
     );
 
     let mut source = audio::white();
-    let mut source = 10. * (audio::white() >> audio::bandpass_16(1140., 1280.));
+    let mut source = 0.5 * (audio::white() >> audio::bandpass_4(6000., 8000.))
+    + 4. * (audio::white() >> audio::bandpass_4(3300., 4000.))
+    + 0.2 * (audio::white() >> audio::lowpass_2(4000.));
+
+    let mut source = 0.2 * spline_peaks(220., &[
+        (0.0, 1.0),
+        (0.5, -1.0),
+    ]);
+
+    //let mut source = 0.2 * sine(440.);
 
     //let mut source = source::file("assets/cymbal.wav").unwrap();
     //let mut source = 0.3 * source::file("assets/violin_b3.ogg").unwrap();
     //let mut source = 0.3 * source::file("assets/bead.ogg").unwrap();
     //let mut source = 0.3 * source::file("assets/booed.ogg").unwrap();
+    //let mut source = audio::file("assets/shy.ogg").unwrap();
     //let mut source = 0.5 * sine(220.0);
     //let mut source = 0.5 * audio::square(220.0);
 
