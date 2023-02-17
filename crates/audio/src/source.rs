@@ -279,7 +279,7 @@ impl AudioSource for Filter {
 pub fn lowpass(freq: f32) -> Box<dyn AudioFilter> {
     let epsilon = 0.05;
     
-    let mut filter = LowPassChebyshev::<4>::new(freq, epsilon);
+    let mut filter = LowPassChebyshev::<2>::new(freq, epsilon);
 
     filter.reset(Some(DEFAULT_SAMPLES));
 
@@ -289,7 +289,7 @@ pub fn lowpass(freq: f32) -> Box<dyn AudioFilter> {
 pub fn lowpass_2(freq: f32) -> Box<dyn AudioFilter> {
     let epsilon = 0.05;
     
-    let mut filter = LowPassChebyshev::<2>::new(freq, epsilon);
+    let mut filter = LowPassChebyshev::<1>::new(freq, epsilon);
 
     filter.reset(Some(DEFAULT_SAMPLES));
 
@@ -299,7 +299,7 @@ pub fn lowpass_2(freq: f32) -> Box<dyn AudioFilter> {
 pub fn lowpass_4(freq: f32) -> Box<dyn AudioFilter> {
     let epsilon = 0.05;
     
-    let mut filter = LowPassChebyshev::<4>::new(freq, epsilon);
+    let mut filter = LowPassChebyshev::<2>::new(freq, epsilon);
 
     filter.reset(Some(DEFAULT_SAMPLES));
 
@@ -309,7 +309,7 @@ pub fn lowpass_4(freq: f32) -> Box<dyn AudioFilter> {
 pub fn lowpass_8(freq: f32) -> Box<dyn AudioFilter> {
     let epsilon = 0.05;
     
-    let mut filter = LowPassChebyshev::<8>::new(freq, epsilon);
+    let mut filter = LowPassChebyshev::<4>::new(freq, epsilon);
 
     filter.reset(Some(DEFAULT_SAMPLES));
 
@@ -325,7 +325,7 @@ struct LowPassChebyshev<const N: usize> {
     d1: [f32; N],
     d2: [f32; N],
 
-    w0: [f32; N],
+    // w0: [f32; N],
     w1: [f32; N],
     w2: [f32; N],
 }
@@ -340,7 +340,7 @@ impl<const N: usize> LowPassChebyshev<N> {
             d1: [0.; N],
             d2: [0.; N],
     
-            w0: [0.; N],
+            // w0: [0.; N],
             w1: [0.; N],
             w2: [0.; N],
         }
@@ -353,17 +353,17 @@ impl<const N: usize> AudioFilter for LowPassChebyshev<N> {
         let d1 = &self.d1;
         let d2 = &self.d2;
 
-        let w0 = &mut self.w0;
+        // let w0 = &mut self.w0;
         let w1 = &mut self.w1;
         let w2 = &mut self.w2;
 
         let mut x = x;
 
         for i in 0..N {
-            w0[i] = d1[i] * w1[i] + d2[i] * w2[i] + x;
-            x = a[i] * (w0[i] + 2. * w1[i] + w2[i]);
+            let w0_i = d1[i] * w1[i] + d2[i] * w2[i] + x;
+            x = a[i] * (w0_i + 2. * w1[i] + w2[i]);
             w2[i] = w1[i];
-            w1[i] = w0[i];
+            w1[i] = w0_i;
         }
 
         Some(x * 2. / self.epsilon)
@@ -372,8 +372,7 @@ impl<const N: usize> AudioFilter for LowPassChebyshev<N> {
     fn reset(&mut self, sample: Option<u32>) {
         if let Some(sample) = sample {
             // n = filter order
-            let n = 2 * N;
-            let n_f = n as f32;
+            let n_f = 2. * N as f32;
 
             let a = (PI * self.freq / sample as f32).tan();
             let a_sq = a * a;
@@ -399,7 +398,141 @@ impl<const N: usize> AudioFilter for LowPassChebyshev<N> {
         }
 
         for i in 0..N {
-            self.w0[i] = 0.;
+            // self.w0[i] = 0.;
+            self.w1[i] = 0.;
+            self.w2[i] = 0.;
+        }
+    }
+}
+
+
+//
+// # lowpass chebyshev
+//
+
+pub fn highpass(freq: f32) -> Box<dyn AudioFilter> {
+    let epsilon = 0.05;
+    
+    let mut filter = HighPassChebyshev::<2>::new(freq, epsilon);
+
+    filter.reset(Some(DEFAULT_SAMPLES));
+
+    Box::new(filter)
+}
+
+pub fn highpass_2(freq: f32) -> Box<dyn AudioFilter> {
+    let epsilon = 0.05;
+    
+    let mut filter = HighPassChebyshev::<1>::new(freq, epsilon);
+
+    filter.reset(Some(DEFAULT_SAMPLES));
+
+    Box::new(filter)
+}
+
+pub fn highpass_4(freq: f32) -> Box<dyn AudioFilter> {
+    let epsilon = 0.05;
+    
+    let mut filter = HighPassChebyshev::<2>::new(freq, epsilon);
+
+    filter.reset(Some(DEFAULT_SAMPLES));
+
+    Box::new(filter)
+}
+
+pub fn highpass_8(freq: f32) -> Box<dyn AudioFilter> {
+    let epsilon = 0.05;
+    
+    let mut filter = HighPassChebyshev::<4>::new(freq, epsilon);
+
+    filter.reset(Some(DEFAULT_SAMPLES));
+
+    Box::new(filter)
+}
+
+//#[derive(Default)]
+struct HighPassChebyshev<const N: usize> {
+    freq: f32,
+    epsilon: f32,
+
+    a: [f32; N],
+    d1: [f32; N],
+    d2: [f32; N],
+
+    // w0: [f32; N],
+    w1: [f32; N],
+    w2: [f32; N],
+}
+
+impl<const N: usize> HighPassChebyshev<N> {
+    fn new(freq: f32, epsilon: f32) -> Self {
+        Self {
+            freq,
+            epsilon,
+    
+            a: [0.; N],
+            d1: [0.; N],
+            d2: [0.; N],
+    
+            // w0: [0.; N],
+            w1: [0.; N],
+            w2: [0.; N],
+        }
+    }
+}
+
+impl<const N: usize> AudioFilter for HighPassChebyshev<N> {
+    fn next(&mut self, x: f32) -> Option<f32> {
+        let a = &self.a;
+        let d1 = &self.d1;
+        let d2 = &self.d2;
+
+        // let w0 = &mut self.w0;
+        let w1 = &mut self.w1;
+        let w2 = &mut self.w2;
+
+        let mut x = x;
+
+        for i in 0..N {
+            let w0_i = d1[i] * w1[i] + d2[i] * w2[i] + x;
+            x = a[i] * (w0_i + 2. * w1[i] + w2[i]);
+            w2[i] = w1[i];
+            w1[i] = w0_i;
+        }
+
+        Some(x * 2. / self.epsilon)
+    }
+
+    fn reset(&mut self, sample: Option<u32>) {
+        if let Some(sample) = sample {
+            // n = filter order
+            let n_f = 2. * N as f32;
+
+            let a = (PI * self.freq / sample as f32).tan();
+            let a_sq = a * a;
+
+            let eps = self.epsilon;
+            let u = ((1. + (1. + eps * eps).sqrt()) / eps).ln();
+
+            let sinh_u = (u / n_f).sinh();
+            let cosh_u = (u / n_f).cosh();
+
+            for i in 0..N {
+                let i_f = i as f32;
+                let sr = (PI * (2. * i_f + 1.) / (2. * n_f)).sin() * sinh_u;
+                let cr = (PI * (2. * i_f + 1.) / (2. * n_f)).cos() * cosh_u;
+    
+                let c_sq = sr * sr + cr * cr;
+                let s = a_sq + 2. * a * sr + c_sq;
+
+                self.a[i] = 1. / (4. * s);
+                self.d1[i] = 2. * (c_sq - a_sq) / s;
+                self.d2[i] = - (a_sq - 2. * a * sr + c_sq) / s;
+            }
+        }
+
+        for i in 0..N {
+            // self.w0[i] = 0.;
             self.w1[i] = 0.;
             self.w2[i] = 0.;
         }
