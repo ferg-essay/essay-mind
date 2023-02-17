@@ -1,6 +1,6 @@
 use std::{thread, time};
 use ui_audio::{AudioOut};
-use audio::source::{sine,AudioSource, self, sine_phase, spline_peaks};
+use audio::source::{sine,AudioSource, self, sine_phase, spline_peaks, spline_shape};
 use fundsp::hacker::*;
 
 fn main() {
@@ -79,6 +79,12 @@ fn main() {
         (0.5, -1.0),
     ]);
 
+    let mut source = 0.2 * spline_shape(440., &[
+        (0.0, 1.0),
+        (0.5, 0.0),
+        (0.5, -1.0),
+        (0.0, 0.5),
+    ]);
     //let mut source = 0.2 * sine(440.);
 
     //let mut source = source::file("assets/cymbal.wav").unwrap();

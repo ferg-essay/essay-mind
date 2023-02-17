@@ -1,4 +1,4 @@
-use mind::{Gram, Digit};
+use gram::{Gram, Digit};
 
 use crate::{FftWindow, analyze::power_msq};
 

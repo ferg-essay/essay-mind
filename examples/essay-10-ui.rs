@@ -1,6 +1,6 @@
 use std::cmp;
 
-use audio::source::spline_peaks;
+use audio::source::{spline_peaks, spline_shape};
 //use ui_audio::AudioReader;
 use audio::{self, Harmonic};
 use audio::{FftWindow, analyze_vowel};
@@ -25,6 +25,7 @@ fn main() {
     //let source = audio::file("assets/bird.mp3").unwrap();
     //let source = audio::file("assets/sfx_coin_single1.wav").unwrap();
     //let source = audio::file("assets/sfx_movement_footsteps1a.wav").unwrap();
+    let source = audio::file("assets/violin_b3.ogg").unwrap();
     //let source = audio::square(220.0);
     //let source = audio::white() >> audio::bandpass::<4>(1000., 1400.);
     //let mut source = audio::sine(300.) + (audio::white() >> audio::bandpass::<8>(2000., 10000.));
@@ -37,17 +38,24 @@ fn main() {
     //let mut source = 0.2 * (sine(220.0) + 0.3 * sine(330.0) + 0.1 * sine(440.0) + 0.1 * sine(550.0));
     //source.reset(Some(samples));
 
-    let source = spline_peaks(100., &[
+    //let source = spline_peaks(100., &[
+    //    (0.0, 1.0),
+    //    (0.5, -1.0),
+    //]);
+
+
+    //let source = 0.2 * spline_peaks(440., &[
+    //    (0.0, 1.0),
+    //    (0.2, -0.2),
+    //    (0.7, 0.2),
+    //    (0.9, -1.0),
+    //]);
+
+    let source = 0.2 * spline_shape(440., &[
         (0.0, 1.0),
+        (0.2, 1.0),
         (0.5, -1.0),
-    ]);
-
-
-    let source = 0.2 * spline_peaks(440., &[
-        (0.0, 1.0),
-        (0.2, -0.2),
-        (0.7, 0.2),
-        (0.9, -1.0),
+        (1.0, 0.2),
     ]);
 
     let vec : Vec<f32> = source.take(2 * samples as usize).collect();

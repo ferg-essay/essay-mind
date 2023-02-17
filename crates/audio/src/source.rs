@@ -290,6 +290,51 @@ pub fn spline_peaks(freq: f32, points: &[(f32, f32)]) -> Box<dyn AudioSource> {
     source
 }
 
+pub fn spline_shape(freq: f32, points: &[(f32, f32)]) -> Box<dyn AudioSource> {
+    assert!(freq > 0.);
+    assert!(points.len() > 1);
+    assert!(points.len() % 2 == 0);
+    assert!(points[0].0 == 0.);
+    assert!(points[points.len() - 2].0 < 1.);
+
+    let mut splines = Vec::<SplinePoint>::new();
+
+    let mut i = 0;
+    while i < points.len() {
+        let prev = &points[i];
+        let shape = &points[i + 1];
+        let next = &points[(i + 2) % points.len()];
+
+        assert!(prev.0 < next.0 || i + 2 == points.len());
+
+        let spline = BezierSpline::new(&[
+            (0.0, prev.1),
+            (shape.0, prev.1),
+            (1. - shape.1, next.1),
+            (1.0, next.1),
+        ]);
+
+        splines.push(SplinePoint {
+            x0: prev.0,
+            x1: if prev.0 <= next.0 { next.0 } else { 1.0 },
+            spline: spline,
+        });
+
+        i += 2;
+    }
+
+    let mut source = Box::new(SplineSource {
+        freq: freq,
+        splines: splines,
+        buffer: Vec::<f32>::new(),
+        time: 0,
+    });
+
+    source.reset(Some(DEFAULT_SAMPLES));
+
+    source
+}
+
 struct SplineSource {
     freq: f32,
 

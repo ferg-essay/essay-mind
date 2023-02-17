@@ -60,5 +60,10 @@ impl BezierSpline {
                 data[last_x] = y_t;
             }
         }
-    }
+
+        while last_x + 1 < data.len() {
+            data[last_x + 1] = data[last_x];
+            last_x += 1;
+        }
+}
 }

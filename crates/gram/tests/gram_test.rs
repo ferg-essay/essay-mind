@@ -1,4 +1,4 @@
-use mind::{Gram,Digit::*};
+use gram::{Gram,Digit::*};
 
 const NIL: u8 = 0x3f; 
 const LOW: u8 = 0x00; 

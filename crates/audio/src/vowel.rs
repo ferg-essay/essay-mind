@@ -1,6 +1,7 @@
 use std::cmp;
 
-use mind::{Gram};
+use gram;
+use gram::{Gram};
 
 pub fn analyze_vowel(
     waves: &[f32], 
@@ -15,18 +16,18 @@ pub fn analyze_vowel(
     let mut gram = Gram::new();
     // the constant frequency is a marker for noise
     if fft[0] < 0.05 {
-        gram.push(mind::Digit::Nil);
+        gram.push(gram::Digit::Nil);
     } else if fft[0] < 1. {
-        gram.push(mind::Digit::try_from_unit(fft[0], 16));
+        gram.push(gram::Digit::try_from_unit(fft[0], 16));
     }
     //gram.push(Med(u8::try_from(max_harmonic(&harmonics)).expect("can't convert")));
     for (_, value) in harmonics[0..6].iter().enumerate() {
         let value = fmin(*value, 0.999);
 
         if value < 0.05 {
-            gram.push(mind::Digit::Nil);
+            gram.push(gram::Digit::Nil);
         } else {
-            gram.push(mind::Digit::try_from_unit(value, 16));
+            gram.push(gram::Digit::try_from_unit(value, 16));
         }
     }
 
@@ -76,13 +77,13 @@ fn analyze_wave(
         let value = fmax(0.0, fmin(0.99, 0.5 + value / (2.01 * max)));
 
         if is_ramp(wave, pos) && false {
-            gram.push(mind::Digit::Nil);
+            gram.push(gram::Digit::Nil);
             /*
         } else if -1.0 <= value && value <= 1.0 {
             gram.push(mind::Digit::Nil);
             */
         } else {
-            gram.push(mind::Digit::try_from_unit(value, radix));
+            gram.push(gram::Digit::try_from_unit(value, radix));
         }
     }
 

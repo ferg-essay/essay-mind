@@ -165,6 +165,30 @@ fn spline_fill_line_2() {
     ], 1e-2);
 }
 
+#[test]
+fn spline_fill_square() {
+    let spline = BezierSpline::new(&[
+        (0., 0.),
+        (1., 0.),
+        (0., 1.),
+        (1., 1.),
+    ]);
+
+    let mut data = [0.0f32; 8];
+
+    spline.eval_as_fn(&mut data);
+    assert_array(&data, &[
+        0.0,
+        0.01,
+        0.04,
+        0.09,
+        0.5,
+        0.96,
+        0.99,
+        0.99,
+    ], 1e-2);
+}
+
 //
 // # spline source
 //
