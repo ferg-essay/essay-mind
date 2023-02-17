@@ -1,7 +1,7 @@
 use std::cmp;
 
 //use ui_audio::AudioReader;
-use audio;
+use audio::{self, Harmonic, sine};
 use audio::{FftWindow, analyze_vowel};
 use ui_graphics::*;
 use egui::plot;
@@ -9,27 +9,30 @@ use egui::plot;
 fn main() {
     //let buffer = AudioReader::read("assets/blip.ogg");
 
-    //let buffer = AudioReader::read("assets/bud.ogg");
-    //let buffer = AudioReader::read("assets/pod.ogg");
-    //let buffer = AudioReader::read("assets/my.ogg");
-    //let buffer = AudioReader::read("assets/kite.ogg");
-    //let buffer = AudioReader::read("assets/booed.ogg");
-    //let buffer = AudioReader::read("assets/above.ogg");
-    //let buffer = AudioReader::read("assets/bead.ogg");
-    //let buffer = AudioReader::read("assets/rye.ogg");
-    //let buffer = AudioReader::read("assets/boy.ogg");
-    //let buffer = AudioReader::read("assets/bid.ogg");
-    let source = audio::file("assets/cymbal.wav").unwrap();
-    //let buffer = AudioReader::read("assets/bird.mp3");
-    let source = audio::square(220.0);
+    //let source = audio::file("assets/bud.ogg").unwrap();
+    //let source = audio::file("assets/pod.ogg").unwrap();
+    //let source = audio::file("assets/my.ogg").unwrap();
+    //let source = audio::file("assets/kite.ogg").unwrap();
+    //let source = audio::file("assets/booed.ogg").unwrap();
+    //let source = audio::file("assets/above.ogg").unwrap();
+    //let source = audio::file("assets/bead.ogg").unwrap();
+    //let source = audio::file("assets/rye.ogg").unwrap();
+    //let source = audio::file("assets/boy.ogg").unwrap();
+    //let source = audio::file("assets/bid.ogg").unwrap();
+    //let source = audio::file("assets/cymbal.wav").unwrap();
+    //let source = audio::file("assets/bird.mp3").unwrap();
+    //let source = audio::file("assets/sfx_coin_single1.wav").unwrap();
+    let source = audio::file("assets/sfx_movement_footsteps1a.wav").unwrap();
+    //let source = audio::square(220.0);
     let fft_len = 1024;
-    let samples = 14410;
+    let samples: u32 = 44100;
     // let offset = 0;
     let fft = FftWindow::new(fft_len);
 
     //let mut source = 0.2 * (sine(220.0) + 0.3 * sine(330.0) + 0.1 * sine(440.0) + 0.1 * sine(550.0));
-    let vec : Vec<f32> = source.take(2 * samples).collect();
+    //source.reset(Some(samples));
 
+    let vec : Vec<f32> = source.take(2 * samples as usize).collect();
 
     let main_loop = main_loop::MainLoop::new();
     main_loop.run(move |ui| {
@@ -46,9 +49,9 @@ fn main() {
         let line = plot::Line::new(wave);
 
         ui.vertical(|ui| {
-            ui.label("Waveform");
-
             let mut bounds = [0.0f64, 0.0];
+
+            ui.label("Waveform");
 
             plot::Plot::new("waveform")
                 .height(0.5 * ui.available_height())
@@ -74,9 +77,24 @@ fn main() {
             let gram = analyze_vowel(
                 &in_buffer[fft_offset.. fft_offset + fft_len], 
                 vec,
-                samples,
+                samples as usize,
                 fft_len
             );
+
+            let harm = Harmonic::harmonics(vec, samples);
+
+            if harm.freqs.len() > 0 {
+                ui.label(format!(
+                    "Harmonics len={} {}hz '{}' power {} {:?}", 
+                    harm.freqs.len(),
+                    harm.freqs[0].freq,
+                    Harmonic::gram_from_harmonics(&harm.freqs[0], 8),
+                    harm.freqs[0].power,
+                    harm.freqs[0].harmonics,
+                ));
+            } else {
+            }
+
     
             let fft_plot: plot::PlotPoints = vec.iter().enumerate().map(|(i, data)| {
                 let x = i as f64 * samples as f64 / fft_len as f64;

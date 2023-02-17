@@ -9,7 +9,7 @@ fn power_sine_256() {
     let sample = 8192;
     let mut source = sine(256.0);
     source.reset(Some(sample));
-    let vec : Vec::<f32> = source.take(sample).collect();
+    let vec : Vec::<f32> = source.take(sample as usize).collect();
 
     let power_msq_wave = power_msq(&vec);
 
@@ -24,7 +24,7 @@ fn power_sine_512() {
     let sample = 8192;
     let mut source = sine(512.0);
     source.reset(Some(sample));
-    let vec : Vec::<f32> = source.take(sample).collect();
+    let vec : Vec::<f32> = source.take(sample as usize).collect();
 
     let power_msq_wave = power_msq(&vec);
 
@@ -39,7 +39,7 @@ fn power_sine_2x_256() {
     let sample = 8192;
     let mut source = 2.0 * sine(256.0);
     source.reset(Some(sample));
-    let vec : Vec::<f32> = source.take(sample).collect();
+    let vec : Vec::<f32> = source.take(sample as usize).collect();
 
     let power_msq_wave = power_msq(&vec);
 
@@ -54,7 +54,7 @@ fn power_sine_223() {
     let sample = 8192;
     let mut source = sine(223.0);
     source.reset(Some(sample));
-    let vec : Vec::<f32> = source.take(sample).collect();
+    let vec : Vec::<f32> = source.take(sample as usize).collect();
 
     let power_msq_wave = power_msq(&vec);
 
@@ -74,7 +74,7 @@ fn base_sine_256() {
     let sample = 8192;
     let mut source = sine(256.0);
     source.reset(Some(sample));
-    let vec : Vec::<f32> = source.take(sample).collect();
+    let vec : Vec::<f32> = source.take(sample as usize).collect();
 
     let harmonics = Harmonic::harmonics_wave(&vec, sample);
 
@@ -90,7 +90,7 @@ fn base_sine_256_400() {
     let sample = 8192;
     let mut source = sine(256.0) + 0.5 * sine(400.);
     source.reset(Some(sample));
-    let vec : Vec::<f32> = source.take(sample).collect();
+    let vec : Vec::<f32> = source.take(sample as usize).collect();
 
     let harmonics = Harmonic::harmonics_wave(&vec, sample);
 
@@ -114,7 +114,7 @@ fn base_sine_256_512() {
         + 0.5 * sine(512.0);
 
     source.reset(Some(sample));
-    let vec : Vec::<f32> = source.take(sample).collect();
+    let vec : Vec::<f32> = source.take(sample as usize).collect();
 
     let harmonics = Harmonic::harmonics_wave(&vec, sample);
 

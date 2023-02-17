@@ -7,7 +7,7 @@ fn sine_4() {
     let mut source = sine(1.0);
     source.reset(Some(sample));
 
-    let value: Vec<f32> = source.take(sample).collect();
+    let value: Vec<f32> = source.take(sample as usize).collect();
 
     assert_match(&value, &[
         0.0, 
@@ -26,7 +26,7 @@ fn sine_4_2hz() {
     
     source.reset(Some(sample));
 
-    let value: Vec<f32> = source.take(sample).collect();
+    let value: Vec<f32> = source.take(sample as usize).collect();
 
     assert_match(&value, &[
         0.0, 
@@ -49,7 +49,7 @@ fn sine_4_3hz() {
     
     source.reset(Some(sample));
 
-    let value: Vec<f32> = source.take(sample).collect();
+    let value: Vec<f32> = source.take(sample as usize).collect();
 
     assert_match(&value, &[
         0.0, 
@@ -75,7 +75,7 @@ fn sine_8() {
     
     source.reset(Some(sample));
 
-    let value: Vec<f32> = source.take(sample).collect();
+    let value: Vec<f32> = source.take(sample as usize).collect();
 
     assert_match(&value, &[
         0.0, 
@@ -97,7 +97,7 @@ fn sine_12() {
     
     source.reset(Some(sample));
 
-    let value: Vec<f32> = source.take(sample).collect();
+    let value: Vec<f32> = source.take(sample as usize).collect();
 
     assert_match(&value, &[
         0.0, 
@@ -122,7 +122,7 @@ fn square_4() {
     let mut source = square(1.0);
     source.reset(Some(sample));
 
-    let value: Vec<f32> = source.take(sample).collect();
+    let value: Vec<f32> = source.take(sample as usize).collect();
 
     assert_match(&value, &[
         1.0, 
@@ -139,7 +139,7 @@ fn square_8() {
     let mut source = square(1.0);
     source.reset(Some(sample));
 
-    let value: Vec<f32> = source.take(sample).collect();
+    let value: Vec<f32> = source.take(sample as usize).collect();
 
     assert_match(&value, &[
         1.0, 
@@ -160,7 +160,7 @@ fn square_8_x2() {
     let mut source = square(2.0);
     source.reset(Some(sample));
 
-    let value: Vec<f32> = source.take(sample).collect();
+    let value: Vec<f32> = source.take(sample as usize).collect();
 
     assert_match(&value, &[
         1.0, 
@@ -186,7 +186,7 @@ fn amplitude_x2() {
 
     source.reset(Some(sample));
 
-    let value: Vec<f32> = source.take(sample).collect();
+    let value: Vec<f32> = source.take(sample as usize).collect();
 
     assert_match(&value, &[
         0.0, 
@@ -204,7 +204,7 @@ fn amplitude_x0_5() {
 
     source.reset(Some(sample));
 
-    let value: Vec<f32> = source.take(sample).collect();
+    let value: Vec<f32> = source.take(sample as usize).collect();
 
     assert_match(&value, &[
         0.0, 
@@ -222,7 +222,7 @@ fn add_sine_2() {
 
     source.reset(Some(sample));
 
-    let value: Vec<f32> = source.take(sample).collect();
+    let value: Vec<f32> = source.take(sample as usize).collect();
 
     assert_match(&value, &[
         0.0, 

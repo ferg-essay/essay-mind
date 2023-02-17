@@ -1,3 +1,5 @@
+use mind::{Gram, Digit};
+
 use crate::{FftWindow, analyze::power_msq};
 
 
@@ -26,7 +28,7 @@ pub struct HarmonicItem {
 impl Harmonic {
     pub fn harmonics_wave(
         wave: &[f32],
-        sample: usize
+        sample: u32
     ) -> Harmonic {
         assert!(wave.len().count_ones() == 1);
 
@@ -43,9 +45,31 @@ impl Harmonic {
 
     const N_POINTS: usize = 16;
 
+    pub fn gram_from_harmonics(harmonic: &HarmonicItem, limit: usize) -> Gram {
+        let mut gram = Gram::new();
+
+        let mut max = 0.0f32;
+
+        for value in &harmonic.harmonics {
+            max = if max < *value { *value } else { max };
+        }
+
+        for (i, value) in harmonic.harmonics.iter().enumerate() {
+                if i < limit {
+                if *value > 5e-2 {
+                    gram.push(Digit::try_from_unit(*value / max, 16));
+                } else {
+                    gram.push(Digit::Nil);
+                }
+            }
+        }
+
+        gram
+    }
+
     pub fn harmonics(
         fft: &mut [f32], 
-        sample: usize,
+        sample: u32,
     ) -> Harmonic {
         let power_msq = Self::normalize(fft);
 
@@ -61,7 +85,14 @@ impl Harmonic {
             }
         }).collect();
          */
-        let harmonics = Self::fill_harmonic_items(&mut max_freqs, freq_factor);
+        let mut harmonics = Self::fill_harmonic_items(&mut max_freqs, freq_factor);
+
+        harmonics.sort_by(|x, y| {
+            let left: f32 = x.power;
+            let right: f32 = y.power;
+
+            right.partial_cmp(&left).unwrap()
+        });
         
         Harmonic {
             power_rms: power_msq.sqrt(),
@@ -78,7 +109,7 @@ impl Harmonic {
         let mut items = Vec::<HarmonicItem>::new();
 
         while points.len() > 0 {
-            let base = points.remove(0);
+            let base = Self::extract_harmonic_base(points);
 
             let mut harmonics = Vec::<f32>::new();
             let freq = base.0 as f32;
@@ -86,9 +117,15 @@ impl Harmonic {
 
             let freq = Self::extract_harmonics(points, &mut harmonics, freq);
 
+            let power: f32 = harmonics.iter().sum();
+
+            for value in &mut harmonics {
+                *value /= power;
+            }
+
             items.push(HarmonicItem { 
                 freq: freq * freq_factor,
-                power: harmonics.iter().sum(),
+                power: power,
                 harmonics,
             });
         }
@@ -96,12 +133,36 @@ impl Harmonic {
         items
     }
 
+    fn extract_harmonic_base(
+        points: &mut Vec<Point>,
+    ) -> Point {
+        let mut best_i = 0;
+        let mut best_freq = points[best_i].0 as f32;
+        let mut best_value = points[best_i].1;
+
+        for i in 0..points.len() {
+            let value = points[i];
+            
+            if value.1 > 0.1 {
+                return points.remove(i);
+            } else if 2. * best_value < value.1 
+                && (value.0 as f32 / best_freq + 0.05) % 1.0 > 0.1 {
+                best_i = 0;
+                best_freq = points[best_i].0 as f32;
+                best_value = points[best_i].1;
+            }
+        }
+
+        points.remove(best_i)
+    }
+
     fn extract_harmonics(
         points: &mut Vec<Point>,
         harmonics: &mut Vec<f32>,
         base: f32,
     ) -> f32 {
-        let delta = 1.0 / base;
+        let delta = 2.0 / (base - 1.);
+        let mut best_base = base;
 
         let mut i = 0;
         while i < points.len() {
@@ -110,11 +171,23 @@ impl Harmonic {
             if (factor + delta) % 1.0 < 2.0 * delta {
                 let factor = (factor + delta) as usize;
 
+                // heuristic to avoid low harmonics
+                /*
+                if harmonics.len() == 1 && (
+                    factor > 5 ||
+                    factor > 3 && points[i].1 / harmonics[0] > 10.0
+                ) {
+                    return best_base;
+                }
+                 */
+
                 while harmonics.len() + 1 < factor {
                     harmonics.push(0.0);
                 }
 
                 harmonics.push(points[i].1);
+
+                best_base = points[i].0 as f32 / factor as f32;
 
                 points.remove(i);
             } else {
@@ -122,7 +195,7 @@ impl Harmonic {
             }
         }
 
-        base
+        best_base
     }
 
     fn max_freqs(fft: &[f32]) -> Vec::<Point> {
@@ -150,7 +223,8 @@ impl Harmonic {
     }
 
     fn extract_from_triple(triple_points: &mut Vec<Point>, points: &mut [Point]) {
-        for point in points {
+        let mut point_i = 0;
+        while triple_points.len() > 0 {
             let mut first = triple_points.remove(0);
 
             let mut count: usize = 1; 
@@ -160,7 +234,14 @@ impl Harmonic {
             while i < triple_points.len() {
                 let p: Point = triple_points[i];
 
-                if p.0 == first.0 + 1 || p.0 == first.0 - 1 {
+                if first.0 <= 2 {
+                    i += 1;
+                }
+                else if p.0 == first.0 + 1 
+                    || p.0 == first.0 - 1
+                    || p.0 == first.0 + 2
+                    || p.0 == first.0 - 2
+                {
                     value += p.1;
                     count += 1;
                     triple_points.remove(i);
@@ -173,7 +254,10 @@ impl Harmonic {
 
             first.1 = value;
 
-            *point = first;
+            if first.0 > 2 && point_i < points.len() {
+                points[point_i] = first;
+                point_i += 1;
+            }
         }
     }
 

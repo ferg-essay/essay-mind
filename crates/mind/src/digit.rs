@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt, cmp};
 
 use crate::gram::U8_TO_STR;
 
@@ -41,7 +41,9 @@ impl Digit {
     pub fn try_from_unit(value: f32, base: u8) -> Digit {
         assert!(0.0 <= value); //  && value <= 1.0);
 
-        Digit::Med((value * base as f32) as u8)
+        let value = cmp::min(base - 1, (value * base as f32) as u8);
+
+        Digit::Med(value)
     }
 
     pub fn digit(&self) -> u8 {

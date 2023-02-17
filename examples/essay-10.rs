@@ -18,7 +18,8 @@ fn main() {
     let c = 0.2 * (organ_hz(midi_hz(57.0))
      + organ_hz(midi_hz(61.0)) + organ_hz(midi_hz(64.0)));
     //let c = 0.2 * (organ_hz(midi_hz(60.0)));
-    //let c = oversample(sine_hz(220.0) + 0.4 * sine_hz(440.0));
+    //let c = oversample(sine_hz(492.0));
+    let c = sine_hz(492.0);
     //let c = brown();
 
     //let c = c >> (chorus(0, 0.0, 0.1, 0.2));
@@ -42,7 +43,6 @@ fn main() {
     //buffer.extend(space);
     //let mut buffer = AudioReader::read("assets/bud.ogg");
     //print!("buffer {}\n", buffer.len());
-    //audio.open(move || c.get_mono() as f32);
 
     let mut source = 
         0.2 * (sine(220.0) + 
@@ -50,11 +50,36 @@ fn main() {
         0.1 * sine_phase(440.0, 0.4)
     );
 
+    let mut source =
+        0.158 * sine(70.) +
+        0.141 * sine(2. * 70.) +
+        0.142 * sine(3. * 70.) +
+        0.208 * sine(4. * 70.) +
+        0.058 * sine(5. * 70.) +
+        0.056 * sine(6. * 70.0) +
+        0.082 * sine(7. * 70.) +
+        0.023 * sine(8. * 70.);
+
+    let freq = 238.;
+
+    let mut source = 0.3 * (
+        0.317 * audio::sine(freq)
+        + 0.462 * sine( 2. * freq)
+        + 0.198 * sine(2. * freq)
+    );
+
     //let mut source = source::file("assets/cymbal.wav").unwrap();
+    //let mut source = 0.3 * source::file("assets/violin_b3.ogg").unwrap();
+    //let mut source = 0.3 * source::file("assets/bead.ogg").unwrap();
+    //let mut source = 0.3 * source::file("assets/booed.ogg").unwrap();
     //let mut source = 0.5 * sine(220.0);
     //let mut source = 0.5 * audio::square(220.0);
 
+    print!("sample rate {}\n", audio.sample_rate());
+    source.reset(Some(audio.sample_rate()));
+
     // audio.open(move || buffer.next());
+    // audio.open(move || c.get_mono() as f32);
     audio.open(move || source.next().unwrap());
 
 

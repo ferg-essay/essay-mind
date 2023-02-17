@@ -4,12 +4,14 @@ use crate::AudioBuffer;
 use crate::ui_symphonia::{AudioReader};
 
 pub trait AudioSource: Iterator<Item = f32> + Send {
-    fn reset(&mut self, _sample: Option<usize>) { }
+    fn reset(&mut self, _sample: Option<u32>) { }
 }
 
 pub trait AudioFilter {
     fn next(&mut self, source: dyn AudioSource) -> Option<f32>;
 }
+
+const DEFAULT_SAMPLES : u32 = 44100;
 
 //
 // # float multiply implementation
@@ -32,7 +34,7 @@ struct MulSource {
 }
 
 impl AudioSource for MulSource {
-    fn reset(&mut self, sample: Option<usize>) {
+    fn reset(&mut self, sample: Option<u32>) {
         self.source.reset(sample);
     }
 }
@@ -69,7 +71,7 @@ struct AddSource {
 }
 
 impl AudioSource for AddSource {
-    fn reset(&mut self, sample: Option<usize>) {
+    fn reset(&mut self, sample: Option<u32>) {
         self.lhs.reset(sample);
         self.rhs.reset(sample);
     }
@@ -133,7 +135,7 @@ struct TimeFunction {
 
 impl TimeFunction {
     fn new(fun: impl Fn(f32) -> f32 + Send + 'static) -> Self {
-        let sample = 14400;
+        let sample = DEFAULT_SAMPLES;
 
         TimeFunction {
             step: 1.0 / sample as f32,
@@ -156,7 +158,7 @@ impl Iterator for TimeFunction {
 }
 
 impl AudioSource for TimeFunction {
-    fn reset(&mut self, sample: Option<usize>) {
+    fn reset(&mut self, sample: Option<u32>) {
         self.time = 0.0;
 
         if let Some(sample) = sample {
@@ -174,14 +176,14 @@ pub fn file(path: &str) -> Result<Box<dyn AudioSource>,String> {
    
     Ok(Box::new(FileBuffer {
         buffer: buffer,
-        file_samples: 14410,
+        file_samples: DEFAULT_SAMPLES,
         time: 0,
     }))
 }
 
 struct FileBuffer {
     buffer: AudioBuffer,
-    file_samples: usize,
+    file_samples: u32,
     time: usize,
 }
 
@@ -202,7 +204,7 @@ impl Iterator for FileBuffer {
 }
 
 impl AudioSource for FileBuffer {
-    fn reset(&mut self, sample: Option<usize>) {
+    fn reset(&mut self, sample: Option<u32>) {
         self.time = 0;
 
         if let Some(sample) = sample {
