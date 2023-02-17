@@ -9,18 +9,19 @@ fn main() {
     // let c = dc(110.0) >> triangle();
     // let c = zero() >> pluck(440.0, 0.8, 0.8);
     //let c = mls();
-    //let c = pink();
+    let c = pink();
     //let c = dc(110.0) >> square();
     //let c = (mls() | dc(400.0) | dc(50.0)) >> resonator();
     //let f = 440.0;
     //let m = 2.0;
     //let c = oversample(sine_hz(f) * f * m + f >> sine());
-    let c = 0.2 * (organ_hz(midi_hz(57.0))
-     + organ_hz(midi_hz(61.0)) + organ_hz(midi_hz(64.0)));
+    //let c = 0.2 * (organ_hz(midi_hz(57.0))
+    // + organ_hz(midi_hz(61.0)) + organ_hz(midi_hz(64.0)));
     //let c = 0.2 * (organ_hz(midi_hz(60.0)));
     //let c = oversample(sine_hz(492.0));
-    let c = sine_hz(492.0);
+    //let c = sine_hz(492.0);
     //let c = brown();
+    let c = 0.3 * white();
 
     //let c = c >> (chorus(0, 0.0, 0.1, 0.2));
 
@@ -68,6 +69,9 @@ fn main() {
         + 0.198 * sine(2. * freq)
     );
 
+    let mut source = audio::white();
+    let mut source = 10. * (audio::white() >> audio::bandpass_16(1140., 1280.));
+
     //let mut source = source::file("assets/cymbal.wav").unwrap();
     //let mut source = 0.3 * source::file("assets/violin_b3.ogg").unwrap();
     //let mut source = 0.3 * source::file("assets/bead.ogg").unwrap();
@@ -79,7 +83,7 @@ fn main() {
     source.reset(Some(audio.sample_rate()));
 
     // audio.open(move || buffer.next());
-    // audio.open(move || c.get_mono() as f32);
+    //audio.open(move || c.get_mono() as f32);
     audio.open(move || source.next().unwrap());
 
 

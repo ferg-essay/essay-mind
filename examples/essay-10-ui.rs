@@ -1,7 +1,7 @@
 use std::cmp;
 
 //use ui_audio::AudioReader;
-use audio::{self, Harmonic, sine};
+use audio::{self, Harmonic};
 use audio::{FftWindow, analyze_vowel};
 use ui_graphics::*;
 use egui::plot;
@@ -19,11 +19,15 @@ fn main() {
     //let source = audio::file("assets/rye.ogg").unwrap();
     //let source = audio::file("assets/boy.ogg").unwrap();
     //let source = audio::file("assets/bid.ogg").unwrap();
+    //let source = audio::file("assets/shy.ogg").unwrap();
     //let source = audio::file("assets/cymbal.wav").unwrap();
-    //let source = audio::file("assets/bird.mp3").unwrap();
+    let source = audio::file("assets/bird.mp3").unwrap();
     //let source = audio::file("assets/sfx_coin_single1.wav").unwrap();
-    let source = audio::file("assets/sfx_movement_footsteps1a.wav").unwrap();
+    //let source = audio::file("assets/sfx_movement_footsteps1a.wav").unwrap();
     //let source = audio::square(220.0);
+    //let source = audio::white() >> audio::bandpass::<4>(1000., 1400.);
+    //let mut source = audio::sine(300.) + (audio::white() >> audio::bandpass::<8>(2000., 10000.));
+    let mut source = audio::white() >> audio::bandpass_16(2440., 2800.);
     let fft_len = 1024;
     let samples: u32 = 44100;
     // let offset = 0;

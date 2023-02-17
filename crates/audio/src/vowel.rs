@@ -16,7 +16,7 @@ pub fn analyze_vowel(
     // the constant frequency is a marker for noise
     if fft[0] < 0.05 {
         gram.push(mind::Digit::Nil);
-    } else {
+    } else if fft[0] < 1. {
         gram.push(mind::Digit::try_from_unit(fft[0], 16));
     }
     //gram.push(Med(u8::try_from(max_harmonic(&harmonics)).expect("can't convert")));
