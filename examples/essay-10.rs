@@ -1,6 +1,7 @@
 use std::{thread, time};
+use gram::Gram;
 use ui_audio::{AudioOut};
-use audio::source::{sine,AudioSource, self, sine_phase, spline_peaks, spline_shape};
+use audio::source::{sine,AudioSource, self, sine_phase, spline_peaks, spline_shape, spline_gram};
 use fundsp::hacker::*;
 
 fn main() {
@@ -94,6 +95,10 @@ fn main() {
     //let mut source = audio::file("assets/shy.ogg").unwrap();
     //let mut source = 0.5 * sine(220.0);
     //let mut source = 0.5 * audio::square(220.0);
+    //let mut source = spline_gram(440., Gram::from("8708_8708_8308_8308_8308_8308"), 16);
+    //let mut source = spline_gram(480., Gram::from("1701_1541_1041_1541"), 16);
+    //let mut source = 0.3 * source::file("assets/violin_b3.ogg").unwrap();
+    let mut source = spline_gram(220., Gram::from("3783_3763"), 16);
 
     print!("sample rate {}\n", audio.sample_rate());
     source.reset(Some(audio.sample_rate()));

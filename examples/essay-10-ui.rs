@@ -1,9 +1,10 @@
 use std::cmp;
 
-use audio::source::{spline_peaks, spline_shape};
+use audio::source::{spline_peaks, spline_shape, spline_gram};
 //use ui_audio::AudioReader;
 use audio::{self, Harmonic};
 use audio::{FftWindow, analyze_vowel};
+use gram::Gram;
 use ui_graphics::*;
 use egui::plot;
 
@@ -12,10 +13,10 @@ fn main() {
 
     //let source = audio::file("assets/bud.ogg").unwrap();
     //let source = audio::file("assets/pod.ogg").unwrap();
-    //let source = audio::file("assets/my.ogg").unwrap();
+    let source = audio::file("assets/my.ogg").unwrap();
     //let source = audio::file("assets/kite.ogg").unwrap();
     //let source = audio::file("assets/booed.ogg").unwrap();
-    let source = audio::file("assets/above.ogg").unwrap();
+    //let source = audio::file("assets/above.ogg").unwrap();
     //let source = audio::file("assets/bead.ogg").unwrap();
     //let source = audio::file("assets/rye.ogg").unwrap();
     //let source = audio::file("assets/boy.ogg").unwrap();
@@ -25,7 +26,7 @@ fn main() {
     //let source = audio::file("assets/bird.mp3").unwrap();
     //let source = audio::file("assets/sfx_coin_single1.wav").unwrap();
     //let source = audio::file("assets/sfx_movement_footsteps1a.wav").unwrap();
-    let source = audio::file("assets/violin_b3.ogg").unwrap();
+    //let source = audio::file("assets/violin_b3.ogg").unwrap();
     //let source = audio::square(220.0);
     //let source = audio::white() >> audio::bandpass::<4>(1000., 1400.);
     //let mut source = audio::sine(300.) + (audio::white() >> audio::bandpass::<8>(2000., 10000.));
@@ -34,6 +35,7 @@ fn main() {
     let samples: u32 = 44100;
     // let offset = 0;
     let fft = FftWindow::new(fft_len);
+    let mut source = spline_gram(220., Gram::from("3783_3763"), 16);
 
     //let mut source = 0.2 * (sine(220.0) + 0.3 * sine(330.0) + 0.1 * sine(440.0) + 0.1 * sine(550.0));
     //source.reset(Some(samples));
@@ -51,12 +53,21 @@ fn main() {
     //    (0.9, -1.0),
     //]);
 
-    let source = 0.2 * spline_shape(440., &[
+/*
+    let source = 0.2 * spline_shape(1., &[
         (0.0, 1.0),
-        (0.2, 1.0),
-        (0.5, -1.0),
-        (1.0, 0.2),
+        (0.5, 0.5),
+        (0.25, -0.5),
+        (0.5, 0.5),
+        (0.5, 1.0),
+        (0.5, 0.5),
+        (0.75, -0.5),
+        (0.5, 0.5),
     ]);
+    */
+    //let source = spline_gram(1., Gram::from("8708_8708_8308_8308"), 16);
+    //let source = spline_gram(1., Gram::from("8708_87a8_8308_8308_8308_8368"), 16);
+    //let source = spline_gram(480., Gram::from("0700_0540_0040_0540"), 16);
 
     let vec : Vec<f32> = source.take(2 * samples as usize).collect();
 

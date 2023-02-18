@@ -948,6 +948,7 @@ dependencies = [
  "env_logger",
  "fft",
  "fundsp",
+ "gram",
  "log",
  "ui-audio",
  "ui-graphics",

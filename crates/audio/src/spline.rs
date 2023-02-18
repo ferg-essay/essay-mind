@@ -52,12 +52,17 @@ impl BezierSpline {
                 let y_m = (1. - x_m) * data[last_x] + x_m * y_t;
 
                 last_x += 1;
-                data[last_x] = y_m;
+                if last_x < data.len() {
+                    data[last_x] = y_m;
+                }
             }
 
             if last_x < x_i {
                 last_x += 1;
-                data[last_x] = y_t;
+
+                if last_x < data.len() {
+                    data[last_x] = y_t;
+                }
             }
         }
 

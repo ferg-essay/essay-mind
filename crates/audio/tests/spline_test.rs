@@ -1,4 +1,5 @@
-use audio::{BezierSpline, source::spline_peaks};
+use audio::{BezierSpline, source::{spline_peaks, spline_gram}};
+use gram::Gram;
 
 #[test]
 fn spline_line() {
@@ -215,6 +216,32 @@ fn spline_source() {
         -0.6875,
         0.,
         0.91,
+    ], 1e-2);
+}
+
+//
+// # spline gram
+//
+
+#[test]
+fn spline_gram_test() {
+    let sample = 8;
+
+    let mut source = spline_gram(1., Gram::from("7707_7707"), 16);
+
+    source.reset(Some(sample));
+
+    let value: Vec<f32> = source.take(sample as usize).collect();
+
+    assert_match(&value, &[
+        0.875, 
+        0.60,
+        0.0,
+        -0.8,
+        -0.875,
+        -0.60,
+        0.,
+        0.8,
     ], 1e-2);
 }
 

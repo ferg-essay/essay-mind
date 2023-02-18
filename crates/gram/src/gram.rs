@@ -13,12 +13,28 @@ impl Gram {
         }
     }
 
+    pub fn len(&self) -> usize {
+        self.vec.len()
+    }
+
     pub fn push(&mut self, digit: Digit) {
         self.vec.push(digit.as_u8());
     }
 
     pub fn push_u8(&mut self, digit: u8) {
         self.vec.push(digit);
+    }
+
+    pub fn push_unit(&mut self, value: f32, radix: u8) {
+        self.push(Digit::try_from_unit(value, radix))
+    }
+
+    pub fn get_unit(&self, index: usize, radix: u8) -> f32 {
+        Digit::f32_unit(self.vec[index], radix)
+    }
+
+    pub fn get_sunit(&self, index: usize, radix: u8) -> f32 {
+        Digit::f32_sunit(self.vec[index], radix)
     }
 
     fn from_str(value: &str) -> Gram {
@@ -36,6 +52,7 @@ impl Gram {
                 'a'..='z' => { vec.push(ch as u8 - b'a' + size + 10); size = MED; },
                 'A'..='Z' => { vec.push(ch as u8 - b'A' + size + 36); size = MED; },
                 '-' => { vec.push(size + 62); size = 0; },
+                '_' => {},
                 _ => { panic!("{} is an invalid Gram character.", ch)}
             }
     

@@ -1,6 +1,7 @@
 use core::{f32::consts::PI};
 use core::ops;
 use crate::{AudioBuffer, BezierSpline};
+use gram::Gram;
 use rand::Rng;
 use crate::ui_symphonia::{AudioReader};
 
@@ -333,6 +334,35 @@ pub fn spline_shape(freq: f32, points: &[(f32, f32)]) -> Box<dyn AudioSource> {
     source.reset(Some(DEFAULT_SAMPLES));
 
     source
+}
+
+pub fn spline_gram(freq: f32, gram: Gram, radix: u8) -> Box<dyn AudioSource> {
+    assert!(gram.len() % 8 == 0);
+
+    let len = gram.len() / 4;
+    let step = 1. / len as f32;
+
+    let mut points = Vec::<(f32,f32)>::new();
+
+    for i in 0..len {
+        let sign = if i % 2 == 0 { 1. } else { -1. };
+        let i_prev = 4 * i;
+        let i_next = 4 * ((i + 1) % len);
+        let value = sign * gram.get_sunit(i_prev + 1, radix);
+        let t = i as f32 * step;
+        let phase = step * (gram.get_unit(i_prev + 2, radix) - 0.5);
+
+        assert!(i != 0 || phase == 0.0, "point #0 must have zero phase at {}", phase);
+
+        let shape_prev = gram.get_unit(i_prev + 3, radix);
+        let shape_next = gram.get_unit(i_next, radix);
+
+        points.push((t + phase, value));
+        points.push((shape_prev, shape_next));
+    }
+    print!("points {:?}\n", points);
+
+    spline_shape(freq, &points)
 }
 
 struct SplineSource {

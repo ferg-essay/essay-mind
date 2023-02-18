@@ -17,7 +17,7 @@ pub(crate) const HIGH: u8 = 0x80;
 pub(crate) const MAX: u8 = 0xc0;
 pub(crate) const WEIGHT_MASK: u8 = 0xc0;
 // const WEIGHT_SHIFT: u8 = 6;
-// pub(crate) const DIGIT_MASK: u8 = 0x3f;
+pub(crate) const DIGIT_MASK: u8 = 0x3f;
 
 
 impl Digit {
@@ -44,6 +44,29 @@ impl Digit {
         let value = cmp::min(base - 1, (value * base as f32) as u8);
 
         Digit::Med(value)
+    }
+
+    pub fn f32_unit(digit: u8, base: u8) -> f32 {
+        let value = digit & DIGIT_MASK;
+
+        assert!(value < base);
+
+        value as f32 / base as f32
+    }
+
+    pub fn f32_sunit(digit: u8, base: u8) -> f32 {
+        let value = digit & DIGIT_MASK;
+
+        assert!(value < base);
+
+        let base_2 = base / 2;
+
+        if value < base_2 {
+            value as f32 / base_2 as f32
+        } else {
+            (value as f32 - base as f32) / base_2 as f32
+        }
+
     }
 
     pub fn digit(&self) -> u8 {
