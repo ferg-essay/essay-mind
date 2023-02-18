@@ -331,7 +331,6 @@ name = "audio"
 version = "0.0.0"
 dependencies = [
  "env_logger",
- "gram",
  "log",
  "rand",
  "rustfft",
@@ -948,7 +947,6 @@ dependencies = [
  "env_logger",
  "fft",
  "fundsp",
- "gram",
  "log",
  "ui-audio",
  "ui-graphics",
@@ -1226,14 +1224,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "gram"
-version = "0.0.0"
-dependencies = [
- "env_logger",
- "log",
-]
-
-[[package]]
 name = "hashbrown"
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1475,7 +1465,6 @@ name = "mind"
 version = "0.0.0"
 dependencies = [
  "env_logger",
- "gram",
  "log",
  "ticker",
 ]

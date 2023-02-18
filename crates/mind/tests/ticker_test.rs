@@ -1,4 +1,4 @@
-use gram::Gram;
+use mind::gram::Gram;
 use mind::{Topos};
 use ticker::SystemBuilder;
 use ticker::Ticker;

@@ -1,7 +1,6 @@
 use core::{f32::consts::PI};
 use core::ops;
 use crate::{AudioBuffer, BezierSpline};
-use gram::Gram;
 use rand::Rng;
 use crate::ui_symphonia::{AudioReader};
 
@@ -334,35 +333,6 @@ pub fn spline_shape(freq: f32, points: &[(f32, f32)]) -> Box<dyn AudioSource> {
     source.reset(Some(DEFAULT_SAMPLES));
 
     source
-}
-
-pub fn spline_gram(freq: f32, gram: Gram, radix: u8) -> Box<dyn AudioSource> {
-    assert!(gram.len() % 8 == 0);
-
-    let len = gram.len() / 4;
-    let step = 1. / len as f32;
-
-    let mut points = Vec::<(f32,f32)>::new();
-
-    for i in 0..len {
-        let sign = if i % 2 == 0 { 1. } else { -1. };
-        let i_prev = 4 * i;
-        let i_next = 4 * ((i + 1) % len);
-        let value = sign * gram.get_sunit(i_prev + 1, radix);
-        let t = i as f32 * step;
-        let phase = step * (gram.get_unit(i_prev + 2, radix) - 0.5);
-
-        assert!(i != 0 || phase == 0.0, "point #0 must have zero phase at {}", phase);
-
-        let shape_prev = gram.get_unit(i_prev + 3, radix);
-        let shape_next = gram.get_unit(i_next, radix);
-
-        points.push((t + phase, value));
-        points.push((shape_prev, shape_next));
-    }
-    print!("points {:?}\n", points);
-
-    spline_shape(freq, &points)
 }
 
 struct SplineSource {
@@ -887,3 +857,46 @@ impl<const N: usize> AudioFilter for BandPassChebyshev<N> {
     }
 }
 
+//
+// # jitter
+//
+
+struct Jitter {
+    sample: usize,
+    update_period: usize,
+
+    frequency_jitter: f32,
+    amplitude_jitter: f32,
+
+    sample_step: f32,
+    jitter_step: f32,
+    amplitude: f32,
+
+    time: usize,
+    source_time: usize,
+    next_update: usize,
+}
+
+impl AudioFilter for Jitter {
+    fn reset(&mut self, sample: Option<u32>) {
+        if let Some(sample) = sample {
+            self.update_period = sample as usize / 8;
+        }
+
+        self.time = 0;
+        self.next_update = self.time + self.sample as usize / 8;
+
+        self.sample_step = 1. / self.sample as f32;
+        self.jitter_step = 1. / self.sample as f32;
+        self.amplitude = 1.;
+    }
+
+    fn next(&mut self, data: f32) -> Option<f32> {
+        self.time += 1;
+        while self.source_time < self.time {
+            self.source_time += 1;
+        }
+
+        Some(data)
+    }
+}

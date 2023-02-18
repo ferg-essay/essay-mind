@@ -1,6 +1,4 @@
-use gram::{Gram, Digit};
-
-use crate::{FftWindow, analyze::power_msq};
+use crate::{FftWindow};
 
 
 #[derive(Debug)]
@@ -44,28 +42,6 @@ impl Harmonic {
     }
 
     const N_POINTS: usize = 16;
-
-    pub fn gram_from_harmonics(harmonic: &HarmonicItem, limit: usize) -> Gram {
-        let mut gram = Gram::new();
-
-        let mut max = 0.0f32;
-
-        for value in &harmonic.harmonics {
-            max = if max < *value { *value } else { max };
-        }
-
-        for (i, value) in harmonic.harmonics.iter().enumerate() {
-                if i < limit {
-                if *value > 5e-2 {
-                    gram.push(Digit::try_from_unit(*value / max, 16));
-                } else {
-                    gram.push(Digit::Nil);
-                }
-            }
-        }
-
-        gram
-    }
 
     pub fn harmonics(
         fft: &mut [f32], 

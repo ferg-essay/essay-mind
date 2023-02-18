@@ -1,6 +1,6 @@
 use std::{fmt};
 
-use crate::{Digit, digit::{NIL, MED, LOW, HIGH, MAX}};
+use crate::gram::{Digit, digit::{NIL, MED, LOW, HIGH, MAX}};
 
 pub struct Gram {
     vec: Vec<u8>,

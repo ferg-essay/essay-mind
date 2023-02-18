@@ -1,6 +1,6 @@
 use std::{fmt, cmp};
 
-use crate::gram::U8_TO_STR;
+use crate::gram::gram::U8_TO_STR;
 
 
 pub enum Digit {
