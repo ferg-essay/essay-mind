@@ -945,7 +945,6 @@ dependencies = [
  "cpal",
  "egui",
  "env_logger",
- "fft",
  "fundsp",
  "log",
  "ui-audio",
@@ -965,15 +964,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a7a407cfaa3385c4ae6b23e84623d48c2798d06e3e6a1878f7f59f17b3f86499"
 dependencies = [
  "instant",
-]
-
-[[package]]
-name = "fft"
-version = "0.0.0"
-dependencies = [
- "env_logger",
- "log",
- "rustfft",
 ]
 
 [[package]]

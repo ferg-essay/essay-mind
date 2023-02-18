@@ -1,4 +1,5 @@
-use mind::gram::Digit;
+use crate::gram::Digit;
+
 
 #[test]
 fn digit_try_from_f32() {

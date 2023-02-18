@@ -18,8 +18,9 @@ pub type ToTickerRef<T> = Rc<RefCell<ToTickerInner<T>>>;
 pub type Result<T> = result::Result<T, Error>;
 
 pub trait Ticker {
-    fn tick(&mut self, ticks: u64);
-    fn build(&mut self);
+    #[allow(unused_variables)]
+    fn tick(&mut self, ticks: u64) {}
+    fn build(&mut self) {}
 }
 
 pub struct TickerOuter {
