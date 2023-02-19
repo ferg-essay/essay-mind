@@ -9,8 +9,8 @@ use std::io::Error;
 use std::result;
 use std::{fmt, rc::Rc};
 
-pub type OnBuild<T> = dyn FnMut(&T)->();
-pub type OnTickFn<T> = dyn Fn(&T, u64)->();
+pub type OnBuild<T> = dyn Fn(&mut T)->();
+pub type OnTickFn<T> = dyn Fn(&mut T, u64)->();
 pub type OnFiber<M,T> = dyn Fn(&mut T, M)->();
 
 pub type ToTickerRef<T> = Rc<RefCell<ToTickerInner<T>>>;
@@ -27,22 +27,14 @@ pub trait TickerCall<M> {
     fn id(&self)->usize;
 
     fn tick(&mut self, ticks: u64);
-    // {
-    //    (self.on_tick)(&self.ticker, ticks);
-    //}
 
     fn on_build(&mut self);
-    // {
-    //    (self.on_build)(&self.ticker);
-    //}
 
     fn send(&mut self, on_fiber: usize, args: M);
-    // {
-    //    self.on_fibers[on_fiber](&mut self.ticker, args);
-    //}
-   fn update_to_tickers(&self, thread: &ThreadInner<M>) -> Vec<usize>;
 
-   fn from_ticker_ids(&self) -> Vec<usize>;
+    fn update_to_tickers(&self, thread: &ThreadInner<M>) -> Vec<usize>;
+
+    fn from_ticker_ids(&self) -> Vec<usize>;
 }
 
 
@@ -148,6 +140,7 @@ impl<M,T:'static> TickerInner<M,T> {
         }
     }
 
+    /*
     pub fn tick(&mut self, ticks: u64) {
         if let Some(on_tick) = &mut self.on_tick {
             on_tick(&self.ticker, ticks);
@@ -159,6 +152,7 @@ impl<M,T:'static> TickerInner<M,T> {
             on_build(&self.ticker);
         }
     }
+    */
 
     pub fn send(&mut self, on_fiber: usize, args: M) {
         self.on_fiber[on_fiber](&mut self.ticker, args);
@@ -172,13 +166,13 @@ impl<M:'static,T> TickerCall<M> for TickerInner<M,T> {
 
     fn tick(&mut self, ticks: u64) {
         if let Some(on_tick) = &mut self.on_tick {
-            on_tick(&self.ticker, ticks);
+            on_tick(&mut self.ticker, ticks);
         }
     }
 
     fn on_build(&mut self) {
         if let Some(on_build) = &mut self.on_build {
-            on_build(&self.ticker);
+            on_build(&mut self.ticker);
         }
     }
 

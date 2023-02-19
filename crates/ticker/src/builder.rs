@@ -109,6 +109,9 @@ impl<M:Clone + 'static> SystemBuilder<M> {
     pub fn ticker<T:Ticker + 'static>(&mut self, ticker: T) -> TickerBuilder<M,T> {
         let ptr = self.ptr.borrow_mut().ticker(ticker, &self.ptr);
 
+        ptr.borrow_mut().on_build(Box::new(move |t| t.build()));
+        ptr.borrow_mut().on_tick(Box::new(move |t, ticks| t.tick(ticks)));
+
         let builder = TickerBuilder {
             ptr: ptr,
         };
@@ -345,6 +348,18 @@ struct ToTickerInner<M> {
 impl<M:Clone +'static,T:'static> TickerBuilderInner<M,T> {
     fn name(&mut self, name: &str) {
         self.name = Some(String::from(name));
+    }
+
+    fn on_build(&mut self, on_build: Box<OnBuild<T>>) {
+        assert!(! self.is_built());
+
+        self.on_build = Some(on_build);
+    }
+
+    fn on_tick(&mut self, on_tick: Box<OnTickFn<T>>) {
+        assert!(! self.is_built());
+
+        self.on_tick = Some(on_tick);
     }
 
     fn on_fiber(&mut self, on_fiber: Box<OnFiber<M,T>>) -> usize {

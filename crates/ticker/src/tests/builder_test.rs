@@ -13,20 +13,20 @@ fn ticker_on_build_on_tick() {
     let mut builder = SystemBuilder::<i32>::new();
 
     let mut adder = AddItem::new();
-    let ticker = builder.ticker(TestAdder::new(&adder));
+    builder.ticker(TestAdder::new(&adder));
     
-    assert_eq!(adder.take(), "[]");
+    assert_eq!(adder.take(), "");
 
     let mut system = builder.build();
 
-    assert_eq!(adder.take(), "[\"build\"]");
+    assert_eq!(adder.take(), "build");
     system.tick();
 
-    assert_eq!(adder.take(), "[\"tick(1)\"]");
+    assert_eq!(adder.take(), "tick(1)");
     system.tick();
     system.tick();
 
-    assert_eq!(adder.take(), "[\"tick(2)\", \"tick(3)\"]");
+    assert_eq!(adder.take(), "tick(2), tick(3)");
 }
 
 #[test]
