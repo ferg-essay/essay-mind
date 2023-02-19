@@ -1,6 +1,6 @@
 use ticker::{Ticker};
 
-use crate::{MindBuilder, TickerBuilder, FiberBuilder, MindMessage, Topos, gram::Gram};
+use crate::{MindBuilder, TickerBuilder, FiberBuilder, MindMessage, Topos, gram::Gram, OnFiberBuilder};
 
 #[cfg(test)]
 mod tests;
@@ -22,7 +22,7 @@ impl ActionGroup {
         let mut ticker = mind.ticker(inner);
         // todo() add theta
 
-        let mut ptr = ticker.ptr();
+        //let mut ptr = ticker.ptr();
 
         /*
         let to_enhance = ticker.fiber(move |(s, msg)| {
@@ -30,6 +30,8 @@ impl ActionGroup {
         });
         */
 
+        todo!()
+        /* 
         ActionGroup {
             actions: Vec::new(),
 
@@ -37,12 +39,13 @@ impl ActionGroup {
 
             ticker: ticker,
         }
+        */
     }
 
     fn push<A:Action>(&mut self, action: A) {
-        let mut ptr = self.ticker.ptr();
-        action.on_complete().to(&self.ticker, move |s, msg| {
-            ptr.borrow_mut().complete(msg.0, msg.1);
+        //let mut ptr = self.ticker.ptr();
+        action.on_complete().on_fiber(&self.ticker, move |t: &mut ActionTicker, msg| {
+            t.complete(msg.0, msg.1);
         });
         let item = ActionItem {};
 
@@ -51,7 +54,7 @@ impl ActionGroup {
 }
 
 trait Action {
-    fn on_complete(&self)->FiberBuilder;
+    fn on_complete(&self)->OnFiberBuilder;
 }
 struct ActionItem {
 

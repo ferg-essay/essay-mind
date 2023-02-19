@@ -12,4 +12,5 @@ struct MindMessage(gram::Gram, Topos);
 type MindBuilder = ticker::SystemBuilder<MindMessage>;
 type TickerBuilder<T:ticker::Ticker> = ticker::TickerBuilder<MindMessage,T>;
 type FiberBuilder = ticker::FiberBuilder<MindMessage>;
+type OnFiberBuilder = ticker::OnFiberBuilder<MindMessage>;
 type Fiber = ticker::Fiber<MindMessage>;

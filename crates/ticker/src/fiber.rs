@@ -1,58 +1,82 @@
 //! Fibers communicate between tickers.
 
-use std::{fmt, rc::Rc};
+use std::{fmt, rc::Rc, cell::{RefCell, Ref}};
 
 //use log::info;
 
 use crate::{ticker::{ToTicker}};
 
-pub type OnFiber<T> = dyn Fn(usize, T)->();
-type FiberRef<T> = Rc<Box<dyn FiberInner<T>>>;
+//pub type FiberRef<M> = Rc<RefCell<Option<Box<dyn FiberInner<M>>>>>;
+pub(crate) type FiberRef<M> = Rc<RefCell<Box<dyn FiberInner<M>>>>;
 
 /// Message channel to `Ticker` targets, where each target is
 /// a callback in a Ticker's context.
-pub struct Fiber<T:Clone>
+pub struct Fiber<M:Clone>
 {
-    pub id: usize,
-    pub name: String,
+    //pub id: usize,
+    //pub name: String,
 
-    fiber_ref: FiberRef<T>,
+    pub(crate) fiber_ref: FiberRef<M>,
 }
 
-trait FiberInner<T> {
+pub(crate) trait FiberInner<M> {
     /// Sends a message to target `Ticker` on_fiber closures
-    fn send(&self, args: T);
+    fn send(&mut self, args: M);
 }
 
 struct FiberZero {
 }
 
-struct FiberOne<T> {
-    to: ToTicker<T>,
+struct FiberOne<M> {
+    to: ToTicker<M>,
     on_fiber: usize,
 }
 
-pub struct FiberMany<T>
-{
-    to: Vec<(ToTicker<T>,usize)>,
-    to_tail: ToTicker<T>,
+pub struct FiberMany<M> {
+    to: Vec<(ToTicker<M>,usize)>,
+    to_tail: ToTicker<M>,
     on_fiber_tail: usize,
+}
+
+struct FiberPanic {
+
 }
 
 //
 // Implementation
 //
+/*
+struct FiberHolder<M> {
+    opt: Option<Box<dyn FiberInner<M>>>,
+}
 
-impl<T:'static + Clone> Fiber<T> {
-    pub(crate) fn new(id: usize, name: String, to: Vec<(ToTicker<T>,usize)>) -> Self {
-        Fiber {
-            id,
-            name,
-            fiber_ref: Rc::new(Fiber::new_inner(to)),
+impl<M:Clone> FiberHolder<M> {
+    fn send(&self, args: M) {
+        match &self.opt {
+            Some(fiber) => fiber.send(args),
+            None => panic!("mismatched holder")
         }
     }
 
-    fn new_inner(mut to: Vec<(ToTicker<T>,usize)>) -> Box<dyn FiberInner<T>> {
+    fn replace(&mut self, fiber: Box<dyn FiberInner<M>>) {
+        self.opt.replace(fiber);
+    }
+}
+ */
+
+impl<M:'static + Clone> Fiber<M> {
+    pub(crate) fn new() -> FiberRef<M> {
+        Rc::new(RefCell::new(Box::new(FiberPanic {})))
+    }
+
+    pub(crate) fn fill_ptr(
+        fiber_ref: &Rc<RefCell<Box<dyn FiberInner<M>>>>,
+        to: Vec<(ToTicker<M>,usize)>
+    ) {
+        fiber_ref.replace(Self::new_inner(to));
+    }
+
+    fn new_inner(mut to: Vec<(ToTicker<M>,usize)>) -> Box<dyn FiberInner<M>> {
         match to.len() {
         0 => Box::new(FiberZero {}),
         1 => Box::new(FiberOne { to: to[0].0.clone(), on_fiber: to[0].1 }),
@@ -71,42 +95,45 @@ impl<T:'static + Clone> Fiber<T> {
     }
 
     /// send a message to fiber targets, on_fiber closures of target tickers.
-    pub fn send(&self, args: T) {
-        self.fiber_ref.send(args);
+    pub fn send(&self, args: M) {
+        self.fiber_ref.borrow_mut().send(args);
+
+        //self.fiber_ref.borrow().expect("unconfigured fiber").send(args);
     }
 }
 
-impl<T:Clone> fmt::Display for Fiber<T> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Fiber:{}[{}]", self.id, self.name)
-    }
-}
-
-impl<T:Clone> Clone for Fiber<T> {
+impl<M:Clone> Clone for Fiber<M> {
     fn clone(&self) -> Self {
         Self {
-            id: self.id,
-            name: self.name.clone(),
-            fiber_ref: self.fiber_ref.clone(),
+            //id: self.id,
+            //name: self.name.clone(),
+            fiber_ref: Rc::clone(&self.fiber_ref),
         }
     }
 }
 
-impl<T> FiberInner<T> for FiberZero {
+impl<M> FiberInner<M> for FiberPanic {
     /// send a message to the fiber targets.
-    fn send(&self, _args: T) {
+    fn send(&mut self, _args: M) {
+        panic!("sending message to unconfigured fiber")
     }
 }
 
-impl<T:Clone + 'static> FiberInner<T> for FiberOne<T> {
-    fn send(&self, args: T) {
+impl<M> FiberInner<M> for FiberZero {
+    /// send a message to the fiber targets.
+    fn send(&mut self, _args: M) {
+    }
+}
+
+impl<M:Clone + 'static> FiberInner<M> for FiberOne<M> {
+    fn send(&mut self, args: M) {
         self.to.send(self.on_fiber, args);
     }
 }
 
-impl<T:Clone + 'static> FiberInner<T> for FiberMany<T> {
-    fn send(&self, args: T) {
-        for (to, on_fiber) in &self.to {
+impl<M:Clone + 'static> FiberInner<M> for FiberMany<M> {
+    fn send(&mut self, args: M) {
+        for (to, on_fiber) in &mut self.to {
             to.send(*on_fiber, args.clone());
         }
 
