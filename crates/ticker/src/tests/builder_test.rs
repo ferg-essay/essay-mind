@@ -36,9 +36,9 @@ fn external_fiber_with_fiber_to() {
     let mut adder = AddItem::new();
     let ticker = builder.ticker(TestAdder::new(&adder));
 
-    let mut fiber = builder.external_fiber();
+    let mut fiber = builder.external_source();
 
-    fiber.on_fiber(&ticker, move |t, msg| {
+    let sink = ticker.sink(move |t, msg| {
         t.add(format!("on_fiber({})", msg));
     });
     
@@ -68,14 +68,15 @@ fn external_fiber_with_ticker_on_fiber() {
     let ticker = builder.ticker(TestAdder::new(&adder));
     //let counter_ptr = ticker.ptr();
 
-    let mut fiber = builder.external_fiber();
+    let mut source = builder.external_source();
     //let ptr = ticker.ptr();
 
-    fiber.on_fiber(
-        &ticker, move |t, msg| {
+    let sink = ticker.sink(move |t, msg| {
             t.add(format!("on_fiber({})", msg));
         }
     );
+
+    source.to(&sink);
     
     assert_eq!(adder.take(), "[]");
 
