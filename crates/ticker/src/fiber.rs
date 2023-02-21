@@ -4,10 +4,10 @@ use std::{fmt, rc::Rc, cell::{RefCell, Ref}};
 
 //use log::info;
 
-use crate::{ticker::{ToTicker}};
+use crate::{ticker::{ToTicker}, system::{ToThreadRef, PanicToThread, ThreadInner}};
 
 //pub type FiberRef<M> = Rc<RefCell<Option<Box<dyn FiberInner<M>>>>>;
-pub(crate) type FiberRef<M> = Rc<RefCell<Box<dyn FiberInner<M>>>>;
+pub(crate) type FiberSourceRef<M> = Rc<RefCell<Box<dyn FiberInner<M>>>>;
 
 /// Message channel to `Ticker` targets, where each target is
 /// a callback in a Ticker's context.
@@ -16,30 +16,7 @@ pub struct Fiber<M:Clone>
     //pub id: usize,
     //pub name: String,
 
-    pub(crate) fiber_ref: FiberRef<M>,
-}
-
-pub(crate) trait FiberInner<M> {
-    /// Sends a message to target `Ticker` on_fiber closures
-    fn send(&mut self, args: M);
-}
-
-struct FiberZero {
-}
-
-struct FiberOne<M> {
-    to: ToTicker<M>,
-    on_fiber: usize,
-}
-
-pub struct FiberMany<M> {
-    to: Vec<(ToTicker<M>,usize)>,
-    to_tail: ToTicker<M>,
-    on_fiber_tail: usize,
-}
-
-struct FiberPanic {
-
+    ptr: FiberSourceRef<M>,
 }
 
 //
@@ -65,49 +42,143 @@ impl<M:Clone> FiberHolder<M> {
  */
 
 impl<M:'static + Clone> Fiber<M> {
-    pub(crate) fn new() -> FiberRef<M> {
-        Rc::new(RefCell::new(Box::new(FiberPanic {})))
+    pub(crate) fn new(to: &mut Vec<(usize, usize, usize)>) -> Fiber<M> {
+        Fiber {
+            ptr: Rc::new(RefCell::new(Self::new_inner(to)))
+        }
     }
-
-    pub(crate) fn fill_ptr(
-        fiber_ref: &Rc<RefCell<Box<dyn FiberInner<M>>>>,
-        to: Vec<(ToTicker<M>,usize)>
-    ) {
-        fiber_ref.replace(Self::new_inner(to));
-    }
-
-    fn new_inner(mut to: Vec<(ToTicker<M>,usize)>) -> Box<dyn FiberInner<M>> {
+    fn new_inner(to: &mut Vec<(usize, usize,usize)>) -> Box<dyn FiberInner<M>> {
         match to.len() {
-        0 => Box::new(FiberZero {}),
-        1 => Box::new(FiberOne { to: to[0].0.clone(), on_fiber: to[0].1 }),
-        _ => { match to.pop() {
-                    Some((to_tail, on_fiber_tail))  => {
-                        Box::new(FiberMany {
-                            to,
-                            to_tail,
-                            on_fiber_tail,
-                        })
-                    }
-                    _ => panic!("missing pair from fiber"),
-                }
-            }
+            0 => Box::new(FiberZero {}),
+            1 => Box::new(FiberOne::new(to[0])),
+            _ => Box::new(FiberMany::new(to)),
         }
     }
 
     /// send a message to fiber targets, on_fiber closures of target tickers.
     pub fn send(&self, args: M) {
-        self.fiber_ref.borrow_mut().send(args);
+        self.ptr.borrow_mut().send(args);
 
         //self.fiber_ref.borrow().expect("unconfigured fiber").send(args);
     }
 }
 
+impl<M:'static + Clone> Clone for Fiber<M> {
+    fn clone(&self) -> Self {
+        Self { ptr: self.ptr.clone() }
+    }
+}
+
+//
+// # inner
+
+
+pub trait ToThread<M> {
+    fn send(&mut self, to_ticker: usize, on_fiber: usize, args: M);
+}
+
+struct TickerSources<M> {
+    sources: Vec<FiberSourceRef<M>>,
+}
+
+pub(crate) trait FiberInner<M> {
+    /// Sends a message to target `Ticker` on_fiber closures
+    fn send(&mut self, args: M);
+
+    /// Builds the channel
+    fn build_channel(&mut self, thread: &ThreadInner<M>);
+}
+
+struct FiberZero {
+}
+
+struct FiberOne<M> {
+    source: usize,
+    sink: usize,
+
+    to: ToThreadRef<M>,
+    
+    on_fiber: usize,
+}
+
+pub struct FiberMany<M> {
+    to: Vec<FiberOne<M>>,
+    tail: FiberOne<M>,
+}
+
+struct FiberPanic {
+
+}
+
+impl<M> TickerSources<M> {
+    fn build_channel(&mut self, thread: &ThreadInner<M>) {
+        for source in &mut self.sources {
+            source.borrow_mut().build_channel(thread)
+        }
+    }
+    
+    fn update_sources(&self, thread: &ThreadInner<M>) {
+        for source in &self.sources {
+            //let mut to_ticker_inner: &ToTickerInner<T> = &
+            source.borrow_mut().build_channel(thread);
+        }
+
+        //self.from_ticker_ids()
+    }
+
+    /*
+    fn from_ticker_ids(&self) -> Vec<usize> {
+        let mut ids: Vec<usize> = Vec::new();
+
+        for from in &self.sources {
+            let from_id = from.from_ticker;
+
+            if from_id != from.to_ticker && ! ids.contains(&from_id) {
+                ids.push(from_id);
+            }
+        }
+
+        ids
+    }
+     */
+}
+
+/*
 impl<M:Clone> Clone for Fiber<M> {
     fn clone(&self) -> Self {
         Self {
             //id: self.id,
             //name: self.name.clone(),
-            fiber_ref: Rc::clone(&self.fiber_ref),
+            ptr: Rc::clone(&self.ptr),
+        }
+    }
+}
+ */
+
+impl<M> FiberOne<M> {
+    fn new(to: (usize, usize, usize)) -> Self {
+        FiberOne {
+            source: to.0,
+            sink: to.1,
+            on_fiber: to.2,
+            to: PanicToThread::new("unconfigured fiber")
+        }
+    }
+}
+
+impl<M> FiberMany<M> {
+    fn new(to: &mut Vec<(usize, usize, usize)>) -> Self {
+        let tail = FiberOne::new(to.pop().unwrap());
+
+        let mut head: Vec<FiberOne<M>> = Vec::new();
+
+        for item in to {
+            head.push(FiberOne::new(*item));
+        }
+
+        Self {
+            to: head,
+            tail: tail,
         }
     }
 }
@@ -117,27 +188,46 @@ impl<M> FiberInner<M> for FiberPanic {
     fn send(&mut self, _args: M) {
         panic!("sending message to unconfigured fiber")
     }
-}
+
+    fn build_channel(&mut self, thread: &ThreadInner<M>) {
+        panic!("building channel for unconfigured fiber")
+    }
+ }
 
 impl<M> FiberInner<M> for FiberZero {
     /// send a message to the fiber targets.
     fn send(&mut self, _args: M) {
     }
+
+    fn build_channel(&mut self, thread: &ThreadInner<M>) {
+    }
 }
 
 impl<M:Clone + 'static> FiberInner<M> for FiberOne<M> {
     fn send(&mut self, args: M) {
-        self.to.send(self.on_fiber, args);
+        self.to.borrow_mut().send(self.sink, self.on_fiber, args);
+    }
+
+    fn build_channel(&mut self, thread: &ThreadInner<M>) {
+        todo!()
     }
 }
 
 impl<M:Clone + 'static> FiberInner<M> for FiberMany<M> {
     fn send(&mut self, args: M) {
-        for (to, on_fiber) in &mut self.to {
-            to.send(*on_fiber, args.clone());
+        for to in &mut self.to {
+            to.send(args.clone());
         }
 
-        self.to_tail.send(self.on_fiber_tail, args);
+        self.tail.send(args);
+    }
+
+    fn build_channel(&mut self, thread: &ThreadInner<M>) {
+        for to in &mut self.to {
+            to.build_channel(thread);
+        }
+
+        self.tail.build_channel(thread);
     }
 }
 

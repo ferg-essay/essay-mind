@@ -68,7 +68,7 @@ fn external_fiber_with_ticker_on_fiber() {
     let ticker = builder.ticker(TestAdder::new(&adder));
     //let counter_ptr = ticker.ptr();
 
-    let mut source = builder.external_source();
+    let mut ext_source = builder.external_source();
     //let ptr = ticker.ptr();
 
     let sink = ticker.sink(move |t, msg| {
@@ -76,17 +76,16 @@ fn external_fiber_with_ticker_on_fiber() {
         }
     );
 
-    source.to(&sink);
+    ext_source.source().to(&sink);
     
-    assert_eq!(adder.take(), "[]");
+    assert_eq!(adder.take(), "");
 
     let mut system = builder.build();
 
-    todo!();
-    // let fiber = fiber.fiber();
-    // fiber.send(27);
+    let fiber = ext_source.fiber();
+    fiber.send(27);
 
-    assert_eq!(adder.take(), "[\"build\"]");
+    assert_eq!(adder.take(), "build");
     system.tick();
 
     assert_eq!(adder.take(), "[\"on_fiber(0, 27)\", \"tick(1)\"]");

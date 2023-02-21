@@ -1,11 +1,12 @@
 //! Single ticking node
 
-use crate::system::{ToThreadRef, ThreadInner};
+use crate::system::{ToThreadRef, ThreadInner, PanicToThread};
 
 //use log::{log};
 
 use std::cell::RefCell;
 use std::io::Error;
+use std::marker::PhantomData;
 use std::result;
 use std::{fmt, rc::Rc};
 
@@ -45,27 +46,28 @@ pub struct TickerOuter {
 
 pub(crate) struct TickerInner<M,T> {
     pub id: usize,
-    name: String,
+    pub name: String,
 
-    ticker: Box<T>,
+    pub ticker: Box<T>,
 
-    to_tickers: Vec<ToTicker<M>>,
-    from_tickers: Vec<ToTicker<M>>,
+    //to_tickers: Vec<ToTicker<M>>,
+    //from_tickers: Vec<ToTicker<M>>,
 
     pub on_build: Option<Box<OnBuild<T>>>,
     pub on_tick: Option<Box<OnTickFn<T>>>,
-    on_fiber: Vec<Box<OnFiber<M,T>>>,
+    pub on_fiber: Vec<Box<OnFiber<M,T>>>,
 }
 
 pub trait OnTick<T> {
     fn tick(t: &T, ticks: u32) -> Result<()>;
 }
 
-
-pub struct ToTicker<M> {
+pub(crate) struct ToTicker<M> {
     pub from_ticker: usize,
     pub to_ticker: usize,
-    pub(crate) to: ToTickerRef<M>,
+
+    pub(crate) to: ToThreadRef<M>,
+    //pub channel: usize,
 }
 
 pub struct ToTickerInner<M> {
@@ -89,17 +91,18 @@ impl<M:'static> ToTicker<M> {
     pub fn new(
         from_ticker: usize, 
         to_ticker: usize, 
-        to: &ToThreadRef<M>
+        //to: &ToThreadRef<M>
     ) -> ToTicker<M> {
         ToTicker {
             from_ticker,
             to_ticker,
-            to: Rc::new(RefCell::new(ToTickerInner { to: Rc::clone(&to) })),
+            to: PanicToThread::new("unassigned to-thread"),
+            //to: Rc::new(RefCell::new(ToTickerInner { to: Rc::clone(&to) })),
         }
     }
 
     pub fn send(&mut self, on_fiber: usize, args: M) {
-        self.to.borrow().to.borrow_mut().send(self.to_ticker, on_fiber, args);
+        self.to.borrow_mut().send(self.to_ticker, on_fiber, args);
     }
 }
 
@@ -115,45 +118,6 @@ impl<M> Clone for ToTicker<M> {
 
 
 impl<M,T:'static> TickerInner<M,T> {
-    pub fn new(
-        ticker: Box<T>,
-
-        id: usize,
-        name: String,
-
-        to_tickers: Vec<ToTicker<M>>,
-        from_tickers: Vec<ToTicker<M>>,
-
-        on_tick: Option<Box<OnTickFn<T>>>,
-        on_build: Option<Box<OnBuild<T>>>,
-        on_fibers: Vec<Box<OnFiber<M,T>>>
-    ) -> TickerInner<M,T> {
-        TickerInner {
-            id,
-            name: name,
-            ticker: ticker,
-            to_tickers: to_tickers,
-            from_tickers: from_tickers,
-            on_tick,
-            on_build,
-            on_fiber: on_fibers,
-        }
-    }
-
-    /*
-    pub fn tick(&mut self, ticks: u64) {
-        if let Some(on_tick) = &mut self.on_tick {
-            on_tick(&self.ticker, ticks);
-        }
-    }
-
-    pub fn on_build(&mut self) {
-        if let Some(on_build) = &mut self.on_build {
-            on_build(&self.ticker);
-        }
-    }
-    */
-
     pub fn send(&mut self, on_fiber: usize, args: M) {
         self.on_fiber[on_fiber](&mut self.ticker, args);
     }
@@ -181,24 +145,11 @@ impl<M:'static,T> TickerCall<M> for TickerInner<M,T> {
     }
     
     fn update_to_tickers(&self, thread: &ThreadInner<M>) -> Vec<usize> {
-        for to_ticker in &self.to_tickers {
-            //let mut to_ticker_inner: &ToTickerInner<T> = &
-            to_ticker.to.borrow_mut().to = thread.to_thread(to_ticker.to_ticker);
-        }
-
-        self.from_ticker_ids()
+         self.from_ticker_ids()
     }
 
     fn from_ticker_ids(&self) -> Vec<usize> {
         let mut ids: Vec<usize> = Vec::new();
-
-        for from in &self.from_tickers {
-            let from_id = from.from_ticker;
-
-            if from_id != from.to_ticker && ! ids.contains(&from_id) {
-                ids.push(from_id);
-            }
-        }
 
         ids
     }

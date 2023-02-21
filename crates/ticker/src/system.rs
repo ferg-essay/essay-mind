@@ -5,7 +5,7 @@
 use std::{rc::Rc, sync::{Arc, RwLock, Mutex}, fmt, cell::RefCell};
 use std::sync::mpsc;
 
-use crate::ticker::{TickerInner, ToTicker, TickerCall};
+use crate::{ticker::{TickerInner, ToTicker, TickerCall}, fiber::ToThread};
 //extern crate env_logger;
 //use env_logger::Env;
 //use log::{info};
@@ -47,10 +47,6 @@ pub struct ThreadInner<M> {
 
 struct TickerAssignment {
     ticker_to_thread: Arc<Mutex<Vec<usize>>>,
-}
-
-pub trait ToThread<M> {
-    fn send(&mut self, to_ticker: usize, on_fiber: usize, args: M);
 }
 
 struct ChannelToThread<T> {
@@ -125,14 +121,6 @@ impl<T:'static> TickerSystem<T> {
 
             self.threads[from_thread_id].update_ticker(from_ticker_id);
         }
-    }
-
-    pub fn to_thread(&self, to_ticker: &ToTicker<T>)->ToThreadRef<T> {
-        let thread_id = self.ticker_assignment.get(to_ticker.from_ticker);
-
-        // let thread = self.threads[thread_id];
-
-        self.threads[thread_id].to_thread(to_ticker.to_ticker)
     }
 
     pub fn ticks(&self) -> u64 {
