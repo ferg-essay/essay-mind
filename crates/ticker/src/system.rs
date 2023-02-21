@@ -11,6 +11,7 @@ use crate::{ticker::{TickerInner, TickerCall}, fiber::{ToThread, SystemChannels,
 //use log::{info};
 
 type ThreadRef<T> = Arc<RwLock<ThreadInner<T>>>;
+pub(crate) type TickerRef<M> = Box<dyn TickerCall<M>>;
 
 
 thread_local!(static TICKS: RefCell<u64> = RefCell::new(0));
@@ -41,14 +42,14 @@ pub struct ThreadInner<M> {
 
     channels: ThreadChannels<M>,
 
-    tickers: Vec<Option<Box<dyn TickerCall<M>>>>,
+    tickers: Vec<Option<TickerRef<M>>>,
 
     ticker_assignment: TickerAssignment,
 
     on_ticks: Vec<usize>,
 }
 
-struct TickerAssignment {
+pub(crate) struct TickerAssignment {
     ticker_to_thread: Arc<Mutex<Vec<usize>>>,
 }
 
@@ -59,7 +60,7 @@ const EXTERNAL_ID: usize = 0;
 const MAIN_ID: usize = 1;
 
 impl<M:'static> TickerSystem<M> {
-    pub fn new(
+    pub(crate) fn new(
         mut tickers: Vec<Box<dyn TickerCall<M>>>,
         spawn_threads: u32
     ) -> Self {
@@ -82,6 +83,8 @@ impl<M:'static> TickerSystem<M> {
             system.assign_ticker(MAIN_ID, ticker);
         }
 
+        system.update_tickers();
+
         system.on_build();
 
         system
@@ -97,6 +100,12 @@ impl<M:'static> TickerSystem<M> {
 
         for thread in &mut self.threads {
             thread.fill_channels(&self.channels)
+        }
+    }
+
+    fn update_tickers(&mut self) {
+        for thread in &mut self.threads {
+            thread.update_tickers();
         }
     }
 
@@ -145,6 +154,12 @@ impl<M:'static> TickerThread<M> {
         system: &SystemChannels<M>,
     ) {
         self.ptr.write().unwrap().channels.fill_thread(system);
+    }
+
+    fn update_tickers(
+        &mut self, 
+    ) {
+        self.ptr.write().unwrap().update_tickers();
     }
 
     /*
@@ -222,6 +237,16 @@ impl<M:'static> ThreadInner<M> {
         self.tickers[ticker_id] = Some(ticker);
     }
 
+    fn update_tickers(&mut self) {
+        for ticker in &mut self.tickers {
+            match ticker {
+                Some(ticker) => {
+                    ticker.update(&self.ticker_assignment, &self.channels);
+                },
+                None => {},
+            }
+        }
+    }
     /*
     fn update_ticker(&self, ticker_id: usize) -> Vec<usize> {
         match &self.tickers[ticker_id] {
@@ -278,8 +303,9 @@ impl<M:'static> ThreadInner<M> {
     }
 
     fn receive(&mut self) {
+        self.channels.receive(&mut self.tickers);
         /*
-        let receiver = &self.receiver;
+        let receiver = &self.channels.receiver;
 
         for msg in receiver.try_iter() {
             match &mut self.tickers[msg.to_ticker] {
@@ -313,7 +339,7 @@ impl TickerAssignment {
         }
     }
 
-    fn get(&self, ticker_id: usize) -> usize {
+    pub fn get(&self, ticker_id: usize) -> usize {
         self.ticker_to_thread.lock().unwrap()[ticker_id]
     }
 

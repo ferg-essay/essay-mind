@@ -79,7 +79,7 @@ fn external_fiber_with_fiber_to() {
     assert_eq!(adder.take(), "build");
     system.tick();
 
-    assert_eq!(adder.take(), "on_fiber(0, 27), tick(1)");
+    assert_eq!(adder.take(), "on_fiber(27), tick(1)");
     system.tick();
     system.tick();
 

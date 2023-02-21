@@ -4,7 +4,7 @@ use std::{fmt, rc::Rc, cell::{RefCell, Ref}, sync::mpsc};
 
 //use log::info;
 
-use crate::{ticker::{TickerCall}, system::{ThreadInner}, OnFiber};
+use crate::{ticker::{TickerCall, TickerInner}, system::{ThreadInner, TickerAssignment, TickerRef}, OnFiber};
 
 //pub type FiberRef<M> = Rc<RefCell<Option<Box<dyn FiberInner<M>>>>>;
 pub(crate) type FiberSourceRef<M> = Rc<RefCell<Box<dyn FiberInner<M>>>>;
@@ -120,16 +120,34 @@ impl<M:'static> ThreadChannels<M> {
         for (i, sender) in system.senders.iter().enumerate() {
             let channel = if i + 1 == self.id {
                 OwnToThread::new(self.id)
-            } else if i > 0 {
-                ChannelToThread::new(i + 1, self.id, sender.clone())
-            } else {
+            } else { // if i > 0 {
+                ChannelToThread::new(self.id, i + 1, sender.clone())
+            }; /* else {
                 PanicToThread::new("sending to external thread")
-            };
+            };*/
 
             self.channels.push(channel);
         }
+    }
 
+    pub(crate) fn get(&self, sink: usize) -> ToThreadRef<M> {
+        assert!(sink != 0);
 
+        Rc::clone(&self.channels[sink])
+    }
+
+    pub(crate) fn receive(&self, tickers: &mut Vec<Option<TickerRef<M>>>) {
+        for msg in self.receiver.try_iter() {
+            match &mut tickers[msg.to_ticker] {
+                Some(ticker) => {
+                    ticker.send(msg.on_fiber, msg.args);
+                },
+                None => {
+                    panic!("In thread #{} Attempt to call ticker {}",
+                        self.id, msg.to_ticker);
+                }
+            }
+        }
     }
 }
 
@@ -171,7 +189,11 @@ pub(crate) trait FiberInner<M> {
     fn send(&mut self, args: M);
 
     /// Builds the channel
-    fn build_channel(&mut self, thread: &ThreadInner<M>);
+    fn build_channel(
+        &mut self, 
+        tickers: &TickerAssignment,
+        channels: &ThreadChannels<M>
+    );
 }
 
 struct FiberZero {
@@ -225,12 +247,17 @@ impl<M:Clone + 'static,T> TickerFibers<M, T> {
         }
     }
 
-    fn build_channel(&mut self, thread: &ThreadInner<M>) {
+    pub fn build_channel(
+        &mut self, 
+        tickers: &TickerAssignment,
+        channels: &ThreadChannels<M>
+    ) {
         for source in &mut self.sources {
-            source.borrow_mut().build_channel(thread)
+            source.borrow_mut().build_channel(tickers, channels)
         }
     }
     
+    /*
     fn update_sources(&self, thread: &ThreadInner<M>) {
         for source in &self.sources {
             //let mut to_ticker_inner: &ToTickerInner<T> = &
@@ -239,6 +266,7 @@ impl<M:Clone + 'static,T> TickerFibers<M, T> {
 
         //self.from_ticker_ids()
     }
+     */
 
     /*
     fn from_ticker_ids(&self) -> Vec<usize> {
@@ -303,7 +331,11 @@ impl<M> FiberInner<M> for FiberPanic {
         panic!("sending message to unconfigured fiber")
     }
 
-    fn build_channel(&mut self, thread: &ThreadInner<M>) {
+    fn build_channel(
+        &mut self, 
+        tickers: &TickerAssignment,
+        channels: &ThreadChannels<M>
+    ) {
         panic!("building channel for unconfigured fiber")
     }
  }
@@ -313,7 +345,11 @@ impl<M> FiberInner<M> for FiberZero {
     fn send(&mut self, _args: M) {
     }
 
-    fn build_channel(&mut self, thread: &ThreadInner<M>) {
+    fn build_channel(
+        &mut self, 
+        tickers: &TickerAssignment,
+        channels: &ThreadChannels<M>
+    ) {
     }
 }
 
@@ -322,8 +358,16 @@ impl<M:Clone + 'static> FiberInner<M> for FiberOne<M> {
         self.to.borrow_mut().send(self.sink, self.on_fiber, args);
     }
 
-    fn build_channel(&mut self, thread: &ThreadInner<M>) {
-        todo!()
+    fn build_channel(
+        &mut self, 
+        tickers: &TickerAssignment,
+        channels: &ThreadChannels<M>
+    ) {
+        // let source_thread = tickers.get(self.source);
+        let sink_thread = tickers.get(self.sink);
+
+        self.to = channels.get(sink_thread);
+
     }
 }
 
@@ -336,12 +380,16 @@ impl<M:Clone + 'static> FiberInner<M> for FiberMany<M> {
         self.tail.send(args);
     }
 
-    fn build_channel(&mut self, thread: &ThreadInner<M>) {
+    fn build_channel(
+        &mut self, 
+        tickers: &TickerAssignment,
+        channels: &ThreadChannels<M>
+    ) {
         for to in &mut self.to {
-            to.build_channel(thread);
+            to.build_channel(tickers, channels);
         }
 
-        self.tail.build_channel(thread);
+        self.tail.build_channel(tickers, channels);
     }
 }
 

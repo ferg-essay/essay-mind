@@ -573,6 +573,8 @@ impl<M:Clone +'static,T:'static> TickerBuilderInner<M,T> {
             //from_tickers: from_tickers,
             on_tick: self.on_tick.take(),
             on_build: self.on_build.take(),
+
+            fibers: fibers,
             on_fiber: on_fibers,
         })
     }

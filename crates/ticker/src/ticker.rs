@@ -1,7 +1,7 @@
 //! Single ticking node
 
-use crate::fiber::PanicToThread;
-use crate::system::{ThreadInner};
+use crate::fiber::{PanicToThread, ThreadChannels, TickerFibers};
+use crate::system::{ThreadInner, TickerAssignment};
 
 //use log::{log};
 
@@ -25,7 +25,7 @@ pub trait Ticker {
     fn build(&mut self) {}
 }
 
-pub trait TickerCall<M> {
+pub(crate) trait TickerCall<M> {
     fn id(&self)->usize;
 
     fn tick(&mut self, ticks: u64);
@@ -33,6 +33,12 @@ pub trait TickerCall<M> {
     fn on_build(&mut self);
 
     fn send(&mut self, on_fiber: usize, args: M);
+
+    fn update(
+        &mut self, 
+        tickers: &TickerAssignment, 
+        channels: &ThreadChannels<M>
+    );
 
     /*
     fn update_to_tickers(&self, thread: &ThreadInner<M>) -> Vec<usize>;
@@ -58,7 +64,9 @@ pub(crate) struct TickerInner<M,T> {
 
     pub on_build: Option<Box<OnBuild<T>>>,
     pub on_tick: Option<Box<OnTickFn<T>>>,
+
     pub on_fiber: Vec<Box<OnFiber<M,T>>>,
+    pub fibers: TickerFibers<M,T>,
 }
 
 pub trait OnTick<T> {
@@ -127,13 +135,9 @@ impl<M,T:'static> TickerInner<M,T> {
     pub fn send(&mut self, on_fiber: usize, args: M) {
         self.on_fiber[on_fiber](&mut self.ticker, args);
     }
-
-    fn send2<N>(&mut self, fun: Box<dyn Fn(&mut T, N)>, args: N) {
-        fun(&mut self.ticker, args);
-    }
 }
 
-impl<M:'static,T> TickerCall<M> for TickerInner<M,T> {
+impl<M:Clone+'static,T> TickerCall<M> for TickerInner<M,T> {
     fn id(&self) -> usize {
         self.id
     }
@@ -148,6 +152,14 @@ impl<M:'static,T> TickerCall<M> for TickerInner<M,T> {
         if let Some(on_build) = &mut self.on_build {
             on_build(&mut self.ticker);
         }
+    }
+
+    fn update(
+        &mut self, 
+        tickers: &TickerAssignment,
+        channels: &ThreadChannels<M>
+    ) {
+        self.fibers.build_channel(&tickers, &channels);
     }
 
     fn send(&mut self, on_fiber: usize, args: M) {
