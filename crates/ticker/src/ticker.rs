@@ -1,6 +1,7 @@
 //! Single ticking node
 
-use crate::system::{ToThreadRef, ThreadInner, PanicToThread};
+use crate::fiber::PanicToThread;
+use crate::system::{ThreadInner};
 
 //use log::{log};
 
@@ -14,7 +15,7 @@ pub type OnBuild<T> = dyn Fn(&mut T)->();
 pub type OnTickFn<T> = dyn Fn(&mut T, u64)->();
 pub type OnFiber<M,T> = dyn Fn(&mut T, M)->();
 
-pub type ToTickerRef<T> = Rc<RefCell<ToTickerInner<T>>>;
+//pub type ToTickerRef<T> = Rc<RefCell<ToTickerInner<T>>>;
 #[allow(dead_code)]
 pub type Result<T> = result::Result<T, Error>;
 
@@ -33,9 +34,11 @@ pub trait TickerCall<M> {
 
     fn send(&mut self, on_fiber: usize, args: M);
 
+    /*
     fn update_to_tickers(&self, thread: &ThreadInner<M>) -> Vec<usize>;
 
     fn from_ticker_ids(&self) -> Vec<usize>;
+    */
 }
 
 
@@ -62,6 +65,7 @@ pub trait OnTick<T> {
     fn tick(t: &T, ticks: u32) -> Result<()>;
 }
 
+/*
 pub(crate) struct ToTicker<M> {
     pub from_ticker: usize,
     pub to_ticker: usize,
@@ -73,6 +77,7 @@ pub(crate) struct ToTicker<M> {
 pub struct ToTickerInner<M> {
     pub to: ToThreadRef<M>,
 }
+ */
 
 //
 // Implementations
@@ -86,7 +91,7 @@ impl fmt::Display for TickerOuter {
         write!(f, "Ticker:{}[{}]", self.id, self.name)
     }
 }
-
+/*
 impl<M:'static> ToTicker<M> {
     pub fn new(
         from_ticker: usize, 
@@ -115,11 +120,16 @@ impl<M> Clone for ToTicker<M> {
         }
     }
 }
+ */
 
 
 impl<M,T:'static> TickerInner<M,T> {
     pub fn send(&mut self, on_fiber: usize, args: M) {
         self.on_fiber[on_fiber](&mut self.ticker, args);
+    }
+
+    fn send2<N>(&mut self, fun: Box<dyn Fn(&mut T, N)>, args: N) {
+        fun(&mut self.ticker, args);
     }
 }
 
@@ -143,7 +153,7 @@ impl<M:'static,T> TickerCall<M> for TickerInner<M,T> {
     fn send(&mut self, on_fiber: usize, args: M) {
         self.on_fiber[on_fiber](&mut self.ticker, args);
     }
-    
+    /*
     fn update_to_tickers(&self, thread: &ThreadInner<M>) -> Vec<usize> {
          self.from_ticker_ids()
     }
@@ -153,6 +163,7 @@ impl<M:'static,T> TickerCall<M> for TickerInner<M,T> {
 
         ids
     }
+    */
 
 }
 

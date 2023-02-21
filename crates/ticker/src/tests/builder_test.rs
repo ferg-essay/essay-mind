@@ -30,34 +30,60 @@ fn ticker_on_build_on_tick() {
 }
 
 #[test]
+fn ticker_set_fiber() {
+    let mut builder = SystemBuilder::<i32>::new();
+
+    let mut adder = AddItem::new();
+    let mut ticker = builder.ticker(TestAdder::new(&adder));
+
+    ticker.source(move |t, fiber| {
+        t.add(format!("set_fiber"))
+    });
+    
+    assert_eq!(adder.take(), "");
+
+    let mut system = builder.build();
+
+    assert_eq!(adder.take(), "set_fiber, build");
+    system.tick();
+
+    assert_eq!(adder.take(), "tick(1)");
+    system.tick();
+    system.tick();
+
+    assert_eq!(adder.take(), "tick(2), tick(3)");
+}
+
+#[test]
 fn external_fiber_with_fiber_to() {
     let mut builder = SystemBuilder::<i32>::new();
 
     let mut adder = AddItem::new();
     let ticker = builder.ticker(TestAdder::new(&adder));
 
-    let mut fiber = builder.external_source();
+    let mut source = builder.external_source();
 
     let sink = ticker.sink(move |t, msg| {
         t.add(format!("on_fiber({})", msg));
     });
+
+    source.source().to(&sink);
     
-    assert_eq!(adder.take(), "[]");
+    assert_eq!(adder.take(), "");
 
     let mut system = builder.build();
 
-    todo!();
-    //let fiber = fiber.fiber();
-    //fiber.send(27);
+    let fiber = source.fiber();
+    fiber.send(27);
 
-    assert_eq!(adder.take(), "[\"build\"]");
+    assert_eq!(adder.take(), "build");
     system.tick();
 
-    assert_eq!(adder.take(), "[\"on_fiber(0, 27)\", \"tick(1)\"]");
+    assert_eq!(adder.take(), "on_fiber(0, 27), tick(1)");
     system.tick();
     system.tick();
 
-    assert_eq!(adder.take(), "[\"tick(2)\", \"tick(3)\"]");
+    assert_eq!(adder.take(), "tick(2), tick(3)");
 }
 
 #[test]

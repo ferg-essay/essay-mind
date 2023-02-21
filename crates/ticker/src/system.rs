@@ -5,20 +5,21 @@
 use std::{rc::Rc, sync::{Arc, RwLock, Mutex}, fmt, cell::RefCell};
 use std::sync::mpsc;
 
-use crate::{ticker::{TickerInner, ToTicker, TickerCall}, fiber::ToThread};
+use crate::{ticker::{TickerInner, TickerCall}, fiber::{ToThread, SystemChannels, ThreadChannels, ToThreadRef}};
 //extern crate env_logger;
 //use env_logger::Env;
 //use log::{info};
 
 type ThreadRef<T> = Arc<RwLock<ThreadInner<T>>>;
 
-pub type ToThreadRef<T> = Rc<RefCell<Box<dyn ToThread<T>>>>;
 
 thread_local!(static TICKS: RefCell<u64> = RefCell::new(0));
 
-pub struct TickerSystem<T> {
+pub struct TickerSystem<M> {
     ticks: u64,
-    threads: Vec<TickerThread<T>>,
+    threads: Vec<TickerThread<M>>,
+
+    channels: SystemChannels<M>,
 
     ticker_assignment: TickerAssignment,
 }
@@ -33,10 +34,12 @@ pub struct ThreadInner<M> {
     id: usize,
     name: String,
 
-    receiver: mpsc::Receiver<Message<M>>,
-    sender: mpsc::Sender<Message<M>>,
+    //receiver: mpsc::Receiver<Message<M>>,
+    //sender: mpsc::Sender<Message<M>>,
 
-    to: Vec<ToThreadRef<M>>,
+    //to: Vec<ToThreadRef<M>>,
+
+    channels: ThreadChannels<M>,
 
     tickers: Vec<Option<Box<dyn TickerCall<M>>>>,
 
@@ -49,58 +52,34 @@ struct TickerAssignment {
     ticker_to_thread: Arc<Mutex<Vec<usize>>>,
 }
 
-struct ChannelToThread<T> {
-    _name: String,
-    to: mpsc::Sender<Message<T>>,
-}
-
-struct OwnToThread<M> {
-    name: String,
-
-    to: Vec<Option<Box<dyn TickerCall<M>>>>,
-}
-
-pub struct PanicToThread {
-    msg: String,
-}
-
-struct Message<T> {
-    to_ticker: usize,
-    on_fiber: usize,
-
-    args: T,
-}
-
 // 
 // Implementation
 // 
+const EXTERNAL_ID: usize = 0;
+const MAIN_ID: usize = 1;
 
-impl<T:'static> TickerSystem<T> {
+impl<M:'static> TickerSystem<M> {
     pub fn new(
-        mut tickers: Vec<Box<dyn TickerCall<T>>>,
+        mut tickers: Vec<Box<dyn TickerCall<M>>>,
         spawn_threads: u32
     ) -> Self {
         assert!(spawn_threads <= 1);
 
         let mut system = Self {
             ticks: 0,
+            channels: SystemChannels::new(),
             threads: Vec::new(),
             ticker_assignment: TickerAssignment::new(&tickers),
         };
 
         let n_tickers = tickers.len();
 
-        let external = ThreadInner::new(&mut system, "external", n_tickers);
-        let main = ThreadInner::new(&mut system, "main", n_tickers);
+        system.init_threads(spawn_threads, n_tickers);
 
-        for i in 0..spawn_threads {
-            ThreadInner::new(&mut system, &format!("thread-{}", i), n_tickers);
-        }
-
-        system.assign_ticker(external.id, tickers.remove(0));
+        system.assign_ticker(EXTERNAL_ID, tickers.remove(0));
 
         for ticker in tickers.drain(..) {
-            system.assign_ticker(main.id, ticker);
+            system.assign_ticker(MAIN_ID, ticker);
         }
 
         system.on_build();
@@ -108,12 +87,26 @@ impl<T:'static> TickerSystem<T> {
         system
     }
 
-    fn assign_ticker(&mut self, thread_id: usize, ticker: Box<dyn TickerCall<T>>) {
+    fn init_threads(&mut self, spawn_threads: u32, n_tickers: usize) {
+        let external = ThreadInner::new(self, "external", n_tickers);
+        let main = ThreadInner::new(self, "main", n_tickers);
+
+        for i in 0..spawn_threads {
+            ThreadInner::new(self, &format!("thread-{}", self.threads.len()), n_tickers);
+        }
+
+        for thread in &mut self.threads {
+            thread.fill_channels(&self.channels)
+        }
+    }
+
+    fn assign_ticker(&mut self, thread_id: usize, ticker: Box<dyn TickerCall<M>>) {
         let ticker_id = ticker.id();
         self.ticker_assignment.set(ticker_id, thread_id);
 
         self.threads[thread_id].assign_ticker(ticker);
 
+        /*
         for from_ticker_id in self.threads[thread_id].update_ticker(ticker_id) {
             let from_thread_id = self.ticker_assignment.get(from_ticker_id);
 
@@ -121,6 +114,7 @@ impl<T:'static> TickerSystem<T> {
 
             self.threads[from_thread_id].update_ticker(from_ticker_id);
         }
+         */
     }
 
     pub fn ticks(&self) -> u64 {
@@ -146,13 +140,24 @@ impl<M:'static> TickerThread<M> {
         self.ptr.write().unwrap().assign_ticker(ticker);
     }
 
+    fn fill_channels(
+        &mut self, 
+        system: &SystemChannels<M>,
+    ) {
+        self.ptr.write().unwrap().channels.fill_thread(system);
+    }
+
+    /*
     fn update_ticker(&self, ticker_id: usize) -> Vec<usize> {
         self.ptr.write().unwrap().update_ticker(ticker_id)
     }
+     */
 
+    /*
     fn to_thread(&self, to_ticker: usize) -> ToThreadRef<M> {
         self.ptr.read().unwrap().to_thread(to_ticker)
     }
+     */
 
     fn tick(&mut self, ticks: u64) {
         self.ptr.write().unwrap().tick(ticks);
@@ -163,16 +168,6 @@ impl<M:'static> TickerThread<M> {
     }
 }
 
-pub fn ticks() -> u64 {
-    let mut ticks: u64 = 0;
-
-    TICKS.with(|f| {
-        ticks = *f.borrow();
-    });
-
-    ticks
-}
-
 impl<M:'static> ThreadInner<M> {
     fn new(
         system: &mut TickerSystem<M>, 
@@ -181,64 +176,27 @@ impl<M:'static> ThreadInner<M> {
     ) -> TickerThread<M> {
         let id = system.threads.len();
 
-        let (sender, receiver) = mpsc::channel::<Message<M>>();
-
-        let mut to: Vec<ToThreadRef<M>> = Vec::new();
-
         let mut tickers: Vec<Option<Box<dyn TickerCall<M>>>> = Vec::new();
-
         for _ in 0..n_tickers {
             tickers.push(None);
         }
 
-        to.push(PanicToThread::new(&format!("{} attempted send to external", &name)));
+        let channels = if id == 0 {
+            system.channels.push_external_thread()
+        } else {
+            system.channels.push_thread()
+        };
 
         let mut thread = Self {
             id: id,
             name: String::from(name),
-            sender: sender.clone(),
-            receiver,
-            to,
-            tickers,
+
+            tickers: tickers,
             ticker_assignment: system.ticker_assignment.clone(),
-
             on_ticks: Vec::new(),
+
+            channels: channels,
         };
-
-        if id != 0 {
-            for peer_thread in &system.threads {
-                let mut peer = peer_thread.ptr.write().unwrap();
-                //let to = write;
-
-                let to_thread = if peer.id != 0 {
-                    ChannelToThread::new(
-                        thread.id, 
-                        &thread.name, 
-                        peer.id, 
-                        &peer.name, 
-                        peer.sender.clone()
-                    )
-                } else {
-                    PanicToThread::new(
-                        &format!("Attempted send to Thread #0")
-                    )
-                };
-
-                thread.push_to(to_thread);
-
-                let from_thread = ChannelToThread::new(
-                    peer.id, 
-                    &peer.name, 
-                    thread.id, 
-                    &thread.name, 
-                    sender.clone()
-                );
-
-                peer.push_to(from_thread);
-            }
-        
-            thread.push_to(OwnToThread::new(id, &name));
-        }
 
         let thread_ref = Arc::new(RwLock::new(thread));
 
@@ -249,9 +207,11 @@ impl<M:'static> ThreadInner<M> {
         TickerThread { id: id, ptr: thread_ref.clone() }
     }
 
+    /*
     fn push_to(&mut self, to_thread: ToThreadRef<M>) {
         self.to.push(to_thread);
     }
+     */
 
     fn assign_ticker(&mut self, ticker: Box<dyn TickerCall<M>>) {
         let ticker_id = ticker.id();
@@ -262,6 +222,7 @@ impl<M:'static> ThreadInner<M> {
         self.tickers[ticker_id] = Some(ticker);
     }
 
+    /*
     fn update_ticker(&self, ticker_id: usize) -> Vec<usize> {
         match &self.tickers[ticker_id] {
             Some(ticker) => { 
@@ -271,12 +232,15 @@ impl<M:'static> ThreadInner<M> {
             None => panic!("Thread.update_ticker called with invalid ticker")
         }
     }
+     */
 
+    /*
     pub fn to_thread(&self, to_ticker: usize) -> ToThreadRef<M> {
         let thread_id = self.ticker_assignment.get(to_ticker);
 
         Rc::clone(&self.to[thread_id])
     }
+     */
 
     fn tick(&mut self, ticks: u64) {
         self.set_ticks(ticks);
@@ -314,6 +278,7 @@ impl<M:'static> ThreadInner<M> {
     }
 
     fn receive(&mut self) {
+        /*
         let receiver = &self.receiver;
 
         for msg in receiver.try_iter() {
@@ -327,6 +292,7 @@ impl<M:'static> ThreadInner<M> {
                 }
             }
         }
+        */
     }
 }
 
@@ -361,78 +327,6 @@ impl Clone for TickerAssignment {
         Self {
             ticker_to_thread: Arc::clone(&self.ticker_to_thread),
         }
-    }
-}
-
-impl<T> Message<T> {
-    fn new(to_ticker: usize, on_fiber: usize, args: T) -> Self {
-        Self {
-            to_ticker,
-            on_fiber,
-
-            args,
-        }
-    }
-}
-
-impl<T:'static> ChannelToThread<T> {
-    fn new(id: usize, name: &str, id_to: usize, name_to: &str, to: mpsc::Sender<Message<T>>) -> ToThreadRef<T> {
-        assert!(id_to != 0);
-
-        Rc::new(RefCell::new(Box::new(Self {
-            _name: format!("{}:{}->{}:{}", id, name, id_to, name_to),
-            to,
-        })))
-    }
-}
-
-impl<T> ToThread<T> for ChannelToThread<T> {
-    fn send(&mut self, to_ticker: usize, on_fiber: usize, args: T)
-    {
-        self.to.send(Message::new(to_ticker, on_fiber, args)).unwrap();
-    }
-}
-
-impl<T:'static> OwnToThread<T> {
-    fn new(id: usize, name: &str) -> ToThreadRef<T> {
-        Rc::new(RefCell::new(Box::new(Self {
-            name: format!("{}:{}", id, name),
-            to: Vec::new(),
-        })))
-    }
-}
-
-impl<T:'static> ToThread<T> for OwnToThread<T> {
-    fn send(&mut self, to_ticker: usize, on_fiber: usize, args: T)
-    {
-        match &mut self.to[to_ticker] {
-            Some(ticker) => ticker.send(on_fiber, args),
-            _ => {
-                panic!(
-                    "Ticker #{} called on Thread {}, which doesn't control the ticker.", 
-                    to_ticker,
-                    self.name
-                )
-            }
-        }
-    }
-}
-
-impl PanicToThread {
-    pub fn new<T>(msg: &str) -> ToThreadRef<T> {
-        Rc::new(RefCell::new(Box::new(Self {
-            msg: String::from(msg),
-        })))
-    }
-}
-
-impl<T> ToThread<T> for PanicToThread {
-    fn send(&mut self, to_ticker: usize, _on_fiber: usize, args: T) {
-        panic!(
-            "{} (To Ticker #{})", 
-            self.msg,
-            to_ticker
-        );
     }
 }
 

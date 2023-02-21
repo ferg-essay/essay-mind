@@ -1,13 +1,15 @@
 //! Fibers communicate between tickers.
 
-use std::{fmt, rc::Rc, cell::{RefCell, Ref}};
+use std::{fmt, rc::Rc, cell::{RefCell, Ref}, sync::mpsc};
 
 //use log::info;
 
-use crate::{ticker::{ToTicker}, system::{ToThreadRef, PanicToThread, ThreadInner}};
+use crate::{ticker::{TickerCall}, system::{ThreadInner}, OnFiber};
 
 //pub type FiberRef<M> = Rc<RefCell<Option<Box<dyn FiberInner<M>>>>>;
 pub(crate) type FiberSourceRef<M> = Rc<RefCell<Box<dyn FiberInner<M>>>>;
+
+pub type ToThreadRef<T> = Rc<RefCell<Box<dyn ToThread<T>>>>;
 
 /// Message channel to `Ticker` targets, where each target is
 /// a callback in a Ticker's context.
@@ -42,19 +44,6 @@ impl<M:Clone> FiberHolder<M> {
  */
 
 impl<M:'static + Clone> Fiber<M> {
-    pub(crate) fn new(to: &mut Vec<(usize, usize, usize)>) -> Fiber<M> {
-        Fiber {
-            ptr: Rc::new(RefCell::new(Self::new_inner(to)))
-        }
-    }
-    fn new_inner(to: &mut Vec<(usize, usize,usize)>) -> Box<dyn FiberInner<M>> {
-        match to.len() {
-            0 => Box::new(FiberZero {}),
-            1 => Box::new(FiberOne::new(to[0])),
-            _ => Box::new(FiberMany::new(to)),
-        }
-    }
-
     /// send a message to fiber targets, on_fiber closures of target tickers.
     pub fn send(&self, args: M) {
         self.ptr.borrow_mut().send(args);
@@ -72,13 +61,109 @@ impl<M:'static + Clone> Clone for Fiber<M> {
 //
 // # inner
 
+pub(crate) struct SystemChannels<M> {
+    senders: Vec<mpsc::Sender<Message<M>>>,
+}
+
+pub(crate) struct ThreadChannels<M> {
+    id: usize,
+
+    receiver: mpsc::Receiver<Message<M>>,
+
+    channels: Vec<ToThreadRef<M>>,
+}
+
+impl<M> SystemChannels<M> {
+    pub(crate) fn new() -> Self {
+        Self {
+            senders: Vec::new(),
+        }
+    }
+
+    pub(crate) fn push_external_thread(&mut self) -> ThreadChannels<M> {
+        let (sender, receiver) = mpsc::channel::<Message<M>>();
+
+        let mut channels = Vec::<ToThreadRef<M>>::new();
+
+        channels.push(PanicToThread::new("invalid send to external ticker"));
+
+        // self.senders.push(sender);
+
+        ThreadChannels {
+            id: 0,
+            receiver: receiver,
+            channels: channels,
+        }
+    }
+
+    pub(crate) fn push_thread(&mut self) -> ThreadChannels<M> {
+        let (sender, receiver) = mpsc::channel::<Message<M>>();
+
+        let mut channels = Vec::<ToThreadRef<M>>::new();
+
+        channels.push(PanicToThread::new("invalid send to external ticker"));
+
+        self.senders.push(sender);
+
+        ThreadChannels {
+            id: self.senders.len(),
+            receiver: receiver,
+            channels: channels,
+        }
+    }
+}
+
+impl<M:'static> ThreadChannels<M> {
+    pub(crate) fn fill_thread(&mut self, system: &SystemChannels<M>) {
+        assert!(self.channels.len() == 1);
+
+        for (i, sender) in system.senders.iter().enumerate() {
+            let channel = if i + 1 == self.id {
+                OwnToThread::new(self.id)
+            } else if i > 0 {
+                ChannelToThread::new(i + 1, self.id, sender.clone())
+            } else {
+                PanicToThread::new("sending to external thread")
+            };
+
+            self.channels.push(channel);
+        }
+
+
+    }
+}
 
 pub trait ToThread<M> {
     fn send(&mut self, to_ticker: usize, on_fiber: usize, args: M);
 }
 
-struct TickerSources<M> {
+struct ChannelToThread<M> {
+    //_name: String,
+    to: mpsc::Sender<Message<M>>,
+}
+
+struct OwnToThread<M> {
+    //name: String,
+    id: usize,
+
+    to: Vec<Option<Box<dyn TickerCall<M>>>>,
+}
+
+pub struct PanicToThread {
+    msg: String,
+}
+
+struct Message<M> {
+    to_ticker: usize,
+    on_fiber: usize,
+
+    args: M,
+}
+
+pub(crate) struct TickerFibers<M, T> {
     sources: Vec<FiberSourceRef<M>>,
+    
+    pub on_fiber: Vec<Box<OnFiber<M,T>>>,
 }
 
 pub(crate) trait FiberInner<M> {
@@ -109,8 +194,37 @@ pub struct FiberMany<M> {
 struct FiberPanic {
 
 }
+impl<M:Clone + 'static,T> TickerFibers<M, T> {
+    pub(crate) fn new() -> TickerFibers<M,T> {
+        Self {
+            sources: Vec::new(),
+            on_fiber: Vec::new(),
+        }
+    }
 
-impl<M> TickerSources<M> {
+    pub(crate) fn new_fiber(
+        &mut self, 
+        to: &mut Vec<(usize, usize, usize)>
+    ) -> Fiber<M> {
+        let ptr = Rc::new(RefCell::new(self.new_inner(to)));
+
+        self.sources.push(Rc::clone(&ptr));
+
+        let fiber = Fiber {
+            ptr: ptr,
+        };
+
+        fiber
+    }
+
+    fn new_inner(&self, to: &mut Vec<(usize, usize,usize)>) -> Box<dyn FiberInner<M>> {
+        match to.len() {
+            0 => Box::new(FiberZero {}),
+            1 => Box::new(FiberOne::new(to[0])),
+            _ => Box::new(FiberMany::new(to)),
+        }
+    }
+
     fn build_channel(&mut self, thread: &ThreadInner<M>) {
         for source in &mut self.sources {
             source.borrow_mut().build_channel(thread)
@@ -231,4 +345,77 @@ impl<M:Clone + 'static> FiberInner<M> for FiberMany<M> {
     }
 }
 
+
+impl<T> Message<T> {
+    fn new(to_ticker: usize, on_fiber: usize, args: T) -> Self {
+        Self {
+            to_ticker,
+            on_fiber,
+
+            args,
+        }
+    }
+}
+
+impl<T:'static> ChannelToThread<T> {
+    fn new(source: usize, sink: usize, to: mpsc::Sender<Message<T>>) -> ToThreadRef<T> {
+        assert!(sink != 0);
+
+        // _name: format!("{}->{}", source, sink),
+        Rc::new(RefCell::new(Box::new(Self {
+            to,
+        })))
+    }
+}
+
+impl<T> ToThread<T> for ChannelToThread<T> {
+    fn send(&mut self, to_ticker: usize, on_fiber: usize, args: T)
+    {
+        self.to.send(Message::new(to_ticker, on_fiber, args)).unwrap();
+    }
+}
+
+impl<T:'static> OwnToThread<T> {
+    fn new(id: usize) -> ToThreadRef<T> {
+        Rc::new(RefCell::new(Box::new(Self {
+            // name: format!("{}:{}", id, name),
+            id: id,
+            to: Vec::new(),
+        })))
+    }
+}
+
+impl<T:'static> ToThread<T> for OwnToThread<T> {
+    fn send(&mut self, to_ticker: usize, on_fiber: usize, args: T)
+    {
+        match &mut self.to[to_ticker] {
+            Some(ticker) => ticker.send(on_fiber, args),
+            _ => {
+                panic!(
+                    "Ticker #{} called on Thread {}, which doesn't control the ticker.", 
+                    to_ticker,
+                    self.id
+                )
+            }
+        }
+    }
+}
+
+impl PanicToThread {
+    pub fn new<T>(msg: &str) -> ToThreadRef<T> {
+        Rc::new(RefCell::new(Box::new(Self {
+            msg: String::from(msg),
+        })))
+    }
+}
+
+impl<T> ToThread<T> for PanicToThread {
+    fn send(&mut self, to_ticker: usize, _on_fiber: usize, args: T) {
+        panic!(
+            "{} (To Ticker #{})", 
+            self.msg,
+            to_ticker
+        );
+    }
+}
 
