@@ -2,17 +2,11 @@
 /// 
 /// 
 
-use std::{rc::Rc, sync::{Arc, RwLock, Mutex}, fmt, cell::RefCell};
-use std::sync::mpsc;
+use std::{sync::{Arc, RwLock, Mutex, RwLockWriteGuard}, fmt, cell::{RefCell, RefMut, Ref}, ops::Deref, rc::Rc, borrow::BorrowMut};
 
-use crate::{ticker::{TickerInner, TickerCall}, fiber::{ToThread, SystemChannels, ThreadChannels, ToThreadRef}};
-//extern crate env_logger;
-//use env_logger::Env;
-//use log::{info};
+use crate::{ticker::{TickerCall, TickerRef}, fiber::{SystemChannels, ThreadChannels}};
 
 type ThreadRef<T> = Arc<RwLock<ThreadInner<T>>>;
-pub(crate) type TickerRef<M> = Box<dyn TickerCall<M>>;
-
 
 thread_local!(static TICKS: RefCell<u64> = RefCell::new(0));
 
@@ -25,9 +19,11 @@ pub struct TickerSystem<M> {
     ticker_assignment: TickerAssignment,
 }
 
-struct TickerThread<T> {
-    id: usize,
+pub struct Context {
+    ticks: u64,
+}
 
+struct TickerThread<T> {
     ptr: ThreadRef<T>,
 }
 
@@ -35,16 +31,13 @@ pub struct ThreadInner<M> {
     id: usize,
     name: String,
 
-    //receiver: mpsc::Receiver<Message<M>>,
-    //sender: mpsc::Sender<Message<M>>,
-
-    //to: Vec<ToThreadRef<M>>,
-
     channels: ThreadChannels<M>,
 
     tickers: Vec<Option<TickerRef<M>>>,
 
     ticker_assignment: TickerAssignment,
+
+    context: Context,
 
     on_ticks: Vec<usize>,
 }
@@ -61,7 +54,7 @@ const MAIN_ID: usize = 1;
 
 impl<M:'static> TickerSystem<M> {
     pub(crate) fn new(
-        mut tickers: Vec<Box<dyn TickerCall<M>>>,
+        mut tickers: Vec<TickerRef<M>>,
         spawn_threads: u32
     ) -> Self {
         assert!(spawn_threads <= 1);
@@ -91,10 +84,10 @@ impl<M:'static> TickerSystem<M> {
     }
 
     fn init_threads(&mut self, spawn_threads: u32, n_tickers: usize) {
-        let external = ThreadInner::new(self, "external", n_tickers);
-        let main = ThreadInner::new(self, "main", n_tickers);
+        ThreadInner::new(self, "external", n_tickers);
+        ThreadInner::new(self, "main", n_tickers);
 
-        for i in 0..spawn_threads {
+        for _ in 0..spawn_threads {
             ThreadInner::new(self, &format!("thread-{}", self.threads.len()), n_tickers);
         }
 
@@ -109,21 +102,11 @@ impl<M:'static> TickerSystem<M> {
         }
     }
 
-    fn assign_ticker(&mut self, thread_id: usize, ticker: Box<dyn TickerCall<M>>) {
+    fn assign_ticker(&mut self, thread_id: usize, ticker: TickerRef<M>) {
         let ticker_id = ticker.id();
         self.ticker_assignment.set(ticker_id, thread_id);
 
         self.threads[thread_id].assign_ticker(ticker);
-
-        /*
-        for from_ticker_id in self.threads[thread_id].update_ticker(ticker_id) {
-            let from_thread_id = self.ticker_assignment.get(from_ticker_id);
-
-            //let thread = self.threads[from_thread_id].clone();
-
-            self.threads[from_thread_id].update_ticker(from_ticker_id);
-        }
-         */
     }
 
     pub fn ticks(&self) -> u64 {
@@ -144,7 +127,7 @@ impl<M:'static> TickerSystem<M> {
 impl<M:'static> TickerThread<M> {
     fn assign_ticker(
         &mut self, 
-        ticker: Box<dyn TickerCall<M>>
+        ticker: TickerRef<M>
     ) {
         self.ptr.write().unwrap().assign_ticker(ticker);
     }
@@ -162,24 +145,16 @@ impl<M:'static> TickerThread<M> {
         self.ptr.write().unwrap().update_tickers();
     }
 
-    /*
-    fn update_ticker(&self, ticker_id: usize) -> Vec<usize> {
-        self.ptr.write().unwrap().update_ticker(ticker_id)
-    }
-     */
-
-    /*
-    fn to_thread(&self, to_ticker: usize) -> ToThreadRef<M> {
-        self.ptr.read().unwrap().to_thread(to_ticker)
-    }
-     */
-
     fn tick(&mut self, ticks: u64) {
         self.ptr.write().unwrap().tick(ticks);
     }
 
     fn on_build(&mut self) {
         self.ptr.write().unwrap().on_build();
+    }
+
+    fn borrow_ticker(&mut self, index: usize) {
+        let guard = self.ptr.write().unwrap();
     }
 }
 
@@ -191,7 +166,7 @@ impl<M:'static> ThreadInner<M> {
     ) -> TickerThread<M> {
         let id = system.threads.len();
 
-        let mut tickers: Vec<Option<Box<dyn TickerCall<M>>>> = Vec::new();
+        let mut tickers: Vec<Option<TickerRef<M>>> = Vec::new();
         for _ in 0..n_tickers {
             tickers.push(None);
         }
@@ -202,7 +177,7 @@ impl<M:'static> ThreadInner<M> {
             system.channels.push_thread()
         };
 
-        let mut thread = Self {
+        let thread = Self {
             id: id,
             name: String::from(name),
 
@@ -211,24 +186,25 @@ impl<M:'static> ThreadInner<M> {
             on_ticks: Vec::new(),
 
             channels: channels,
+
+            context: Context { ticks: 0 },
         };
 
         let thread_ref = Arc::new(RwLock::new(thread));
 
-        let ticker = TickerThread { id: id, ptr: thread_ref.clone() };
+        let ticker = TickerThread { ptr: thread_ref.clone() };
 
         system.threads.push(ticker);
 
-        TickerThread { id: id, ptr: thread_ref.clone() }
+        TickerThread { ptr: thread_ref.clone() }
     }
 
-    /*
-    fn push_to(&mut self, to_thread: ToThreadRef<M>) {
-        self.to.push(to_thread);
+    
+    fn is_ticker_owned(&self, id: usize) -> bool {
+        self.tickers[id].is_some()
     }
-     */
-
-    fn assign_ticker(&mut self, ticker: Box<dyn TickerCall<M>>) {
+    
+    fn assign_ticker(&mut self, ticker: TickerRef<M>) {
         let ticker_id = ticker.id();
 
         self.on_ticks.push(ticker_id);
@@ -246,27 +222,10 @@ impl<M:'static> ThreadInner<M> {
                 None => {},
             }
         }
-    }
-    /*
-    fn update_ticker(&self, ticker_id: usize) -> Vec<usize> {
-        match &self.tickers[ticker_id] {
-            Some(ticker) => { 
-                ticker.update_to_tickers(&self);
-                ticker.from_ticker_ids()
-             },
-            None => panic!("Thread.update_ticker called with invalid ticker")
-        }
-    }
-     */
 
-    /*
-    pub fn to_thread(&self, to_ticker: usize) -> ToThreadRef<M> {
-        let thread_id = self.ticker_assignment.get(to_ticker);
-
-        Rc::clone(&self.to[thread_id])
+        self.channels.update_tickers(&self.tickers);
     }
-     */
-
+ 
     fn tick(&mut self, ticks: u64) {
         self.set_ticks(ticks);
 
@@ -276,9 +235,12 @@ impl<M:'static> ThreadInner<M> {
     }
 
     fn on_ticks(&mut self, ticks: u64) {
+        self.context.ticks += 1;
         for ticker_id in &self.on_ticks {
             match &mut self.tickers[*ticker_id] {
-                Some(ticker) => ticker.tick(ticks),
+                Some(ticker) => {
+                    (*ticker).tick(&mut self.context);
+                }
                 None => panic!(
                     "{} on_tick to ticker #{} but not assigned",
                     self,
@@ -304,21 +266,24 @@ impl<M:'static> ThreadInner<M> {
 
     fn receive(&mut self) {
         self.channels.receive(&mut self.tickers);
-        /*
-        let receiver = &self.channels.receiver;
+    }
+}
 
-        for msg in receiver.try_iter() {
-            match &mut self.tickers[msg.to_ticker] {
-                Some(ticker) => {
-                    ticker.send(msg.on_fiber, msg.args);
-                },
-                None => {
-                    panic!("In thread #{} Attempt to call ticker {}",
-                        self.id, msg.to_ticker);
-                }
-            }
+struct ThreadTickers<M> {
+    ptr: Rc<RefCell<Vec<Option<Box<dyn TickerCall<M>>>>>>,
+}
+
+impl<M> ThreadTickers<M> {
+    fn new(n_tickers: usize) -> Self {
+        let mut tickers = Vec::<Option<Box<dyn TickerCall<M>>>>::new();
+
+        for _ in 0..n_tickers {
+            tickers.push(None);
         }
-        */
+
+        Self {
+            ptr: Rc::new(RefCell::new(tickers))
+        }
     }
 }
 
@@ -329,7 +294,7 @@ impl<T> fmt::Display for ThreadInner<T> {
 }
 
 impl TickerAssignment {
-    fn new<M>(tickers: &Vec<Box<dyn TickerCall<M>>>) ->Self {
+    fn new<M>(tickers: &Vec<TickerRef<M>>) ->Self {
         let mut ticker_to_thread: Vec<usize> = Vec::new();
         
         ticker_to_thread.resize(tickers.len(), 0);
@@ -356,5 +321,21 @@ impl Clone for TickerAssignment {
     }
 }
 
-pub fn test_thread() {
+impl Context {
+    pub fn ticks(&self) -> u64 {
+        self.ticks
+    }
+}
+
+struct TickerWriteGuard<'a,T:'static> {
+    ptr: &'a mut T,
+    guard: RwLockWriteGuard<'a,ThreadInner<T>>,
+}
+
+impl<'a,T> Deref for TickerWriteGuard<'a,T> {
+    type Target = &'a mut T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.ptr
+    }
 }

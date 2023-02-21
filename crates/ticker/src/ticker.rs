@@ -1,19 +1,21 @@
 //! Single ticking node
 
-use crate::fiber::{PanicToThread, ThreadChannels, TickerFibers};
-use crate::system::{ThreadInner, TickerAssignment};
+use crate::fiber::{ThreadChannels, TickerFibers};
+use crate::system::{TickerAssignment, Context};
 
 //use log::{log};
 
 use std::cell::RefCell;
 use std::io::Error;
-use std::marker::PhantomData;
+use std::rc::Rc;
 use std::result;
-use std::{fmt, rc::Rc};
+use std::{fmt};
 
 pub type OnBuild<T> = dyn Fn(&mut T)->();
-pub type OnTickFn<T> = dyn Fn(&mut T, u64)->();
+pub type OnTickFn<T> = dyn Fn(&mut T, &mut Context)->();
 pub type OnFiber<M,T> = dyn Fn(&mut T, M)->();
+
+pub(crate) type TickerRef<M> = Box<dyn TickerCall<M>>;
 
 //pub type ToTickerRef<T> = Rc<RefCell<ToTickerInner<T>>>;
 #[allow(dead_code)]
@@ -21,14 +23,14 @@ pub type Result<T> = result::Result<T, Error>;
 
 pub trait Ticker {
     #[allow(unused_variables)]
-    fn tick(&mut self, ticks: u64) {}
+    fn tick(&mut self, ctx: &mut Context) {}
     fn build(&mut self) {}
 }
 
 pub(crate) trait TickerCall<M> {
     fn id(&self)->usize;
 
-    fn tick(&mut self, ticks: u64);
+    fn tick(&mut self, ctx: &mut Context);
 
     fn on_build(&mut self);
 
@@ -40,6 +42,8 @@ pub(crate) trait TickerCall<M> {
         channels: &ThreadChannels<M>
     );
 
+    fn clone(&self) -> Box<dyn TickerCall<M>>;
+
     /*
     fn update_to_tickers(&self, thread: &ThreadInner<M>) -> Vec<usize>;
 
@@ -48,9 +52,11 @@ pub(crate) trait TickerCall<M> {
 }
 
 
-pub struct TickerOuter {
+pub struct TickerOuter<M, T> {
     pub id: usize,
     pub name: String,
+
+    ptr: Rc<RefCell<TickerInner<M, T>>>,
 }
 
 pub(crate) struct TickerInner<M,T> {
@@ -73,78 +79,46 @@ pub trait OnTick<T> {
     fn tick(t: &T, ticks: u32) -> Result<()>;
 }
 
-/*
-pub(crate) struct ToTicker<M> {
-    pub from_ticker: usize,
-    pub to_ticker: usize,
-
-    pub(crate) to: ToThreadRef<M>,
-    //pub channel: usize,
-}
-
-pub struct ToTickerInner<M> {
-    pub to: ToThreadRef<M>,
-}
- */
-
 //
 // Implementations
 //
 
-impl TickerOuter {
+impl<M:Clone + 'static, T:'static> TickerOuter<M, T> {
+    pub(crate) fn new(
+        id: usize,
+        name: String,
+        ticker: Box<T>,
+        on_tick: Option<Box<OnTickFn<T>>>,
+        on_build: Option<Box<OnBuild<T>>>,
+        fibers: TickerFibers<M,T>,
+        on_fiber: Vec<Box<OnFiber<M,T>>>
+    ) -> Box<dyn TickerCall<M>> {
+        let inner = TickerInner {
+            id,
+            name: name.clone(),
+            ticker,
+
+            on_tick,
+            on_build,
+
+            fibers,
+            on_fiber,
+        };
+
+        let ptr = Rc::new(RefCell::new(inner));
+
+        Box::new(TickerOuter {
+            id: id,
+            name: name,
+            ptr: ptr,
+        })
+    }       
 }
 
-impl fmt::Display for TickerOuter {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Ticker:{}[{}]", self.id, self.name)
-    }
-}
-/*
-impl<M:'static> ToTicker<M> {
-    pub fn new(
-        from_ticker: usize, 
-        to_ticker: usize, 
-        //to: &ToThreadRef<M>
-    ) -> ToTicker<M> {
-        ToTicker {
-            from_ticker,
-            to_ticker,
-            to: PanicToThread::new("unassigned to-thread"),
-            //to: Rc::new(RefCell::new(ToTickerInner { to: Rc::clone(&to) })),
-        }
-    }
-
-    pub fn send(&mut self, on_fiber: usize, args: M) {
-        self.to.borrow_mut().send(self.to_ticker, on_fiber, args);
-    }
-}
-
-impl<M> Clone for ToTicker<M> {
-    fn clone(&self) -> Self {
-        Self {
-            from_ticker: self.from_ticker,
-            to_ticker: self.to_ticker,
-            to: Rc::clone(&self.to),
-        }
-    }
-}
- */
-
-
-impl<M,T:'static> TickerInner<M,T> {
-    pub fn send(&mut self, on_fiber: usize, args: M) {
-        self.on_fiber[on_fiber](&mut self.ticker, args);
-    }
-}
-
-impl<M:Clone+'static,T> TickerCall<M> for TickerInner<M,T> {
-    fn id(&self) -> usize {
-        self.id
-    }
-
-    fn tick(&mut self, ticks: u64) {
-        if let Some(on_tick) = &mut self.on_tick {
-            on_tick(&mut self.ticker, ticks);
+impl<M:Clone + 'static, T> TickerInner<M, T> {
+    fn tick(&mut self, ctx: &mut Context) {
+        if let Some(on_tick) = &self.on_tick {
+            on_tick(&mut self.ticker, ctx);
         }
     }
 
@@ -154,32 +128,70 @@ impl<M:Clone+'static,T> TickerCall<M> for TickerInner<M,T> {
         }
     }
 
-    fn update(
+    fn build_channel(
         &mut self, 
         tickers: &TickerAssignment,
         channels: &ThreadChannels<M>
     ) {
-        self.fibers.build_channel(&tickers, &channels);
+        self.fibers.build_channel(tickers, channels);
     }
 
     fn send(&mut self, on_fiber: usize, args: M) {
         self.on_fiber[on_fiber](&mut self.ticker, args);
     }
-    /*
-    fn update_to_tickers(&self, thread: &ThreadInner<M>) -> Vec<usize> {
-         self.from_ticker_ids()
-    }
-
-    fn from_ticker_ids(&self) -> Vec<usize> {
-        let mut ids: Vec<usize> = Vec::new();
-
-        ids
-    }
-    */
-
 }
 
-impl<T,M> fmt::Display for TickerInner<T,M> {
+impl<M,T> fmt::Debug for TickerOuter<M,T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Ticker:{}[{}]", self.id, self.name)
+    }
+}
+
+impl<M:Clone+'static,T:'static> TickerCall<M> for TickerOuter<M,T> {
+    fn id(&self) -> usize {
+        self.id
+    }
+
+    fn tick(&mut self, ctx: &mut Context) {
+        self.ptr.borrow_mut().tick(ctx);
+    }
+
+    fn on_build(&mut self) {
+        self.ptr.borrow_mut().on_build();
+    }
+
+    fn update(
+        &mut self, 
+        tickers: &TickerAssignment,
+        channels: &ThreadChannels<M>
+    ) {
+        self.ptr.borrow_mut().build_channel(&tickers, &channels);
+    }
+
+    fn send(&mut self, on_fiber: usize, args: M) {
+        self.ptr.borrow_mut().send(on_fiber, args);
+    }
+
+    fn clone(&self) -> Box<dyn TickerCall<M>> {
+        Box::new(TickerOuter {
+            id: self.id,
+            name: self.name.clone(),
+            ptr: Rc::clone(&self.ptr),
+        })
+    }
+}
+
+impl<M,T> Clone for TickerOuter<M, T> {
+    fn clone(&self) -> Self {
+        Self { 
+            id: self.id.clone(), 
+            name: self.name.clone(), 
+            ptr: Rc::clone(&self.ptr),
+         }
+    }
+}
+
+impl<T,M> fmt::Debug for TickerInner<T,M> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "TickerInner:{}[{}]", self.id, self.name)
     }
