@@ -4,7 +4,7 @@
 
 use std::{sync::{Arc, RwLock, Mutex, RwLockWriteGuard}, fmt, cell::{RefCell, RefMut, Ref}, ops::Deref, rc::Rc, borrow::BorrowMut};
 
-use crate::{ticker::{TickerCall, TickerRef}, fiber::{SystemChannels, ThreadChannels}};
+use crate::{ticker::{TickerCall, TickerRef, TickerOuter}, fiber::{SystemChannels, ThreadChannels}};
 
 type ThreadRef<T> = Arc<RwLock<ThreadInner<T>>>;
 
@@ -12,11 +12,28 @@ thread_local!(static TICKS: RefCell<u64> = RefCell::new(0));
 
 pub struct TickerSystem<M> {
     ticks: u64,
+
+    thread_group: Arc<Mutex<ThreadGroup<M>>>,
+    /*
     threads: Vec<TickerThread<M>>,
+    ticker_assignment: TickerAssignment,
+    */
 
     channels: SystemChannels<M>,
+}
 
+pub struct ThreadGroup<M> {
+    threads: Vec<TickerThread<M>>,
     ticker_assignment: TickerAssignment,
+}
+
+impl<M:Clone + 'static> ThreadGroup<M> {
+    pub fn read<T:'static,R>(&self, ticker: &TickerOuter<M,T>, fun: impl FnOnce(&T)->R) -> R {
+        let ticker_id = ticker.id;
+        let thread_id = self.ticker_assignment.ticker_to_thread.lock().unwrap()[ticker_id];
+
+        self.threads[thread_id].ptr.read().unwrap().read(&ticker, fun)
+    }
 }
 
 pub struct Context {
@@ -52,18 +69,31 @@ pub(crate) struct TickerAssignment {
 const EXTERNAL_ID: usize = 0;
 const MAIN_ID: usize = 1;
 
-impl<M:'static> TickerSystem<M> {
+impl<M:Clone + 'static> TickerSystem<M> {
+    /*
+    pub(crate) fn new_thread_group(tickers: &Vec<TickerRef<M>>) -> Arc<Mutex<ThreadGroup<M>>> {
+
+        Arc::new(Mutex::new(group))
+    }
+     */
+
     pub(crate) fn new(
         mut tickers: Vec<TickerRef<M>>,
         spawn_threads: u32
     ) -> Self {
         assert!(spawn_threads <= 1);
 
-        let mut system = Self {
-            ticks: 0,
-            channels: SystemChannels::new(),
+        let group: ThreadGroup<M> = ThreadGroup {
             threads: Vec::new(),
             ticker_assignment: TickerAssignment::new(&tickers),
+        };
+
+        let thread_group = Arc::new(Mutex::new(group));
+
+        let mut system = Self {
+            ticks: 0,
+            thread_group: thread_group,
+            channels: SystemChannels::new(),
         };
 
         let n_tickers = tickers.len();
@@ -88,25 +118,30 @@ impl<M:'static> TickerSystem<M> {
         ThreadInner::new(self, "main", n_tickers);
 
         for _ in 0..spawn_threads {
-            ThreadInner::new(self, &format!("thread-{}", self.threads.len()), n_tickers);
+            let name = &format!("thread-{}", self.thread_group.lock().unwrap().threads.len());
+            ThreadInner::new(self, name, n_tickers);
         }
 
-        for thread in &mut self.threads {
+        for thread in &mut self.thread_group.lock().unwrap().threads {
             thread.fill_channels(&self.channels)
         }
     }
 
     fn update_tickers(&mut self) {
-        for thread in &mut self.threads {
+        for thread in &mut self.thread_group.lock().unwrap().threads {
             thread.update_tickers();
         }
     }
 
     fn assign_ticker(&mut self, thread_id: usize, ticker: TickerRef<M>) {
         let ticker_id = ticker.id();
-        self.ticker_assignment.set(ticker_id, thread_id);
+        self.thread_group.lock().unwrap().ticker_assignment.set(ticker_id, thread_id);
 
-        self.threads[thread_id].assign_ticker(ticker);
+        self.thread_group.lock().unwrap().threads[thread_id].assign_ticker(ticker);
+    }
+
+    pub(crate) fn thread_group(&self) -> Arc<Mutex<ThreadGroup<M>>> {
+        Arc::clone(&self.thread_group)
     }
 
     pub fn ticks(&self) -> u64 {
@@ -116,15 +151,15 @@ impl<M:'static> TickerSystem<M> {
     pub fn tick(&mut self) {
         self.ticks += 1;
 
-        self.threads[1].tick(self.ticks);
+        self.thread_group.lock().unwrap().threads[1].tick(self.ticks);
     }
 
     fn on_build(&mut self) {
-        self.threads[1].on_build();
+        self.thread_group.lock().unwrap().threads[1].on_build();
     }
 }
 
-impl<M:'static> TickerThread<M> {
+impl<M:Clone + 'static> TickerThread<M> {
     fn assign_ticker(
         &mut self, 
         ticker: TickerRef<M>
@@ -158,13 +193,13 @@ impl<M:'static> TickerThread<M> {
     }
 }
 
-impl<M:'static> ThreadInner<M> {
+impl<M:Clone+'static> ThreadInner<M> {
     fn new(
         system: &mut TickerSystem<M>, 
         name: &str,
         n_tickers: usize
     ) -> TickerThread<M> {
-        let id = system.threads.len();
+        let id = system.thread_group.lock().unwrap().threads.len();
 
         let mut tickers: Vec<Option<TickerRef<M>>> = Vec::new();
         for _ in 0..n_tickers {
@@ -182,7 +217,7 @@ impl<M:'static> ThreadInner<M> {
             name: String::from(name),
 
             tickers: tickers,
-            ticker_assignment: system.ticker_assignment.clone(),
+            ticker_assignment: system.thread_group.lock().unwrap().ticker_assignment.clone(),
             on_ticks: Vec::new(),
 
             channels: channels,
@@ -194,7 +229,7 @@ impl<M:'static> ThreadInner<M> {
 
         let ticker = TickerThread { ptr: thread_ref.clone() };
 
-        system.threads.push(ticker);
+        system.thread_group.lock().unwrap().threads.push(ticker);
 
         TickerThread { ptr: thread_ref.clone() }
     }
@@ -266,6 +301,12 @@ impl<M:'static> ThreadInner<M> {
 
     fn receive(&mut self) {
         self.channels.receive(&mut self.tickers);
+    }
+
+    fn read<T:'static,R>(&self, ticker: &TickerOuter<M,T>, fun: impl FnOnce(&T)->R) -> R {
+        assert!(self.tickers[ticker.id].is_some());
+
+        ticker.read(fun)
     }
 }
 

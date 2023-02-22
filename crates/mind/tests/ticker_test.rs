@@ -1,6 +1,6 @@
 use mind::gram::Gram;
 use mind::{Topos};
-use ticker::SystemBuilder;
+use ticker::{SystemBuilder, Context};
 use ticker::Ticker;
 
 type TestArgs = (Gram, Topos);
@@ -48,7 +48,7 @@ impl TestTicker {
 }
 
 impl Ticker for TestTicker {
-    fn tick(&mut self, _ticks: u64) {
+    fn tick(&mut self, _ticks: &mut Context) {
     }
 
     fn build(&mut self) {

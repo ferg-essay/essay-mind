@@ -1,6 +1,6 @@
-use std::{cell::RefCell, rc::Rc, fmt, any::type_name, marker::PhantomData};
+use std::{cell::RefCell, rc::Rc, fmt, any::type_name, marker::PhantomData, sync::{Mutex, Arc}};
 
-use crate::{fiber::*, ticker::*, system::{TickerSystem, Context}};
+use crate::{fiber::*, ticker::*, system::{TickerSystem, Context, ThreadGroup}};
 
 type SystemBuilderRef<M> = Rc<RefCell<SystemBuilderInner<M>>>;
 type TickerBuilderRef<M,T> = Rc<RefCell<TickerBuilderInner<M,T>>>;
@@ -135,26 +135,6 @@ impl<M:Clone + 'static> SystemBuilder<M> {
         }
     }
 
-        //let system = self.builder.borrow();
-
-        //assert!(! system.is_built);
-
-        //let ticker = Rc::clone(&system.tickers[0]);
-
-        // todo!()
-        //FiberBuilderInner::new(&self.external_ticker())
-    //}
-/* TODO
-    fn external_ticker(&self) -> TickerBuilderRef<M> {
-        let system = self.builder.borrow();
-
-        assert!(! system.is_built);
-
-        // Rc::clone(&system.tickers[0])
-        todo!();
-    }
-     */
-
     pub fn build(&mut self) -> TickerSystem<M> {
         // let builder = self.builder.borrow_mut();
         self.ptr.borrow_mut().build()
@@ -218,6 +198,10 @@ impl<M:Clone + 'static,T:Ticker + 'static> TickerBuilder<M, T> {
     ) -> Sink<M> {
         self.ptr.borrow_mut().sink(Box::new(on_msg))
     }
+
+    pub fn unwrap(self) -> TickerPtr<M, T> {
+        self.ptr.borrow_mut().take_ticker()
+    }
 }
 
 impl<M:Clone,T:Ticker> Clone for TickerBuilder<M, T> {
@@ -278,6 +262,9 @@ struct TickerBuilderInner<M:Clone,T> {
     set_fibers: Vec<Box<SetFiber<M,T>>>,
 
     on_fibers: Vec<Box<OnFiber<M,T>>>,
+
+    ticker_outer: Option<TickerOuter<M,T>>,
+    ticker_ptr: Option<TickerPtr<M,T>>,
 }
 
 struct SourceInner {
@@ -305,23 +292,11 @@ struct BuilderHolder<M:Clone,T> {
 
 trait TickerOnBuild<M> {
     fn build(&self) -> Box<dyn TickerCall<M>>;
+    fn set_ptr(&mut self, thread_group: Arc<Mutex<ThreadGroup<M>>>);
 }
 
 struct ExternalTicker {
 }
-/*
-#[derive(Clone)]
-struct ToTickerBuilder<M> {
-    ptr: Rc<RefCell<ToTickerInnerBuilder<M>>>,
-}
-
-struct ToTickerInnerBuilder<M> {
-    ticker_id: usize,
-
-    to_tickers: Vec<ToTicker<M>>,
-    from_tickers: Vec<ToTicker<M>>,
-}
-*/
 //
 // # Inner implementations
 //
@@ -352,6 +327,9 @@ impl<M:Clone + 'static> SystemBuilderInner<M> {
             set_fibers: Vec::new(),
 
             on_fibers: Vec::new(),
+
+            ticker_outer: None,
+            ticker_ptr: None,
         };
 
         let ticker_ref = Rc::new(RefCell::new(ticker_inner));
@@ -367,20 +345,20 @@ impl<M:Clone + 'static> SystemBuilderInner<M> {
         assert!(! self.is_built);
         self.is_built = true;
 
-        /*
-        for fiber in self.fibers.drain(..) {
-            fiber.borrow_mut().build::<M>();
-        }
-         */
-
         let mut tickers: Vec<TickerRef<M>> = Vec::new();
-        for build in self.tickers.drain(..) {
-            tickers.push(build.build());
+        for ticker in &self.tickers {
+            tickers.push(ticker.build());
         }
 
         let spawn_threads = 0;
 
         let system = TickerSystem::new(tickers, spawn_threads);
+
+        for ticker in &mut self.tickers {
+            // tickers.push(ticker.build());
+            ticker.set_ptr(system.thread_group());
+        }
+
 
         system
     }
@@ -389,6 +367,10 @@ impl<M:Clone + 'static> SystemBuilderInner<M> {
 impl<M:Clone+'static,T:'static> TickerOnBuild<M> for BuilderHolder<M, T> {
     fn build(&self) -> Box<dyn TickerCall<M>> {
         self.ptr.borrow_mut().build()
+    }
+
+    fn set_ptr(&mut self, group: Arc<Mutex<ThreadGroup<M>>>) {
+        self.ptr.borrow_mut().set_ptr(group);
     }
 }
 
@@ -502,12 +484,23 @@ impl<M:Clone +'static,T:'static> TickerBuilderInner<M,T> {
 
         on_fiber_id
     }
+
+    fn take_ticker(&mut self) -> TickerPtr<M, T> {
+        self.ticker_ptr.take().expect("ticker either unbuilt or already taken")
+    }
+
+    fn set_ptr(&mut self, threads: Arc<Mutex<ThreadGroup<M>>>) {
+        self.ticker_ptr = Some(TickerPtr { 
+            ticker: self.ticker_outer.take().expect("ticker outer unassigned"),
+            threads,
+        });
+    }
     
     fn is_built(&self) -> bool {
         self.ticker.is_none()
     }
 
-     fn build(&mut self) -> Box<dyn TickerCall<M>> {
+    fn build(&mut self) -> Box<dyn TickerCall<M>> {
         // assert!(match self.ticker_ref { None=>true, _=> false });
 
         let name = match &self.name {
@@ -526,25 +519,8 @@ impl<M:Clone +'static,T:'static> TickerBuilderInner<M,T> {
         }
 
         let on_fibers = self.on_fibers.drain(..).collect();
-        // let to_tickers = self.to_tickers.drain(..).collect();
-        // let from_tickers = self.from_tickers.drain(..).collect();
-
-        /*
-        let ptr = Rc::new(RefCell::new(TickerInner {
-            id: self.id,
-            name: name,
-            ticker: ticker,
-            //to_tickers: to_tickers,
-            //from_tickers: from_tickers,
-            on_tick: self.on_tick.take(),
-            on_build: self.on_build.take(),
-
-            fibers: fibers,
-            on_fiber: on_fibers,
-        }));
-         */
-
-        TickerOuter::new(
+        
+        let outer = TickerOuter::new(
             self.id, 
             name, 
             ticker, 
@@ -552,36 +528,14 @@ impl<M:Clone +'static,T:'static> TickerBuilderInner<M,T> {
             self.on_build.take(),
             fibers,
             on_fibers
-        )
+        );
+
+        self.ticker_outer = Some(Clone::clone(&outer));
+
+        outer.to_box()
     }
 }
-/*
-impl<M:'static> ToTickerInnerBuilder<M> {
-    fn add_from(&mut self, from_ticker: &ToTicker<M>) {
-        match self.from_tickers.iter().filter(|from_ticker|
-            from_ticker.from_ticker == self.ticker_id
-        ).next() {
-            Some(_) => {},
-            None => { self.from_tickers.push(from_ticker.clone()); }
-        }
-    }
 
-    fn to_ticker(&mut self, to_ticker_id: usize) -> ToTicker<M> {
-        match self.to_tickers.iter().filter(|to_ticker| to_ticker.to_ticker == to_ticker_id).next() {
-            Some(to_ticker) => to_ticker.clone(),
-            None => {
-                let to_ticker = ToTicker::new(
-                    self.ticker_id, 
-                    to_ticker_id, 
-                );
-                self.to_tickers.push(to_ticker.clone());
-
-                to_ticker
-            }
-        }
-    }
-}
- */
 impl SourceInner {
     fn to(&mut self, sink: &Rc<RefCell<Box<SinkInner>>>) {
         self.to.push(Rc::clone(&sink));

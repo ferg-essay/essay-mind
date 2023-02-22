@@ -12,7 +12,7 @@ fn ticker_set_fiber() {
         t.fiber = Some(fiber);
     });
     
-    let mut test_sink = builder.ticker(TestSink::new(&adder));
+    let test_sink = builder.ticker(TestSink::new(&adder));
 
     let sink = test_sink.sink(move |t, msg| {
         t.values.add(format!("msg({})", msg))

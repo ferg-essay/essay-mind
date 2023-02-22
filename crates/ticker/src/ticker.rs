@@ -1,7 +1,7 @@
 //! Single ticking node
 
 use crate::fiber::{ThreadChannels, TickerFibers};
-use crate::system::{TickerAssignment, Context};
+use crate::system::{TickerAssignment, Context, ThreadGroup};
 
 //use log::{log};
 
@@ -9,6 +9,7 @@ use std::cell::RefCell;
 use std::io::Error;
 use std::rc::Rc;
 use std::result;
+use std::sync::{Mutex, Arc};
 use std::{fmt};
 
 pub type OnBuild<T> = dyn Fn(&mut T)->();
@@ -27,6 +28,17 @@ pub trait Ticker {
     fn build(&mut self) {}
 }
 
+pub struct TickerPtr<M, T> {
+    pub(crate) ticker: TickerOuter<M, T>,
+    pub(crate) threads: Arc<Mutex<ThreadGroup<M>>>,
+}
+
+impl<M:Clone + 'static, T:'static> TickerPtr<M, T> {
+    pub fn read<R>(&self, fun: impl FnOnce(&T) -> R) -> R {
+        self.threads.lock().unwrap().read(&self.ticker, fun)
+    }
+}
+
 pub(crate) trait TickerCall<M> {
     fn id(&self)->usize;
 
@@ -43,12 +55,6 @@ pub(crate) trait TickerCall<M> {
     );
 
     fn clone(&self) -> Box<dyn TickerCall<M>>;
-
-    /*
-    fn update_to_tickers(&self, thread: &ThreadInner<M>) -> Vec<usize>;
-
-    fn from_ticker_ids(&self) -> Vec<usize>;
-    */
 }
 
 
@@ -92,7 +98,7 @@ impl<M:Clone + 'static, T:'static> TickerOuter<M, T> {
         on_build: Option<Box<OnBuild<T>>>,
         fibers: TickerFibers<M,T>,
         on_fiber: Vec<Box<OnFiber<M,T>>>
-    ) -> Box<dyn TickerCall<M>> {
+    ) -> TickerOuter<M, T> {
         let inner = TickerInner {
             id,
             name: name.clone(),
@@ -107,12 +113,20 @@ impl<M:Clone + 'static, T:'static> TickerOuter<M, T> {
 
         let ptr = Rc::new(RefCell::new(inner));
 
-        Box::new(TickerOuter {
+        TickerOuter {
             id: id,
             name: name,
             ptr: ptr,
-        })
+        }
     }       
+
+    pub(crate) fn to_box(self) -> Box<dyn TickerCall<M>> {
+        Box::new(self)
+    }
+
+    pub fn read<R>(&self, fun: impl FnOnce(&T)->R) -> R {
+        fun(&self.ptr.borrow().ticker)
+    }
 }
 
 impl<M:Clone + 'static, T> TickerInner<M, T> {

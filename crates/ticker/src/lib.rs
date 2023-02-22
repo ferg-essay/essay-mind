@@ -6,7 +6,7 @@ mod fiber;
 pub use self::fiber::{Fiber};
 pub use self::ticker::{Ticker, OnFiber};
 pub use self::builder::{Source, Sink, TickerBuilder, SystemBuilder};
-pub use self::system::{TickerSystem};
+pub use self::system::{TickerSystem, Context};
 
 #[cfg(test)]
 mod tests;

@@ -1,4 +1,4 @@
-use ticker::{Ticker};
+use ticker::{Ticker, Context};
 
 use crate::{MindBuilder, TickerBuilder, MindMessage, Topos, gram::Gram, Source, Sink};
 
@@ -78,7 +78,7 @@ impl ActionTicker {
 
 
 impl Ticker for ActionTicker {
-    fn tick(&mut self, ticks: u64) {
+    fn tick(&mut self, ctx: &mut Context) {
 
     }
 }
