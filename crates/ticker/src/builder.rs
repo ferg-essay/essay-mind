@@ -12,9 +12,7 @@ pub struct SystemBuilder<T:Clone> {
     ptr: SystemBuilderRef<T>,
 }
 
-pub struct TickerBuilder<M:Clone,T:Ticker> {
-    ptr: TickerBuilderRef<M,T>,
-}
+pub struct TickerBuilder<M:Clone,T>(TickerBuilderRef<M, T>);
 
 #[derive(Clone)]
 pub struct NodeBuilder<M:Clone,T> {
@@ -81,19 +79,17 @@ impl<M:Clone + 'static> SystemBuilder<M> {
         ptr.borrow_mut().on_build(Box::new(move |t| t.build()));
         ptr.borrow_mut().on_tick(Box::new(move |t, ctx| t.tick(ctx)));
 
-        let builder = TickerBuilder {
-            ptr: ptr,
-        };
+        let builder = TickerBuilder(ptr);
 
         builder
     }
 
     /// Create a non-ticking node
     /// 
-    pub fn node<T:'static>(&mut self, node: T) -> NodeBuilder<M,T> {
-        NodeBuilder {
-            ptr: self.ptr.borrow_mut().ticker(node, &self.ptr)
-        }
+    pub fn node<T:'static>(&mut self, node: T) -> TickerBuilder<M,T> {
+        TickerBuilder(
+            self.ptr.borrow_mut().ticker(node, &self.ptr)
+        )
     }
 
     /// Create a fiber from an external source. External code must send
@@ -145,12 +141,24 @@ impl<M:Clone + 'static> SystemBuilder<M> {
 // # TickerBuilder
 //
 
-impl<M:Clone + 'static,T:Ticker + 'static> TickerBuilder<M, T> {
+impl<M:Clone + 'static,T:'static> TickerBuilder<M, T> {
     /// Sets a debugging name for the ticker.
     pub fn name(&self, name: &str) -> &Self {
-        assert!(! self.ptr.borrow().is_built());
+        assert!(! self.0.borrow().is_built());
 
-        self.ptr.borrow_mut().name(name);
+        self.0.borrow_mut().name(name);
+
+        self
+    }
+
+    pub fn on_tick(&self, on_tick: impl Fn(&mut T, &mut Context) + 'static) -> &Self {
+        self.0.borrow_mut().on_tick(Box::new(on_tick));
+
+        self
+    }
+
+    pub fn on_build(&self, on_build: impl Fn(&mut T) + 'static) -> &Self {
+        self.0.borrow_mut().on_build(Box::new(on_build));
 
         self
     }
@@ -174,7 +182,7 @@ impl<M:Clone + 'static,T:Ticker + 'static> TickerBuilder<M, T> {
         &mut self,
         set_fiber: impl Fn(&mut T, Fiber<M>) + 'static
     ) -> Source<M> {
-        self.ptr.borrow_mut().source(Box::new(set_fiber))
+        self.0.borrow_mut().source(Box::new(set_fiber))
     }
 
     /// Creates a new fiber message sink to a callback to the ticker.
@@ -196,17 +204,17 @@ impl<M:Clone + 'static,T:Ticker + 'static> TickerBuilder<M, T> {
         &self,
         on_msg: impl Fn(&mut T, M) + 'static
     ) -> Sink<M> {
-        self.ptr.borrow_mut().sink(Box::new(on_msg))
+        self.0.borrow_mut().sink(Box::new(on_msg))
     }
 
     pub fn unwrap(self) -> TickerPtr<M, T> {
-        self.ptr.borrow_mut().take_ticker()
+        self.0.borrow_mut().take_ticker()
     }
 }
 
 impl<M:Clone,T:Ticker> Clone for TickerBuilder<M, T> {
     fn clone(&self) -> Self {
-        Self { ptr: self.ptr.clone() }
+        TickerBuilder(self.0.clone())
     }
 }
 
@@ -301,6 +309,9 @@ struct ExternalTicker {
 // # Inner implementations
 //
 
+//
+// # SystemBuilderInner
+//
 impl<M:Clone + 'static> SystemBuilderInner<M> {
 
     /// Create a new Ticker
@@ -379,14 +390,18 @@ impl<M:Clone, T:Ticker> fmt::Debug for TickerBuilder<M, T> {
         write!(
             f,
             "TickerBuilder:{}[{}]", 
-            self.ptr.borrow().id, 
-            match &self.ptr.borrow().name {
+            self.0.borrow().id, 
+            match &self.0.borrow().name {
                 Some(name) => name,
                 None => "",
             }
         )
     }
 }
+
+//
+// # TickerBuilderInner
+//
 
 
 impl<M:Clone +'static,T:'static> TickerBuilderInner<M,T> {

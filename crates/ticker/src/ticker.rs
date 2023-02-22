@@ -37,6 +37,10 @@ impl<M:Clone + 'static, T:'static> TickerPtr<M, T> {
     pub fn read<R>(&self, fun: impl FnOnce(&T) -> R) -> R {
         self.threads.lock().unwrap().read(&self.ticker, fun)
     }
+
+    pub fn write<R>(&self, fun: impl FnOnce(&mut T) -> R) -> R {
+        self.threads.lock().unwrap().write(&self.ticker, fun)
+    }
 }
 
 pub(crate) trait TickerCall<M> {
@@ -126,6 +130,10 @@ impl<M:Clone + 'static, T:'static> TickerOuter<M, T> {
 
     pub fn read<R>(&self, fun: impl FnOnce(&T)->R) -> R {
         fun(&self.ptr.borrow().ticker)
+    }
+
+    pub fn write<R>(&self, fun: impl FnOnce(&mut T)->R) -> R {
+        fun(&mut self.ptr.borrow_mut().ticker)
     }
 }
 

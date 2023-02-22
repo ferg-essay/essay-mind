@@ -34,6 +34,13 @@ impl<M:Clone + 'static> ThreadGroup<M> {
 
         self.threads[thread_id].ptr.read().unwrap().read(&ticker, fun)
     }
+
+    pub fn write<T:'static,R>(&self, ticker: &TickerOuter<M,T>, fun: impl FnOnce(&mut T)->R) -> R {
+        let ticker_id = ticker.id;
+        let thread_id = self.ticker_assignment.ticker_to_thread.lock().unwrap()[ticker_id];
+
+        self.threads[thread_id].ptr.write().unwrap().write(&ticker, fun)
+    }
 }
 
 pub struct Context {
@@ -307,6 +314,12 @@ impl<M:Clone+'static> ThreadInner<M> {
         assert!(self.tickers[ticker.id].is_some());
 
         ticker.read(fun)
+    }
+
+    fn write<T:'static,R>(&self, ticker: &TickerOuter<M,T>, fun: impl FnOnce(&mut T)->R) -> R {
+        assert!(self.tickers[ticker.id].is_some());
+
+        ticker.write(fun)
     }
 }
 
