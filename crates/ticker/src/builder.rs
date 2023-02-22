@@ -1,6 +1,6 @@
 use std::{cell::RefCell, rc::Rc, fmt, any::type_name, marker::PhantomData, sync::{Mutex, Arc}};
 
-use crate::{fiber::*, ticker::*, system::{TickerSystem, Context, ThreadGroup}};
+use crate::{fiber::*, ticker::*, system::{TickerSystem, Context, ThreadGroup, STEP_LIMIT}};
 
 type SystemBuilderRef<M> = Rc<RefCell<SystemBuilderInner<M>>>;
 type TickerBuilderRef<M,T> = Rc<RefCell<TickerBuilderInner<M,T>>>;
@@ -8,16 +8,12 @@ type TickerBuilderRef<M,T> = Rc<RefCell<TickerBuilderInner<M,T>>>;
 type SourceRef = Rc<RefCell<Box<SourceInner>>>;
 type SetFiber<M,T> = dyn Fn(&mut T, Fiber<M>);
 
-pub struct SystemBuilder<T:Clone> {
-    ptr: SystemBuilderRef<T>,
+
+pub struct SystemBuilder<M:Clone> {
+    ptr: SystemBuilderRef<M>,
 }
 
-pub struct TickerBuilder<M:Clone,T>(TickerBuilderRef<M, T>);
-
-#[derive(Clone)]
-pub struct NodeBuilder<M:Clone,T> {
-    ptr: TickerBuilderRef<M,T>,
-}
+pub struct TickerBuilder<M:Clone,T>(Rc<RefCell<TickerBuilderInner<M, T>>>);
 
 #[derive(Clone)]
 pub struct Source<M:Clone> {
@@ -63,7 +59,7 @@ impl<M:Clone + 'static> SystemBuilder<M> {
             ptr: Rc::new(RefCell::new(builder_inner)),
         };
 
-        let ticker = builder.ticker(ExternalTicker {});
+        let mut ticker = builder.ticker(ExternalTicker {});
         ticker.name("essay::external");
 
         builder.ptr.borrow_mut().external_ticker = Some(ticker);
@@ -71,10 +67,33 @@ impl<M:Clone + 'static> SystemBuilder<M> {
         builder
     }
 
-    /// Create a new Ticker
+    /// Create a ticker node.
+    /// 
+    /// To receive on_tick events,the ticker must register and on_tick
+    /// callback.
+    /// 
+    /// # Examples:
+    /// 
+    /// ```
+    /// let system = SystemBuilder::<i32>::new();
+    /// let ticker = system.node(MyNode {});
+    /// ticker.on_tick(move |n, ctx| n.tick());
+    /// ```
+    pub fn node<T:'static>(&mut self, node: T) -> TickerBuilder<M,T> {
+        TickerBuilder(self.ptr.borrow_mut().ticker(node))
+    }
+
+    /// Create a ticker node that implements the ``OnTick`` trait.
+    /// 
+    /// # Examples:
+    /// 
+    /// ```
+    /// let system = SystemBuilder::<i32>::new();
+    /// let ticker = system.ticker(MyTicker {});
+    /// ```
     /// 
     pub fn ticker<T:Ticker + 'static>(&mut self, ticker: T) -> TickerBuilder<M,T> {
-        let ptr = self.ptr.borrow_mut().ticker(ticker, &self.ptr);
+        let ptr = self.ptr.borrow_mut().ticker(ticker);
 
         ptr.borrow_mut().on_build(Box::new(move |t| t.build()));
         ptr.borrow_mut().on_tick(Box::new(move |t, ctx| t.tick(ctx)));
@@ -84,20 +103,12 @@ impl<M:Clone + 'static> SystemBuilder<M> {
         builder
     }
 
-    /// Create a non-ticking node
-    /// 
-    pub fn node<T:'static>(&mut self, node: T) -> TickerBuilder<M,T> {
-        TickerBuilder(
-            self.ptr.borrow_mut().ticker(node, &self.ptr)
-        )
-    }
-
     /// Create a fiber from an external source. External code must send
     /// messages to a ticker using an external fiber.
     /// 
     /// # Examples
     /// 
-    /// ```ignore
+    /// ```
     /// let system = SystemBuilder::<i32>::new();
     /// let external = system.external_fiber();
     /// 
@@ -114,7 +125,7 @@ impl<M:Clone + 'static> SystemBuilder<M> {
         let fiber_ref: Rc<RefCell<Option<Fiber<M>>>> = Rc::new(RefCell::new(None));
         let ptr = Rc::clone(&fiber_ref);
 
-        let source = ticker.source(move |t, fiber| {
+        let source = ticker.source(move |_, fiber| {
             ptr.borrow_mut().replace(fiber);
         });
 
@@ -124,16 +135,27 @@ impl<M:Clone + 'static> SystemBuilder<M> {
         }
     }
 
+    /// Builds the ticker system
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// let system = SystemBuilder::<i32>::new();
+    /// system.ticker(MyTicker {});
+    /// 
+    /// let system = system.build();
+    /// system.tick();
+    /// ```
+    pub fn build(&mut self) -> TickerSystem<M> {
+        // let builder = self.builder.borrow_mut();
+        self.ptr.borrow_mut().build()
+    }
+
     fn external_ticker(&self) -> TickerBuilder<M,ExternalTicker> {
         match &self.ptr.borrow().external_ticker {
             Some(ticker) => ticker.clone(),
             None => panic!("external source isn't available")
         }
-    }
-
-    pub fn build(&mut self) -> TickerSystem<M> {
-        // let builder = self.builder.borrow_mut();
-        self.ptr.borrow_mut().build()
     }
 }
 
@@ -143,16 +165,81 @@ impl<M:Clone + 'static> SystemBuilder<M> {
 
 impl<M:Clone + 'static,T:'static> TickerBuilder<M, T> {
     /// Sets a debugging name for the ticker.
-    pub fn name(&self, name: &str) -> &Self {
-        assert!(! self.0.borrow().is_built());
-
+    pub fn name(&mut self, name: &str) -> &Self {
         self.0.borrow_mut().name(name);
 
         self
     }
 
-    pub fn on_tick(&self, on_tick: impl Fn(&mut T, &mut Context) + 'static) -> &Self {
+    /// Registers an on_tick callback when the ticker ticks
+    ///
+    /// # Examples
+    /// 
+    /// ```
+    /// let system = SystemBuilder::new();
+    /// let ticker = system.node(MyStruct {});
+    /// ticker.on_tick(move |t, ctx| t.my_tick(ctx.ticks()));
+    /// ```
+    pub fn on_tick(&mut self, on_tick: impl Fn(&mut T, &mut Context) + 'static) -> &Self {
         self.0.borrow_mut().on_tick(Box::new(on_tick));
+
+        self
+    }
+
+    /// Call on_tick only every ``step`` system ticks.
+    /// 
+    /// step must be a power of 2 and less or equal to ``STEP_LIMIT`` (64).
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// let system = SystemBuilder::<i32>::new();
+    /// let ticker = system.node(MyNode {});
+    /// ticker.on_tick(move |t, ctx| t.tick());
+    /// 
+    /// ticker.step(4);
+    /// ```
+    /// 
+    /// # Panics
+    /// * step not a power of 2
+    /// * step greater than ``STEP_LIMIT`` (64)
+    /// 
+    /// 
+    /// 
+    pub fn step(&mut self, step: usize) -> &Self {
+        self.0.borrow_mut().step(step);
+
+        self
+    }
+
+    /// Call on_tick on an offset within the ticker's steps.
+    /// 
+    /// Offset must fit in the ticker's step.
+    /// 
+    /// Steps and offsets can coordinate ticker pipelines to minimize
+    /// contention for shared resources.
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// let system = SystemBuilder::<i32>::new();
+    /// let ticker = system.node(MyNode {});
+    /// ticker.on_tick(move |t, ctx| t.tick());
+    /// 
+    /// ticker.step(4).offset(1);
+    /// ```
+    /// 
+    /// # Panics
+    /// * offset doesn't fit in the ticker's step
+    /// 
+    pub fn offset(&mut self, offset: usize) -> &Self {
+        self.0.borrow_mut().offset(offset);
+
+        self
+    }
+
+    pub fn is_lazy(&mut self) -> &Self {
+        self.0.borrow_mut().is_lazy();
 
         self
     }
@@ -163,18 +250,25 @@ impl<M:Clone + 'static,T:'static> TickerBuilder<M, T> {
         self
     }
 
-    /// Creates a new fiber source from this `TickerBuilder`.
+    /// Creates a new fiber ``Source`` from this `TickerBuilder`.
+    /// 
+    /// Sources are connected to sinks to create a ``Fiber.``
+    /// When the ``Fiber`` is built, the ``set_fiber`` callback assigns it
+    /// to the application's ticker node.
+    /// 
+    /// The ``Fiber`` must only be used within the ticker's active context
+    /// because it assumes it's called in the ticker's thread.
     /// 
     /// # Examples
     /// 
     /// ```
     /// let system = SystemBuilder::new();
     /// 
-    /// let src_ticker = system.ticker(MySrc{});
-    /// let source = src_ticker.source<M>(move |t, fiber| t.fiber = Some(fiber));
+    /// let src_ticker = system.node(MySrc{});
+    /// let source = src_ticker.source<M>(move |src, fiber| src.fiber = Some(fiber));
     /// 
-    /// let dst_ticker = system.ticker(MyDst{});
-    /// let sink = dst_ticker.sink<M>(move |t, msg| t.call(msg));
+    /// let dst_ticker = system.node(MyDst{});
+    /// let sink = dst_ticker.sink<M>(move |dst, msg| dst.call(msg));
     /// source.to(sink);
     /// 
     /// ```
@@ -207,6 +301,17 @@ impl<M:Clone + 'static,T:'static> TickerBuilder<M, T> {
         self.0.borrow_mut().sink(Box::new(on_msg))
     }
 
+    /// Returns a reference to the application ticker node after building.
+    /// 
+    /// The reference can read and write to the ticker node between
+    /// ticks.
+    /// 
+    /// # Panics
+    /// 
+    /// * The ticker system must be built to assign the ticker.
+    /// * The ticker must not already be taken.
+    /// 
+
     pub fn unwrap(self) -> TickerPtr<M, T> {
         self.0.borrow_mut().take_ticker()
     }
@@ -219,7 +324,7 @@ impl<M:Clone,T:Ticker> Clone for TickerBuilder<M, T> {
 }
 
 //
-// FiberBuilder
+// Fiber Sources and Sinks.
 //
 
 impl<M:Clone + 'static> Sink<M> {
@@ -244,7 +349,7 @@ impl<M:Clone> ExternalSource<M> {
     }
 }
 //
-// # inner structures
+// # SystemBuilderInner
 //
 
 pub struct SystemBuilderInner<M:Clone> {
@@ -256,7 +361,11 @@ pub struct SystemBuilderInner<M:Clone> {
     // fibers: Vec<Rc<RefCell<Box<SourceInner>>>>,
 }
 
-struct TickerBuilderInner<M:Clone,T> {
+//
+// # TickerBuilderInner
+//
+
+pub(crate) struct TickerBuilderInner<M:Clone,T> {
     id: usize,
 
     name: Option<String>,
@@ -264,7 +373,11 @@ struct TickerBuilderInner<M:Clone,T> {
     ticker: Option<Box<T>>,
 
     on_build: Option<Box<OnBuild<T>>>,
+
     on_tick: Option<Box<OnTickFn<T>>>,
+    pub(crate) step: usize,
+    pub(crate) offset: usize,
+    pub(crate) is_lazy: bool,
 
     sources: Vec<SourceRef>,
     set_fibers: Vec<Box<SetFiber<M,T>>>,
@@ -274,6 +387,10 @@ struct TickerBuilderInner<M:Clone,T> {
     ticker_outer: Option<TickerOuter<M,T>>,
     ticker_ptr: Option<TickerPtr<M,T>>,
 }
+
+//
+// # SourceInner
+//
 
 struct SourceInner {
     name: Option<String>,
@@ -294,9 +411,7 @@ struct SinkInner {
     on_fiber: usize,
 }
 
-struct BuilderHolder<M:Clone,T> {
-    ptr: TickerBuilderRef<M,T>,
-}
+struct BuilderHolder<M:Clone,T>(TickerBuilderRef<M,T>);
 
 trait TickerOnBuild<M> {
     fn build(&self) -> Box<dyn TickerCall<M>>;
@@ -319,7 +434,6 @@ impl<M:Clone + 'static> SystemBuilderInner<M> {
      fn ticker<T:'static>(
         &mut self, 
         ticker: T,
-        system_ref: &SystemBuilderRef<M>,
     ) -> TickerBuilderRef<M,T> {
         assert!(! self.is_built);
 
@@ -331,8 +445,12 @@ impl<M:Clone + 'static> SystemBuilderInner<M> {
             ticker: Some(ticker),
             name: Some(name),
             id: id,
-            on_tick: None,
             on_build: None,
+
+            on_tick: None,
+            step: 0,
+            offset: 0,
+            is_lazy: false,
 
             sources: Vec::new(),
             set_fibers: Vec::new(),
@@ -345,9 +463,7 @@ impl<M:Clone + 'static> SystemBuilderInner<M> {
 
         let ticker_ref = Rc::new(RefCell::new(ticker_inner));
 
-        self.tickers.push(Box::new(BuilderHolder {
-            ptr: Rc::clone(&ticker_ref)
-        }));
+        self.tickers.push(Box::new(BuilderHolder(Rc::clone(&ticker_ref))));
 
         ticker_ref
     }
@@ -377,11 +493,11 @@ impl<M:Clone + 'static> SystemBuilderInner<M> {
 
 impl<M:Clone+'static,T:'static> TickerOnBuild<M> for BuilderHolder<M, T> {
     fn build(&self) -> Box<dyn TickerCall<M>> {
-        self.ptr.borrow_mut().build()
+        self.0.borrow_mut().build()
     }
 
     fn set_ptr(&mut self, group: Arc<Mutex<ThreadGroup<M>>>) {
-        self.ptr.borrow_mut().set_ptr(group);
+        self.0.borrow_mut().set_ptr(group);
     }
 }
 
@@ -404,7 +520,9 @@ impl<M:Clone, T:Ticker> fmt::Debug for TickerBuilder<M, T> {
 //
 
 
-impl<M:Clone +'static,T:'static> TickerBuilderInner<M,T> {
+impl<M,T:'static> TickerBuilderInner<M,T>
+    where M:Clone + 'static
+{
     fn name(&mut self, name: &str) {
         self.name = Some(String::from(name));
     }
@@ -419,6 +537,33 @@ impl<M:Clone +'static,T:'static> TickerBuilderInner<M,T> {
         assert!(! self.is_built());
 
         self.on_tick = Some(on_tick);
+        self.step = 1;
+    }
+
+    fn step(&mut self, step: usize) {
+        assert!(! self.is_built());
+        assert!(! self.on_tick.is_none(), "step requires an on_tick callback");
+        assert!(step.count_ones() == 1, "step must be a power of 2.");
+        assert!(step <= STEP_LIMIT, "step must be less than STEP_LIMIT.");
+        assert!(! self.is_lazy, "ticker must not have both step and is_lazy.");
+
+        self.step = step;
+    }
+
+    fn offset(&mut self, offset: usize) {
+        assert!(! self.is_built());
+        assert!(offset < self.step, "Offset must fit in the ticker's step.");
+
+        self.offset = offset;
+    }
+
+    fn is_lazy(&mut self) {
+        assert!(! self.is_built());
+        assert!(! self.on_tick.is_none(), "is_lazy requires an on_tick callback.");
+        assert!(self.step == 1, "is_lazy must not be used with step.");
+
+        self.is_lazy = true;
+        self.step = 0;
     }
 
     pub fn source(
@@ -542,7 +687,8 @@ impl<M:Clone +'static,T:'static> TickerBuilderInner<M,T> {
             self.on_tick.take(),
             self.on_build.take(),
             fibers,
-            on_fibers
+            on_fibers,
+            self
         );
 
         self.ticker_outer = Some(Clone::clone(&outer));

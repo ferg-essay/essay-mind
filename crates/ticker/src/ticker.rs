@@ -2,6 +2,7 @@
 
 use crate::fiber::{ThreadChannels, TickerFibers};
 use crate::system::{TickerAssignment, Context, ThreadGroup};
+use crate::builder::{TickerBuilderInner};
 
 //use log::{log};
 
@@ -48,6 +49,10 @@ pub(crate) trait TickerCall<M> {
 
     fn tick(&mut self, ctx: &mut Context);
 
+    fn step(&self)->usize;
+    fn offset(&self)->usize;
+    fn is_lazy(&self)->bool;
+
     fn on_build(&mut self);
 
     fn send(&mut self, on_fiber: usize, args: M);
@@ -65,6 +70,10 @@ pub(crate) trait TickerCall<M> {
 pub struct TickerOuter<M, T> {
     pub id: usize,
     pub name: String,
+
+    step: usize,
+    offset: usize,
+    is_lazy: bool,
 
     ptr: Rc<RefCell<TickerInner<M, T>>>,
 }
@@ -101,7 +110,8 @@ impl<M:Clone + 'static, T:'static> TickerOuter<M, T> {
         on_tick: Option<Box<OnTickFn<T>>>,
         on_build: Option<Box<OnBuild<T>>>,
         fibers: TickerFibers<M,T>,
-        on_fiber: Vec<Box<OnFiber<M,T>>>
+        on_fiber: Vec<Box<OnFiber<M,T>>>,
+        builder: &mut TickerBuilderInner<M, T>,
     ) -> TickerOuter<M, T> {
         let inner = TickerInner {
             id,
@@ -121,6 +131,10 @@ impl<M:Clone + 'static, T:'static> TickerOuter<M, T> {
             id: id,
             name: name,
             ptr: ptr,
+
+            step: builder.step,
+            offset: builder.offset,
+            is_lazy: builder.is_lazy,
         }
     }       
 
@@ -178,6 +192,18 @@ impl<M:Clone+'static,T:'static> TickerCall<M> for TickerOuter<M,T> {
         self.ptr.borrow_mut().tick(ctx);
     }
 
+    fn step(&self) -> usize {
+        self.step
+    }
+
+    fn offset(&self) -> usize {
+        self.offset
+    }
+
+    fn is_lazy(&self) -> bool {
+        self.is_lazy
+    }
+
     fn on_build(&mut self) {
         self.ptr.borrow_mut().on_build();
     }
@@ -199,7 +225,9 @@ impl<M:Clone+'static,T:'static> TickerCall<M> for TickerOuter<M,T> {
             id: self.id,
             name: self.name.clone(),
             ptr: Rc::clone(&self.ptr),
-        })
+
+            ..*self
+         })
     }
 }
 
@@ -209,6 +237,8 @@ impl<M,T> Clone for TickerOuter<M, T> {
             id: self.id.clone(), 
             name: self.name.clone(), 
             ptr: Rc::clone(&self.ptr),
+
+            ..*self
          }
     }
 }

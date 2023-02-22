@@ -8,6 +8,8 @@ use crate::{ticker::{TickerCall, TickerRef, TickerOuter}, fiber::{SystemChannels
 
 type ThreadRef<T> = Arc<RwLock<ThreadInner<T>>>;
 
+pub const STEP_LIMIT: usize = 64;
+
 thread_local!(static TICKS: RefCell<u64> = RefCell::new(0));
 
 pub struct TickerSystem<M> {
@@ -32,14 +34,14 @@ impl<M:Clone + 'static> ThreadGroup<M> {
         let ticker_id = ticker.id;
         let thread_id = self.ticker_assignment.ticker_to_thread.lock().unwrap()[ticker_id];
 
-        self.threads[thread_id].ptr.read().unwrap().read(&ticker, fun)
+        self.threads[thread_id].0.read().unwrap().read(&ticker, fun)
     }
 
     pub fn write<T:'static,R>(&self, ticker: &TickerOuter<M,T>, fun: impl FnOnce(&mut T)->R) -> R {
         let ticker_id = ticker.id;
         let thread_id = self.ticker_assignment.ticker_to_thread.lock().unwrap()[ticker_id];
 
-        self.threads[thread_id].ptr.write().unwrap().write(&ticker, fun)
+        self.threads[thread_id].0.write().unwrap().write(&ticker, fun)
     }
 }
 
@@ -47,9 +49,8 @@ pub struct Context {
     ticks: u64,
 }
 
-struct TickerThread<T> {
-    ptr: ThreadRef<T>,
-}
+#[derive(Clone)]
+struct TickerThread<T>(Arc<RwLock<ThreadInner<T>>>);
 
 pub struct ThreadInner<M> {
     id: usize,
@@ -64,6 +65,7 @@ pub struct ThreadInner<M> {
     context: Context,
 
     on_ticks: Vec<usize>,
+    step_ticks: [Vec<usize>; STEP_LIMIT],
 }
 
 pub(crate) struct TickerAssignment {
@@ -166,39 +168,59 @@ impl<M:Clone + 'static> TickerSystem<M> {
     }
 }
 
+//
+// # Context
+//
+
+impl Context {
+    pub fn ticks(&self) -> u64 {
+        self.ticks
+    }
+}
+
+impl fmt::Debug for Context {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Context").field("ticks", &self.ticks).finish()
+    }
+}
+
+//
+// # TickerThread
+//
+
 impl<M:Clone + 'static> TickerThread<M> {
     fn assign_ticker(
         &mut self, 
         ticker: TickerRef<M>
     ) {
-        self.ptr.write().unwrap().assign_ticker(ticker);
+        self.0.write().unwrap().assign_ticker(ticker);
     }
 
     fn fill_channels(
         &mut self, 
         system: &SystemChannels<M>,
     ) {
-        self.ptr.write().unwrap().channels.fill_thread(system);
+        self.0.write().unwrap().channels.fill_thread(system);
     }
 
     fn update_tickers(
         &mut self, 
     ) {
-        self.ptr.write().unwrap().update_tickers();
+        self.0.write().unwrap().update_tickers();
     }
 
     fn tick(&mut self, ticks: u64) {
-        self.ptr.write().unwrap().tick(ticks);
+        self.0.write().unwrap().tick(ticks);
     }
 
     fn on_build(&mut self) {
-        self.ptr.write().unwrap().on_build();
-    }
-
-    fn borrow_ticker(&mut self, index: usize) {
-        let guard = self.ptr.write().unwrap();
+        self.0.write().unwrap().on_build();
     }
 }
+
+//
+// # ThreadInner
+//
 
 impl<M:Clone+'static> ThreadInner<M> {
     fn new(
@@ -225,7 +247,12 @@ impl<M:Clone+'static> ThreadInner<M> {
 
             tickers: tickers,
             ticker_assignment: system.thread_group.lock().unwrap().ticker_assignment.clone(),
+
             on_ticks: Vec::new(),
+            step_ticks: (0..STEP_LIMIT).map(|_| Vec::new())
+                .collect::<Vec<Vec<usize>>>()
+                .try_into()
+                .unwrap(),
 
             channels: channels,
 
@@ -234,22 +261,26 @@ impl<M:Clone+'static> ThreadInner<M> {
 
         let thread_ref = Arc::new(RwLock::new(thread));
 
-        let ticker = TickerThread { ptr: thread_ref.clone() };
+        let ticker = TickerThread(thread_ref);
 
-        system.thread_group.lock().unwrap().threads.push(ticker);
+        system.thread_group.lock().unwrap().threads.push(ticker.clone());
 
-        TickerThread { ptr: thread_ref.clone() }
+        ticker
     }
 
-    
-    fn is_ticker_owned(&self, id: usize) -> bool {
-        self.tickers[id].is_some()
-    }
-    
     fn assign_ticker(&mut self, ticker: TickerRef<M>) {
         let ticker_id = ticker.id();
 
-        self.on_ticks.push(ticker_id);
+        let offset = ticker.offset();
+        let step = ticker.step();
+
+        if step == 1 {
+            self.on_ticks.push(ticker_id);
+        } else if step > 1 {
+            for i in 0..STEP_LIMIT / step {
+                self.step_ticks[i * step + offset].push(ticker_id);
+            }
+        }
 
         assert!(self.tickers[ticker_id].is_none());
         self.tickers[ticker_id] = Some(ticker);
@@ -269,26 +300,48 @@ impl<M:Clone+'static> ThreadInner<M> {
     }
  
     fn tick(&mut self, ticks: u64) {
+        self.context.ticks += 1;
+
         self.set_ticks(ticks);
 
         self.receive();
 
-        self.on_ticks(ticks);
+        self.on_ticks();
+
+        self.on_step_ticks();
     }
 
-    fn on_ticks(&mut self, ticks: u64) {
-        self.context.ticks += 1;
+    fn on_ticks(&mut self) {
+        let ctx = &mut self.context;
+
         for ticker_id in &self.on_ticks {
-            match &mut self.tickers[*ticker_id] {
-                Some(ticker) => {
-                    (*ticker).tick(&mut self.context);
-                }
-                None => panic!(
-                    "{} on_tick to ticker #{} but not assigned",
-                    self,
-                    ticker_id
-                )
+            Self::eval_on_tick(&mut self.tickers[*ticker_id], ctx);
+        }
+    }
+
+    fn on_step_ticks(&mut self) {
+        let ctx = &mut self.context;
+
+        let offset = (ctx.ticks % STEP_LIMIT as u64) as usize;
+
+        for ticker_id in &self.step_ticks[offset] {
+            Self::eval_on_tick(&mut self.tickers[*ticker_id], ctx);
+        }
+    }
+
+    fn eval_on_tick(
+        // &self, 
+        ticker: &mut Option<Box<dyn TickerCall<M>>>,
+        ctx: &mut Context,
+    ) {
+        match ticker {
+            Some(ticker) => {
+                (*ticker).tick(ctx);
             }
+            None => panic!(
+                "{:?} on_tick to ticker not assigned to this thread",
+                ctx,
+            )
         }
     }
 
@@ -372,12 +425,6 @@ impl Clone for TickerAssignment {
         Self {
             ticker_to_thread: Arc::clone(&self.ticker_to_thread),
         }
-    }
-}
-
-impl Context {
-    pub fn ticks(&self) -> u64 {
-        self.ticks
     }
 }
 
