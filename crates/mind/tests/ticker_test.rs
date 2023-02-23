@@ -8,8 +8,8 @@ type TestArgs = (Gram, Topos);
 #[test]
 fn basic() {
     let mut system = SystemBuilder::<TestArgs>::new();
-    let ticker = system.ticker(
-        TestTicker { val: String::new()}
+    system.ticker(
+        TestTicker { }
     );
     /*
     let test = ticker.ptr();
@@ -32,19 +32,9 @@ fn basic() {
 }
 
 struct TestTicker {
-    val: String,
 }
 
 impl TestTicker {
-    fn call(&mut self, id: usize, args: TestArgs) {
-        self.val = format!("id:{} call({:?})", id, args);
-    }
-
-    fn take(&mut self) -> String {
-        let v = self.val.clone();
-        self.val = String::new();
-        v
-    }
 }
 
 impl Ticker for TestTicker {

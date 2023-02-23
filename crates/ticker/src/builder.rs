@@ -2,9 +2,7 @@ use std::{cell::RefCell, rc::Rc, fmt, any::type_name, marker::PhantomData, sync:
 
 use crate::{fiber::*, ticker::*, system::{TickerSystem, Context, ThreadGroup, STEP_LIMIT}};
 
-type SystemBuilderRef<M> = Rc<RefCell<SystemBuilderInner<M>>>;
 type TickerBuilderRef<M,T> = Rc<RefCell<TickerBuilderInner<M,T>>>;
-//type FiberBuilderRef<M> = Rc<RefCell<SourceInner>>;
 type SourceRef = Rc<RefCell<Box<SourceInner>>>;
 type SetFiber<M,T> = dyn Fn(&mut T, Fiber<M>);
 
@@ -295,6 +293,7 @@ impl<M:Clone + 'static,T:'static> TickerBuilder<M, T> {
         &mut self,
         set_fiber: impl Fn(&mut T, Fiber<M>) + 'static
     ) -> Source<M> {
+        //self.0.borrow_mut().source(Box::new(set_fiber))
         self.0.borrow_mut().source(Box::new(set_fiber))
     }
 
@@ -406,7 +405,7 @@ pub(crate) struct TickerBuilderInner<M:Clone,T> {
 
     on_fibers: Vec<Box<OnFiber<M,T>>>,
 
-    ticker_outer: Option<TickerOuter<M,T>>,
+    ticker_access: Option<TickerAccess<M,T>>,
     ticker_ptr: Option<TickerPtr<M,T>>,
 }
 
@@ -415,9 +414,9 @@ pub(crate) struct TickerBuilderInner<M:Clone,T> {
 //
 
 struct SourceInner {
-    name: Option<String>,
+    // name: Option<String>,
 
-    set_fiber: usize,
+    // set_fiber: usize,
 
     ticker: usize,
 
@@ -425,7 +424,7 @@ struct SourceInner {
 }
 
 struct SinkInner {
-    name: Option<String>,
+    // name: Option<String>,
 
 //    to_ticker: Rc<RefCell<ToTickerInner<M>>>,
     ticker: usize,
@@ -499,7 +498,7 @@ impl<M:Clone + 'static> SystemBuilderInner<M> {
 
             on_fibers: Vec::new(),
 
-            ticker_outer: None,
+            ticker_access: None,
             ticker_ptr: None,
         };
 
@@ -624,16 +623,17 @@ impl<M,T:'static> TickerBuilderInner<M,T>
     ) -> Source<M> {
         assert!(! self.is_built());
 
-        let set_fiber_id = self.set_fiber(Box::new(set_fiber));
+        //let set_fiber_id = self.set_fiber(Box::new(set_fiber));
+        self.set_fiber(Box::new(set_fiber));
 
-        let name = match &self.name {
-            Some(name) => Some(String::from(name)),
-            None => None,
-        };
+        //let name = match &self.name {
+        //    Some(name) => Some(String::from(name)),
+        //    None => None,
+        //};
 
         let inner = SourceInner {
-            name: name,
-            set_fiber: set_fiber_id,
+            //name: name,
+            //set_fiber: set_fiber_id,
             ticker: self.id,
             
             to: Vec::new(),
@@ -658,13 +658,13 @@ impl<M,T:'static> TickerBuilderInner<M,T>
 
         let on_fiber_id = self.on_fiber(on_msg);
 
-        let name = match &self.name {
-            Some(name) => Some(String::from(name)),
-            None => None,
-        };
+        //let name = match &self.name {
+        //    Some(name) => Some(String::from(name)),
+        //    None => None,
+        //};
 
         let inner = SinkInner {
-            name: name,
+            //name: name,
             on_fiber: on_fiber_id,
             ticker: self.id,
         };
@@ -703,7 +703,7 @@ impl<M,T:'static> TickerBuilderInner<M,T>
 
     fn set_ptr(&mut self, threads: Arc<Mutex<ThreadGroup<M>>>) {
         self.ticker_ptr = Some(TickerPtr { 
-            ticker: self.ticker_outer.take().expect("ticker outer unassigned"),
+            ticker: self.ticker_access.take().expect("ticker outer unassigned"),
             threads,
         });
     }
@@ -722,7 +722,7 @@ impl<M,T:'static> TickerBuilderInner<M,T>
 
         let mut ticker = self.ticker.take().expect("ticker already built");
 
-        let mut fibers = TickerFibers::<M,T>::new();
+        let mut fibers = TickerFibers::<M>::new();
 
         for (source, set_fiber) in self.sources.drain(..).zip(&self.set_fibers) {
             let fiber = source.borrow_mut().build(&mut fibers);
@@ -732,20 +732,24 @@ impl<M,T:'static> TickerBuilderInner<M,T>
 
         let on_fibers = self.on_fibers.drain(..).collect();
         
-        let outer = TickerOuter::new(
-            self.id, 
-            name, 
+        let inner_ptr = TickerInner::new(
+            self.id,
+            name.clone(),
             ticker, 
             self.on_tick.take(),
             self.on_build.take(),
             fibers,
             on_fibers,
-            self
         );
 
-        self.ticker_outer = Some(Clone::clone(&outer));
+        self.ticker_access = Some(TickerAccess::new(self.id, Rc::clone(&inner_ptr)));
 
-        outer.to_box()
+        TickerOuter::new(
+            self.id, 
+            name, 
+            inner_ptr,
+            self
+        )
     }
 }
 
@@ -754,7 +758,7 @@ impl SourceInner {
         self.to.push(Rc::clone(&sink));
     }
 
-    fn build<M:Clone + 'static,T>(&mut self, fibers: &mut TickerFibers<M,T>) -> Fiber<M> {
+    fn build<M:Clone + 'static>(&mut self, fibers: &mut TickerFibers<M>) -> Fiber<M> {
         let mut targets = Vec::<(usize, usize, usize)>::new();
 
         for to in self.to.drain(..) {

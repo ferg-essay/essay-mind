@@ -267,6 +267,48 @@ fn theta_phase_0_9999() {
     );
 }
 
+#[test]
+fn is_lazy() {
+    let mut system = SystemBuilder::<String>::new();
+
+    system.frequency(16.);
+
+    let external_source = system.external_source();
+
+    let mut ticker = system.node(Node::new("a"));
+    ticker.on_tick(move |t, ctx| t.my_tick(ctx.ticks()));
+    ticker.is_lazy();
+
+    let sink = ticker.sink(|t, m| t.on_fiber(m));
+    external_source.source().to(&sink);
+
+    let mut system = system.build();
+    let ticker = ticker.unwrap();
+    let fiber = external_source.fiber();
+
+    for _ in 1..=32 {
+        system.tick();
+    }
+
+    assert_eq!(ticker.write(|t| t.take()), "");
+
+    fiber.send(String::from("message"));
+
+    for _ in 0..=32 {
+        system.tick();
+    }
+
+    assert_eq!(ticker.write(|t| t.take()), "a(message), a(33)");
+    system.tick();
+    assert_eq!(ticker.write(|t| t.take()), "");
+    fiber.send(String::from("message2"));
+    assert_eq!(ticker.write(|t| t.take()), "");
+    system.tick();
+    assert_eq!(ticker.write(|t| t.take()), "a(message2), a(67)");
+    system.tick();
+    assert_eq!(ticker.write(|t| t.take()), "");
+}
+
 struct Node {
     name: String,
     value: Vec<String>,
@@ -278,6 +320,10 @@ impl Node {
             name: String::from(name),
             value: Vec::new(),
         }
+    }
+
+    fn on_fiber(&mut self, msg: String) {
+        self.value.push(format!("{}({})", self.name, msg));
     }
 
     fn my_tick(&mut self, ticks: u64) {

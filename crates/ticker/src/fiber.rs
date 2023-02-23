@@ -4,7 +4,7 @@ use std::{rc::Rc, cell::{RefCell}, sync::mpsc};
 
 //use log::info;
 
-use crate::{ticker::{TickerCall, TickerRef}, system::{TickerAssignment}, OnFiber};
+use crate::{ticker::{TickerRef}, system::{TickerAssignment}};
 
 //pub type FiberRef<M> = Rc<RefCell<Option<Box<dyn FiberInner<M>>>>>;
 pub(crate) type FiberSourceRef<M> = Rc<RefCell<Box<dyn FiberInner<M>>>>;
@@ -24,24 +24,7 @@ pub struct Fiber<M:Clone>
 //
 // Implementation
 //
-/*
-struct FiberHolder<M> {
-    opt: Option<Box<dyn FiberInner<M>>>,
-}
 
-impl<M:Clone> FiberHolder<M> {
-    fn send(&self, args: M) {
-        match &self.opt {
-            Some(fiber) => fiber.send(args),
-            None => panic!("mismatched holder")
-        }
-    }
-
-    fn replace(&mut self, fiber: Box<dyn FiberInner<M>>) {
-        self.opt.replace(fiber);
-    }
-}
- */
 
 impl<M:'static + Clone> Fiber<M> {
     /// send a message to fiber targets, on_fiber closures of target tickers.
@@ -68,10 +51,10 @@ struct Message<M> {
     args: M,
 }
 
-pub(crate) struct TickerFibers<M, T> {
+pub(crate) struct TickerFibers<M> {
     sources: Vec<FiberSourceRef<M>>,
     
-    pub on_fiber: Vec<Box<OnFiber<M,T>>>,
+    // pub on_fiber: Vec<Box<OnFiber<M,T>>>,
 }
 
 pub(crate) trait FiberInner<M> {
@@ -90,7 +73,6 @@ struct FiberZero {
 }
 
 struct FiberOne<M> {
-    source: usize,
     sink: usize,
 
     to: ChannelRef<M>,
@@ -106,11 +88,11 @@ pub struct FiberMany<M> {
 struct FiberPanic {
 
 }
-impl<M:Clone + 'static,T> TickerFibers<M, T> {
-    pub(crate) fn new() -> TickerFibers<M,T> {
+impl<M:Clone + 'static> TickerFibers<M> {
+    pub(crate) fn new() -> TickerFibers<M> {
         Self {
             sources: Vec::new(),
-            on_fiber: Vec::new(),
+            // on_fiber: Vec::new(),
         }
     }
 
@@ -146,51 +128,12 @@ impl<M:Clone + 'static,T> TickerFibers<M, T> {
             source.borrow_mut().build_channel(tickers, channels)
         }
     }
-    
-    /*
-    fn update_sources(&self, thread: &ThreadInner<M>) {
-        for source in &self.sources {
-            //let mut to_ticker_inner: &ToTickerInner<T> = &
-            source.borrow_mut().build_channel(thread);
-        }
-
-        //self.from_ticker_ids()
-    }
-     */
-
-    /*
-    fn from_ticker_ids(&self) -> Vec<usize> {
-        let mut ids: Vec<usize> = Vec::new();
-
-        for from in &self.sources {
-            let from_id = from.from_ticker;
-
-            if from_id != from.to_ticker && ! ids.contains(&from_id) {
-                ids.push(from_id);
-            }
-        }
-
-        ids
-    }
-     */
 }
-
-/*
-impl<M:Clone> Clone for Fiber<M> {
-    fn clone(&self) -> Self {
-        Self {
-            //id: self.id,
-            //name: self.name.clone(),
-            ptr: Rc::clone(&self.ptr),
-        }
-    }
-}
- */
 
 impl<M> FiberOne<M> {
     fn new(to: (usize, usize, usize)) -> Self {
         FiberOne {
-            source: to.0,
+            // source: to.0,
             sink: to.1,
             on_fiber: to.2,
             to: PanicChannel::new("unconfigured fiber")
@@ -298,7 +241,7 @@ impl<T> Message<T> {
 pub(crate) trait Channel<M> {
     fn send(&mut self, to_ticker: usize, on_fiber: usize, args: M);
 
-    fn update_tickers(&mut self, tickers: &Vec<Option<TickerRef<M>>>) {}
+    fn update_tickers(&mut self, _tickers: &Vec<TickerRef<M>>) {}
 }
 
 pub(crate) struct SystemChannels<M> {
@@ -370,7 +313,7 @@ impl<M:'static> ThreadChannels<M> {
         }
     }
 
-    pub(crate) fn update_tickers(&mut self, tickers: &Vec<Option<TickerRef<M>>>) {
+    pub(crate) fn update_tickers(&mut self, tickers: &Vec<TickerRef<M>>) {
         for channel in &mut self.channels {
             channel.borrow_mut().update_tickers(tickers);
         }
@@ -382,17 +325,9 @@ impl<M:'static> ThreadChannels<M> {
         Rc::clone(&self.channels[sink])
     }
 
-    pub(crate) fn receive(&self, tickers: &mut Vec<Option<TickerRef<M>>>) {
+    pub(crate) fn receive(&self, tickers: &mut Vec<TickerRef<M>>) {
         for msg in self.receiver.try_iter() {
-            match &mut tickers[msg.to_ticker] {
-                Some(ticker) => {
-                    ticker.send(msg.on_fiber, msg.args);
-                },
-                None => {
-                    panic!("In thread #{} Attempt to call ticker {}",
-                        self.id, msg.to_ticker);
-                }
-            }
+            tickers[msg.to_ticker].send(msg.on_fiber, msg.args);
         }
     }
 }
@@ -404,9 +339,9 @@ struct SenderChannel<M> {
 
 struct OwnChannel<M> {
     //name: String,
-    id: usize,
+    //id: usize,
 
-    to: Vec<Option<TickerRef<M>>>,
+    to: Vec<TickerRef<M>>,
 }
 
 pub struct PanicChannel {
@@ -414,7 +349,7 @@ pub struct PanicChannel {
 }
 
 impl<T:'static> SenderChannel<T> {
-    fn new(source: usize, sink: usize, to: mpsc::Sender<Message<T>>) -> ChannelRef<T> {
+    fn new(_source: usize, sink: usize, to: mpsc::Sender<Message<T>>) -> ChannelRef<T> {
         assert!(sink != 0);
 
         // _name: format!("{}->{}", source, sink),
@@ -432,10 +367,10 @@ impl<T> Channel<T> for SenderChannel<T> {
 }
 
 impl<M:'static> OwnChannel<M> {
-    fn new(id: usize) -> ChannelRef<M> {
+    fn new(_id: usize) -> ChannelRef<M> {
         Rc::new(RefCell::new(Box::new(Self {
             // name: format!("{}:{}", id, name),
-            id: id,
+            // id: id,
             to: Vec::new(),
         })))
     }
@@ -443,30 +378,14 @@ impl<M:'static> OwnChannel<M> {
 
 impl<M:'static> Channel<M> for OwnChannel<M> {
     fn send(&mut self, to_ticker: usize, on_fiber: usize, args: M) {
-        match &mut self.to[to_ticker] {
-            Some(ticker) => {
-                ticker.send(on_fiber, args);
-            }
-            _ => {
-                panic!(
-                    "Ticker #{} called on Thread {}, which doesn't control the ticker.", 
-                    to_ticker,
-                    self.id
-                )
-            }
-        }
+        self.to[to_ticker].send(on_fiber, args);
     }
 
-    fn update_tickers(&mut self, tickers: &Vec<Option<TickerRef<M>>>) {
+    fn update_tickers(&mut self, tickers: &Vec<TickerRef<M>>) {
         self.to.drain(..);
 
         for ticker in tickers {
-            match ticker {
-                Some(ticker) => {
-                    self.to.push(Some((*ticker).clone()))
-                }
-                None => { self.to.push(None); }
-            }
+            self.to.push((*ticker).clone());
         }
     }
 }

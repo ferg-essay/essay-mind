@@ -2,29 +2,15 @@
 /// 
 /// 
 
-use std::{sync::{Arc, RwLock, Mutex, RwLockWriteGuard}, fmt, cell::{RefCell, RefMut, Ref}, ops::Deref, rc::Rc, borrow::BorrowMut};
+use std::{sync::{Arc, RwLock, Mutex}, fmt, cell::{RefCell}, rc::Rc};
 
-use crate::{ticker::{TickerCall, TickerRef, TickerOuter}, fiber::{SystemChannels, ThreadChannels}, SystemBuilder, builder::SystemBuilderInner};
+use crate::{ticker::{TickerNone, TickerAccess, TickerRef}, fiber::{SystemChannels, ThreadChannels}, builder::SystemBuilderInner};
 
-type ThreadRef<T> = Arc<RwLock<ThreadInner<T>>>;
+//type ThreadRef<T> = Arc<RwLock<ThreadInner<T>>>;
 
 pub const STEP_LIMIT: usize = 64;
 
 thread_local!(static TICKS: RefCell<u64> = RefCell::new(0));
-
-pub struct TickerSystem<M> {
-    ticks: u64,
-    theta: f64,
-    theta_step: f64,
-
-    thread_group: Arc<Mutex<ThreadGroup<M>>>,
-    /*
-    threads: Vec<TickerThread<M>>,
-    ticker_assignment: TickerAssignment,
-    */
-
-    channels: SystemChannels<M>,
-}
 
 pub struct ThreadGroup<M> {
     threads: Vec<TickerThread<M>>,
@@ -32,18 +18,26 @@ pub struct ThreadGroup<M> {
 }
 
 impl<M:Clone + 'static> ThreadGroup<M> {
-    pub fn read<T:'static,R>(&self, ticker: &TickerOuter<M,T>, fun: impl FnOnce(&T)->R) -> R {
-        let ticker_id = ticker.id;
+    pub(crate) fn read<T:'static,R>(
+        &self, 
+        ticker: &TickerAccess<M,T>, 
+        fun: impl FnOnce(&T)->R
+    ) -> R {
+        let ticker_id = ticker.id();
         let thread_id = self.ticker_assignment.ticker_to_thread.lock().unwrap()[ticker_id];
 
         self.threads[thread_id].0.read().unwrap().read(&ticker, fun)
     }
 
-    pub fn write<T:'static,R>(&self, ticker: &TickerOuter<M,T>, fun: impl FnOnce(&mut T)->R) -> R {
-        let ticker_id = ticker.id;
+    pub(crate) fn write<T:'static,R>(
+        &self, 
+        ticker: &TickerAccess<M,T>, 
+        fun: impl FnOnce(&mut T)->R
+    ) -> R {
+        let ticker_id = ticker.id();
         let thread_id = self.ticker_assignment.ticker_to_thread.lock().unwrap()[ticker_id];
 
-        self.threads[thread_id].0.write().unwrap().write(&ticker, fun)
+        self.threads[thread_id].0.write().unwrap().write(ticker, fun)
     }
 }
 
@@ -55,23 +49,6 @@ pub struct Context {
 #[derive(Clone)]
 struct TickerThread<T>(Arc<RwLock<ThreadInner<T>>>);
 
-pub struct ThreadInner<M> {
-    id: usize,
-    name: String,
-
-    channels: ThreadChannels<M>,
-
-    tickers: Vec<Option<TickerRef<M>>>,
-
-    ticker_assignment: TickerAssignment,
-
-    context: Context,
-
-    on_ticks: Vec<usize>,
-    step_ticks: [Vec<usize>; STEP_LIMIT],
-    theta_ticks: Vec<ThetaTicker>,
-}
-
 pub(crate) struct TickerAssignment {
     ticker_to_thread: Arc<Mutex<Vec<usize>>>,
 }
@@ -82,14 +59,21 @@ pub(crate) struct TickerAssignment {
 const EXTERNAL_ID: usize = 0;
 const MAIN_ID: usize = 1;
 
+//
+// # TickerSystem
+//
+
+pub struct TickerSystem<M> {
+    ticks: u64,
+    theta: f64,
+    theta_step: f64,
+
+    thread_group: Arc<Mutex<ThreadGroup<M>>>,
+
+    channels: SystemChannels<M>,
+}
+
 impl<M:Clone + 'static> TickerSystem<M> {
-    /*
-    pub(crate) fn new_thread_group(tickers: &Vec<TickerRef<M>>) -> Arc<Mutex<ThreadGroup<M>>> {
-
-        Arc::new(Mutex::new(group))
-    }
-     */
-
     pub(crate) fn new(
         mut tickers: Vec<TickerRef<M>>,
         spawn_threads: u32,
@@ -234,6 +218,24 @@ impl<M:Clone + 'static> TickerThread<M> {
 // # ThreadInner
 //
 
+pub struct ThreadInner<M> {
+    id: usize,
+    name: String,
+
+    channels: ThreadChannels<M>,
+
+    tickers: Vec<TickerRef<M>>,
+
+    ticker_assignment: TickerAssignment,
+
+    context: Context,
+
+    on_ticks: Vec<usize>,
+    step_ticks: [Vec<usize>; STEP_LIMIT],
+    theta_ticks: Vec<ThetaTicker>,
+    lazy_ticks: LazyGroup,
+}
+
 impl<M:Clone+'static> ThreadInner<M> {
     fn new(
         system: &mut TickerSystem<M>, 
@@ -242,9 +244,9 @@ impl<M:Clone+'static> ThreadInner<M> {
     ) -> TickerThread<M> {
         let id = system.thread_group.lock().unwrap().threads.len();
 
-        let mut tickers: Vec<Option<TickerRef<M>>> = Vec::new();
-        for _ in 0..n_tickers {
-            tickers.push(None);
+        let mut tickers: Vec<TickerRef<M>> = Vec::new();
+        for i in 0..n_tickers {
+            tickers.push(TickerNone::new(i));
         }
 
         let channels = if id == 0 {
@@ -267,6 +269,8 @@ impl<M:Clone+'static> ThreadInner<M> {
                 .unwrap(),
             theta_ticks: Vec::new(),
 
+            lazy_ticks: LazyGroup::new(Vec::new()),
+
             channels: channels,
 
             context: Context { ticks: 0, theta: 0. },
@@ -288,7 +292,9 @@ impl<M:Clone+'static> ThreadInner<M> {
         let step = ticker.step();
         let theta: f32 = ticker.theta();
 
-        if step == 1 {
+        if ticker.is_lazy() {
+
+        } else if step == 1 {
             self.on_ticks.push(ticker_id);
         } else if step > 1 {
             for i in 0..STEP_LIMIT / step {
@@ -302,21 +308,21 @@ impl<M:Clone+'static> ThreadInner<M> {
             })
         }
 
-        assert!(self.tickers[ticker_id].is_none());
-        self.tickers[ticker_id] = Some(ticker);
+        // assert!(self.tickers[ticker_id].is_none());
+
+        self.tickers[ticker_id] = ticker;
     }
 
     fn update_tickers(&mut self) {
         for ticker in &mut self.tickers {
-            match ticker {
-                Some(ticker) => {
-                    ticker.update(&self.ticker_assignment, &self.channels);
-                },
-                None => {},
-            }
+            ticker.update_channels(&self.ticker_assignment, &self.channels);
         }
 
         self.channels.update_tickers(&self.tickers);
+
+        for ticker in &mut self.tickers {
+            ticker.update_lazy(&self.lazy_ticks);
+        }
     }
  
     fn tick(&mut self, ticks: u64, theta: f64) {
@@ -330,13 +336,15 @@ impl<M:Clone+'static> ThreadInner<M> {
         self.on_step_ticks();
 
         self.on_theta_ticks();
+
+        self.on_lazy_ticks();
     }
 
     fn on_ticks(&mut self) {
         let ctx = &mut self.context;
 
         for ticker_id in &self.on_ticks {
-            Self::eval_on_tick(&mut self.tickers[*ticker_id], ctx);
+            self.tickers[*ticker_id].tick(ctx);
         }
     }
 
@@ -346,7 +354,7 @@ impl<M:Clone+'static> ThreadInner<M> {
         let offset = (ctx.ticks % STEP_LIMIT as u64) as usize;
 
         for ticker_id in &self.step_ticks[offset] {
-            Self::eval_on_tick(&mut self.tickers[*ticker_id], ctx);
+            self.tickers[*ticker_id].tick(ctx);
         }
     }
 
@@ -358,7 +366,7 @@ impl<M:Clone+'static> ThreadInner<M> {
             if ticker.next_theta <= theta {
                let id = ticker.id;
 
-                Self::eval_on_tick(&mut self.tickers[id], ctx);
+               self.tickers[id].tick(ctx);
 
                 ticker.next_theta = ticker.next_theta + 1.;
                 ticker.next_theta += ticker.phase - ticker.next_theta % 1.;
@@ -366,27 +374,28 @@ impl<M:Clone+'static> ThreadInner<M> {
         }
     }
 
-    fn eval_on_tick(
-        // &self, 
-        ticker: &mut Option<Box<dyn TickerCall<M>>>,
-        ctx: &mut Context,
-    ) {
-        match ticker {
-            Some(ticker) => {
-                (*ticker).tick(ctx);
+    fn on_lazy_ticks(&mut self) {
+        let ctx = &mut self.context;
+
+        let mut i = 0;
+        while i < self.lazy_ticks.len() {
+            let id = self.lazy_ticks.get(i);
+
+            let ticker = &mut self.tickers[id];
+
+            if ticker.next_tick() <= ctx.ticks {
+                self.lazy_ticks.remove(i);
+
+                ticker.tick(ctx);
+            } else {
+                i += 1;
             }
-            None => panic!(
-                "{:?} on_tick to ticker not assigned to this thread",
-                ctx,
-            )
         }
     }
 
     fn on_build(&mut self) {
-        for ticker_opt in &mut self.tickers {
-            if let Some(ticker) = ticker_opt {
-                ticker.on_build();
-            }
+        for ticker in &mut self.tickers {
+            ticker.on_build();
         }
     }
 
@@ -394,41 +403,27 @@ impl<M:Clone+'static> ThreadInner<M> {
         self.channels.receive(&mut self.tickers);
     }
 
-    fn read<T:'static,R>(&self, ticker: &TickerOuter<M,T>, fun: impl FnOnce(&T)->R) -> R {
-        assert!(self.tickers[ticker.id].is_some());
+    fn read<T:'static,R>(&self, ticker: &TickerAccess<M,T>, fun: impl FnOnce(&T)->R) -> R {
+        assert!(! self.tickers[ticker.id()].is_none());
 
         ticker.read(fun)
     }
 
-    fn write<T:'static,R>(&self, ticker: &TickerOuter<M,T>, fun: impl FnOnce(&mut T)->R) -> R {
-        assert!(self.tickers[ticker.id].is_some());
+    fn write<T:'static,R>(&self, ticker: &TickerAccess<M,T>, fun: impl FnOnce(&mut T)->R) -> R {
+        assert!(! self.tickers[ticker.id()].is_none());
 
         ticker.write(fun)
     }
 }
 
+//
+// # ThetaTicker
+//
+
 struct ThetaTicker {
     id: usize,
     phase: f64,
     next_theta: f64,
-}
-
-struct ThreadTickers<M> {
-    ptr: Rc<RefCell<Vec<Option<Box<dyn TickerCall<M>>>>>>,
-}
-
-impl<M> ThreadTickers<M> {
-    fn new(n_tickers: usize) -> Self {
-        let mut tickers = Vec::<Option<Box<dyn TickerCall<M>>>>::new();
-
-        for _ in 0..n_tickers {
-            tickers.push(None);
-        }
-
-        Self {
-            ptr: Rc::new(RefCell::new(tickers))
-        }
-    }
 }
 
 impl<T> fmt::Display for ThreadInner<T> {
@@ -438,7 +433,44 @@ impl<T> fmt::Display for ThreadInner<T> {
 }
 
 //
+// # LazyGroup
+//
+
+pub(crate) struct LazyGroup {
+    pub(crate) ptr: Rc<RefCell<Vec<usize>>>
+}
+
+impl LazyGroup {
+    pub(crate) fn new(values: Vec<usize>) -> Self {
+        LazyGroup{ ptr: Rc::new(RefCell::new(values)) }
+    }
+
+    fn len(&self) -> usize {
+        self.ptr.borrow().len()
+    }
+
+    fn get(&self, i: usize) -> usize {
+        self.ptr.borrow()[i]
+    }
+
+    fn remove(&mut self, index: usize) -> usize {
+        self.ptr.borrow_mut().remove(index)
+    }
+
+    pub(crate) fn push(&mut self, index: usize) {
+        self.ptr.borrow_mut().push(index)
+    }
+}
+
+impl Clone for LazyGroup {
+    fn clone(&self) -> Self {
+        Self { ptr: self.ptr.clone() }
+    }
+}
+
+//
 // # TickerAssignment
+//
 
 impl TickerAssignment {
     fn new<M>(tickers: &Vec<TickerRef<M>>) ->Self {
