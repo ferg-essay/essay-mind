@@ -52,6 +52,7 @@ pub(crate) trait TickerCall<M> {
     fn step(&self)->usize;
     fn offset(&self)->usize;
     fn is_lazy(&self)->bool;
+    fn theta(&self)->f32;
 
     fn on_build(&mut self);
 
@@ -74,6 +75,7 @@ pub struct TickerOuter<M, T> {
     step: usize,
     offset: usize,
     is_lazy: bool,
+    theta: f32,
 
     ptr: Rc<RefCell<TickerInner<M, T>>>,
 }
@@ -135,6 +137,7 @@ impl<M:Clone + 'static, T:'static> TickerOuter<M, T> {
             step: builder.step,
             offset: builder.offset,
             is_lazy: builder.is_lazy,
+            theta: builder.theta,
         }
     }       
 
@@ -202,6 +205,10 @@ impl<M:Clone+'static,T:'static> TickerCall<M> for TickerOuter<M,T> {
 
     fn is_lazy(&self) -> bool {
         self.is_lazy
+    }
+
+    fn theta(&self) -> f32 {
+        self.theta
     }
 
     fn on_build(&mut self) {

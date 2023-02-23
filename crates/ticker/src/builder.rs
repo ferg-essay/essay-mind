@@ -9,9 +9,7 @@ type SourceRef = Rc<RefCell<Box<SourceInner>>>;
 type SetFiber<M,T> = dyn Fn(&mut T, Fiber<M>);
 
 
-pub struct SystemBuilder<M:Clone> {
-    ptr: SystemBuilderRef<M>,
-}
+pub struct SystemBuilder<M:Clone>(Rc<RefCell<SystemBuilderInner<M>>>);
 
 pub struct TickerBuilder<M:Clone,T>(Rc<RefCell<TickerBuilderInner<M, T>>>);
 
@@ -53,18 +51,33 @@ impl<M:Clone + 'static> SystemBuilder<M> {
             tickers: Vec::new(),
             // fibers: Vec::new(),
             external_ticker: None,
+
+            frequency: 64.,
+            theta: (4., 8.),
         };
 
-        let mut builder = Self {
-            ptr: Rc::new(RefCell::new(builder_inner)),
-        };
+        let mut builder = Self(
+            Rc::new(RefCell::new(builder_inner))
+        );
 
         let mut ticker = builder.ticker(ExternalTicker {});
         ticker.name("essay::external");
 
-        builder.ptr.borrow_mut().external_ticker = Some(ticker);
+        builder.0.borrow_mut().external_ticker = Some(ticker);
 
         builder
+    }
+
+    pub fn frequency(&mut self, frequency: f64) -> &Self {
+        self.0.borrow_mut().frequency(frequency);
+
+        self
+    }
+
+    pub fn theta(&mut self, range: (f64, f64)) -> &Self {
+        self.0.borrow_mut().theta(range);
+
+        self
     }
 
     /// Create a ticker node.
@@ -80,7 +93,7 @@ impl<M:Clone + 'static> SystemBuilder<M> {
     /// ticker.on_tick(move |n, ctx| n.tick());
     /// ```
     pub fn node<T:'static>(&mut self, node: T) -> TickerBuilder<M,T> {
-        TickerBuilder(self.ptr.borrow_mut().ticker(node))
+        TickerBuilder(self.0.borrow_mut().ticker(node))
     }
 
     /// Create a ticker node that implements the ``OnTick`` trait.
@@ -93,7 +106,7 @@ impl<M:Clone + 'static> SystemBuilder<M> {
     /// ```
     /// 
     pub fn ticker<T:Ticker + 'static>(&mut self, ticker: T) -> TickerBuilder<M,T> {
-        let ptr = self.ptr.borrow_mut().ticker(ticker);
+        let ptr = self.0.borrow_mut().ticker(ticker);
 
         ptr.borrow_mut().on_build(Box::new(move |t| t.build()));
         ptr.borrow_mut().on_tick(Box::new(move |t, ctx| t.tick(ctx)));
@@ -148,11 +161,11 @@ impl<M:Clone + 'static> SystemBuilder<M> {
     /// ```
     pub fn build(&mut self) -> TickerSystem<M> {
         // let builder = self.builder.borrow_mut();
-        self.ptr.borrow_mut().build()
+        self.0.borrow_mut().build()
     }
 
     fn external_ticker(&self) -> TickerBuilder<M,ExternalTicker> {
-        match &self.ptr.borrow().external_ticker {
+        match &self.0.borrow().external_ticker {
             Some(ticker) => ticker.clone(),
             None => panic!("external source isn't available")
         }
@@ -240,6 +253,12 @@ impl<M:Clone + 'static,T:'static> TickerBuilder<M, T> {
 
     pub fn is_lazy(&mut self) -> &Self {
         self.0.borrow_mut().is_lazy();
+
+        self
+    }
+
+    pub fn theta(&mut self, phase: f32) -> &Self {
+        self.0.borrow_mut().theta(phase);
 
         self
     }
@@ -352,12 +371,14 @@ impl<M:Clone> ExternalSource<M> {
 // # SystemBuilderInner
 //
 
-pub struct SystemBuilderInner<M:Clone> {
+pub(crate) struct SystemBuilderInner<M:Clone> {
     is_built : bool,
 
     tickers: Vec<Box<dyn TickerOnBuild<M>>>,
     external_ticker: Option<TickerBuilder<M,ExternalTicker>>,
 
+    pub(crate) frequency: f64,
+    pub(crate) theta: (f64, f64),
     // fibers: Vec<Rc<RefCell<Box<SourceInner>>>>,
 }
 
@@ -378,6 +399,7 @@ pub(crate) struct TickerBuilderInner<M:Clone,T> {
     pub(crate) step: usize,
     pub(crate) offset: usize,
     pub(crate) is_lazy: bool,
+    pub(crate) theta: f32,
 
     sources: Vec<SourceRef>,
     set_fibers: Vec<Box<SetFiber<M,T>>>,
@@ -429,6 +451,25 @@ struct ExternalTicker {
 //
 impl<M:Clone + 'static> SystemBuilderInner<M> {
 
+    fn frequency(&mut self, frequency: f64) {
+        assert!(! self.is_built);
+        assert!(frequency > 0.);
+
+        self.frequency = frequency;
+    }
+
+    fn theta(&mut self, theta_range: (f64, f64)) {
+        assert!(! self.is_built);
+
+        let (min, max) = theta_range;
+
+        assert!(min > 0.);
+        assert!(max > 0.);
+        assert!(min <= max);
+
+        self.theta = (min, max);
+    }
+
     /// Create a new Ticker
     /// 
      fn ticker<T:'static>(
@@ -451,6 +492,7 @@ impl<M:Clone + 'static> SystemBuilderInner<M> {
             step: 0,
             offset: 0,
             is_lazy: false,
+            theta: -1.,
 
             sources: Vec::new(),
             set_fibers: Vec::new(),
@@ -479,7 +521,7 @@ impl<M:Clone + 'static> SystemBuilderInner<M> {
 
         let spawn_threads = 0;
 
-        let system = TickerSystem::new(tickers, spawn_threads);
+        let system = TickerSystem::new(tickers, spawn_threads, self);
 
         for ticker in &mut self.tickers {
             // tickers.push(ticker.build());
@@ -563,6 +605,16 @@ impl<M,T:'static> TickerBuilderInner<M,T>
         assert!(self.step == 1, "is_lazy must not be used with step.");
 
         self.is_lazy = true;
+        self.step = 0;
+    }
+
+    fn theta(&mut self, phase: f32) {
+        assert!(! self.is_built());
+        assert!(! self.on_tick.is_none(), "is_lazy requires an on_tick callback.");
+        assert!(self.step == 1, "theta must not be used with step or is_lazy.");
+        assert!(0. <= phase && phase < 1., "theta phase must be between 0.0 and 1.0");
+
+        self.theta = phase;
         self.step = 0;
     }
 

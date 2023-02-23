@@ -150,6 +150,123 @@ fn node_step_4_offset_1() {
     );
 }
 
+#[test]
+fn theta_default_hz() {
+    let mut system = SystemBuilder::<String>::new();
+
+    let mut ticker = system.node(Node::new("a"));
+    ticker.on_tick(move |t, ctx| t.my_tick(ctx.ticks()));
+    ticker.theta(0.);
+
+    let mut system = system.build();
+    let ticker = ticker.unwrap();
+
+    for _ in 0..80 {
+        system.tick();
+    }
+
+    assert_eq!(
+        ticker.write(|t| t.take()),
+          "a(0), a(8), a(16), a(24), a(32), a(40), a(48), a(56), a(64), a(72), a(80)"
+    );
+}
+
+#[test]
+fn theta_4hz_freq_16hz() {
+    let mut system = SystemBuilder::<String>::new();
+
+    system.frequency(16.);
+    system.theta((4., 4.));
+
+    let mut ticker = system.node(Node::new("a"));
+    ticker.on_tick(move |t, ctx| t.my_tick(ctx.ticks()));
+    ticker.theta(0.);
+
+    let mut system = system.build();
+    let ticker = ticker.unwrap();
+
+    for _ in 1..=32 {
+        system.tick();
+    }
+
+    assert_eq!(
+        ticker.write(|t| t.take()),
+          "a(1), a(4), a(8), a(12), a(16), a(20), a(24), a(28), a(32)",
+    );
+}
+
+#[test]
+fn theta_phase_0_25() {
+    let mut system = SystemBuilder::<String>::new();
+
+    system.frequency(16.);
+    system.theta((4., 4.));
+
+    let mut ticker = system.node(Node::new("a"));
+    ticker.on_tick(move |t, ctx| t.my_tick(ctx.ticks()));
+    ticker.theta(0.25);
+
+    let mut system = system.build();
+    let ticker = ticker.unwrap();
+
+    for _ in 1..=32 {
+        system.tick();
+    }
+
+    assert_eq!(
+        ticker.write(|t| t.take()),
+          "a(1), a(5), a(9), a(13), a(17), a(21), a(25), a(29)",
+    );
+}
+
+#[test]
+fn theta_phase_0_5() {
+    let mut system = SystemBuilder::<String>::new();
+
+    system.frequency(16.);
+    system.theta((4., 4.));
+
+    let mut ticker = system.node(Node::new("a"));
+    ticker.on_tick(move |t, ctx| t.my_tick(ctx.ticks()));
+    ticker.theta(0.5);
+
+    let mut system = system.build();
+    let ticker = ticker.unwrap();
+
+    for _ in 1..=32 {
+        system.tick();
+    }
+
+    assert_eq!(
+        ticker.write(|t| t.take()),
+          "a(1), a(6), a(10), a(14), a(18), a(22), a(26), a(30)",
+    );
+}
+
+#[test]
+fn theta_phase_0_9999() {
+    let mut system = SystemBuilder::<String>::new();
+
+    system.frequency(16.);
+    system.theta((4., 4.));
+
+    let mut ticker = system.node(Node::new("a"));
+    ticker.on_tick(move |t, ctx| t.my_tick(ctx.ticks()));
+    ticker.theta(0.9999);
+
+    let mut system = system.build();
+    let ticker = ticker.unwrap();
+
+    for _ in 1..=32 {
+        system.tick();
+    }
+
+    assert_eq!(
+        ticker.write(|t| t.take()),
+          "a(1), a(8), a(12), a(16), a(20), a(24), a(28), a(32)",
+    );
+}
+
 struct Node {
     name: String,
     value: Vec<String>,

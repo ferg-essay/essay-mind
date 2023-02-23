@@ -4,7 +4,7 @@
 
 use std::{sync::{Arc, RwLock, Mutex, RwLockWriteGuard}, fmt, cell::{RefCell, RefMut, Ref}, ops::Deref, rc::Rc, borrow::BorrowMut};
 
-use crate::{ticker::{TickerCall, TickerRef, TickerOuter}, fiber::{SystemChannels, ThreadChannels}};
+use crate::{ticker::{TickerCall, TickerRef, TickerOuter}, fiber::{SystemChannels, ThreadChannels}, SystemBuilder, builder::SystemBuilderInner};
 
 type ThreadRef<T> = Arc<RwLock<ThreadInner<T>>>;
 
@@ -14,6 +14,8 @@ thread_local!(static TICKS: RefCell<u64> = RefCell::new(0));
 
 pub struct TickerSystem<M> {
     ticks: u64,
+    theta: f64,
+    theta_step: f64,
 
     thread_group: Arc<Mutex<ThreadGroup<M>>>,
     /*
@@ -47,6 +49,7 @@ impl<M:Clone + 'static> ThreadGroup<M> {
 
 pub struct Context {
     ticks: u64,
+    theta: f64,
 }
 
 #[derive(Clone)]
@@ -66,6 +69,7 @@ pub struct ThreadInner<M> {
 
     on_ticks: Vec<usize>,
     step_ticks: [Vec<usize>; STEP_LIMIT],
+    theta_ticks: Vec<ThetaTicker>,
 }
 
 pub(crate) struct TickerAssignment {
@@ -88,7 +92,8 @@ impl<M:Clone + 'static> TickerSystem<M> {
 
     pub(crate) fn new(
         mut tickers: Vec<TickerRef<M>>,
-        spawn_threads: u32
+        spawn_threads: u32,
+        builder: &SystemBuilderInner<M>,
     ) -> Self {
         assert!(spawn_threads <= 1);
 
@@ -97,10 +102,16 @@ impl<M:Clone + 'static> TickerSystem<M> {
             ticker_assignment: TickerAssignment::new(&tickers),
         };
 
+        let frequency: f64 = builder.frequency;
+        let theta_frequency: f64 = builder.theta.1;
+        let theta_step = theta_frequency / frequency;
+
         let thread_group = Arc::new(Mutex::new(group));
 
         let mut system = Self {
             ticks: 0,
+            theta: 0.,
+            theta_step: theta_step,
             thread_group: thread_group,
             channels: SystemChannels::new(),
         };
@@ -159,8 +170,9 @@ impl<M:Clone + 'static> TickerSystem<M> {
 
     pub fn tick(&mut self) {
         self.ticks += 1;
+        self.theta += self.theta_step;
 
-        self.thread_group.lock().unwrap().threads[1].tick(self.ticks);
+        self.thread_group.lock().unwrap().threads[1].tick(self.ticks, self.theta);
     }
 
     fn on_build(&mut self) {
@@ -209,8 +221,8 @@ impl<M:Clone + 'static> TickerThread<M> {
         self.0.write().unwrap().update_tickers();
     }
 
-    fn tick(&mut self, ticks: u64) {
-        self.0.write().unwrap().tick(ticks);
+    fn tick(&mut self, ticks: u64, theta: f64) {
+        self.0.write().unwrap().tick(ticks, theta);
     }
 
     fn on_build(&mut self) {
@@ -253,10 +265,11 @@ impl<M:Clone+'static> ThreadInner<M> {
                 .collect::<Vec<Vec<usize>>>()
                 .try_into()
                 .unwrap(),
+            theta_ticks: Vec::new(),
 
             channels: channels,
 
-            context: Context { ticks: 0 },
+            context: Context { ticks: 0, theta: 0. },
         };
 
         let thread_ref = Arc::new(RwLock::new(thread));
@@ -273,6 +286,7 @@ impl<M:Clone+'static> ThreadInner<M> {
 
         let offset = ticker.offset();
         let step = ticker.step();
+        let theta: f32 = ticker.theta();
 
         if step == 1 {
             self.on_ticks.push(ticker_id);
@@ -280,6 +294,12 @@ impl<M:Clone+'static> ThreadInner<M> {
             for i in 0..STEP_LIMIT / step {
                 self.step_ticks[i * step + offset].push(ticker_id);
             }
+        } else if theta >= 0. {
+            self.theta_ticks.push(ThetaTicker {
+                id: ticker_id,
+                phase: theta as f64,
+                next_theta: 0.,
+            })
         }
 
         assert!(self.tickers[ticker_id].is_none());
@@ -299,16 +319,17 @@ impl<M:Clone+'static> ThreadInner<M> {
         self.channels.update_tickers(&self.tickers);
     }
  
-    fn tick(&mut self, ticks: u64) {
-        self.context.ticks += 1;
-
-        self.set_ticks(ticks);
+    fn tick(&mut self, ticks: u64, theta: f64) {
+        self.context.ticks = ticks;
+        self.context.theta = theta;
 
         self.receive();
 
         self.on_ticks();
 
         self.on_step_ticks();
+
+        self.on_theta_ticks();
     }
 
     fn on_ticks(&mut self) {
@@ -329,6 +350,22 @@ impl<M:Clone+'static> ThreadInner<M> {
         }
     }
 
+    fn on_theta_ticks(&mut self) {
+        let ctx = &mut self.context;
+        let theta = ctx.theta;
+
+        for ticker in &mut self.theta_ticks {
+            if ticker.next_theta <= theta {
+               let id = ticker.id;
+
+                Self::eval_on_tick(&mut self.tickers[id], ctx);
+
+                ticker.next_theta = ticker.next_theta + 1.;
+                ticker.next_theta += ticker.phase - ticker.next_theta % 1.;
+            }
+        }
+    }
+
     fn eval_on_tick(
         // &self, 
         ticker: &mut Option<Box<dyn TickerCall<M>>>,
@@ -343,12 +380,6 @@ impl<M:Clone+'static> ThreadInner<M> {
                 ctx,
             )
         }
-    }
-
-    fn set_ticks(&self, ticks: u64) {
-        TICKS.with(|f| {
-            *f.borrow_mut() = ticks;
-        });
     }
 
     fn on_build(&mut self) {
@@ -376,6 +407,12 @@ impl<M:Clone+'static> ThreadInner<M> {
     }
 }
 
+struct ThetaTicker {
+    id: usize,
+    phase: f64,
+    next_theta: f64,
+}
+
 struct ThreadTickers<M> {
     ptr: Rc<RefCell<Vec<Option<Box<dyn TickerCall<M>>>>>>,
 }
@@ -399,6 +436,9 @@ impl<T> fmt::Display for ThreadInner<T> {
         write!(f, "ThreadInner:{}[{}]", self.id, self.name)
     }
 }
+
+//
+// # TickerAssignment
 
 impl TickerAssignment {
     fn new<M>(tickers: &Vec<TickerRef<M>>) ->Self {
@@ -425,18 +465,5 @@ impl Clone for TickerAssignment {
         Self {
             ticker_to_thread: Arc::clone(&self.ticker_to_thread),
         }
-    }
-}
-
-struct TickerWriteGuard<'a,T:'static> {
-    ptr: &'a mut T,
-    guard: RwLockWriteGuard<'a,ThreadInner<T>>,
-}
-
-impl<'a,T> Deref for TickerWriteGuard<'a,T> {
-    type Target = &'a mut T;
-
-    fn deref(&self) -> &Self::Target {
-        &self.ptr
     }
 }
