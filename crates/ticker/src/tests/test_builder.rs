@@ -55,6 +55,26 @@ fn ticker_set_fiber() {
 }
 
 #[test]
+fn ticker_read() {
+    let mut builder = SystemBuilder::<i32>::new();
+    let test = builder.node(TestItem::new("test1"));
+
+    assert_eq!(test.read(|t| t.value.clone()), "test1")
+}
+
+#[test]
+fn ticker_write() {
+    let mut builder = SystemBuilder::<i32>::new();
+    let mut test = builder.node(TestItem::new("test1"));
+
+    assert_eq!(test.write(|t| { t.value = String::from("inner"); t.value.clone() }), "inner");
+
+    builder.build();
+    let test = test.unwrap();
+    assert_eq!(test.read(|t| t.value.clone()), "inner");
+}
+
+#[test]
 fn external_fiber_with_fiber_to() {
     let mut builder = SystemBuilder::<i32>::new();
 
@@ -111,5 +131,17 @@ impl Ticker for TestAdder {
 
     fn build(&mut self) {
         self.add(format!("build"));
+    }
+}
+
+struct TestItem {
+    value: String,
+}
+
+impl TestItem {
+    fn new(value: &str) -> Self {
+        Self {
+            value: String::from(value),
+        }
     }
 }

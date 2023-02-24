@@ -4,7 +4,7 @@ mod builder;
 mod fiber;
 
 pub use self::fiber::{Fiber};
-pub use self::ticker::{Ticker, OnFiber};
+pub use self::ticker::{Ticker, TickerPtr, OnFiber};
 pub use self::builder::{Source, Sink, TickerBuilder, SystemBuilder};
 pub use self::system::{TickerSystem, Context};
 

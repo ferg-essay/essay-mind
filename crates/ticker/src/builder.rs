@@ -4,12 +4,11 @@ use crate::{fiber::*, ticker::*, system::{TickerSystem, Context, ThreadGroup, ST
 
 type TickerBuilderRef<M,T> = Rc<RefCell<TickerBuilderInner<M,T>>>;
 type SourceRef = Rc<RefCell<Box<SourceInner>>>;
-type SetFiber<M,T> = dyn Fn(&mut T, Fiber<M>);
+type SetFiber<M,T> = dyn FnOnce(&mut T, Fiber<M>);
 
 
 pub struct SystemBuilder<M:Clone>(Rc<RefCell<SystemBuilderInner<M>>>);
 
-pub struct TickerBuilder<M:Clone,T>(Rc<RefCell<TickerBuilderInner<M, T>>>);
 
 #[derive(Clone)]
 pub struct Source<M:Clone> {
@@ -170,9 +169,16 @@ impl<M:Clone + 'static> SystemBuilder<M> {
     }
 }
 
+impl<M:Clone> Clone for SystemBuilder<M> {
+    fn clone(&self) -> Self {
+        Self(self.0.clone())
+    }
+}
+
 //
 // # TickerBuilder
 //
+pub struct TickerBuilder<M:Clone,T>(Rc<RefCell<TickerBuilderInner<M, T>>>);
 
 impl<M:Clone + 'static,T:'static> TickerBuilder<M, T> {
     /// Sets a debugging name for the ticker.
@@ -261,6 +267,20 @@ impl<M:Clone + 'static,T:'static> TickerBuilder<M, T> {
         self
     }
 
+    pub fn read<R>(&self, read: impl FnOnce(&T) -> R) -> R {
+        match &self.0.borrow_mut().ticker {
+            Some(ticker) => read(ticker),
+            None => panic!("called ticker after build")
+        }
+    }
+
+    pub fn write<R>(&mut self, write: impl FnOnce(&mut T) -> R) -> R {
+        match &mut self.0.borrow_mut().ticker {
+            Some(ticker) => write(ticker),
+            None => panic!("called ticker after build")
+        }
+    }
+
     pub fn on_build(&self, on_build: impl Fn(&mut T) + 'static) -> &Self {
         self.0.borrow_mut().on_build(Box::new(on_build));
 
@@ -291,7 +311,7 @@ impl<M:Clone + 'static,T:'static> TickerBuilder<M, T> {
     /// ```
     pub fn source(
         &mut self,
-        set_fiber: impl Fn(&mut T, Fiber<M>) + 'static
+        set_fiber: impl FnOnce(&mut T, Fiber<M>) + 'static
     ) -> Source<M> {
         //self.0.borrow_mut().source(Box::new(set_fiber))
         self.0.borrow_mut().source(Box::new(set_fiber))
@@ -677,7 +697,7 @@ impl<M,T:'static> TickerBuilderInner<M,T>
         }
     }
 
-    fn set_fiber(&mut self, set_fiber: Box<dyn Fn(&mut T, Fiber<M>)>) -> usize {
+    fn set_fiber(&mut self, set_fiber: Box<dyn FnOnce(&mut T, Fiber<M>)>) -> usize {
         assert!(! self.is_built());
 
         let set_fiber_id = self.set_fibers.len();
@@ -724,7 +744,7 @@ impl<M,T:'static> TickerBuilderInner<M,T>
 
         let mut fibers = TickerFibers::<M>::new();
 
-        for (source, set_fiber) in self.sources.drain(..).zip(&self.set_fibers) {
+        for (source, set_fiber) in self.sources.drain(..).zip(self.set_fibers.drain(..)) {
             let fiber = source.borrow_mut().build(&mut fibers);
 
             set_fiber(&mut ticker, fiber);

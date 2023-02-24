@@ -5,12 +5,13 @@ pub mod gram;
 use ticker;
 
 pub use self::topos::{Topos};
+pub use self::gram::{Gram,gram};
 
-#[derive(Clone,Debug)]
-struct MindMessage(gram::Gram, Topos);
+pub type MindMessage = (gram::Gram, Topos);
 
-type MindBuilder = ticker::SystemBuilder<MindMessage>;
-type TickerBuilder<T:ticker::Ticker> = ticker::TickerBuilder<MindMessage,T>;
-type Source = ticker::Source<MindMessage>;
-type Sink = ticker::Sink<MindMessage>;
-type Fiber = ticker::Fiber<MindMessage>;
+pub type MindBuilder = ticker::SystemBuilder<MindMessage>;
+pub type TickerBuilder<T> = ticker::TickerBuilder<MindMessage,T>;
+pub type TickerPtr<T> = ticker::TickerPtr<MindMessage,T>;
+pub type Source = ticker::Source<MindMessage>;
+pub type Sink = ticker::Sink<MindMessage>;
+pub type Fiber = ticker::Fiber<MindMessage>;

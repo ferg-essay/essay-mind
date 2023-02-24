@@ -27,6 +27,11 @@ pub struct Fiber<M:Clone>
 
 
 impl<M:'static + Clone> Fiber<M> {
+    pub fn empty() -> Fiber<M> {
+        Fiber {
+            ptr: Rc::new(RefCell::new(Box::new(FiberZero {})))
+        }
+    }
     /// send a message to fiber targets, on_fiber closures of target tickers.
     pub fn send(&self, args: M) {
         self.ptr.borrow_mut().send(args);
@@ -88,6 +93,7 @@ pub struct FiberMany<M> {
 struct FiberPanic {
 
 }
+
 impl<M:Clone + 'static> TickerFibers<M> {
     pub(crate) fn new() -> TickerFibers<M> {
         Self {

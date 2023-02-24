@@ -1,9 +1,13 @@
-use std::{fmt};
+use std::{fmt, hash::Hash, hash::Hasher};
 
 use crate::gram::{Digit, digit::{NIL, MED, LOW, HIGH, MAX}};
 
 pub struct Gram {
     vec: Vec<u8>,
+}
+
+pub fn gram(value: &str) -> Gram {
+    Gram::from(value)
 }
 
 impl Gram {
@@ -99,6 +103,15 @@ impl Clone for Gram {
 impl PartialEq for Gram {
     fn eq(&self, other: &Self) -> bool {
         self.vec == other.vec
+    }
+}
+
+impl Eq for Gram {
+}
+
+impl Hash for Gram {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.vec.hash(state);
     }
 }
 
