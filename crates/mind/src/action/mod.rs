@@ -1,9 +1,9 @@
-mod shared_memory;
+pub(crate) mod shared_memory;
 mod action_group;
 mod action;
-use ticker::{Ticker, Context};
 
-use crate::{MindBuilder, TickerBuilder, MindMessage, Topos, gram::Gram, Source, Sink};
+pub use action_group::{Action, ActionGroup};
+pub use shared_memory::{SharedReader, SharedWriter};
 
 #[cfg(test)]
 mod tests;

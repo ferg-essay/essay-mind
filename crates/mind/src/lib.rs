@@ -6,6 +6,7 @@ use ticker;
 
 pub use self::topos::{Topos};
 pub use self::gram::{Gram,gram};
+pub use self::ticker::{Ticker,Context};
 
 pub type MindMessage = (gram::Gram, Topos);
 
@@ -15,3 +16,5 @@ pub type TickerPtr<T> = ticker::TickerPtr<MindMessage,T>;
 pub type Source = ticker::Source<MindMessage>;
 pub type Sink = ticker::Sink<MindMessage>;
 pub type Fiber = ticker::Fiber<MindMessage>;
+
+pub use self::action::shared_memory::SharedWriter;

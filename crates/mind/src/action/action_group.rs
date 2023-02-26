@@ -1,22 +1,22 @@
 use std::collections::HashMap;
 
-use ticker::Ticker;
+use ticker::{Ticker, Context};
 
-use crate::{TickerBuilder, Source, Sink, MindBuilder, MindMessage, Gram, gram, Topos, TickerPtr, Fiber};
+use crate::{TickerBuilder, Source, Sink, MindBuilder, MindMessage, Gram, Topos, TickerPtr, Fiber};
 
+pub trait Action {
+    fn id(&self) -> &Gram;
+    fn action(&mut self, ctx: &mut ticker::Context) -> bool;
+}
 
 pub struct ActionGroup {
     mind: MindBuilder,
 
-    actions: Vec<Box<dyn ActionTrait>>,
+    _actions: Vec<Box<dyn ActionTrait>>,
 
     ticker: TickerBuilder<ActionGroupInner>,
 
     sink: Sink,
-}
-
-struct ActionTicker {
-    
 }
 
 impl ActionGroup {
@@ -33,16 +33,26 @@ impl ActionGroup {
 
         ActionGroup {
             mind: mind.clone(),
-            actions: Vec::new(),
+            _actions: Vec::new(),
             ticker: ticker,
             sink: sink,
         }
     }
 
-    pub fn action<A:'static>(&mut self, id: Gram, action: A) -> ActionBuilder<A> {
+    pub fn node<A:'static>(
+        &mut self, 
+        id: Gram, 
+        action: A,
+        on_action: impl Fn(&mut A, &mut Context) -> bool + 'static
+    ) -> ActionBuilder<A> {
         let name = id.clone();
 
-        let mut item = ActionBuilder::new(&mut self.mind, id, action);
+        let mut item = ActionBuilder::new(
+            &mut self.mind, 
+            id, 
+            action, 
+            Box::new(on_action)
+        );
 
         let sink = item.activate_sink();
         let mut source = self.ticker.source(move |g, fiber| {
@@ -54,27 +64,37 @@ impl ActionGroup {
         item
     }
 
+    pub fn action<A:Action + 'static>(&mut self, action: A) -> ActionBuilder<A> {
+        let id = action.id().clone();
+
+        let mut item = ActionBuilder::<A>::new(
+            &mut self.mind, 
+            id.clone(), 
+            action,
+            Box::new(|a, ctx| a.action(ctx)),
+        );
+
+        let sink = item.activate_sink();
+        let mut source = self.ticker.source(move |g, fiber| {
+            g.add_action(id, fiber);
+        });
+
+        source.to(&sink);
+
+        //item.on_action(move |a, ctx| a.action(ctx));
+
+        item
+    }
+
     pub fn request(&mut self) -> &Sink {
         &self.sink
     }
-
-    /*
-    fn push<A:Action>(&mut self, action: A) {
-        //let mut ptr = self.ticker.ptr();
-        action.on_complete().to(&self.ticker.sink(move |t: &mut ActionTicker, msg| {
-            t.complete(msg.0, msg.1);
-        }));
-        let item = ActionItem {};
-
-
-    }
-     */
 }
 
 struct ActionGroupInner {
     action_map: HashMap<Gram,Fiber>,
     requests: Vec<Gram>,
-    is_active: bool,
+    _is_active: bool,
 }
 
 impl ActionGroupInner {
@@ -82,7 +102,7 @@ impl ActionGroupInner {
         Self {
             action_map: HashMap::new(),
             requests: Vec::new(),
-            is_active: false,
+            _is_active: false,
         }
     }
 
@@ -97,7 +117,7 @@ impl ActionGroupInner {
 }
 
 impl Ticker for ActionGroupInner {
-    fn tick(&mut self, ctx: &mut ticker::Context) {
+    fn tick(&mut self, _: &mut ticker::Context) {
         if self.requests.len() > 0 {
             let gram = self.requests.remove(0);
             self.requests.drain(..);
@@ -111,27 +131,40 @@ impl Ticker for ActionGroupInner {
     }
 }
 
+struct ActionTicker {
+    
+}
+
+//
+// # ActionBuilder
+//
+
 pub struct ActionBuilder<A> {
     ticker: TickerBuilder<ActionItem<A>>,
 }
 
 impl<A:'static> ActionBuilder<A> {
-    fn new(mind: &mut MindBuilder, id: Gram, action: A) -> Self {
+    fn new(
+        mind: &mut MindBuilder,
+        id: Gram, 
+        action: A,
+        on_action: Box<dyn Fn(&mut A, &mut Context) -> bool>
+    ) -> Self {
         ActionBuilder {
-            ticker: mind.ticker(ActionItem::new(id, action))
+            ticker: mind.ticker(ActionItem::new(id, action, on_action))
         }
     }
 
-    pub fn on_action<F:'static>(&mut self, fun: F)
-        where F: Fn(&mut A, &mut ticker::Context) -> bool
-    {
-        let fun2: Box<OnAction<A>> = Box::new(fun);
-        //let holder = ActionHolder { on_action: fun };
-        //self.ticker.write(move |t| t.on_action = fun2);
-        //let holder: Holder<A> = Box::new(Holder { write: |a| a.on_action = fun2});
+    pub fn source(&mut self, set: impl FnOnce(&mut A, Fiber) + 'static) -> Source {
+        self.ticker.source(|t, fiber| {
+            set(&mut t.action, fiber)
+        })
+    }
 
-        self.ticker.write(|t: &mut ActionItem<A>| t.on_action = fun2);
-
+    pub fn sink(&mut self, on_msg: impl Fn(&mut A, MindMessage) + 'static) -> Sink {
+        self.ticker.sink(move |t, msg| {
+            on_msg(&mut t.action, msg)
+        })
     }
 
     fn activate_sink(&mut self) -> Sink {
@@ -140,7 +173,7 @@ impl<A:'static> ActionBuilder<A> {
         })
     }
 
-    pub fn unwrap(mut self) -> ActionReader<A> {
+    pub fn unwrap(self) -> ActionReader<A> {
         ActionReader(self.ticker.unwrap())
     }
 }
@@ -168,23 +201,19 @@ trait ActionTrait {
     fn on_action(&mut self, ctx: &mut ticker::Context) -> bool;
 }
 
-struct ActionHolder<A> {
-    on_action: Box<OnAction<A>>,
-}
-
 struct ActionItem<A> {
-    id: Gram,
+    _id: Gram,
     action: A,
     on_action: Box<OnAction<A>>,
     is_active: bool,
 }
 
 impl<A> ActionItem<A> {
-    fn new(id: Gram, action: A) -> Self {
+    fn new(id: Gram, action: A, on_action: Box<OnAction<A>>) -> Self {
         ActionItem {
-            id: id,
+            _id: id,
             action: action,
-            on_action: Box::new(|x, c| false),
+            on_action: on_action,
             is_active: false,
         }
     }
@@ -194,6 +223,7 @@ impl<A> ActionItem<A> {
     }
 }
 
+
 impl<A> Ticker for ActionItem<A> {
     fn tick(&mut self, ctx: &mut ticker::Context) {
         if self.is_active && ! (self.on_action)(&mut self.action, ctx) {
@@ -201,30 +231,20 @@ impl<A> Ticker for ActionItem<A> {
         }
     }
 }
-
+/*
 impl<A> ActionTrait for ActionItem<A> {
     fn on_action(&mut self, ctx: &mut ticker::Context) -> bool {
         self.on_action(ctx)
     }
 }
-
-struct ActionFun<A> {
-    on_action: Box<OnAction<A>>,
-}
+ */
 
 impl ActionTicker {
-    fn enhance(&self, index: usize, msg: MindMessage) {
-        
-    }
-
-    fn complete(&self, gram: Gram, topos: Topos) {
-        
-    }
 }
 
 
 impl Ticker for ActionTicker {
-    fn tick(&mut self, ctx: &mut ticker::Context) {
+    fn tick(&mut self, _: &mut ticker::Context) {
 
     }
 }

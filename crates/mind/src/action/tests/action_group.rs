@@ -1,17 +1,57 @@
-use crate::{gram, Topos};
-use crate::{MindBuilder, action::action::ActionBuilder};
-use crate::action::action_group::ActionGroup;
+use ticker::Context;
+
+use crate::{gram, Topos, Gram};
+use crate::{MindBuilder};
+use crate::action::action_group::{ActionGroup, Action};
 
 #[test]
-fn basic_action() {
+fn action_node() {
     let mut builder = MindBuilder::new();
     let mut action = TestAction::new("action");
     action.max(4);
     let mut group = ActionGroup::new(&mut builder);
-    let mut action = group.action(gram("a"), action);
-    action.on_action(move |a, ctx| {
-        a.action(ctx.ticks())
-    });
+    let action = group.node(
+        gram("a"), 
+        action,
+        |a, ctx| { a.action(ctx) }
+    );
+    let ext_source = builder.external_source();
+    ext_source.source().to(group.request());
+    
+    let mut system = builder.build();
+
+    let fiber = ext_source.fiber();
+
+    let mut ptr = action.unwrap();
+
+    system.tick();
+    assert_eq!(ptr.write(|a| a.take()), "");
+    system.tick();
+    assert_eq!(ptr.write(|a| a.take()), "");
+
+    fiber.send((gram("a"), Topos::Nil));
+    system.tick();
+    assert_eq!(ptr.write(|a| a.take()), "action-start(1)");
+    system.tick();
+    assert_eq!(ptr.write(|a| a.take()), "action(2)");
+    system.tick();
+    assert_eq!(ptr.write(|a| a.take()), "action(3)");
+    system.tick();
+    assert_eq!(ptr.write(|a| a.take()), "action-end(4)");
+    system.tick();
+    assert_eq!(ptr.write(|a| a.take()), "");
+    system.tick();
+    assert_eq!(ptr.write(|a| a.take()), "");
+}
+
+#[test]
+fn action_trait() {
+    let mut builder = MindBuilder::new();
+    let mut action = TestAction::new("action");
+    action.max(4);
+    let mut group = ActionGroup::new(&mut builder);
+    let action = group.action(action);
+
     let ext_source = builder.external_source();
     ext_source.source().to(group.request());
     
@@ -48,17 +88,11 @@ fn action_choice() {
 
     let mut a = TestAction::new("a");
     a.max(2);
-    let mut a = group.action(gram("a"), a);
-    a.on_action(move |a, ctx| {
-        a.action(ctx.ticks())
-    });
+    let a = group.action(a);
 
     let mut b = TestAction::new("b");
     b.max(2);
-    let mut b = group.action(gram("b"), b);
-    b.on_action(move |b, ctx| {
-        b.action(ctx.ticks())
-    });
+    let b = group.action(b);
 
     let ext_source = builder.external_source();
     ext_source.source().to(group.request());
@@ -117,21 +151,16 @@ fn action_choice() {
 #[test]
 fn action_competition() {
     let mut builder = MindBuilder::new();
+
     let mut group = ActionGroup::new(&mut builder);
 
     let mut a = TestAction::new("a");
     a.max(2);
-    let mut a = group.action(gram("a"), a);
-    a.on_action(move |a, ctx| {
-        a.action(ctx.ticks())
-    });
+    let a = group.action(a);
 
     let mut b = TestAction::new("b");
     b.max(2);
-    let mut b = group.action(gram("b"), b);
-    b.on_action(move |b, ctx| {
-        b.action(ctx.ticks())
-    });
+    let b = group.action(b);
     
     let ext_source = builder.external_source();
     ext_source.source().to(group.request());
@@ -193,7 +222,7 @@ fn action_competition() {
 }
 
 struct TestAction {
-    name: String,
+    name: Gram,
     values: Vec<String>,
     count: u64,
     max: u64, 
@@ -202,7 +231,7 @@ struct TestAction {
 impl TestAction {
     fn new(str: &str) -> Self {
         Self {
-            name: String::from(str),
+            name: Gram::from(str),
             values: Vec::new(),
             count: 0,
             max: 2,
@@ -217,7 +246,20 @@ impl TestAction {
         self.values.push(msg);
     }
 
-    fn action(&mut self, ticks: u64) -> bool {
+    fn take(&mut self) -> String {
+        let value = self.values.join(", ");
+
+        self.values.drain(..);
+
+        value
+    }
+}
+
+impl Action for TestAction {
+    fn id(&self) -> &Gram {
+        &self.name
+    }
+    fn action(&mut self, _: &mut Context) -> bool {
         self.count += 1;
         if self.count == 1 {
             self.add(format!("{}-start({})", self.name, self.count));
@@ -230,13 +272,5 @@ impl TestAction {
             self.add(format!("{}({})", self.name, self.count));
             true
         }
-    }
-
-    fn take(&mut self) -> String {
-        let value = self.values.join(", ");
-
-        self.values.drain(..);
-
-        value
-    }
+    }    
 }

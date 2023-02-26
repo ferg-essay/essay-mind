@@ -25,7 +25,7 @@ pub(crate) type TickerRef<M> = Box<dyn TickerCall<M>>;
 pub type Result<T> = result::Result<T, Error>;
 pub trait Ticker {
     #[allow(unused_variables)]
-    fn tick(&mut self, ctx: &mut Context) {}
+    fn tick(&mut self, ctx: &mut Context);
     fn build(&mut self) {}
 }
 

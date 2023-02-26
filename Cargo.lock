@@ -947,6 +947,7 @@ dependencies = [
  "env_logger",
  "fundsp",
  "log",
+ "mind",
  "ui-audio",
  "ui-graphics",
 ]

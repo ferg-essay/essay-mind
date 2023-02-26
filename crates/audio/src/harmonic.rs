@@ -203,7 +203,7 @@ impl Harmonic {
         while triple_points.len() > 0 {
             let mut first = triple_points.remove(0);
 
-            let mut count: usize = 1; 
+            let mut _count: usize = 1; 
             let mut value = first.1;
             let mut i = 0;
             
@@ -219,7 +219,7 @@ impl Harmonic {
                     || p.0 == first.0 - 2
                 {
                     value += p.1;
-                    count += 1;
+                    _count += 1;
                     triple_points.remove(i);
                 } else {
                     i += 1;

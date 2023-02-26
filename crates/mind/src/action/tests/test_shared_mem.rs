@@ -1,18 +1,19 @@
-use crate::action::shared_memory::SharedMemory;
+use crate::action::shared_memory::SharedWriter;
 
 #[test]
 fn basic_shared_memory() {
-    let memory = SharedMemory::<Test<i32>,2>::new();
+    let writer = SharedWriter::<Test<i32>>::new();
+    let reader = writer.reader();
 
-    assert_eq!(*memory.read(0).unwrap().value(), 0);
+    assert_eq!(*reader.read(0).unwrap().value(), 0);
 
-    memory.write(0).unwrap().replace(10);
-    assert_eq!(*memory.read(0).unwrap().value(), 0);
-    assert_eq!(*memory.read(1).unwrap().value(), 10);
+    writer.write(0).unwrap().replace(10);
+    assert_eq!(*reader.read(0).unwrap().value(), 0);
+    assert_eq!(*reader.read(1).unwrap().value(), 10);
 
-    memory.write(1).unwrap().replace(20);
-    assert_eq!(*memory.read(0).unwrap().value(), 20);
-    assert_eq!(*memory.read(1).unwrap().value(), 10);
+    writer.write(1).unwrap().replace(20);
+    assert_eq!(*reader.read(0).unwrap().value(), 20);
+    assert_eq!(*reader.read(1).unwrap().value(), 10);
 }
 
 #[derive(Default,Debug)]

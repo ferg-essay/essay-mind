@@ -17,6 +17,7 @@ log = { version = "0.4.17" }
 ui-graphics = { path = "./crates/ui-graphics", version = "0.0.0" }
 ui-audio = { path = "./crates/ui-audio", version = "0.0.0" }
 audio = { path = "./crates/audio", version = "0.0.0" }
+mind = { path = "./crates/mind", version = "0.0.0" }
 #gram = { path = "./crates/gram", version = "0.0.0" }
 #fft = { path = "./crates/fft", version = "0.0.0" }
 # kira = { version="0.7" }

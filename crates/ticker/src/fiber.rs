@@ -46,6 +46,12 @@ impl<M:'static + Clone> Clone for Fiber<M> {
     }
 }
 
+impl<M:'static + Clone> Default for Fiber<M> {
+    fn default() -> Self {
+        Fiber::empty()
+    }
+}
+
 //
 // # inner
 

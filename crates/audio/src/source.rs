@@ -865,8 +865,8 @@ struct Jitter {
     sample: usize,
     update_period: usize,
 
-    frequency_jitter: f32,
-    amplitude_jitter: f32,
+    _frequency_jitter: f32,
+    _amplitude_jitter: f32,
 
     sample_step: f32,
     jitter_step: f32,
