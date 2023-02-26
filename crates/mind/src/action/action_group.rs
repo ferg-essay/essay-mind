@@ -90,7 +90,7 @@ impl ActionGroupInner {
         self.action_map.insert(gram, fiber);
     }
 
-    fn request(&mut self, gram: Gram, topos: Topos) {
+    fn request(&mut self, gram: Gram, _topos: Topos) {
         self.requests.push(gram);
         //self.action_map.insert(gram, fiber);
     }
@@ -122,8 +122,8 @@ impl<A:'static> ActionBuilder<A> {
         }
     }
 
-    pub fn on_action<CB:'static>(&mut self, fun: CB)
-        where CB: Fn(&mut A, &mut ticker::Context) -> bool
+    pub fn on_action<F:'static>(&mut self, fun: F)
+        where F: Fn(&mut A, &mut ticker::Context) -> bool
     {
         let fun2: Box<OnAction<A>> = Box::new(fun);
         //let holder = ActionHolder { on_action: fun };
@@ -189,7 +189,7 @@ impl<A> ActionItem<A> {
         }
     }
 
-    pub fn activate(&mut self, gram: Gram, topos: Topos) {
+    pub fn activate(&mut self, _gram: Gram, _topos: Topos) {
         self.is_active = true;
     }
 }

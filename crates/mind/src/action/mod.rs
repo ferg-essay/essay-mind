@@ -1,3 +1,4 @@
+mod shared_memory;
 mod action_group;
 mod action;
 use ticker::{Ticker, Context};
