@@ -55,7 +55,7 @@ impl Gram {
                 '0'..='9' => { vec.push(ch as u8 - b'0' + size); size = MED; },
                 'a'..='z' => { vec.push(ch as u8 - b'a' + size + 10); size = MED; },
                 'A'..='Z' => { vec.push(ch as u8 - b'A' + size + 36); size = MED; },
-                '-' => { vec.push(size + 62); size = 0; },
+                '-' => { vec.push(size + 62); size = MED; },
                 '_' => {},
                 _ => { panic!("{} is an invalid Gram character.", ch)}
             }
