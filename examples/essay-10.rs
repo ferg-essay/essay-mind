@@ -1,6 +1,6 @@
 use std::{thread, time};
 use ui_audio::{AudioOut};
-use audio::source::{sine, sine_phase, spline_peaks, spline_shape};
+//use audio::source::{sine, sine_phase, spline_peaks, spline_shape};
 use fundsp::hacker::*;
 
 fn main() {
@@ -9,7 +9,7 @@ fn main() {
     // let c = dc(110.0) >> triangle();
     // let c = zero() >> pluck(440.0, 0.8, 0.8);
     //let c = mls();
-    let c = pink();
+    //let c = pink();
     //let c = dc(110.0) >> square();
     //let c = (mls() | dc(400.0) | dc(50.0)) >> resonator();
     //let f = 440.0;
@@ -44,7 +44,7 @@ fn main() {
     //buffer.extend(space);
     //let mut buffer = AudioReader::read("assets/bud.ogg");
     //print!("buffer {}\n", buffer.len());
-
+    /*
     let mut source = 
         0.2 * (sine(220.0) + 
         0.3 * sine_phase(330.0, 0.7) +
@@ -60,9 +60,9 @@ fn main() {
         0.056 * sine(6. * 70.0) +
         0.082 * sine(7. * 70.) +
         0.023 * sine(8. * 70.);
-
-    let freq = 238.;
-
+    */
+    // let freq = 238.;
+    /*
     let mut source = 0.3 * (
         0.317 * audio::sine(freq)
         + 0.462 * sine( 2. * freq)
@@ -78,14 +78,15 @@ fn main() {
         (0.0, 1.0),
         (0.5, -1.0),
     ]);
-
+ 
     let mut source = 0.2 * spline_shape(440., &[
         (0.0, 1.0),
         (0.5, 0.0),
         (0.5, -1.0),
         (0.0, 0.5),
     ]);
-    //let mut source = 0.2 * sine(440.);
+    */
+   //let mut source = 0.2 * sine(440.);
 
     //let mut source = source::file("assets/cymbal.wav").unwrap();
     //let mut source = 0.3 * source::file("assets/violin_b3.ogg").unwrap();

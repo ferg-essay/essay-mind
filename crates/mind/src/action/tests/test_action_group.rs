@@ -66,17 +66,17 @@ fn action_trait() {
     system.tick();
     assert_eq!(ptr.write(|a| a.take()), "");
 
-    fiber.send((gram("a"), Topos::Nil));
+    fiber.send((gram("action"), Topos::Nil));
     system.tick();
-    assert_eq!(ptr.write(|a| a.take()), "action(1)");
+    assert_eq!(ptr.write(|a| a.take()), "action-start(1)");
     system.tick();
     assert_eq!(ptr.write(|a| a.take()), "action(2)");
     system.tick();
     assert_eq!(ptr.write(|a| a.take()), "action(3)");
     system.tick();
-    assert_eq!(ptr.write(|a| a.take()), "action(4)");
+    assert_eq!(ptr.write(|a| a.take()), "action-end(4)");
     system.tick();
-    assert_eq!(ptr.write(|a| a.take()), "finish(4)");
+    assert_eq!(ptr.write(|a| a.take()), "");
     system.tick();
     assert_eq!(ptr.write(|a| a.take()), "");
 }

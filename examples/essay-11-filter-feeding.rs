@@ -8,10 +8,8 @@ fn main() {
     let world = World::new();
 
     let filter_in = FilterIn::new(world.feeding_reader());
-    let filter_in_sense = FilterInSense::new(world.feeding_reader());
 
     let filter_out = FilterOut::new(world.feeding_reader());
-    let filter_out_sense = FilterOutSense::new(world.feeding_reader());
 
     let world = system.ticker(world);
     let world_sink = world.sink(|w, msg|
@@ -21,40 +19,26 @@ fn main() {
     let mut group = action::ActionGroup::new(&mut system);
 
     let mut filter_in = group.action(gram("filter-in"), filter_in);
-    let mut source = filter_in.source(
+    filter_in.source(
         |a, fiber|
         a.world_fiber = fiber
-    );
+    ).to(&world_sink);
 
-    source.to(&world_sink);
-
-    filter_in.activator(filter_in_sense);
+    filter_in.activator(|a, ctx| a.activator(ctx));
 
     let mut filter_out = group.action(gram("filter-out"), filter_out);
-    let mut source = filter_out.source(
+    filter_out.source(
         |a, fiber|
         a.world_fiber = fiber
-    );
+    ).to(&world_sink);
 
-    source.to(&world_sink);
-
-    filter_out.activator(filter_out_sense);
-
-    //let ext_source = system.external_source();
-    //ext_source.source().to(group.request());
+    filter_out.activator(|a, ctx| a.activator(ctx));
 
     let mut system = system.build();
 
-    //let fiber = ext_source.fiber();
-
-    system.tick();
-    system.tick();
-    system.tick();
-    system.tick();
-    system.tick();
-    system.tick();
-    system.tick();
-    system.tick();
+    for _ in 0..24 {
+        system.tick();
+    }
 }
 
 //
@@ -68,8 +52,8 @@ struct FeedingPosition {
 }
 
 impl FeedingPosition {
-    fn update(&mut self, delta: f32) {
-        self.position = self.position + delta;
+    fn update(&mut self, pos: f32) {
+        self.position = pos;
 
         if self.position < 0. {
             self.position = 0.;
@@ -86,6 +70,8 @@ impl FeedingPosition {
 struct World {
     feeding: SharedWriter<FeedingPosition>,
     request: Option<Gram>,
+
+    pos: f32,
 }
 
 impl World {
@@ -93,6 +79,7 @@ impl World {
         Self {
             feeding: SharedWriter::new(),
             request: None,
+            pos: 0.
         }
     }
 
@@ -109,11 +96,19 @@ impl Ticker for World {
     fn tick(&mut self, ctx: &mut Context) {
         if let Some(msg) = self.request.take() {
             if msg == gram("filter-in") {
-                self.feeding.write(ctx.ticks()).unwrap().update(0.25);
+                self.pos += 0.25;
+                if self.pos > 1. {
+                    self.pos = 1.
+                }
+                self.feeding.write(ctx.ticks()).unwrap().update(self.pos);
                 print!("{}:world-filter-in {}\n", ctx.ticks(),
                 self.feeding.write(ctx.ticks()).unwrap().position);
             } else if msg == gram("filter-out") {
-                self.feeding.write(ctx.ticks()).unwrap().update(-0.25);
+                self.pos -= 0.25;
+                if self.pos < 0. {
+                    self.pos = 0.
+                }
+                self.feeding.write(ctx.ticks()).unwrap().update(self.pos);
                 print!("{}:world-filter-out {}\n", ctx.ticks(),
                     self.feeding.write(ctx.ticks()).unwrap().position);
             } else {
@@ -141,6 +136,16 @@ impl FilterIn {
             world_fiber: Default::default(),
         }
     }
+
+    fn activator(&mut self, ctx: &mut Context) -> bool {
+        let position = self.feeding.read(ctx.ticks()).unwrap().position;
+
+        if position < 0.75 {
+            true
+        } else {
+           false
+        }
+    }
 }
 
 impl Action for FilterIn {
@@ -148,51 +153,17 @@ impl Action for FilterIn {
         let position = self.feeding.read(ctx.ticks()).unwrap().position;
 
         if position < 1. {
-            self.world_fiber.send((gram("filter-in"), Topos::Nil));
+            self.world_fiber.send((self.id.clone(), Topos::Nil));
 
-            print!("{}:action {}\n", self.id, position);
+            print!("  {}:action {}\n", self.id, position);
             true
         } else {
-            print!("{}:complete {}\n", self.id, position);
+            print!("  {}:complete {}\n", self.id, position);
 
            false
         }
     }
 }
-
-
-//
-// # FilterInSense
-//
-
-struct FilterInSense {
-    feeding: SharedReader<FeedingPosition>,
-    request_fiber: Fiber,
-}
-
-impl FilterInSense {
-    fn new(feeding: SharedReader<FeedingPosition>) -> Self {
-        Self {
-            feeding,
-            request_fiber: Default::default(),
-        }
-    }
-}
-
-impl Action for FilterInSense {
-    fn action(&mut self, ctx: &mut Context) -> bool {
-        let position = self.feeding.read(ctx.ticks()).unwrap().position;
-
-        if position < 1. {
-            //self.request_fiber.send((gram("filter-in"), Topos::Nil));
-
-            true
-        } else {
-           false
-        }
-    }
-}
-
 
 //
 // # FilterOut
@@ -212,6 +183,16 @@ impl FilterOut {
             world_fiber: Default::default(),
         }
     }
+
+    fn activator(&mut self, ctx: &mut Context) -> bool {
+        let position = self.feeding.read(ctx.ticks()).unwrap().position;
+
+        if position > 0.25 {
+            true
+        } else {
+           false
+        }
+    }
 }
 
 impl Action for FilterOut {
@@ -221,44 +202,11 @@ impl Action for FilterOut {
         if position > 0. {
             self.world_fiber.send((gram("filter-out"), Topos::Nil));
 
-            print!("{}:action {}\n", self.id, position);
+            print!("  {}:action {}\n", self.id, position);
             true
         } else {
-            print!("{}:complete {}\n", self.id, position);
+            print!("  {}:complete {}\n", self.id, position);
 
-           false
-        }
-    }
-}
-
-
-//
-// # FilterOutSense
-//
-
-struct FilterOutSense {
-    feeding: SharedReader<FeedingPosition>,
-    request_fiber: Fiber,
-}
-
-impl FilterOutSense {
-    fn new(feeding: SharedReader<FeedingPosition>) -> Self {
-        Self {
-            feeding,
-            request_fiber: Default::default(),
-        }
-    }
-}
-
-impl Action for FilterOutSense {
-    fn action(&mut self, ctx: &mut Context) -> bool {
-        let position = self.feeding.read(ctx.ticks()).unwrap().position;
-
-        if position > 0. {
-            //self.request_fiber.send((gram("filter-out"), Topos::Nil));
-
-            true
-        } else {
            false
         }
     }

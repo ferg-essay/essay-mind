@@ -13,15 +13,17 @@ use crate::action::action_group::{ActionGroup, Action};
 #[test]
 fn test_activation() {
     let mut builder = MindBuilder::new();
-    let mut action = TestAction::new("action");
-    action.max(4);
-    let mut group = ActionGroup::new(&mut builder);
-    let mut action = group.action(gram("action"), action);
 
     let writer = SharedWriter::<TestData>::new();
     let reader = writer.reader();
 
-    action.activator(TestActivator::new("sensor", reader));
+    let mut action = TestAction::new("action", reader);
+    action.max(4);
+    let mut group = ActionGroup::new(&mut builder);
+    let mut action = group.action(gram("action"), action);
+
+    //action.activator_item(TestActivator::new("sensor", reader));
+    action.activator(|a, ctx| a.activator(ctx));
     
     let mut system = builder.build();
 
@@ -37,27 +39,35 @@ fn test_activation() {
     //fiber.send((gram("a"), Topos::Nil));
     writer.write(system.ticks()).unwrap().value = String::from("sense");
     system.tick();
-    assert_eq!(ptr.write(|a| a.take()), "");
+    assert_eq!(ptr.write(|a| a.take()), "sense-activate(3)");
 
     system.tick();
     assert_eq!(ptr.write(|a| a.take()), "action-start(1)");
     system.tick();
-    assert_eq!(ptr.write(|a| a.take()), "action(2)");
+    assert_eq!(ptr.write(|a| a.take()), "action(2), sense-activate(5)");
     system.tick();
     assert_eq!(ptr.write(|a| a.take()), "action(3)");
     system.tick();
-    assert_eq!(ptr.write(|a| a.take()), "action-end(4)");
+    assert_eq!(ptr.write(|a| a.take()), "action-end(4), sense-activate(7)");
 
     system.tick();
     assert_eq!(ptr.write(|a| a.take()), "action-start(1)");
     system.tick();
-    assert_eq!(ptr.write(|a| a.take()), "action(2)");
+    assert_eq!(ptr.write(|a| a.take()), "action(2), sense-activate(9)");
     system.tick();
     assert_eq!(ptr.write(|a| a.take()), "action(3)");
     writer.write(system.ticks()).unwrap().value = String::from("");
     system.tick();
     assert_eq!(ptr.write(|a| a.take()), "action-end(4)");
+
     system.tick();
+    assert_eq!(ptr.write(|a| a.take()), "action-start(1)");
+    system.tick();
+    assert_eq!(ptr.write(|a| a.take()), "action(2)");
+    system.tick();
+    assert_eq!(ptr.write(|a| a.take()), "action(3)");
+    system.tick();
+    assert_eq!(ptr.write(|a| a.take()), "action-end(4)");
 
     system.tick();
     assert_eq!(ptr.write(|a| a.take()), "");
@@ -67,20 +77,25 @@ fn test_activation() {
     assert_eq!(ptr.write(|a| a.take()), "");
     system.tick();
     assert_eq!(ptr.write(|a| a.take()), "");
-    system.tick();
+
 }
 
 struct TestAction {
     name: Gram,
+    reader: SharedReader<TestData>,
     values: Vec<String>,
     count: u64,
     max: u64, 
 }
 
 impl TestAction {
-    fn new(str: &str) -> Self {
+    fn new(
+        str: &str,
+        reader: SharedReader<TestData>,
+    ) -> Self {
         Self {
             name: Gram::from(str),
+            reader: reader,
             values: Vec::new(),
             count: 0,
             max: 2,
@@ -102,6 +117,17 @@ impl TestAction {
 
         value
     }
+
+    fn activator(&mut self, ctx: &mut Context) -> bool {
+        let value = self.reader.read(ctx.ticks()).unwrap().value();
+
+        if value == "sense" {
+            self.add(format!("sense-activate({})", ctx.ticks()));
+            true
+        } else {
+            false
+        }
+    }    
 }
 
 impl Action for TestAction {
