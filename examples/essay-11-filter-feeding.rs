@@ -14,7 +14,7 @@ fn main() {
     );
 
     let mut group = action::ActionGroup::new(&mut system);
-    let mut filter = group.action(filter);
+    let mut filter = group.action(gram("filter"), filter);
     let mut source = filter.source(|a, fiber|
          a.fiber = fiber
     );
@@ -123,10 +123,6 @@ impl FilterIn {
 }
 
 impl Action for FilterIn {
-    fn id(&self) -> &Gram {
-        &self.id
-    }
-
     fn action(&mut self, ctx: &mut Context) -> bool {
         let position = self.feeding.read(ctx.ticks()).unwrap().position;
 
