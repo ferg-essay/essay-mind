@@ -13,7 +13,9 @@ fn action_node() {
     let action = group.node(
         gram("a"), 
         action,
-        |a, ctx| { a.action(ctx) }
+        |a, topos, ctx| {
+            a.action(topos, ctx) 
+        }
     );
     let ext_source = builder.external_source();
     ext_source.source().to(group.request());
@@ -345,7 +347,7 @@ impl TestAction {
 }
 
 impl Action for TestAction {
-    fn action(&mut self, _: &mut Context) -> bool {
+    fn action(&mut self, _topos: Topos, _: &mut Context) -> bool {
         self.count += 1;
         if self.count == 1 {
             self.add(format!("{}-start({})", self.name, self.count));

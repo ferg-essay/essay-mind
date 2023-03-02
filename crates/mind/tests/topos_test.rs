@@ -18,5 +18,6 @@ fn test_clone() {
 
     match none.clone() {
         Topos::Nil => {}
+        Topos::Unit(_value) => {}
     }
 }

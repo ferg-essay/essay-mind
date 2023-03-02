@@ -1,7 +1,7 @@
 use ticker::Context;
 
 use crate::action::SharedReader;
-use crate::{gram, Gram, SharedWriter};
+use crate::{gram, Gram, SharedWriter, Topos};
 use crate::{MindBuilder};
 use crate::action::action_group::{ActionGroup, Action};
 
@@ -23,7 +23,7 @@ fn test_activation() {
     let mut action = group.action(gram("action"), action);
 
     //action.activator_item(TestActivator::new("sensor", reader));
-    action.activator(|a, ctx| a.activator(ctx));
+    action.activator(|a, _, ctx| a.activator(ctx));
     
     let mut system = builder.build();
 
@@ -39,24 +39,26 @@ fn test_activation() {
     //fiber.send((gram("a"), Topos::Nil));
     writer.write(system.ticks()).unwrap().value = String::from("sense");
     system.tick();
+    writer.write(system.ticks()).unwrap().value = String::from("sense");
     assert_eq!(ptr.write(|a| a.take()), "sense-activate(3)");
 
     system.tick();
-    assert_eq!(ptr.write(|a| a.take()), "action-start(1)");
+    assert_eq!(ptr.write(|a| a.take()), "action-start(1), sense-activate(4)");
     system.tick();
     assert_eq!(ptr.write(|a| a.take()), "action(2), sense-activate(5)");
     system.tick();
-    assert_eq!(ptr.write(|a| a.take()), "action(3)");
+    assert_eq!(ptr.write(|a| a.take()), "action(3), sense-activate(6)");
     system.tick();
     assert_eq!(ptr.write(|a| a.take()), "action-end(4), sense-activate(7)");
 
     system.tick();
-    assert_eq!(ptr.write(|a| a.take()), "action-start(1)");
+    assert_eq!(ptr.write(|a| a.take()), "action-start(1), sense-activate(8)");
     system.tick();
     assert_eq!(ptr.write(|a| a.take()), "action(2), sense-activate(9)");
-    system.tick();
-    assert_eq!(ptr.write(|a| a.take()), "action(3)");
     writer.write(system.ticks()).unwrap().value = String::from("");
+    system.tick();
+    writer.write(system.ticks()).unwrap().value = String::from("");
+    assert_eq!(ptr.write(|a| a.take()), "action(3)");
     system.tick();
     assert_eq!(ptr.write(|a| a.take()), "action-end(4)");
 
@@ -131,7 +133,7 @@ impl TestAction {
 }
 
 impl Action for TestAction {
-    fn action(&mut self, _: &mut Context) -> bool {
+    fn action(&mut self, _: Topos, _: &mut Context) -> bool {
         self.count += 1;
         if self.count == 1 {
             self.add(format!("{}-start({})", self.name, self.count));
@@ -156,45 +158,4 @@ impl TestData {
     fn value(&self) -> String {
         self.value.clone()
     }
-}
-
-struct TestActivator {
-    _name: Gram,
-    values: Vec<String>,
-    reader: SharedReader<TestData>,
-}
-
-impl TestActivator {
-    fn new(str: &str, reader: SharedReader<TestData>) -> Self {
-        Self {
-            _name: Gram::from(str),
-            values: Vec::new(),
-            reader: reader,
-        }
-    }
-
-    fn add(&mut self, msg: String) {
-        self.values.push(msg);
-    }
-
-    fn _take(&mut self) -> String {
-        let value = self.values.join(", ");
-
-        self.values.drain(..);
-
-        value
-    }
-}
-
-impl Action for TestActivator {
-    fn action(&mut self, ctx: &mut Context) -> bool {
-        let value = self.reader.read(ctx.ticks()).unwrap().value();
-
-        if value == "sense" {
-            self.add(format!("sense-activate({}", ctx.ticks()));
-            true
-        } else {
-            false
-        }
-    }    
 }
