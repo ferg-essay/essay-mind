@@ -103,6 +103,14 @@ impl ActionGroup {
         &self.modulate_sink
     }
 
+    pub fn min_power(&mut self, power: f32) -> &Self {
+        assert!(0. <= power);
+        
+        self.ticker.write(|g| g.min_power = power);
+
+        self
+    }
+
     pub fn decay(&mut self, decay: f32) -> &Self {
         assert!(0. <= decay && decay <= 1.);
 
@@ -116,6 +124,8 @@ struct ActionGroupInner {
     action_map: HashMap<Gram,ActionItemInner>,
     requests: Vec<Gram>,
     is_active: bool,
+
+    min_power: f32,
 
     decay: f32,
     plateau: f32,
@@ -133,9 +143,16 @@ impl ActionGroupInner {
             action_map: HashMap::new(),
             requests: Vec::new(),
             is_active: false,
+            min_power: 0.,
             decay: 0.5,
             plateau: 0.5,
         }
+    }
+
+    fn min_power(&mut self, power: f32) {
+        assert!(power >= 0.);
+
+        self.min_power = power;
     }
 
     fn add_action(
@@ -198,25 +215,26 @@ impl ActionGroupInner {
 
     fn select_action(&mut self) -> Option<&ActionItemInner> {
         let mut best_item = None;
-        let mut best_power = 0.0f32;
+        let mut best_power = self.min_power;
 
         for gram in self.requests.drain(..) {
-            match self.action_map.get(&gram) {
-                Some(item) => {
-                    let mut power = if item.is_modulated { self.plateau } else { 0.5 };
+            let weight = gram.weight();
 
-                    // cutoff for monoamine effect on selection
-                    let cutoff = 0.05;
-                    if 0.5 - cutoff < power && power < 0.5 + cutoff {
-                        power = 0.5;
-                    }
+            if let Some(item) = self.action_map.get(&gram) {
+                let mut power = if item.is_modulated { self.plateau } else { 0.5 };
 
-                    if best_power < power {
-                        best_power = power;
-                        best_item = Some(item);
-                    }
+                // cutoff for monoamine effect on selection
+                let cutoff = 0.05;
+                if 0.5 - cutoff < power && power < 0.5 + cutoff {
+                    power = 0.5;
                 }
-                None => {}
+
+                power = power * weight;
+
+                if best_power < power {
+                    best_power = power;
+                    best_item = Some(item);
+                }
             }
         }
 

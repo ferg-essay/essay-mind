@@ -16,7 +16,7 @@ pub(crate) const MED: u8 = 0x40;
 pub(crate) const HIGH: u8 = 0x80;
 pub(crate) const MAX: u8 = 0xc0;
 pub(crate) const WEIGHT_MASK: u8 = 0xc0;
-// const WEIGHT_SHIFT: u8 = 6;
+pub(crate) const WEIGHT_SHIFT: u8 = 6;
 pub(crate) const DIGIT_MASK: u8 = 0x3f;
 
 

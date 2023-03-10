@@ -1,6 +1,4 @@
-use mind::action::{SharedReader, Action};
-use mind::{action, SharedWriter, Gram, Context, MindBuilder, Topos, gram, Fiber};
-use mind::Ticker;
+use mind::{action::{self, SharedReader, Action}, Topos, gram, MindBuilder, SharedWriter, Gram, Context, Ticker, Fiber};
 
 fn main() {
     let mut system = MindBuilder::new();
@@ -24,7 +22,7 @@ fn main() {
         a.world_fiber = fiber
     ).to(&world_sink);
 
-    filter_in.activator(|a, ctx| a.activator(ctx));
+    filter_in.activator(|a, topos, ctx| a.activator(ctx));
 
     let mut filter_out = group.action(gram("filter-out"), filter_out);
     filter_out.source(
@@ -32,7 +30,7 @@ fn main() {
         a.world_fiber = fiber
     ).to(&world_sink);
 
-    filter_out.activator(|a, ctx| a.activator(ctx));
+    filter_out.activator(|a, topos, ctx| a.activator(ctx));
 
     let mut system = system.build();
 
@@ -149,7 +147,7 @@ impl FilterIn {
 }
 
 impl Action for FilterIn {
-    fn action(&mut self, ctx: &mut Context) -> bool {
+    fn action(&mut self, _: Topos, ctx: &mut Context) -> bool {
         let position = self.feeding.read(ctx.ticks()).unwrap().position;
 
         if position < 1. {
@@ -196,7 +194,7 @@ impl FilterOut {
 }
 
 impl Action for FilterOut {
-    fn action(&mut self, ctx: &mut Context) -> bool {
+    fn action(&mut self, _: Topos, ctx: &mut Context) -> bool {
         let position = self.feeding.read(ctx.ticks()).unwrap().position;
 
         if position > 0. {

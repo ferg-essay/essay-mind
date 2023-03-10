@@ -2,6 +2,8 @@ use std::{fmt, hash::Hash, hash::Hasher};
 
 use crate::gram::{Digit, digit::{NIL, MED, LOW, HIGH, MAX}};
 
+use super::digit::{DIGIT_MASK, WEIGHT_SHIFT};
+
 pub struct Gram {
     vec: Vec<u8>,
 }
@@ -49,9 +51,9 @@ impl Gram {
         for ch in value.chars() {
             match ch {
                 '.' => { vec.push(NIL); size = MED; },
-                '?' => { assert!(size == 0); size = LOW; },
-                '+' => { assert!(size == 0); size = HIGH; },
-                '!' => { assert!(size == 0); size = MAX; },
+                '?' => { assert!(size == MED); size = LOW; },
+                '+' => { assert!(size == MED); size = HIGH; },
+                '!' => { assert!(size == MED); size = MAX; },
                 '0'..='9' => { vec.push(ch as u8 - b'0' + size); size = MED; },
                 'a'..='z' => { vec.push(ch as u8 - b'a' + size + 10); size = MED; },
                 'A'..='Z' => { vec.push(ch as u8 - b'A' + size + 36); size = MED; },
@@ -64,9 +66,56 @@ impl Gram {
     
         Gram { vec: vec }
     }
+
+    pub fn to_med(&self) -> Gram {
+        let mut gram = Gram::new();
+
+        for digit in &self.vec {
+            gram.push_u8((digit & DIGIT_MASK) + MED);
+        }
+
+        gram
+    }
+
+    pub fn weight(&self) -> f32 {
+        let len = self.vec.len();
+
+        if len == 0 {
+            return 1.;
+        }
+
+        let mut sum = 0.0f32;
+        for digit in &self.vec {
+            if (digit & DIGIT_MASK) == NIL {
+            }
+            else {
+                sum += (1 << (digit >> WEIGHT_SHIFT)) as f32;
+            }
+
+        }
+
+        sum / (2 * len) as f32
+    }
     
     pub fn as_bytes(&self) -> &[u8] {
         &self.vec
+    }
+
+    pub fn base_eq(&self, gram: &Gram) -> bool {
+        let vec1 = &self.vec;
+        let vec2 = &gram.vec;
+
+        if vec1.len() != vec2.len() {
+            return false
+        }
+
+        for (x, y) in vec1.iter().zip(vec2) {
+            if x & DIGIT_MASK != y & DIGIT_MASK {
+                return false
+            }
+        }
+
+        true
     }
 }
 

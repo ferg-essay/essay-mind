@@ -1,4 +1,4 @@
-use crate::gram::{Gram,Digit::*};
+use crate::gram::{Gram,Digit::*, gram};
 
 const NIL: u8 = 0x3f; 
 const LOW: u8 = 0x00; 
@@ -51,7 +51,7 @@ fn debug_single_digit() {
 fn as_bytes_single_digit() {
     for i in 0..=0xff {
         //let gram = from_u8(u8::try_from(i).expect("invalid index"));
-        let gram = Gram::from(i);
+        let gram = Gram::from([i]);
 
         assert_eq!(gram.as_bytes(), [i]);
     }
@@ -107,7 +107,7 @@ fn string_from() {
 #[test]
 fn from_string_single() {
     for i in 0..=0xff {
-        if i == 0x3f || i == 0x7f || i == 0xbf {
+        if i == 0xff || i == 0x7f || i == 0xbf {
             continue
         }
 
@@ -120,7 +120,7 @@ fn from_string_single() {
 #[test]
 fn from_str_single() {
     for i in 0..=0xff {
-        if i == 0x3f || i == 0x7f || i == 0xbf {
+        if i == 0xff || i == 0x7f || i == 0xbf {
             continue
         }
 
@@ -134,13 +134,13 @@ fn from_str_single() {
 
 #[test]
 fn from_str_slice() {
-    assert_eq!(Gram::from(&"01234"[1..=3]).as_bytes(), [1, 2, 3]);
+    assert_eq!(Gram::from(&"01234"[1..=3]).as_bytes(), [65, 66, 67]);
 }
 
 #[test]
 fn eq() {
     assert_eq!(Gram::from("a"), Gram::from("a"));
-    assert_eq!(Gram::from("0"), Gram::from([0]));
+    assert_eq!(Gram::from("0"), Gram::from(0));
     assert_eq!(Gram::from("."), Gram::from("."));
     assert_eq!(Gram::from("09azAZ-"), Gram::from("09azAZ-"));
 
@@ -151,14 +151,93 @@ fn eq() {
     assert_ne!(Gram::from("01234"), Gram::from("0123"));
 
     assert_ne!(Gram::from("?0"), Gram::from("0"));
-    assert_ne!(Gram::from("0"), Gram::from("0"));
+    assert_ne!(Gram::from("0"), Gram::from("?0"));
     assert_ne!(Gram::from("+0"), Gram::from("0"));
     assert_ne!(Gram::from("!0"), Gram::from("+0"));
+
+    assert_ne!(Gram::from(0), Gram::from(32));
+}
+
+#[test]
+fn base_eq() {
+    assert!(Gram::from("a").base_eq(&Gram::from("a")));
+    assert!(! Gram::from("a").base_eq(&Gram::from("0")));
+    assert!(! Gram::from("0").base_eq(&Gram::from("a")));
+
+    assert!(! Gram::from("a").base_eq(&Gram::from("ab")));
+    assert!(! Gram::from("ab").base_eq(&Gram::from("a")));
+    assert!(Gram::from("ab").base_eq(&Gram::from("ab")));
+
+    assert!(Gram::from("a").base_eq(&Gram::from("a")));
+    assert!(Gram::from("a").base_eq(&Gram::from("?a")));
+    assert!(Gram::from("a").base_eq(&Gram::from("+a")));
+    assert!(Gram::from("a").base_eq(&Gram::from("!a")));
+
+    assert!(Gram::from("?a").base_eq(&Gram::from("a")));
+    assert!(Gram::from("?a").base_eq(&Gram::from("?a")));
+    assert!(Gram::from("?a").base_eq(&Gram::from("+a")));
+    assert!(Gram::from("?a").base_eq(&Gram::from("!a")));
+
+    assert!(Gram::from("+a").base_eq(&Gram::from("a")));
+    assert!(Gram::from("+a").base_eq(&Gram::from("?a")));
+    assert!(Gram::from("+a").base_eq(&Gram::from("+a")));
+    assert!(Gram::from("+a").base_eq(&Gram::from("!a")));
+
+    assert!(Gram::from("!a").base_eq(&Gram::from("a")));
+    assert!(Gram::from("!a").base_eq(&Gram::from("?a")));
+    assert!(Gram::from("!a").base_eq(&Gram::from("+a")));
+    assert!(Gram::from("!a").base_eq(&Gram::from("!a")));
+
+    assert!(! Gram::from(0).base_eq(&Gram::from(32)));
+    assert!(! Gram::from(32).base_eq(&Gram::from(0)));
 }
 
 #[test]
 fn clone() {
     assert_eq!(Gram::from("a").clone(), Gram::from("a"));
+}
+
+#[test]
+fn weight() {
+    assert_eq!(gram("").weight(), 1.);
+
+    assert_eq!(gram("a").weight(), 1.);
+    assert_eq!(gram("0").weight(), 1.);
+    assert_eq!(Gram::from(0).weight(), 1.);
+    assert_eq!(Gram::from(32).weight(), 1.);
+    assert_eq!(gram(".").weight(), 0.);
+
+    assert_eq!(gram("012345689").weight(), 1.);
+
+    assert_eq!(gram("?a").weight(), 0.5);
+    assert_eq!(gram("?a?b?c?d").weight(), 0.5);
+
+    assert_eq!(gram("+a").weight(), 2.);
+    assert_eq!(gram("+a+b+c+d").weight(), 2.);
+
+    assert_eq!(gram("!a").weight(), 4.);
+    assert_eq!(gram("!a!b!c!d").weight(), 4.);
+
+    assert_eq!(gram("?abcb").weight(), 0.875);
+    assert_eq!(gram("a?bcb").weight(), 0.875);
+    assert_eq!(gram("ab?cb").weight(), 0.875);
+    assert_eq!(gram("abc?b").weight(), 0.875);
+    assert_eq!(gram("?abc?b").weight(), 0.75);
+    assert_eq!(gram("?a?bc?b").weight(), 0.625);
+
+    assert_eq!(gram("+abcb").weight(), 1.25);
+    assert_eq!(gram("a+bcb").weight(), 1.25);
+    assert_eq!(gram("ab+cb").weight(), 1.25);
+    assert_eq!(gram("abc+b").weight(), 1.25);
+    assert_eq!(gram("+abc+b").weight(), 1.5);
+    assert_eq!(gram("+a+bc+b").weight(), 1.75);
+
+    assert_eq!(gram("!abcb").weight(), 1.75);
+    assert_eq!(gram("a!bcb").weight(), 1.75);
+    assert_eq!(gram("ab!cb").weight(), 1.75);
+    assert_eq!(gram("abc!b").weight(), 1.75);
+    assert_eq!(gram("!abc!b").weight(), 2.5);
+    assert_eq!(gram("!a!bc!b").weight(), 3.25);
 }
 
 fn from_u8(v: u8) -> Gram {
