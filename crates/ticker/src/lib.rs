@@ -1,3 +1,4 @@
+mod mind_ecs;
 mod system;
 mod ticker;
 mod builder;
