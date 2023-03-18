@@ -1,6 +1,6 @@
-use std::{any::{TypeId, type_name}, borrow::Cow};
+use std::{any::{TypeId, type_name}, borrow::Cow, marker::PhantomData};
 
-use ticker_macros::{SystemParam, Component};
+use essay_ecs_macros::{SystemParam, Component};
 
 struct App {
     systems: Vec<Box<dyn System>>,
@@ -95,7 +95,7 @@ impl App {
         }
     }
 }
-
+/*
 impl<Func:'static> System for Func 
     where Func: FnMut()
 {
@@ -107,7 +107,7 @@ impl<Func:'static> System for Func
         self()
     }
 }
-
+ */
 trait SystemParam: Sized {
     type Item: SystemParam;
 
@@ -126,6 +126,28 @@ trait SystemParamFunction<Marker>: 'static {
 
     fn lazy(&self) -> &Self {
         self
+    }
+}
+struct FunctionSystem<Marker, F>
+    where F: SystemParamFunction<Marker>,
+{
+    fun: F,
+
+    marker: PhantomData<fn() -> Marker>,
+}
+
+impl<Marker, F> System for FunctionSystem<Marker, F>
+where  
+    Marker: 'static,
+    F: SystemParamFunction<Marker>,
+{
+    fn type_id(&self) -> TypeId {
+        TypeId::of::<F>()
+    }
+
+    fn run(&mut self) {
+        let params = F::Param::get_param();
+        //self.fun.run();
     }
 }
 
@@ -198,7 +220,7 @@ impl<Func:'static, P:SystemParam> SystemParamFunction<P> for Func
 #[test]
 fn test_tick() {
     let mut app = App::new();
-    app.add_system(hello.lazy());
+    //app.add_system(hello);
     app.tick();
     app.tick();
 }
@@ -206,8 +228,8 @@ fn test_tick() {
 #[test]
 fn test_component() {
     let mut app = App::new();
-    app.component(TestComponent {});
-    app.add_system(hello);
+    //app.component(TestComponent {});
+    //app.add_system(tick);
     app.tick();
     app.tick();
 }
@@ -216,9 +238,9 @@ fn hello() {
     println!("hello, world");
 }
 
-fn tick(test: &Test) {
-    println!("test tick");
-}
+//fn tick(test: Eval<&TestComponent>) {
+//    println!("test tick");
+//}
 
 struct Test;
 

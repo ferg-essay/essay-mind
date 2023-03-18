@@ -953,6 +953,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "essay_ecs"
+version = "0.1.0"
+dependencies = [
+ "env_logger",
+ "essay_ecs_macros",
+ "log",
+]
+
+[[package]]
+name = "essay_ecs_macros"
+version = "0.1.0"
+dependencies = [
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "event-listener"
 version = "2.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2499,15 +2516,6 @@ version = "0.0.0"
 dependencies = [
  "env_logger",
  "log",
- "ticker_macros",
-]
-
-[[package]]
-name = "ticker_macros"
-version = "0.1.0"
-dependencies = [
- "quote",
- "syn",
 ]
 
 [[package]]
