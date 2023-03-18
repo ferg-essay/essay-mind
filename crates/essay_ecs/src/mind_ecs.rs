@@ -244,7 +244,7 @@ fn hello() {
 
 struct Test;
 
-#[derive(Component)]
+//#[derive(Component)]
 struct TestComponent {
 
 }

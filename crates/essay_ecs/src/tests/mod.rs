@@ -1,1 +1,1 @@
-mod test_component;
+mod test_type_info;
