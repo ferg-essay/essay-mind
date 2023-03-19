@@ -1,10 +1,16 @@
-use std::{marker::PhantomData, ptr::NonNull, fmt::Pointer};
+///
+/// Ptr/PtrMut structure from bevy_ptr
+///
+use std::{marker::PhantomData, ptr::NonNull, fmt::Pointer, mem::{ManuallyDrop, self}};
 
 #[derive(Copy, Clone)]
 pub struct Ptr<'a>(NonNull<u8>, PhantomData<&'a u8>);
 
 #[derive(Copy, Clone)]
 pub struct PtrMut<'a>(NonNull<u8>, PhantomData<&'a mut u8>);
+
+#[derive(Copy, Clone)]
+pub struct PtrOwn<'a>(NonNull<u8>, PhantomData<&'a mut u8>);
 
 impl<'a> Ptr<'a> {
     #[inline]
@@ -83,8 +89,73 @@ impl Pointer for PtrMut<'_> {
     }
 }
 
+impl<'a> PtrOwn<'a> {
+    #[inline]
+    pub fn new(data: NonNull<u8>) -> Self {
+        Self(data, PhantomData)
+    }
+
+    pub fn spawn<T, F, R>(value: T, fun: F) -> R
+        where F: FnOnce(PtrOwn<'a>) -> R
+    {
+        let mut value = ManuallyDrop::new(value);
+        
+        fun(Self::new(NonNull::from(&mut *value).cast()))
+    }
+
+    pub unsafe fn make_into<T>(value: T, storage: &mut NonNull<u8>) -> Self {
+        let len = mem::size_of::<T>();
+        
+        let mut value = ManuallyDrop::new(value);
+        let source: NonNull<u8> = NonNull::from(&mut *value).cast();
+
+        std::ptr::copy_nonoverlapping::<u8>(source.as_ptr(), storage.as_ptr(), len);
+        // println!("src {:?} target {:?}", ptr.as_ptr(), storage);
+    
+        PtrOwn::new(*storage)
+    }
+
+    /*
+
+    #[inline]
+    pub unsafe fn deref_mut<T>(self) -> &'a mut T {
+        &mut *self.as_ptr().cast::<T>() // .debug_ensure_aligned()
+    }
+    */
+
+    #[inline]
+    pub fn as_ptr(self) -> *mut u8 {
+        self.0.as_ptr()
+    }
+
+    #[inline]
+    pub fn as_mut(&mut self) -> PtrMut<'_> {
+        PtrMut::new(self.0)
+    }
+
+    #[inline]
+    pub fn as_ref(&self) -> Ptr<'_> {
+        Ptr::new(self.0)
+    }
+}
+
+impl<'a> From<PtrOwn<'a>> for NonNull<u8> {
+    fn from(value: PtrOwn<'a>) -> Self {
+        value.0
+    }
+}
+
+impl Pointer for PtrOwn<'_> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        Pointer::fmt(&self.0, f)
+    }
+}
+
+#[cfg(test)]
 mod tests {
-    use crate::ptr::PtrMut;
+    use std::{mem, ptr::NonNull, num::NonZeroUsize};
+
+    use crate::ptr::{PtrMut, PtrOwn};
 
     use super::Ptr;
 
@@ -107,6 +178,31 @@ mod tests {
     }
 
     #[test]
+    fn test_ptr_own_to_and_from() {
+        let test = Test32(1);
+        let size = mem::size_of::<Test32>();
+        let mut vec = Vec::<u8>::new();
+        vec.resize(size, 0);
+
+        let mut data = unsafe { NonNull::new_unchecked(vec.as_mut_ptr()) };
+
+        let ptr =  unsafe { PtrOwn::make_into(test, &mut data) };
+
+        let test2 = unsafe { ptr.as_ref().deref::<Test32>() };
+
+        assert_eq!(format!("{:?}", test2), "Test32(1)");
+    }
+
+    unsafe fn copy_ptr<'a>(len: usize, target: &mut NonNull<u8>, ptr: PtrOwn<'_>) -> PtrOwn<'a> {
+        //let target = NonNull::from(ptr.as_ptr());
+        println!("src {:?} target {:?} len {}", ptr.as_ptr(), target.as_ptr(), len);
+        std::ptr::copy_nonoverlapping::<u8>(ptr.as_ptr(), target.as_ptr(), len);
+        println!("src {:?} target {:?}", ptr.as_ptr(), target);
+
+        PtrOwn::new(*target)
+    }
+
+    #[test]
     fn test_ptr_mut_update() {
         let test = TestValue { value: "test-a".to_string() };
         let ptr: PtrMut =  PtrMut::from(&test);
@@ -118,6 +214,17 @@ mod tests {
         assert_eq!(format!("{:?}", test2), "TestValue { value: \"new-a\" }");
     }
 
+/*
+    #[test]
+    fn ptr_own_u32() {
+        let test = Test32(1);
+        let ptr =  PtrOwn::spawn(test);
+        let test2 = unsafe { ptr.as_ref().deref::<Test32>() };
+
+        assert_eq!(format!("{:?}", test2), "Test32(1)");
+    }
+
+*/
     fn update_value(ptr: PtrMut) {
         let test2 = unsafe { ptr.deref_mut::<TestValue>() };
         test2.value = "new-a".to_string();
@@ -125,6 +232,9 @@ mod tests {
 
     #[derive(Debug)]
     struct Test(String);
+
+    #[derive(Debug)]
+    struct Test32(u32);
 
     #[derive(Debug)]
     struct TestValue {
