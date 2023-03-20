@@ -1,19 +1,18 @@
 use crate::{
-    schedule::Schedule, 
-    system::{System, IntoSystem}, 
-    env::Env
+    system::prelude::{System, IntoSystem, Schedule}, 
+    world::prelude::{World}
 };
 
 pub struct App {
     schedule: Schedule,
-    env: Env<'static>,
+    env: World<'static>,
 }
 
 impl App {
     pub fn new() -> Self {
         App {
             schedule: Schedule::new(),
-            env: Env::new(),
+            env: World::new(),
         }
     }
 
@@ -57,7 +56,7 @@ mod tests {
         let value = Rc::new(RefCell::new(value));
         let ptr = Rc::clone(&value);
 
-        //app.add_system(move || value.borrow_mut().push("update".to_string()));
+        app.add_system(move || value.borrow_mut().push("update".to_string()));
         assert_eq!(take(&ptr), "");
         app.update();
         assert_eq!(take(&ptr), "update");

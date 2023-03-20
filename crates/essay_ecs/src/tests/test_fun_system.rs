@@ -31,8 +31,10 @@ fn test_system() {
     println!("hello");
 }
 
+/*
 fn test_resource(res: Res<String>) {
 }
+ */
 
 fn take(ptr: &Rc<RefCell<Vec<String>>>) -> String {
     ptr.borrow_mut().drain(..).collect::<Vec<String>>().join(", ")

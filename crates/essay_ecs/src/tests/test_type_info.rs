@@ -1,6 +1,6 @@
 use std::any::TypeId;
 
-use crate::type_info::{TypeInfos};
+use crate::world::prelude::{TypeInfos};
 
 #[test]
 fn empty_info_set() {

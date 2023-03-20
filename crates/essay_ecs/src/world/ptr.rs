@@ -155,7 +155,7 @@ impl Pointer for PtrOwn<'_> {
 mod tests {
     use std::{mem, ptr::NonNull};
 
-    use crate::ptr::{PtrMut, PtrOwn};
+    use super::{PtrMut, PtrOwn};
 
     use super::Ptr;
 

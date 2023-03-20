@@ -1,4 +1,4 @@
-use crate::system::System;
+use super::system::System;
 
 pub struct Schedule {
     systems: Vec<Box<dyn System>>,
