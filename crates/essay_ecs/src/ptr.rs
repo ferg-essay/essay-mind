@@ -153,7 +153,7 @@ impl Pointer for PtrOwn<'_> {
 
 #[cfg(test)]
 mod tests {
-    use std::{mem, ptr::NonNull, num::NonZeroUsize};
+    use std::{mem, ptr::NonNull};
 
     use crate::ptr::{PtrMut, PtrOwn};
 
@@ -191,15 +191,6 @@ mod tests {
         let test2 = unsafe { ptr.as_ref().deref::<Test32>() };
 
         assert_eq!(format!("{:?}", test2), "Test32(1)");
-    }
-
-    unsafe fn copy_ptr<'a>(len: usize, target: &mut NonNull<u8>, ptr: PtrOwn<'_>) -> PtrOwn<'a> {
-        //let target = NonNull::from(ptr.as_ptr());
-        println!("src {:?} target {:?} len {}", ptr.as_ptr(), target.as_ptr(), len);
-        std::ptr::copy_nonoverlapping::<u8>(ptr.as_ptr(), target.as_ptr(), len);
-        println!("src {:?} target {:?}", ptr.as_ptr(), target);
-
-        PtrOwn::new(*target)
     }
 
     #[test]
