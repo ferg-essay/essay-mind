@@ -6,5 +6,5 @@ mod world;
 pub mod prelude {
     pub use super::ptr::{Ptr, PtrMut, PtrOwn};
     pub use super::world::{World};
-    pub use super::type_info::{TypeInfos};
+    pub use super::type_info::{TypeMetas};
 }

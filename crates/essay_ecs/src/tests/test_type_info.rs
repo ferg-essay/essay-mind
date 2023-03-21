@@ -1,17 +1,17 @@
 use std::any::TypeId;
 
-use crate::world::prelude::{TypeInfos};
+use crate::world::prelude::{TypeMetas};
 
 #[test]
 fn empty_info_set() {
-    let info = TypeInfos::new();
+    let info = TypeMetas::new();
 
     assert_eq!(info.len(), 0);
 }
 
 #[test]
 fn add_info() {
-    let mut info = TypeInfos::new();
+    let mut info = TypeMetas::new();
 
     assert_eq!(info.len(), 0);
 

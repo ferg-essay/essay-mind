@@ -115,6 +115,16 @@ impl<'a> PtrOwn<'a> {
         PtrOwn::new(*storage)
     }
 
+    #[inline]
+    pub unsafe fn deref<T>(self) -> &'a T {
+        &*self.as_ptr().cast::<T>() // .debug_ensure_aligned()
+    }
+
+    #[inline]
+    pub unsafe fn deref_mut<T>(self) -> &'a mut T {
+        &mut *self.as_ptr().cast::<T>() // .debug_ensure_aligned()
+    }
+
     /*
 
     #[inline]

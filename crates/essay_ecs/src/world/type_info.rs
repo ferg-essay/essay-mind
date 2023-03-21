@@ -17,13 +17,13 @@ impl TypeIndex {
     }
 }
 
-pub struct TypeInfo {
+pub struct TypeMeta {
     id: TypeIndex,
     name: Cow<'static, str>,
     type_id: Option<TypeId>,
 }
 
-impl TypeInfo {
+impl TypeMeta {
     fn new<T:'static>(id: usize) -> Self {
         Self {
             id: TypeIndex(id),
@@ -47,7 +47,7 @@ impl TypeInfo {
     }
 }
 
-impl std::fmt::Debug for TypeInfo {
+impl std::fmt::Debug for TypeMeta {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("TypeInfo")
         .field("id", &self.id)
@@ -58,12 +58,12 @@ impl std::fmt::Debug for TypeInfo {
 }
 
 #[derive(Debug, Default)]
-pub struct TypeInfos {
-    infos: Vec<TypeInfo>,
+pub struct TypeMetas {
+    infos: Vec<TypeMeta>,
     type_to_id: HashMap<TypeId, usize>,
 }
 
-impl TypeInfos {
+impl TypeMetas {
     pub fn new() -> Self {
         Self {
             .. Default::default()
@@ -76,7 +76,7 @@ impl TypeInfos {
             .or_insert_with(|| {
             let id = self.infos.len();
 
-            self.infos.push(TypeInfo::new::<T>(id));
+            self.infos.push(TypeMeta::new::<T>(id));
 
             id
         });
@@ -88,7 +88,7 @@ impl TypeInfos {
         self.infos.len()
     }
 
-    pub fn get_info(&self, id: TypeIndex) -> Option<&TypeInfo> {
+    pub fn get_info(&self, id: TypeIndex) -> Option<&TypeMeta> {
         self.infos.get(id.0)
     }
 
@@ -109,18 +109,18 @@ impl TypeInfos {
 mod tests {
     use std::any::TypeId;
 
-    use super::TypeInfos;
+    use super::TypeMetas;
 
     #[test]
     fn empty_info_set() {
-        let info = TypeInfos::new();
+        let info = TypeMetas::new();
     
         assert_eq!(info.len(), 0);
     }
     
     #[test]
     fn add_info() {
-        let mut info = TypeInfos::new();
+        let mut info = TypeMetas::new();
     
         assert_eq!(info.len(), 0);
     
