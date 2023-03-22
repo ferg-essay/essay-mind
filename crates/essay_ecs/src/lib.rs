@@ -1,3 +1,4 @@
+mod store;
 mod system;
 mod app;
 mod world;
