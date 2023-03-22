@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 use std::{mem, ptr::NonNull};
 
 use super::ptr::PtrOwn;
-use super::type_info::{TypeIndex, TypeMetas};
+use super::type_meta::{TypeIndex, TypeMetas};
 
 pub struct Table<'w> {
     types: TypeMetas,
@@ -47,6 +47,7 @@ impl<'t> Table<'t> {
         }
     }
 
+    /*
     pub fn eval<T:'static,F>(&mut self, fun: &mut F)
         where F: FnMut(&mut T)
     {
@@ -56,6 +57,7 @@ impl<'t> Table<'t> {
             fun(value);
         }
     }
+     */
 
     pub fn iter_by_type<T:'static>(&self) -> EntityIterator<T> {
         match self.types.get_id::<T>() {
@@ -248,34 +250,33 @@ mod tests {
         assert_eq!(table.len(), 1);
 
         let mut values = Vec::<String>::new();
-        table.eval(&mut|t: &mut TestA| (&mut values).push(format!("{:?}", t)));
+        values = table.iter_by_type().map(|t: &TestA| format!("{:?}", t)).collect();
         assert_eq!(values.join(","), "TestA(1)");
 
         table.push(TestB(10000));
         assert_eq!(table.len(), 2);
 
         let mut values = Vec::<String>::new();
-        table.eval(&mut|t: &mut TestA| (&mut values).push(format!("{:?}", t)));
+        values = table.iter_by_type().map(|t: &TestA| format!("{:?}", t)).collect();
         assert_eq!(values.join(","), "TestA(1)");
 
-        let mut values = Vec::<String>::new();
-        table.eval(&mut|t: &mut TestB| (&mut values).push(format!("{:?}", t)));
+        values = table.iter_by_type().map(|t: &TestB| format!("{:?}", t)).collect();
         assert_eq!(values.join(","), "TestB(10000)");
 
         table.push(TestB(100));
         assert_eq!(table.len(), 3);
 
-        let mut values = Vec::<String>::new();
-        table.eval(&mut|t: &mut TestA| (&mut values).push(format!("{:?}", t)));
+        values = table.iter_by_type().map(|t: &TestA| format!("{:?}", t)).collect();
         assert_eq!(values.join(","), "TestA(1)");
 
-        let mut values = Vec::<String>::new();
-        table.eval(&mut|t: &mut TestB| (&mut values).push(format!("{:?}", t)));
+        values = table.iter_by_type().map(|t: &TestB| format!("{:?}", t)).collect();
         assert_eq!(values.join(","), "TestB(10000),TestB(100)");
 
-        let mut values = Vec::<String>::new();
-        table.eval(&mut|t: &mut TestB| t.0 += 1);
-        table.eval(&mut|t: &mut TestB| (&mut values).push(format!("{:?}", t)));
+        for entity in table.iter_mut_by_type::<TestB>() {
+            entity.0 += 1;
+        }
+        //table.iter_by_type().map(|t: &TestB| values.push(format!("{:?}", t)));
+        values = table.iter_by_type().map(|t: &TestB| format!("{:?}", t)).collect();
         assert_eq!(values.join(","), "TestB(10001),TestB(101)");
     }
 

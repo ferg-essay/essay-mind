@@ -1,11 +1,11 @@
-use super::table::{Table};
+use crate::store::prelude::{Table};
 
 pub struct World<'w> {
     entities: Table<'w>,
     resources: Table<'w>,
 }
 
-impl<'e> World<'e> {
+impl<'w> World<'w> {
     pub fn new() -> Self {
         Self {
             entities: Table::new(),
@@ -24,7 +24,9 @@ impl<'e> World<'e> {
     pub fn eval<T:'static,F>(&mut self, fun: &mut F)
         where F: FnMut(&mut T)
     {
-        self.entities.eval(fun);
+        for entity in self.entities.iter_mut_by_type::<T>() {
+            fun(entity);
+        }
     }
 
     pub fn add_resource<T:'static>(&mut self, value: T) {
