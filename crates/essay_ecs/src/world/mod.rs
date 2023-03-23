@@ -1,3 +1,4 @@
+mod resource;
 mod world;
 
 pub mod prelude {
