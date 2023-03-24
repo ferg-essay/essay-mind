@@ -1,6 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crate::store::{prelude::{Table}, ptr::PtrCell};
+use crate::store::{prelude::{Table, EntityRef, EntityMutIterator}, ptr::PtrCell};
 
 use super::resource::Resources;
 
@@ -15,12 +15,16 @@ impl<'w> World<'w> {
         }
     }
 
-    pub fn add_entity<T:'static>(&mut self, value: T) {
-        self.ptr.deref_mut().entities.push(value);
+    pub fn add_entity<T:'static>(&mut self, value: T) -> EntityRef<T> {
+        self.ptr.deref_mut().entities.push(value)
     }
 
     pub fn len(&self) -> usize {
         self.ptr.deref().entities.len()
+    }
+
+    pub fn iter_mut<T:'static>(&self) -> EntityMutIterator<T> {
+        self.ptr.deref_mut().entities.iter_mut_by_type::<T>()
     }
 
     pub fn eval<T:'static,F>(&self, fun: &mut F)

@@ -1,6 +1,6 @@
 use crate::{
     system::prelude::{System, IntoSystem, Schedule}, 
-    world::prelude::{World}
+    world::prelude::{World}, store::prelude::EntityRef
 };
 
 pub struct App {
@@ -29,6 +29,10 @@ impl App {
         self.schedule.push(Box::new(IntoSystem::into_system(into_system)));
 
         self
+    }
+
+    pub fn spawn<T:'static>(&mut self, value: T) -> EntityRef<T> {
+        self.world.add_entity(value)
     }
 
     pub fn add_resource<T:'static>(&mut self, value: T) {
