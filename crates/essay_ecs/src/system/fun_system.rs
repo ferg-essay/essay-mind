@@ -1,5 +1,7 @@
 use std::marker::PhantomData;
 
+use crate::world::prelude::World;
+
 use super::system::{System, IntoSystem};
 
 //
@@ -19,8 +21,9 @@ where
     M: 'static,
     F: Fun<M>
 {
-    fn run(&mut self) {
+    fn run(&mut self, world: &World) {
         let args = F::Params::get_arg(
+            world,
         );
 
         self.fun.run(args);
@@ -97,9 +100,9 @@ impl_system_function!(P1, P2, P3, P4, P5, P6, P7);
 //
  
 pub trait Param {
-    type Arg;
+    type Arg<'a>;
 
-    fn get_arg() -> Self::Arg;
+    fn get_arg<'w>(world: &'w World) -> Self::Arg<'w>;
 }
 
 //
@@ -111,10 +114,10 @@ macro_rules! impl_param_tuple {
         #[allow(non_snake_case)]
         impl<$($param: Param),*> Param for ($($param,)*)
         {
-            type Arg = ($($param::Arg,)*);
+            type Arg<'w> = ($($param::Arg<'w>,)*);
 
-            fn get_arg() -> Self::Arg {
-                ($($param::get_arg(),)*)
+            fn get_arg<'w>(world: &'w World) -> Self::Arg<'w> {
+                ($($param::get_arg(world),)*)
             }
         }
     }
@@ -129,14 +132,14 @@ impl_param_tuple!(P1, P2, P3, P4, P5);
 impl_param_tuple!(P1, P2, P3, P4, P5, P6);
 impl_param_tuple!(P1, P2, P3, P4, P5, P6, P7);
 
-type Arg<P> = <P as Param>::Arg;
+type Arg<'w, P> = <P as Param>::Arg<'w>;
 
 #[cfg(test)]
 mod tests {
     use std::any::type_name;
     use std::marker::PhantomData;
 
-    use crate::prelude::{IntoSystem, System};
+    use crate::{prelude::{IntoSystem, System}, world::prelude::World};
 
     use super::Param;
 
@@ -144,29 +147,31 @@ mod tests {
 
     #[test]
     fn arg_tuples() {
+        let world = World::new();
+
         set_global("init".to_string());
-        system(test_null);
+        system(&world, test_null);
         assert_eq!(get_global(), "test-null");
-        system(test_arg1);
+        system(&world, test_arg1);
         assert_eq!(get_global(), "test-arg1 u8");
-        system(test_arg2);
+        system(&world, test_arg2);
         assert_eq!(get_global(), "test-arg2 u8 u16");
-        system(test_arg3);
+        system(&world, test_arg3);
         assert_eq!(get_global(), "test-arg3 u8 u16 u32");
-        system(test_arg4);
+        system(&world, test_arg4);
         assert_eq!(get_global(), "test-arg4 u8 u16 u32 u64");
-        system(test_arg5);
+        system(&world, test_arg5);
         assert_eq!(get_global(), "test-arg5 u8 u16 u32 u64 i8");
-        system(test_arg6);
+        system(&world, test_arg6);
         assert_eq!(get_global(), "test-arg6 u8 u16 u32 u64 i8 i16");
-        system(test_arg7);
+        system(&world, test_arg7);
         assert_eq!(get_global(), "test-arg7 u8 u16 u32 u64 i8 i16 i32");
     }
 
-    fn system<M>(fun: impl IntoSystem<M>)->String {
+    fn system<M>(world: &World, fun: impl IntoSystem<M>)->String {
         set_global("init".to_string());
         let mut system = IntoSystem::into_system(fun);
-        system.run();
+        system.run(world);
         get_global()
     }
 
@@ -236,9 +241,9 @@ mod tests {
     }
 
     impl<V> Param for TestArg<V> {
-        type Arg = TestArg<V>;
+        type Arg<'w> = TestArg<V>;
 
-        fn get_arg() -> Self::Arg {
+        fn get_arg<'w>(world: &'w World) -> Self::Arg<'w> {
             Self {
                 name: type_name::<V>().to_string(),
                 marker: PhantomData,

@@ -1,3 +1,5 @@
+use crate::world::prelude::World;
+
 use super::system::System;
 
 pub struct Schedule {
@@ -15,9 +17,9 @@ impl Schedule {
         self.systems.push(system);
     }
 
-    pub fn update(&mut self) {
+    pub fn update(&mut self, world: &World) {
         for system in &mut self.systems {
-            system.run();
+            system.run(world);
         }
     }
 }

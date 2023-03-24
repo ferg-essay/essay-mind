@@ -5,14 +5,14 @@ use crate::{
 
 pub struct App {
     schedule: Schedule,
-    env: World<'static>,
+    world: World<'static>,
 }
 
 impl App {
     pub fn new() -> Self {
         App {
             schedule: Schedule::new(),
-            env: World::new(),
+            world: World::new(),
         }
     }
 
@@ -31,8 +31,28 @@ impl App {
         self
     }
 
+    pub fn add_resource<T:'static>(&mut self, value: T) {
+        self.world.add_resource(value);
+    }
+
+    pub fn get_resource<T:'static>(&mut self) -> Option<&T> {
+        self.world.get_resource::<T>()
+    }
+
+    pub fn get_mut_resource<T:'static>(&mut self) -> Option<&mut T> {
+        self.world.get_resource_mut::<T>()
+    }
+
+    pub fn resource<T:'static>(&mut self) -> &T {
+        self.world.get_resource::<T>().expect("unassigned resource")
+    }
+
+    pub fn resource_mut<T:'static>(&mut self) -> &mut T {
+        self.world.get_resource_mut::<T>().expect("unassigned resource")
+    }
+
     pub fn update(&mut self) -> &mut Self {
-        self.schedule.update();
+        self.schedule.update(&self.world);
         self
     }
 }
@@ -64,6 +84,24 @@ mod tests {
         app.update();
         assert_eq!(take(&ptr), "update, update");
     }
+
+    #[test]
+    fn app_resource() {
+        let mut app = App::new();
+
+        app.add_resource(TestA(1));
+        assert_eq!(app.resource::<TestA>(), &TestA(1));
+
+        app.add_resource(TestB(2));
+        assert_eq!(app.resource::<TestA>(), &TestA(1));
+        assert_eq!(app.resource::<TestB>(), &TestB(2));
+    }
+
+    #[derive(Debug, PartialEq)]
+    struct TestA(u32);
+
+    #[derive(Debug, PartialEq)]
+    struct TestB(u32);
 
     fn take(ptr: &Rc<RefCell<Vec<String>>>) -> String {
         ptr.borrow_mut().drain(..).collect::<Vec<String>>().join(", ")

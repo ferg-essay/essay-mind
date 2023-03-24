@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use crate::store::prelude::{TypeMetas, RowMeta, Table, TypeIndex, EntityRef};
 
-struct Resources<'w> {
+pub struct Resources<'w> {
     types: TypeMetas,
     table: Table<'w>,
     resources: Vec<RowMeta>,
@@ -27,6 +27,24 @@ impl<'w> Resources<'w> {
 
     pub fn set_ref<T:'static>(&mut self, entity_ref: &EntityRef<T>, value: T) {
         self.table.set(entity_ref, value);
+    }
+
+    pub fn get_by_type<T:'static>(&mut self) -> Option<&T> {
+        let type_id = self.types.add_type::<T>();
+
+        let en_ref = self.table.create_ref::<T>(type_id.index() as u32);
+
+        //self.table.get(&self.create_ref::<T>())
+        self.table.get(&en_ref)
+    }
+
+    pub fn get_mut_by_type<T:'static>(&mut self) -> Option<&mut T> {
+        let type_id = self.types.add_type::<T>();
+
+        let en_ref = self.table.create_ref::<T>(type_id.index() as u32);
+
+        //self.table.get(&self.create_ref::<T>())
+        self.table.get_mut(&en_ref)
     }
 
     pub fn create_ref<T:'static>(&mut self) -> EntityRef<T> {

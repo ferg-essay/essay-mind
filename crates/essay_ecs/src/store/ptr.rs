@@ -161,6 +161,40 @@ impl Pointer for PtrOwn<'_> {
     }
 }
 
+pub struct PtrCell<'t, T> {
+    data: Vec<u8>,
+    ptr: PtrOwn<'t>,
+    marker: PhantomData<T>,
+}
+
+// TODO: alignment, drop, columns, non-vec backing
+impl<'t, T> PtrCell<'t, T> {
+    pub fn new(value: T) -> Self {
+        let len = mem::size_of::<T>();
+
+        let mut data = Vec::<u8>::new();
+        data.resize(len, 0); // TODO: ignoring alignment
+
+        let mut storage = unsafe { NonNull::new_unchecked(data.as_mut_ptr()) };
+
+        let ptr = unsafe { PtrOwn::make_into(value, &mut storage) };
+
+        Self {
+            data: data,
+            ptr: ptr,
+            marker: PhantomData,
+        }
+    }
+
+    pub fn deref(&self) -> &T {
+        unsafe { self.ptr.deref() }
+    }
+
+    pub fn deref_mut(&self) -> &mut T {
+        unsafe { self.ptr.deref_mut() }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::{mem, ptr::NonNull};

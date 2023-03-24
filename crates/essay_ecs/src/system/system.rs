@@ -1,5 +1,7 @@
+use crate::world::prelude::World;
+
 pub trait System: 'static {
-    fn run(&mut self);
+    fn run(&mut self, world: &World);
 }
 
 pub trait IntoSystem<Marker>: Sized {

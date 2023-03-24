@@ -1,3 +1,4 @@
+mod builtin_param;
 mod store;
 mod system;
 mod app;

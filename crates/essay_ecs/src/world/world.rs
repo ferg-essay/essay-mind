@@ -1,36 +1,60 @@
-use crate::store::prelude::{Table};
+use std::{cell::RefCell, rc::Rc};
+
+use crate::store::{prelude::{Table}, ptr::PtrCell};
+
+use super::resource::Resources;
 
 pub struct World<'w> {
-    entities: Table<'w>,
-    resources: Table<'w>,
+    ptr: PtrCell<'w,WorldInner<'w>>,
 }
 
 impl<'w> World<'w> {
     pub fn new() -> Self {
         Self {
-            entities: Table::new(),
-            resources: Table::new(),
+            ptr: PtrCell::new(WorldInner::new()),
         }
     }
 
     pub fn add_entity<T:'static>(&mut self, value: T) {
-        self.entities.push(value);
+        self.ptr.deref_mut().entities.push(value);
     }
 
     pub fn len(&self) -> usize {
-        self.entities.len()
+        self.ptr.deref().entities.len()
     }
 
-    pub fn eval<T:'static,F>(&mut self, fun: &mut F)
+    pub fn eval<T:'static,F>(&self, fun: &mut F)
         where F: FnMut(&mut T)
     {
-        for entity in self.entities.iter_mut_by_type::<T>() {
+        for entity in self.ptr.deref_mut().entities.iter_mut_by_type::<T>() {
             fun(entity);
         }
     }
 
     pub fn add_resource<T:'static>(&mut self, value: T) {
-        self.resources.push(value);
+        self.ptr.deref_mut().resources.set(value);
+    }
+    
+    pub fn get_resource<T:'static>(&self) -> Option<&T> {
+        self.ptr.deref_mut().resources.get_by_type()
+    }
+    
+    pub fn get_resource_mut<T:'static>(&self) -> Option<&mut T> {
+        self.ptr.deref_mut().resources.get_mut_by_type()
+    }
+}
+
+pub struct WorldInner<'w> {
+    entities: Table<'w>,
+    resources: Resources<'w>,
+}
+
+impl<'w> WorldInner<'w> {
+    fn new() -> Self {
+        Self {
+            entities: Table::new(),
+            resources: Resources::new(),
+        }
     }
 }
 

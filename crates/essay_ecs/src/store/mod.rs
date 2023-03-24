@@ -1,4 +1,4 @@
-mod ptr;
+pub(crate) mod ptr;
 mod table;
 mod type_meta;
 
