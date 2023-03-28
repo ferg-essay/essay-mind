@@ -1,4 +1,4 @@
-use std::marker::PhantomData;
+use std::{marker::PhantomData, ops::{Deref, DerefMut}};
 
 use crate::{world::prelude::World, system::prelude::Param};
 
@@ -24,6 +24,14 @@ impl<'a, T> Param for Res<'a, T> {
     }
 }
 
+impl<'a, T:'static> Deref for Res<'a, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        self.get()
+    }
+}
+
 struct ResMut<'w, T> {
     world: &'w World<'w>,
     marker: PhantomData<T>,
@@ -36,6 +44,22 @@ impl<'w, T:'static> ResMut<'w, T> {
 
     pub fn get_mut(&self) -> &mut T {
         self.world.get_resource_mut::<T>().expect("unassigned resource")
+    }
+}
+
+impl<'a, T:'static> Deref for ResMut<'a, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        self.get()
+    }
+}
+
+impl<'a, T:'static> DerefMut for ResMut<'a, T> {
+    // type Target = T;
+
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.get_mut()
     }
 }
 
@@ -91,8 +115,9 @@ mod tests {
         let values = Rc::new(RefCell::new(Vec::<String>::new()));
         let ptr = values.clone();
 
-        app.add_system(move |r: ResMut<TestA>| {
-            r.get_mut().0 += 1;
+        app.add_system(move |mut r: ResMut<TestA>| {
+            // r.get_mut().0 += 1;
+            r.0 += 1;
             ptr.borrow_mut().push(format!("{:?}", r.get()));
         });
         assert_eq!(take(&values), "");

@@ -105,11 +105,17 @@ impl<'a> PtrOwn<'a> {
 
     pub unsafe fn make_into<T>(value: T, storage: &mut NonNull<u8>) -> Self {
         let len = mem::size_of::<T>();
+
+        let offset = 0;
         
         let mut value = ManuallyDrop::new(value);
         let source: NonNull<u8> = NonNull::from(&mut *value).cast();
 
-        std::ptr::copy_nonoverlapping::<u8>(source.as_ptr(), storage.as_ptr(), len);
+        std::ptr::copy_nonoverlapping::<u8>(
+            source.as_ptr(), 
+            storage.as_ptr(),
+            len
+        );
         // println!("src {:?} target {:?}", ptr.as_ptr(), storage);
     
         PtrOwn::new(*storage)

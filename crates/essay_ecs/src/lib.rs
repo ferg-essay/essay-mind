@@ -1,3 +1,4 @@
+mod fiber;
 mod builtin_param;
 mod store;
 mod system;

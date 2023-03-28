@@ -2,54 +2,67 @@ use std::marker::PhantomData;
 use std::{mem, ptr::NonNull};
 
 use super::ptr::PtrOwn;
+use super::row::{RowId, Row, RowMeta};
+use super::row_meta::{RowTypeId, RowMetas, ColumnTypeId, ColumnType, RowType};
 use super::type_meta::{TypeIndex, TypeMetas};
 
 pub struct Table<'w> {
-    types: TypeMetas,
+    row_meta: RowMetas,
     rows: Vec<Row<'w>>,
 }
 
 impl<'t> Table<'t> {
     pub fn new() -> Self {
-        let mut types = TypeMetas::new();
+        let mut row_meta = RowMetas::new();
 
-        types.add_type::<()>();
+        let column_type = row_meta.add_column::<()>();
+        let mut col_vec = Vec::<ColumnTypeId>::new();
+        col_vec.push(column_type.id());
+
+        let row_type = row_meta.add_row::<()>(col_vec);
+        // let row_type = self.single_role_type::<()>();
 
         Self {
-            types: types,
+            row_meta: row_meta,
             rows: Vec::new(),
         }
     }
 
     pub fn push<T:'static>(&mut self, value: T) -> EntityRef<T> {
-        let type_id = self.types.add_type::<T>();
-        let row_id = RowId(self.rows.len() as u32);
+        let row_type = self.row_meta.single_row_type::<T>();
+        let row_id = RowId::new(self.rows.len() as u32);
 
-        unsafe { self.rows.push(Row::new(value, row_id, type_id)); }
+
+        unsafe { 
+            let mut row = Row::new(row_id, row_type);
+            row.push(value, row_type.column(0));
+            self.rows.push(row);
+         }
 
         EntityRef {
-            type_id: type_id,
-            row: RowMeta {
-                row_id: row_id,
-                type_id: type_id,
-            },
+            type_id: row_type.id(),
+            row: row_id,
             marker: PhantomData,
         }
     }
 
     pub fn set<T:'static>(&mut self, entity_ref: &EntityRef<T>, value: T) {
         let type_id = entity_ref.type_id;
-        let row_id = entity_ref.row.row_id;
+        let row_id = entity_ref.row;
 
         while self.rows.len() <= row_id.index() {
-            let empty_type = self.types.get_id::<()>().expect("");
-            let empty_row = RowId(self.rows.len() as u32);
+            let empty_type = self.row_meta.get_row::<()>().expect("");
+            let empty_row = RowId::new(self.rows.len() as u32);
             unsafe {
-                self.rows.push(Row::new((), empty_row, empty_type));
+                self.rows.push(Row::new(empty_row, empty_type));
             }
         }
 
-        unsafe { self.rows[row_id.index()] = Row::new(value, row_id, type_id); }
+        let row_type = self.row_meta.get_row_id(type_id).expect("type_id");
+
+        let mut row = unsafe { Row::new(row_id, row_type) };
+
+        self.rows[row_id.index()] = row;
     }
 
     pub fn len(&self) -> usize {
@@ -57,55 +70,64 @@ impl<'t> Table<'t> {
     }
 
     pub fn get<T:'static>(&self, entity: &EntityRef<T>) -> Option<&T> {
-        match self.rows.get(entity.row.row_id.index()) {
-            Some(row) => unsafe { row.get(entity.row) },
+        match self.rows.get(entity.row_id().index()) {
+            Some(row) => unsafe { row.get(entity.row_id(), 0) },
             None => None,
         }
     }
 
     pub fn get_mut<T:'static>(&mut self, entity: &EntityRef<T>) -> Option<&mut T> {
-        match self.rows.get_mut(entity.row.row_id.index()) {
-            Some(row) => unsafe { row.get_mut(entity.row) },
+        match self.rows.get_mut(entity.row_id().index()) {
+            Some(row) => unsafe { 
+                row.get_mut(entity.row_id(), 0) 
+            },
             None => None,
         }
     }
 
     pub fn create_ref<T:'static>(&mut self, row_index: u32) -> EntityRef<T> {
-        let type_id = self.types.add_type::<T>();
+        let row_type = self.row_meta.single_row_type::<T>();
 
         EntityRef {
-            type_id: type_id,
-            row: RowMeta {
-                row_id: RowId(row_index),
-                type_id: type_id,
-            },
+            type_id: row_type.id(),
+            row: RowId::new(row_index),
             marker: PhantomData,
         }
     }
 
     pub fn iter_by_type<T:'static>(&self) -> EntityIterator<T> {
-        match self.types.get_id::<T>() {
+        match self.row_meta.get_row::<T>() {
             None => todo!(),
-            Some(type_id) => {
-                EntityIterator::new(&self, type_id)
+            Some(row_type) => {
+                EntityIterator::new(&self, row_type.id())
             }
         }
     }
 
     pub fn iter_mut_by_type<T:'static>(&mut self) -> EntityMutIterator<T> {
-        match self.types.get_id::<T>() {
+        match self.row_meta.get_row::<T>() {
             None => todo!(),
-            Some(type_id) => {
-                EntityMutIterator::new(self, type_id)
+            Some(row_type) => {
+                EntityMutIterator::new(self, row_type.id())
             }
         }
     }
 }
 
 pub struct EntityRef<T> {
-    row: RowMeta,
-    type_id: TypeIndex,
+    row: RowId,
+    type_id: RowTypeId,
     marker: PhantomData<T>,
+}
+
+impl<T> EntityRef<T> {
+    pub fn row_id(&self) -> RowId {
+        self.row
+    }
+
+    pub fn row_type_id(&self) -> RowTypeId {
+        self.type_id
+    }
 }
 
 
@@ -116,13 +138,13 @@ struct RowCursor<'a, 't> {
 }
 
 impl<'a, 't> RowCursor<'a, 't> {
-    fn next(&mut self, type_id: TypeIndex) -> Option<&Row<'t>> {
+    fn next(&mut self, row_type: RowTypeId) -> Option<&Row<'t>> {
         while self.index < self.table.len() {
            let index = self.index;
             self.index = index + 1;
 
             if let Some(row) = self.table.rows.get(index) {
-                if row.meta.type_id == type_id {
+                if row.type_id() == row_type {
                     return Some(row)
                 }
             }
@@ -134,12 +156,12 @@ impl<'a, 't> RowCursor<'a, 't> {
 
 pub struct EntityIterator<'a, 't, T> {
     cursor: RowCursor<'a, 't>,
-    type_id: TypeIndex,
+    type_id: RowTypeId,
     marker: PhantomData<T>,
 }
 
 impl<'a, 't, T> EntityIterator<'a, 't, T> {
-    pub fn new(table: &'a Table<'t>, type_id: TypeIndex) -> Self {
+    pub fn new(table: &'a Table<'t>, type_id: RowTypeId) -> Self {
         Self {
             cursor: RowCursor { table: table, index: 0 },
             type_id: type_id,
@@ -155,7 +177,7 @@ impl<'a, 't, T:'static> Iterator for EntityIterator<'a, 't, T> {
         match self.cursor.next(self.type_id) {
             None => { return None },
             Some(row) => {
-                    return unsafe { Some(row.ptr.deref()) };
+                    return unsafe { Some(row.ptr(0).deref()) };
             }
         }
     }
@@ -163,12 +185,12 @@ impl<'a, 't, T:'static> Iterator for EntityIterator<'a, 't, T> {
 
 pub struct EntityMutIterator<'a, 't, T> {
     cursor: RowCursor<'a, 't>,
-    type_id: TypeIndex,
+    type_id: RowTypeId,
     marker: PhantomData<T>,
 }
 
 impl<'a, 't, T> EntityMutIterator<'a, 't, T> {
-    pub fn new(table: &'a mut Table<'t>, type_id: TypeIndex) -> Self {
+    pub fn new(table: &'a mut Table<'t>, type_id: RowTypeId) -> Self {
         Self {
             cursor: RowCursor { table: table, index: 0 },
             type_id: type_id,
@@ -184,93 +206,9 @@ impl<'a, 't, T:'static> Iterator for EntityMutIterator<'a, 't, T> {
         match self.cursor.next(self.type_id) {
             None => { return None },
             Some(row) => {
-                return unsafe { Some(row.ptr.deref_mut()) };
+                return unsafe { Some(row.ptr(0).deref_mut()) };
             }
         }
-    }
-}
-
-pub struct Row<'t> {
-    meta: RowMeta,
-    _data: Vec<u8>,
-    ptr: PtrOwn<'t>,
-}
-
-// TODO: alignment, drop, columns, non-vec backing
-impl<'t> Row<'t> {
-    unsafe fn new<T>(value: T, row_id: RowId, type_id: TypeIndex) -> Self {
-        let len = mem::size_of::<T>();
-
-        let mut data = Vec::<u8>::new();
-        data.resize(len, 0); // TODO: ignoring alignment
-
-        let mut storage = unsafe { NonNull::new_unchecked(data.as_mut_ptr()) };
-
-        let ptr = PtrOwn::make_into(value, &mut storage);
-
-        Self {
-            meta: RowMeta::new(row_id, type_id),
-            _data: data,
-            ptr: ptr,
-        }
-    }
-
-    unsafe fn get<T:'static>(&self, row_meta: RowMeta) -> Option<&T> {
-        if row_meta.row_id == self.meta.row_id {
-            Some(self.ptr.deref())
-        } else {
-            None
-        }
-    }
-
-    unsafe fn get_mut<T:'static>(&mut self, row_meta: RowMeta) -> Option<&mut T> {
-        if row_meta.row_id == self.meta.row_id {
-            Some(self.ptr.deref_mut())
-        } else {
-            None
-        }
-    }
-}
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-struct RowTypeId(usize);
-
-pub struct RowType {
-    id: RowTypeId,
-    columns: Vec<ColumnType>,
-}
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-struct ColumnTypeId(usize);
-
-pub struct ColumnType {
-    type_id: TypeIndex,
-    offset: usize,
-    length: usize,
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct RowMeta {
-    row_id: RowId,
-    type_id: TypeIndex,
-}
-
-impl RowMeta {
-    fn new(row_id: RowId, type_id: TypeIndex) -> Self {
-        Self {
-            row_id,
-            type_id,
-        }
-    }
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Ord, PartialOrd)]
-pub struct RowId(u32);
-
-impl RowId {
-    #[inline]
-    pub const fn index(&self) -> usize {
-        self.0 as usize
     }
 }
 
