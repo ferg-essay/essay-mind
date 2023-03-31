@@ -28,10 +28,9 @@ impl<'t> Table<'t> {
         }
     }
 
-    pub fn push<T:'static>(&mut self, value: T) -> EntityRef<T> {
+    pub fn push<T:'static>(&mut self, value: T) -> RowRef<T> {
         let row_type = self.row_meta.single_row_type::<T>();
         let row_id = RowId::new(self.rows.len() as u32);
-
 
         unsafe { 
             let mut row = Row::new(row_id, row_type);
@@ -39,14 +38,14 @@ impl<'t> Table<'t> {
             self.rows.push(row);
          }
 
-        EntityRef {
+        RowRef {
             type_id: row_type.id(),
             row: row_id,
             marker: PhantomData,
         }
     }
 
-    pub fn set<T:'static>(&mut self, entity_ref: &EntityRef<T>, value: T) {
+    pub fn set<T:'static>(&mut self, entity_ref: &RowRef<T>, value: T) {
         let type_id = entity_ref.type_id;
         let row_id = entity_ref.row;
 
@@ -69,14 +68,14 @@ impl<'t> Table<'t> {
         self.rows.len()
     }
 
-    pub fn get<T:'static>(&self, entity: &EntityRef<T>) -> Option<&T> {
+    pub fn get<T:'static>(&self, entity: &RowRef<T>) -> Option<&T> {
         match self.rows.get(entity.row_id().index()) {
             Some(row) => unsafe { row.get(entity.row_id(), 0) },
             None => None,
         }
     }
 
-    pub fn get_mut<T:'static>(&mut self, entity: &EntityRef<T>) -> Option<&mut T> {
+    pub fn get_mut<T:'static>(&mut self, entity: &RowRef<T>) -> Option<&mut T> {
         match self.rows.get_mut(entity.row_id().index()) {
             Some(row) => unsafe { 
                 row.get_mut(entity.row_id(), 0) 
@@ -85,10 +84,10 @@ impl<'t> Table<'t> {
         }
     }
 
-    pub fn create_ref<T:'static>(&mut self, row_index: u32) -> EntityRef<T> {
+    pub fn create_ref<T:'static>(&mut self, row_index: u32) -> RowRef<T> {
         let row_type = self.row_meta.single_row_type::<T>();
 
-        EntityRef {
+        RowRef {
             type_id: row_type.id(),
             row: RowId::new(row_index),
             marker: PhantomData,
@@ -114,13 +113,13 @@ impl<'t> Table<'t> {
     }
 }
 
-pub struct EntityRef<T> {
+pub struct RowRef<T> {
     row: RowId,
     type_id: RowTypeId,
     marker: PhantomData<T>,
 }
 
-impl<T> EntityRef<T> {
+impl<T> RowRef<T> {
     pub fn row_id(&self) -> RowId {
         self.row
     }
@@ -212,11 +211,6 @@ impl<'a, 't, T:'static> Iterator for EntityMutIterator<'a, 't, T> {
     }
 }
 
-pub struct RowRef<'w> {
-    table: &'w Table<'w>,
-    row_id: RowId,
-}
-
 #[cfg(test)]
 mod tests {
     use super::Table;
@@ -229,14 +223,14 @@ mod tests {
         table.push(TestA(1));
         assert_eq!(table.len(), 1);
 
-        let mut values = Vec::<String>::new();
-        values = table.iter_by_type().map(|t: &TestA| format!("{:?}", t)).collect();
+        let mut values : Vec<String> = table.iter_by_type()
+            .map(|t: &TestA| format!("{:?}", t))
+            .collect();
         assert_eq!(values.join(","), "TestA(1)");
 
         table.push(TestB(10000));
         assert_eq!(table.len(), 2);
 
-        let mut values = Vec::<String>::new();
         values = table.iter_by_type().map(|t: &TestA| format!("{:?}", t)).collect();
         assert_eq!(values.join(","), "TestA(1)");
 

@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::store::prelude::{TypeMetas, RowMeta, Table, TypeIndex, EntityRef};
+use crate::store::prelude::{TypeMetas, RowMeta, Table, TypeIndex, RowRef};
 
 pub struct Resources<'w> {
     types: TypeMetas,
@@ -17,7 +17,7 @@ impl<'w> Resources<'w> {
         }
     }
 
-    pub fn set<T:'static>(&mut self, value: T) -> EntityRef<T> {
+    pub fn set<T:'static>(&mut self, value: T) -> RowRef<T> {
         let entity_ref = self.create_ref::<T>();
 
         self.set_ref(&entity_ref, value);
@@ -25,7 +25,7 @@ impl<'w> Resources<'w> {
         entity_ref
     }
 
-    pub fn set_ref<T:'static>(&mut self, entity_ref: &EntityRef<T>, value: T) {
+    pub fn set_ref<T:'static>(&mut self, entity_ref: &RowRef<T>, value: T) {
         self.table.set(entity_ref, value);
     }
 
@@ -47,17 +47,17 @@ impl<'w> Resources<'w> {
         self.table.get_mut(&en_ref)
     }
 
-    pub fn create_ref<T:'static>(&mut self) -> EntityRef<T> {
+    pub fn create_ref<T:'static>(&mut self) -> RowRef<T> {
         let type_id = self.types.add_type::<T>();
 
         self.table.create_ref::<T>(type_id.index() as u32)
     }
 
-    pub fn get<T:'static>(&self, entity: &EntityRef<T>) -> Option<&T> {
+    pub fn get<T:'static>(&self, entity: &RowRef<T>) -> Option<&T> {
         self.table.get(entity)
     }
 
-    pub fn get_mut<T:'static>(&mut self, entity: &EntityRef<T>) -> Option<&mut T> {
+    pub fn get_mut<T:'static>(&mut self, entity: &RowRef<T>) -> Option<&mut T> {
         self.table.get_mut(entity)
     }
 }

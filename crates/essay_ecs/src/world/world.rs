@@ -1,6 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crate::store::{prelude::{Table, EntityRef, EntityMutIterator}, ptr::PtrCell};
+use crate::store::{prelude::{Table, RowRef, EntityMutIterator}, ptr::PtrCell};
 
 use super::resource::Resources;
 
@@ -15,7 +15,7 @@ impl<'w> World<'w> {
         }
     }
 
-    pub fn add_entity<T:'static>(&mut self, value: T) -> EntityRef<T> {
+    pub fn add_entity<T:'static>(&mut self, value: T) -> RowRef<T> {
         self.ptr.deref_mut().entities.push(value)
     }
 

@@ -1,4 +1,4 @@
-use std::{mem, collections::HashMap, cmp::max, slice::Iter};
+use std::{mem, collections::HashMap, cmp::max, slice::Iter, any::TypeId};
 
 use super::prelude::TypeMetas;
 
@@ -28,8 +28,9 @@ pub struct RowMetas {
     col_type_metas: TypeMetas,
     col_types: Vec<ColumnType>,
 
-    row_type_metas: TypeMetas,
-    row_type_map: HashMap<Vec<ColumnTypeId>,RowTypeId>,
+    //row_type_metas: TypeMetas,
+    row_col_map: HashMap<Vec<ColumnTypeId>,RowTypeId>,
+    row_type_map: HashMap<TypeId,RowTypeId>,
     row_types: Vec<RowType>,
 }
 
@@ -85,13 +86,14 @@ impl RowMetas {
             col_type_metas: TypeMetas::new(),
             col_types: Vec::new(),
 
-            row_type_metas: TypeMetas::new(),
+            row_col_map: HashMap::new(),
             row_type_map: HashMap::new(),
             row_types: Vec::new(),
         }
     }
 
     pub fn add_row<T:'static>(&mut self, mut columns: Vec<ColumnTypeId>) -> &RowType {
+        let type_id = TypeId::of::<T>();
         columns.sort();
         let mut len: usize = 0;
         let mut align: usize = 1;
@@ -107,38 +109,28 @@ impl RowMetas {
             column_types.push(column_type.clone());
         }
 
-        let type_id = self.row_type_metas.add_type::<T>();
-
-        let type_id = self.row_type_map.entry(columns.clone()).or_insert_with(|| {
-            RowTypeId(type_id.index())
+        //let type_id = self.row_type_metas.add_type::<T>();
+        let len = self.row_col_map.len();
+        let row_type_id = self.row_col_map.entry(columns.clone()).or_insert_with(|| {
+            RowTypeId(len)
         });
 
-        if type_id.index() < self.row_types.len() {
-            return self.row_types.get(type_id.index()).expect("old row")
-        }
-
-        while self.row_types.len() < type_id.index() {
+        if row_type_id.index() == self.row_types.len() {
             self.row_types.push(RowType {
-                id: RowTypeId(self.row_types.len()),
-                columns: Vec::new(),
-                length: 0,
-                align: 0,
+                id: *row_type_id,
+                columns: column_types,
+                length: len,
+                align: align,
             });
         }
 
-        self.row_types.push(RowType {
-            id: *type_id,
-            columns: column_types,
-            length: len,
-            align: align,
+        self.row_type_map.insert(type_id, *row_type_id);
 
-        });
-
-        self.row_types.get(type_id.index()).expect("get row")
+        self.row_types.get(row_type_id.index()).expect("get row")
     }
 
     pub fn get_row<T:'static>(&self) -> Option<&RowType> {
-        match self.row_type_metas.get_id::<T>() {
+        match self.row_type_map.get(&TypeId::of::<T>()) {
             Some(row_id) => {
                 self.row_types.get(row_id.index())
             },

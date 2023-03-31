@@ -1,6 +1,6 @@
-use std::{ptr::NonNull, mem, marker::PhantomData};
+use std::{ptr::NonNull};
 
-use super::{prelude::TypeIndex, ptr::PtrOwn, row_meta::{RowType, RowTypeId, ColumnType}};
+use super::{ptr::PtrOwn, row_meta::{RowType, RowTypeId, ColumnType}};
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Ord, PartialOrd)]
 pub struct RowId(u32);
@@ -10,13 +10,6 @@ pub(crate) struct Row<'t> {
     type_id: RowTypeId,
     data: Vec<u8>,
     ptrs: Vec<PtrOwn<'t>>,
-}
-
-pub struct RowBuilder<'t> {
-    id: RowId,
-    row_type: &'t RowType,
-    ptrs: Vec<PtrOwn<'t>>,
-    offset: usize,
 }
 
 // TODO: alignment, drop, columns, non-vec backing
@@ -29,12 +22,6 @@ impl<'t> Row<'t> {
 
         let mut data = Vec::<u8>::new();
         data.resize(len, 0); // TODO: ignoring alignment
-
-        /*
-        let mut storage = unsafe { NonNull::new_unchecked(data.as_mut_ptr()) };
-
-        let ptr = PtrOwn::make_into(value, &mut storage);
-        */
 
         Self {
             row_id: row_id,
@@ -55,26 +42,6 @@ impl<'t> Row<'t> {
 
         self.ptrs.push(ptr);
     }
-
-    /*
-    pub unsafe fn new_old<T>(value: T, row_id: RowId, row_type: RowTypeId) -> Self {
-        let len = mem::size_of::<T>();
-
-        let mut data = Vec::<u8>::new();
-        data.resize(len, 0); // TODO: ignoring alignment
-
-        let mut storage = unsafe { NonNull::new_unchecked(data.as_mut_ptr()) };
-
-        let ptr = PtrOwn::make_into(value, &mut storage);
-
-        Self {
-            row_id: row_id,
-            type_id: row_type,
-            _data: data,
-            ptr: ptr,
-        }
-    }
-    */
 
     pub fn type_id(&self) -> RowTypeId {
         self.type_id
@@ -104,11 +71,11 @@ impl<'t> Row<'t> {
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct RowMeta {
     row_id: RowId,
-    type_id: TypeIndex,
+    type_id: RowTypeId,
 }
 
 impl RowMeta {
-    pub fn new(row_id: RowId, type_id: TypeIndex) -> Self {
+    pub fn new(row_id: RowId, type_id: RowTypeId) -> Self {
         Self {
             row_id,
             type_id,

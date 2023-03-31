@@ -1,6 +1,6 @@
 use crate::{
     system::prelude::{System, IntoSystem, Schedule}, 
-    world::prelude::{World}, store::prelude::EntityRef
+    world::prelude::{World}, store::prelude::RowRef
 };
 
 pub struct App {
@@ -31,7 +31,7 @@ impl App {
         self
     }
 
-    pub fn spawn<T:'static>(&mut self, value: T) -> EntityRef<T> {
+    pub fn spawn<T:'static>(&mut self, value: T) -> RowRef<T> {
         self.world.add_entity(value)
     }
 
