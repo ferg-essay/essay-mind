@@ -58,7 +58,15 @@ impl RowType {
     }
 
     pub fn column(&self, index: usize) -> &ColumnType {
-        self.columns.get(index).expect("index column")
+        self.columns.get(index).unwrap()
+    }
+
+    pub fn column_position(&self, id: ColumnTypeId) -> Option<usize> {
+        self.columns.iter().position(|col| col.id() == id)
+    }
+
+    pub fn column_find(&self, id: ColumnTypeId) -> Option<&ColumnType> {
+        self.columns.iter().find(|col| col.id() == id)
     }
 }
 
@@ -92,18 +100,32 @@ impl RowMetas {
         }
     }
 
-    pub fn add_row<T:'static>(&mut self, mut columns: Vec<ColumnTypeId>) -> &RowType {
-        let type_id = TypeId::of::<T>();
+    pub fn push_row(
+        &mut self, 
+        row_id: RowTypeId, 
+        column_id: ColumnTypeId
+    ) -> RowTypeId {
+        let row_type = self.row_types.get(row_id.index()).unwrap();
+
+        let mut columns : Vec<ColumnTypeId> = row_type.columns.iter().map(
+            |col| col.id()
+        ).collect();
+        columns.push(column_id);
+
+        self.add_row(columns)
+    }
+
+    pub fn add_row(&mut self, mut columns: Vec<ColumnTypeId>) -> RowTypeId {
         columns.sort();
-        let mut len: usize = 0;
+        let mut length: usize = 0;
         let mut align: usize = 1;
 
         let mut column_types = Vec::<ColumnType>::new();
 
         for column_id in &columns {
-            let column_type = self.col_types.get(column_id.0).expect("column_id");
+            let column_type = self.col_types.get(column_id.0).unwrap();
 
-            len += column_type.length; // TODO: align
+            length += column_type.length; // TODO: align
             align = max(align, column_type.align); 
 
             column_types.push(column_type.clone());
@@ -119,14 +141,59 @@ impl RowMetas {
             self.row_types.push(RowType {
                 id: *row_type_id,
                 columns: column_types,
-                length: len,
+                length: length,
                 align: align,
             });
         }
 
-        self.row_type_map.insert(type_id, *row_type_id);
+        *row_type_id
+    }
 
-        self.row_types.get(row_type_id.index()).expect("get row")
+    pub fn add_row_cols<T:'static>(&mut self, mut columns: Vec<ColumnTypeId>) -> RowTypeId {
+        // let type_id = TypeId::of::<T>();
+        columns.sort();
+        let mut length: usize = 0;
+        let mut align: usize = 1;
+
+        let mut column_types = Vec::<ColumnType>::new();
+
+        for column_id in &columns {
+            let column_type = self.col_types.get(column_id.0).expect("column_id");
+
+            length += column_type.length; // TODO: align
+            align = max(align, column_type.align); 
+
+            column_types.push(column_type.clone());
+        }
+
+        //let type_id = self.row_type_metas.add_type::<T>();
+        let len = self.row_col_map.len();
+        let row_type_id = self.row_col_map.entry(columns.clone()).or_insert_with(|| {
+            RowTypeId(len)
+        });
+
+        if row_type_id.index() == self.row_types.len() {
+            self.row_types.push(RowType {
+                id: *row_type_id,
+                columns: column_types,
+                length: length,
+                align: align,
+            });
+        }
+
+        *row_type_id
+
+        //self.row_type_map.insert(type_id, *row_type_id);
+
+        //self.row_types.get(row_type_id.index()).expect("get row")
+    }
+
+    pub fn add_row_type<T:'static>(&mut self, row_type: RowTypeId) -> RowTypeId {
+        let type_id = TypeId::of::<T>();
+
+        self.row_type_map.insert(type_id, row_type);
+
+        row_type
     }
 
     pub fn get_row<T:'static>(&self) -> Option<&RowType> {
@@ -138,16 +205,16 @@ impl RowMetas {
         }
     }
 
-    pub fn get_row_id(&mut self, row_type_id: RowTypeId) -> Option<&RowType> {
-        self.row_types.get(row_type_id.index())
+    pub fn get_row_id(&self, row_type_id: RowTypeId) -> &RowType {
+        self.row_types.get(row_type_id.index()).unwrap()
     }
 
-    pub fn single_row_type<T:'static>(&mut self) -> &RowType {
+    pub fn single_row_type<T:'static>(&mut self) -> RowTypeId {
         let column_type = self.add_column::<T>();
         let mut col_vec = Vec::<ColumnTypeId>::new();
         col_vec.push(column_type.id());
 
-        self.add_row::<T>(col_vec)
+        self.add_row(col_vec)
     }
 
     pub fn add_column<T:'static>(&mut self) -> &ColumnType {
@@ -173,7 +240,7 @@ impl RowMetas {
             self.col_types.push(col_type);
         }
 
-        return self.col_types.get(type_index.index()).expect("missing col");
+        return self.col_types.get(type_index.index()).unwrap();
     }
 
     pub fn get_column<T:'static>(&self) -> Option<&ColumnType> {

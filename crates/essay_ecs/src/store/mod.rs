@@ -1,3 +1,5 @@
+mod entity;
+mod entity_meta;
 mod row_meta;
 mod row;
 pub(crate) mod ptr;

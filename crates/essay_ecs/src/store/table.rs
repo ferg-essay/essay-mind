@@ -1,35 +1,50 @@
 use std::marker::PhantomData;
-use std::{mem, ptr::NonNull};
 
-use super::ptr::PtrOwn;
-use super::row::{RowId, Row, RowMeta};
+use super::entity_meta::EntityMeta;
+use super::row::{RowId, Row};
 use super::row_meta::{RowTypeId, RowMetas, ColumnTypeId, ColumnType, RowType};
-use super::type_meta::{TypeIndex, TypeMetas};
 
 pub struct Table<'w> {
     row_meta: RowMetas,
+    //entity_meta: EntityMeta,
     rows: Vec<Row<'w>>,
 }
 
 impl<'t> Table<'t> {
     pub fn new() -> Self {
         let mut row_meta = RowMetas::new();
+        let entity_meta = EntityMeta::new();
 
         let column_type = row_meta.add_column::<()>();
         let mut col_vec = Vec::<ColumnTypeId>::new();
         col_vec.push(column_type.id());
 
-        let row_type = row_meta.add_row::<()>(col_vec);
+        let row_type = row_meta.add_row(col_vec);
+        row_meta.add_row_type::<()>(row_type);
         // let row_type = self.single_role_type::<()>();
 
         Self {
             row_meta: row_meta,
+            //entity_meta: entity_meta,
             rows: Vec::new(),
         }
     }
 
+    pub fn row_meta(&self) -> &RowMetas {
+        &self.row_meta
+    }
+
+    pub fn column_type<T:'static>(&mut self) -> &ColumnType {
+        self.row_meta.add_column::<T>()
+    }
+
+    pub fn get_row_type(&self, row_type_id: RowTypeId) -> &RowType {
+        self.row_meta.get_row_id(row_type_id)
+    }
+
     pub fn push<T:'static>(&mut self, value: T) -> RowRef<T> {
-        let row_type = self.row_meta.single_row_type::<T>();
+        let row_type_id = self.row_meta.single_row_type::<T>();
+        let row_type = self.row_meta.get_row_id(row_type_id);
         let row_id = RowId::new(self.rows.len() as u32);
 
         unsafe { 
@@ -45,21 +60,38 @@ impl<'t> Table<'t> {
         }
     }
 
+    pub fn replace_push<T:'static>(&mut self, row_id: RowId, value: T) {
+        let col_type_id = self.column_type::<T>().id();
+        let row = self.rows.get(row_id.index()).unwrap();
+        let new_type_id = self.row_meta.push_row(row.type_id(), col_type_id);
+        let old_type = self.row_meta.get_row_id(row.type_id());
+        let new_type = self.row_meta.get_row_id(new_type_id);
+
+        let new_row = unsafe {
+            row.replace_push(value, old_type, new_type, col_type_id)
+        };
+
+        let new_row_id = new_row.id();
+        // let row = 0;
+
+        self.rows[new_row_id.index()] = new_row;
+    }
+
     pub fn set<T:'static>(&mut self, entity_ref: &RowRef<T>, value: T) {
         let type_id = entity_ref.type_id;
         let row_id = entity_ref.row;
 
         while self.rows.len() <= row_id.index() {
-            let empty_type = self.row_meta.get_row::<()>().expect("");
+            let empty_type = self.row_meta.get_row::<()>().unwrap();
             let empty_row = RowId::new(self.rows.len() as u32);
             unsafe {
                 self.rows.push(Row::new(empty_row, empty_type));
             }
         }
 
-        let row_type = self.row_meta.get_row_id(type_id).expect("type_id");
+        let row_type = self.row_meta.get_row_id(type_id);
 
-        let mut row = unsafe { Row::new(row_id, row_type) };
+        let row = unsafe { Row::new(row_id, row_type) };
 
         self.rows[row_id.index()] = row;
     }
@@ -84,11 +116,26 @@ impl<'t> Table<'t> {
         }
     }
 
+    pub fn get_row<T:'static>(
+        &self, 
+        row_id: RowId,
+        cols: &Vec<usize>,
+    ) -> Option<&T> {
+        match self.rows.get(row_id.index()) {
+            Some(row) => {
+                unsafe {
+                    row.get(row_id, *cols.get(0).unwrap())
+                }
+            },
+            None => None,
+        }
+    }
+
     pub fn create_ref<T:'static>(&mut self, row_index: u32) -> RowRef<T> {
         let row_type = self.row_meta.single_row_type::<T>();
 
         RowRef {
-            type_id: row_type.id(),
+            type_id: row_type,
             row: RowId::new(row_index),
             marker: PhantomData,
         }
@@ -111,6 +158,14 @@ impl<'t> Table<'t> {
             }
         }
     }
+
+    pub(crate) fn push_row_type(
+        &mut self, 
+        row_id: RowTypeId, 
+        column_id: ColumnTypeId
+    ) -> RowTypeId {
+        self.row_meta.push_row(row_id, column_id)
+    }
 }
 
 pub struct RowRef<T> {
@@ -128,8 +183,6 @@ impl<T> RowRef<T> {
         self.type_id
     }
 }
-
-
 
 struct RowCursor<'a, 't> {
     table: &'a Table<'t>,
