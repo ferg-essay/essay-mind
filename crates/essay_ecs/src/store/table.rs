@@ -30,7 +30,7 @@ impl<'t> Table<'t> {
         }
     }
 
-    pub fn row_meta(&self) -> &RowMetas {
+    pub(crate) fn row_meta(&self) -> &RowMetas {
         &self.row_meta
     }
 

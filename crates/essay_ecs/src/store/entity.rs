@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use super::{prelude::Table, row::RowId, entity_meta::{EntityRowTypeId, EntityMeta, EntityRowType}, row_meta::{ColumnTypeId, RowTypeId}};
+use super::{prelude::Table, row::RowId, entity_meta::{EntityRowTypeId, EntityMeta, EntityRowType, EntityTypeId}, row_meta::{ColumnTypeId, RowTypeId}};
 
 pub struct EntityTable<'w> {
     table: Table<'w>,
@@ -24,7 +24,7 @@ impl<'w> EntityTable<'w> {
     pub fn push<T:'static>(&mut self, value: T) -> EntityRef<T> {
         let row_ref = self.table.push(value);
 
-        let type_id = self.entity_type::<T>(row_ref.row_type_id());
+        let type_id = self.entity_row_type::<T>(row_ref.row_type_id());
 
         EntityRef {
             row_id: row_ref.row_id(),
@@ -33,7 +33,11 @@ impl<'w> EntityTable<'w> {
         }        
     }
 
-    pub fn entity_type<T:'static>(&mut self, row_type: RowTypeId) -> EntityRowTypeId {
+    pub fn entity_type(&mut self, cols: Vec<ColumnTypeId>) -> EntityTypeId {
+        self.entity_meta.entity_type(cols)
+    }
+
+    pub fn entity_row_type<T:'static>(&mut self, row_type: RowTypeId) -> EntityRowTypeId {
         let col_type = self.table.column_type::<T>();
 
         let mut columns = Vec::<ColumnTypeId>::new();
@@ -89,20 +93,6 @@ impl<T:'static> EntityRef<T> {
 
     pub fn push<S:'static>(&self, table: &mut EntityTable, value: S) {
         table.table.replace_push(self.row_id, value);
-        /*
-        let col_type = table.table.column_type::<S>();
-        let col_type_id = col_type.id();
-
-        let entity_type = table.push_entity_type(
-            self.entity_row_type, 
-            col_type_id
-        );
-
-        let row_type = table.entity_meta
-            .get_entity_row(self.entity_row_type);
-
-        table.table.get_row(self.row_id, row_type.columns())
-        */
     }
 }
 
