@@ -1,6 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crate::store::{prelude::{Table, RowRef, EntityMutIterator}, ptr::PtrCell};
+use crate::store::{prelude::{Table, RowRef, EntityMutIterator, EntityTable, EntityRef, Entity2MutIterator}, ptr::PtrCell};
 
 use super::resource::Resources;
 
@@ -15,15 +15,15 @@ impl<'w> World<'w> {
         }
     }
 
-    pub fn add_entity<T:'static>(&mut self, value: T) -> RowRef<T> {
-        self.ptr.deref_mut().entities.push(value)
+    pub fn add_entity<T:'static>(&mut self, value: T) -> EntityRef<T> {
+        self.ptr.deref_mut().entities.push::<T>(value)
     }
 
     pub fn len(&self) -> usize {
         self.ptr.deref().entities.len()
     }
 
-    pub fn iter_mut<T:'static>(&self) -> EntityMutIterator<T> {
+    pub fn iter_mut<T:'static>(&self) -> Entity2MutIterator<T> {
         self.ptr.deref_mut().entities.iter_mut_by_type::<T>()
     }
 
@@ -49,14 +49,14 @@ impl<'w> World<'w> {
 }
 
 pub struct WorldInner<'w> {
-    entities: Table<'w>,
+    entities: EntityTable<'w>,
     resources: Resources<'w>,
 }
 
 impl<'w> WorldInner<'w> {
     fn new() -> Self {
         Self {
-            entities: Table::new(),
+            entities: EntityTable::new(),
             resources: Resources::new(),
         }
     }

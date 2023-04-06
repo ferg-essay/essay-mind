@@ -1,43 +1,57 @@
 use std::marker::PhantomData;
 
-use super::{prelude::Table, row::RowId, entity_meta::{EntityRowTypeId, EntityMeta, EntityRowType, EntityTypeId}, row_meta::{ColumnTypeId, RowTypeId}};
+use super::{prelude::Table, row::{RowId, Row}, row_meta::{EntityRowTypeId, EntityRowType, EntityTypeId}, row_meta::{ColumnTypeId, RowTypeId}};
 
 pub struct EntityTable<'w> {
     table: Table<'w>,
-    entity_meta: EntityMeta,
+//    entity_meta: EntityMeta,
 }
 
 pub struct EntityRef<T> {
     row_id: RowId,
+    row_type: RowTypeId,
     entity_row_type: EntityRowTypeId,
     marker: PhantomData<T>,
 }
 
-impl<'w> EntityTable<'w> {
+impl<'t> EntityTable<'t> {
     pub fn new() -> Self {
         EntityTable {
             table: Table::new(),
-            entity_meta: EntityMeta::new(),
+  //          entity_meta: EntityMeta::new(),
         }
     }
 
     pub fn push<T:'static>(&mut self, value: T) -> EntityRef<T> {
         let row_ref = self.table.push(value);
 
-        let type_id = self.entity_row_type::<T>(row_ref.row_type_id());
+        let type_id = self.entity_row_by_type::<T>(row_ref.row_type_id());
 
         EntityRef {
             row_id: row_ref.row_id(),
+            row_type: row_ref.row_type_id(),
             entity_row_type: type_id,
             marker: PhantomData,
         }        
     }
 
     pub fn entity_type(&mut self, cols: Vec<ColumnTypeId>) -> EntityTypeId {
-        self.entity_meta.entity_type(cols)
+        todo!()
+        //self.table.row_meta.entity_type(cols)
     }
 
-    pub fn entity_row_type<T:'static>(&mut self, row_type: RowTypeId) -> EntityRowTypeId {
+    pub fn entity_row_type(
+        &mut self, 
+        row_id: RowTypeId, 
+        entity_id: EntityTypeId
+    ) -> EntityRowTypeId {
+        let row_type = self.table.get_row_type(row_id);
+
+        todo!()
+        //self.entity_meta.entity_row(row_type, entity_id)
+    }
+
+    pub fn entity_row_by_type<T:'static>(&mut self, row_type: RowTypeId) -> EntityRowTypeId {
         let col_type = self.table.column_type::<T>();
 
         let mut columns = Vec::<ColumnTypeId>::new();
@@ -46,14 +60,15 @@ impl<'w> EntityTable<'w> {
 
         let row_type = self.table.get_row_type(row_type);
 
+        todo!();
+        /*
         let entity_meta = &mut self.entity_meta;
 
-        let type_id = entity_meta.entity_type(columns);
+        let entity_id = entity_meta.entity_type(columns);
         // let entity_type = entity_meta.get_entity_type(type_id).expect("entity-type");
 
-        let entity_row_type = entity_meta.entity_row(row_type, type_id);
-
-        entity_row_type.id()
+        entity_meta.entity_row(row_type, entity_id)
+        */
     }
 
     pub(crate) fn push_entity_type(
@@ -61,6 +76,8 @@ impl<'w> EntityTable<'w> {
         entity_row_type: EntityRowTypeId, 
         col_type_id: ColumnTypeId
     ) -> EntityRowTypeId {
+        todo!();
+        /*
         let entity_row = self.entity_meta
             .get_entity_row(entity_row_type);
 
@@ -71,24 +88,145 @@ impl<'w> EntityTable<'w> {
 
         let row_type = self.table.get_row_type(row_type_id);
 
-        let entity_type = self.entity_meta.push_entity_type(
+        let entity_id = self.entity_meta.push_entity_type(
             entity_row.entity_type_id(),
             col_type_id
         );
 
-        let entity_row_type = self.entity_meta.entity_row(
-            row_type, entity_type
-        );
+        self.entity_meta.entity_row(row_type, entity_id)
+         */
+    }
 
-        entity_row_type.id()
+    fn iter_type<T:'static>(&self) -> &T {
+        todo!()
+    }
+
+    pub(crate) fn len(&self) -> usize {
+        self.table.len()
+    }
+
+    pub(crate) fn iter_by_type<T:'static>(&self) -> Entity2Iterator<T> {
+        match self.table.get_column_type_id::<T>() {
+            Some(component_id) => { todo!() },
+            None => todo!(),
+        }
+    }
+
+    pub(crate) fn get_single_entity_type<T:'static>(&self) -> Option<EntityTypeId> {
+        todo!();
+        /*
+        match self.table.get_column_type_id::<T>() {
+            Some(component_id) => { 
+                let cols = Vec::from([component_id]);
+
+                self.entity_meta.get_entity_type_cols(&cols)
+            },
+            None => None,
+        }
+         */
+    }
+
+    pub(crate) fn iter_mut_by_type<T:'static>(&mut self) -> Entity2MutIterator<T> {
+        match self.get_single_entity_type::<T>() {
+            Some(entity_type) => {
+                Entity2MutIterator::new(self, entity_type)
+            },
+            None => todo!(),
+        } 
+    }
+
+    /*
+    fn get_row(&self, row_id: RowId) -> Option<&'t Row> {
+        self.table.get_row(row_id)
+    }
+     */
+}
+
+struct EntityCursor<'a, 't> {
+    table: &'a EntityTable<'t>,
+    entity_type: EntityTypeId,
+    entity_type_index: usize,
+}
+
+impl<'a, 't> EntityCursor<'a, 't> {
+    fn new(table: &'a EntityTable<'t>, entity_type: EntityTypeId) -> Self {
+        Self {
+            table: table,
+            entity_type: entity_type,
+            entity_type_index: 0,
+        }
+    }
+
+    fn next(&mut self) -> Option<&Row<'t>> {
+        todo!()
+    }
+
+    fn next_mut<T:'static>(&self) -> Option<&'a mut T> {
+        todo!();
+        /*
+        let type_rows = self.table.entity_meta.get_entity_rows(self.entity_type);
+
+        if type_rows.len() <= self.entity_type_index {
+            return None;
+        }
+
+        todo!()
+        */
+    }
+}
+
+pub struct Entity2Iterator<'a, 't, T> {
+    cursor: EntityCursor<'a, 't>,
+    marker: PhantomData<T>,
+}
+
+impl<'a, 't, T> Entity2Iterator<'a, 't, T> {
+    pub fn new(table: &'a EntityTable<'t>, entity_type: EntityTypeId) -> Self {
+        Self {
+            cursor: EntityCursor::new(table, entity_type),
+            marker: PhantomData,
+        }
+    }
+}
+
+impl<'a, 't, T:'static> Iterator for Entity2Iterator<'a, 't, T> {
+    type Item=&'a T;
+
+    fn next(&mut self) -> Option<&'t T> {
+        todo!()
+    }
+}
+
+pub struct Entity2MutIterator<'a, 't, T> {
+    cursor: EntityCursor<'a, 't>,
+    marker: PhantomData<T>,
+}
+
+impl<'a, 't, T> Entity2MutIterator<'a, 't, T> {
+    pub fn new(table: &'a mut EntityTable<'t>, entity_type: EntityTypeId) -> Self {
+        Self {
+            cursor: EntityCursor::new(table, entity_type),
+            marker: PhantomData,
+        }
+    }
+}
+
+impl<'a, 't, T:'static> Iterator for Entity2MutIterator<'a, 't, T> {
+    type Item=&'a mut T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.cursor.next_mut::<T>()
     }
 }
 
 impl<T:'static> EntityRef<T> {
     pub fn get<'a>(&self, table: &'a EntityTable) -> Option<&'a T> {
+        todo!();
+        /*
         let row_type = table.entity_meta.get_entity_row(self.entity_row_type);
             
         table.table.get_row(self.row_id, row_type.columns())
+        */
     }
 
     pub fn push<S:'static>(&self, table: &mut EntityTable, value: S) {
@@ -98,6 +236,8 @@ impl<T:'static> EntityRef<T> {
 
 #[cfg(test)]
 mod tests {
+    use crate::store::row_meta::ColumnTypeId;
+
     use super::EntityTable;
 
     #[test]
@@ -105,18 +245,18 @@ mod tests {
         let mut table = EntityTable::new();
 
         let ref_a = table.push(TestA(1));
-        let value_a = ref_a.get(&table).expect("entity");
+        let value_a = ref_a.get(&table).unwrap();
         assert_eq!(value_a, &TestA(1));
 
         let ref_b = table.push(TestB(2));
-        let value_b = ref_b.get(&table).expect("entity");
+        let value_b = ref_b.get(&table).unwrap();
         assert_eq!(value_b, &TestB(2));
 
         let ref_a3 = table.push(TestA(3));
-        let value_a = ref_a3.get(&table).expect("entity");
+        let value_a = ref_a3.get(&table).unwrap();
         assert_eq!(value_a, &TestA(3));
 
-        let value_a = ref_a.get(&table).expect("entity");
+        let value_a = ref_a.get(&table).unwrap();
         assert_eq!(value_a, &TestA(1));
     }
 
@@ -131,6 +271,50 @@ mod tests {
         let ref_b = ref_a.push(&mut table, TestB(2));
 
         assert_eq!(ref_a.get(&table).unwrap(), &TestA(1));
+
+        let ref_a2 = table.push(TestA(3));
+        let ref_a3 = table.push(TestA(4));
+    }
+
+    #[test]
+    fn test_entity_fun() {
+        let mut table = EntityTable::new();
+
+        let ref_a = table.push(TestA(1));
+        ref_a.push(&mut table, TestB(2));
+
+        let ref_a2 = table.push(TestA(3));
+        let ref_b3 = table.push(TestB(4));
+
+        let col_a = table.table.column_type::<TestA>().id();
+        let col_b = table.table.column_type::<TestA>().id();
+
+        let mut cols_a = Vec::<ColumnTypeId>::new();
+        cols_a.push(col_a);
+
+        let type_a = table.entity_type(cols_a);
+
+        let mut cols_b = Vec::<ColumnTypeId>::new();
+        cols_b.push(col_b);
+        
+        let type_b = table.entity_type(cols_b);
+
+        let ert_a = table.entity_row_type(ref_a.row_type, type_a);
+        // let ert_a = table.entity_meta.get_entity_row(ert_a);
+
+        /*
+        unsafe {
+            let value = ert_a.get_fun(&table.table, ref_a2.row_id, |row, map| {
+                row.ptr(map[0]).deref::<TestA>()
+            });
+            assert_eq!(value, &TestA(3));
+        }
+         */
+        /*
+        for item in table.iter_type::<TestA>() {
+
+        }
+         */
     }
 
     #[derive(Debug, PartialEq)]

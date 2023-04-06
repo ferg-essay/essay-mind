@@ -1,6 +1,5 @@
 use std::marker::PhantomData;
 
-use super::entity_meta::EntityMeta;
 use super::row::{RowId, Row};
 use super::row_meta::{RowTypeId, RowMetas, ColumnTypeId, ColumnType, RowType};
 
@@ -13,7 +12,7 @@ pub struct Table<'w> {
 impl<'t> Table<'t> {
     pub fn new() -> Self {
         let mut row_meta = RowMetas::new();
-        let entity_meta = EntityMeta::new();
+        //let entity_meta = EntityMeta::new();
 
         let column_type = row_meta.add_column::<()>();
         let mut col_vec = Vec::<ColumnTypeId>::new();
@@ -36,6 +35,10 @@ impl<'t> Table<'t> {
 
     pub fn column_type<T:'static>(&mut self) -> &ColumnType {
         self.row_meta.add_column::<T>()
+    }
+
+    pub(crate) fn get_column_type_id<T:'static>(&self) -> Option<ColumnTypeId> {
+        self.row_meta.get_column_type_id::<T>()
     }
 
     pub fn get_row_type(&self, row_type_id: RowTypeId) -> &RowType {
@@ -82,7 +85,7 @@ impl<'t> Table<'t> {
         let row_id = entity_ref.row;
 
         while self.rows.len() <= row_id.index() {
-            let empty_type = self.row_meta.get_row::<()>().unwrap();
+            let empty_type = self.row_meta.get_row_by_type::<()>().unwrap();
             let empty_row = RowId::new(self.rows.len() as u32);
             unsafe {
                 self.rows.push(Row::new(empty_row, empty_type));
@@ -116,6 +119,28 @@ impl<'t> Table<'t> {
         }
     }
 
+    /*
+    pub fn get_row(&self, row_id: RowId) -> &'t Row {
+        self.rows.get(row_id.index())
+    }
+
+    pub fn get_mut_row(&self, row_id: RowId) -> &'t mut Row {
+        self.rows.get_mut(row_id.index())
+    }
+    */
+
+    pub(crate) unsafe fn get_fun<'a,F,R:'static>(
+        &'a self, 
+        row_id: RowId, 
+        ptr_map: &Vec<usize>,
+        mut fun: F
+    ) -> &'a R
+    where F: FnMut(&'a Row, &Vec<usize>) -> &'a R {
+        let row = self.rows.get(row_id.index()).unwrap();
+
+        fun(row, ptr_map)
+    }
+
     pub fn get_row<T:'static>(
         &self, 
         row_id: RowId,
@@ -142,7 +167,7 @@ impl<'t> Table<'t> {
     }
 
     pub fn iter_by_type<T:'static>(&self) -> EntityIterator<T> {
-        match self.row_meta.get_row::<T>() {
+        match self.row_meta.get_row_by_type::<T>() {
             None => todo!(),
             Some(row_type) => {
                 EntityIterator::new(&self, row_type.id())
@@ -151,7 +176,7 @@ impl<'t> Table<'t> {
     }
 
     pub fn iter_mut_by_type<T:'static>(&mut self) -> EntityMutIterator<T> {
-        match self.row_meta.get_row::<T>() {
+        match self.row_meta.get_row_by_type::<T>() {
             None => todo!(),
             Some(row_type) => {
                 EntityMutIterator::new(self, row_type.id())
@@ -305,6 +330,15 @@ mod tests {
         //table.iter_by_type().map(|t: &TestB| values.push(format!("{:?}", t)));
         values = table.iter_by_type().map(|t: &TestB| format!("{:?}", t)).collect();
         assert_eq!(values.join(","), "TestB(10001),TestB(101)");
+    }
+
+    #[test]
+    fn eval() {
+        let mut table = Table::new();
+        let row_id = table.push(TestA(1)).row_id();
+
+
+
     }
 
     #[derive(Debug)]

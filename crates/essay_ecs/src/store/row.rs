@@ -1,8 +1,8 @@
 use std::{ptr::NonNull};
 
-use super::{ptr::PtrOwn, row_meta::{RowType, RowTypeId, ColumnType, ColumnTypeId}};
+use super::{ptr::PtrOwn, row_meta::{RowType, RowTypeId, ColumnType, ColumnTypeId, ColumnItem}};
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Ord, PartialOrd)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Ord, PartialOrd)]
 pub struct RowId(u32);
 
 pub(crate) struct Row<'t> {
@@ -43,7 +43,7 @@ impl<'t> Row<'t> {
         self.ptrs.get(index).expect("unavailable index")
     }
 
-    pub(crate) unsafe fn push<T>(&mut self, value: T, col_type: &ColumnType) {
+    pub(crate) unsafe fn push<T>(&mut self, value: T, col_type: &ColumnItem) {
         let offset = col_type.offset();
 
         let mut storage = unsafe { 
@@ -85,7 +85,7 @@ impl<'t> Row<'t> {
         new_row
     }
 
-    unsafe fn copy(&mut self, new_col: &ColumnType, old_row: &Row, old_col: &ColumnType) {
+    unsafe fn copy(&mut self, new_col: &ColumnItem, old_row: &Row, old_col: &ColumnItem) {
         assert_eq!(new_col.id(), old_col.id());
         assert_eq!(new_col.length(), old_col.length());
 
@@ -107,9 +107,21 @@ impl<'t> Row<'t> {
         self.ptrs.push(ptr);
     }
 
+    pub(crate) unsafe fn get_fun<'a,F,R:'static>(
+        &'a self, 
+        row_id: RowId, 
+        ptr_map: &Vec<usize>,
+        mut fun: F
+    ) -> &'a R
+    where F: FnMut(&'a Row, &Vec<usize>) -> &'a R {
+        assert_eq!(row_id, self.row_id);
+
+        fun(self, ptr_map)
+    }
+
     pub(crate) unsafe fn get<T:'static>(&self, row_id: RowId, index: usize) -> Option<&T> {
         if row_id == self.row_id {
-            Some(self.ptrs.get(index).expect("ptr unassigned").deref())
+            Some(self.ptrs.get(index).unwrap().deref())
         } else {
             None
         }
@@ -117,7 +129,7 @@ impl<'t> Row<'t> {
 
     pub unsafe fn get_mut<T:'static>(&mut self, row_id: RowId, index: usize) -> Option<&mut T> {
         if row_id == self.row_id {
-            Some(self.ptrs.get(index).expect("ptr unassigned").deref_mut())
+            Some(self.ptrs.get(index).unwrap().deref_mut())
         } else {
             None
         }
