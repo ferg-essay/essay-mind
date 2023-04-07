@@ -44,7 +44,7 @@ pub struct EntityType {
     id: EntityTypeId,
     cols: Vec<ColumnTypeId>,
 
-    row_types: Vec<RowTypeId>,
+    row_types: Vec<EntityRowTypeId>,
 }
 
 pub struct EntityRowType {
@@ -159,6 +159,10 @@ impl EntityTypeId {
 impl EntityType {
     pub fn id(&self) -> EntityTypeId {
         self.id
+    }
+
+    pub(crate) fn rows(&self) -> &Vec<EntityRowTypeId> {
+        &self.row_types
     }
 }
 
@@ -510,15 +514,14 @@ impl RowMetas {
 
         let rows : Vec<RowTypeId> = self.row_types.iter().map(|row| row.id()).collect();
          
-         let mut match_rows = Vec::<RowTypeId>::new();
+        let mut match_rows = Vec::<RowTypeId>::new();
 
         for row_id in rows {
             let row_type = self.get_row_id(row_id);
 
-            if cols.iter().filter(|col| cols.contains(col)).count() == cols.len() {
+            if row_type.columns.iter().filter(|col| cols.contains(&col.id())).count() == cols.len() {
                 match_rows.push(row_type.id());
             }
-
         }
 
         for row_id in match_rows {
@@ -532,6 +535,18 @@ impl RowMetas {
         col_vec.push(column_type.id());
 
         self.entity_type(col_vec)
+    }
+
+    pub(crate) fn get_single_entity_type<T:'static>(&self) -> Option<EntityTypeId> {
+        match self.get_column_type::<T>() {
+            Some(col) => {
+                let mut col_vec = Vec::<ColumnTypeId>::new();
+                col_vec.push(col.id());
+
+                self.get_entity_type_cols(&col_vec)
+            },
+            None => None
+        }
     }
 
     pub(crate) fn get_entity_type_cols(&self, cols: &Vec<ColumnTypeId>) -> Option<EntityTypeId> {
@@ -577,7 +592,7 @@ impl RowMetas {
     }
      */
 
-    fn add_entity_row(
+    pub(crate) fn add_entity_row(
         &mut self,
         row_id: RowTypeId, 
         entity_id: EntityTypeId
@@ -616,7 +631,7 @@ impl RowMetas {
         self.entity_row_types.push(EntityRowType::new(type_id, row, entity_type));
 
         let entity_type = self.get_mut_entity_type(entity_id);
-        entity_type.row_types.push(row_id);
+        entity_type.row_types.push(type_id);
     }
 
     fn row_type(
@@ -972,7 +987,7 @@ mod tests {
         assert_eq!(cols[0], ColumnTypeId(0));
         let rows = &entity_a.row_types;
         assert_eq!(rows.len(), 1);
-        assert_eq!(rows[0], RowTypeId(0));
+        assert_eq!(rows[0], EntityRowTypeId(0));
 
         let col_a = meta.get_column(ColumnTypeId(0));
         assert_eq!(col_a.rows.len(), 1);
@@ -1011,7 +1026,7 @@ mod tests {
         assert_eq!(cols[0], ColumnTypeId(1));
         let rows = &entity_b.row_types;
         assert_eq!(rows.len(), 1);
-        assert_eq!(rows[0], RowTypeId(1));
+        assert_eq!(rows[0], EntityRowTypeId(1));
 
         let col_b = meta.get_column(ColumnTypeId(1));
         assert_eq!(col_b.rows.len(), 1);
