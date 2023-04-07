@@ -1,13 +1,48 @@
 use std::{marker::PhantomData, ops::{DerefMut, Deref}};
 
-use crate::world::prelude::World;
+use crate::{world::prelude::World, prelude::Param};
 
+//
+// Fiber In/Out - external [`system`] api
+//
+
+pub trait In {
+    type Arg<'a>;
+
+    fn get_arg<'w>(world: &'w World) -> Self::Arg<'w>;
+}
+/*
 pub struct In<'w, F:Fiber, M=()> {
     world: &'w World<'w>,
     fiber: F,
     marker: PhantomData<M>,
 }
 
+pub struct Out<'w, F:Fiber, M=()> {
+    world: &'w World<'w>,
+    fiber: F,
+    marker: PhantomData<M>,
+}
+ */
+
+//
+// Fiber internal driver api
+//
+
+pub trait Fiber {
+    type In;
+    type Out;
+
+    fn create_in<'w>(&self, world: &World<'w>) -> &Self::In;
+    fn create_in_mut<'w>(&mut self, world: &World<'w>) -> &mut Self::In;
+    fn create_out<'w>(&self, world: &World<'w>) -> &Self::Out;
+    fn create_out_mut<'w>(&mut self, world: &World<'w>) -> &mut Self::Out;
+}
+
+//
+// In implementation
+//
+/*
 impl<'w, F:Fiber, M> Deref for In<'w, F, M> {
     type Target = F::In;
 
@@ -22,23 +57,19 @@ impl<'w, F:Fiber, M> DerefMut for In<'w, F, M> {
     }
 }
 
-impl<'a, F:Fiber, M=()> Param for In<'a, F, M> {
+impl<'a, F:Fiber, M> Param for In<'a, F, M> {
     type Arg<'w> = F::In; // ResMut<'w, T>;
 
     fn get_arg<'w>(world: &'w World) -> F::In { // ResMut<'w, T> {
-        ResMut {
-            world: world,
-            marker: PhantomData,
-        }
+        todo!()
     }
 }
+ */
 
-pub struct Out<'w, F:Fiber, M=()> {
-    world: &'w World<'w>,
-    fiber: F,
-    marker: PhantomData<M>,
-}
-
+//
+// Out implementation
+//
+/*
 impl<'w, F:Fiber, M> Deref for Out<'w, F, M> {
     type Target = F::Out;
 
@@ -52,7 +83,8 @@ impl<'w, F:Fiber, M> DerefMut for Out<'w, F, M> {
         self.fiber.create_out_mut(self.world)
     }
 }
-
+ */
+/*
 impl<'a, F:Fiber, M=()> Param for Out<'a, F, M> {
     type Arg<'w> = F::Out; // ResMut<'w, T>;
 
@@ -63,16 +95,7 @@ impl<'a, F:Fiber, M=()> Param for Out<'a, F, M> {
         }
     }
 }
-
-pub trait Fiber {
-    type In;
-    type Out;
-
-    fn create_in<'w>(&self, world: &World<'w>) -> &Self::In;
-    fn create_in_mut<'w>(&mut self, world: &World<'w>) -> &mut Self::In;
-    fn create_out<'w>(&self, world: &World<'w>) -> &Self::Out;
-    fn create_out_mut<'w>(&mut self, world: &World<'w>) -> &mut Self::Out;
-}
+*/
 
 #[cfg(test)]
 mod tests {
@@ -80,7 +103,7 @@ mod tests {
 
     use crate::{prelude::App, world::prelude::World};
 
-    use super::{In, Out, Fiber};
+    use super::{In, Fiber};
 
     #[test]
     fn test() {
@@ -88,7 +111,7 @@ mod tests {
         //app.add_system(test_a);
         //app.add_system(test_b);
     }
-
+    /*
     fn test_a(ticker: &mut TickerA, out: Out<FiberA>) {
         println!("test_a");
         //out.write("test_a".to_string());
@@ -97,6 +120,7 @@ mod tests {
     fn test_b(ticker: &mut TickerB, mut input: In<FiberA>) {
         println!("test_b {:?}", input.read());
     }
+     */
 
     struct TickerA;
     struct TickerB;

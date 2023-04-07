@@ -106,6 +106,21 @@ impl<'t> EntityTable<'t> {
         }
     }
 
+    pub(crate) fn iter_mut_by_type<T:'static>(&self) -> Entity3MutIterator<T> {
+        match self.table.row_meta().get_single_entity_type::<T>() {
+            Some(entity_type) => { 
+                Entity3MutIterator {
+                    table: self,
+                    entity_type: entity_type,
+                    entity_type_index: 0,
+                    row_index: 0,
+                    marker: PhantomData,
+                }
+            },
+            None => todo!(),
+        }
+    }
+
     pub(crate) fn get_single_entity_type<T:'static>(&self) -> Option<EntityTypeId> {
         todo!();
         /*
@@ -120,6 +135,7 @@ impl<'t> EntityTable<'t> {
          */
     }
 
+    /*
     pub(crate) fn iter_mut_by_type<T:'static>(&mut self) -> Entity2MutIterator<T> {
         match self.get_single_entity_type::<T>() {
             Some(entity_type) => {
@@ -128,6 +144,7 @@ impl<'t> EntityTable<'t> {
             None => todo!(),
         } 
     }
+     */
 
     /*
     fn get_row(&self, row_id: RowId) -> Option<&'t Row> {
@@ -263,6 +280,58 @@ impl<'a, 't, T:'static> Iterator for Entity3Iterator<'a, 't, T> {
     }
 }
 
+pub struct Entity3MutIterator<'a, 't, T> {
+    table: &'a EntityTable<'t>,
+    entity_type: EntityTypeId,
+    entity_type_index: usize,
+    row_index: usize,
+    marker: PhantomData<T>,
+}
+
+impl<'a, 't, T> Entity3MutIterator<'a, 't, T> {
+    fn new(table: &'a EntityTable<'t>, entity_type: EntityTypeId) -> Self {
+        Self {
+            table: table,
+            entity_type: entity_type,
+            entity_type_index: 0,
+            row_index: 0,
+            marker: PhantomData,
+        }
+    }
+}
+
+impl<'a, 't, T:'static> Iterator for Entity3MutIterator<'a, 't, T> {
+    type Item=&'a mut T;
+
+    fn next(&mut self) -> Option<&'a mut T> {
+        let entity = self.table.table.row_meta().get_entity_type(self.entity_type);
+
+        while self.entity_type_index < entity.rows().len() {
+            let entity_row_type_id = entity.rows()[self.entity_type_index];
+
+            let row_index = self.row_index;
+            self.row_index += 1;
+
+            let entity_row = self.table.table.row_meta().get_entity_row(entity_row_type_id);
+            let row_type_id = entity_row.row_type_id();
+
+            match self.table.table.get_row_by_type_index(row_type_id, row_index) {
+                Some(row) => {
+                    return unsafe {
+                        Some(row.ptr(entity_row.columns()[0]).deref_mut())
+                    } 
+                }
+                None => {},
+            };
+
+            self.entity_type_index += 1;
+            self.row_index = 0;
+        }
+
+        None
+    }
+}
+
 pub struct Entity2Iterator<'a, 't, T> {
     cursor: EntityCursor<'a, 't>,
     marker: PhantomData<T>,
@@ -375,6 +444,44 @@ mod tests {
 
         let rows : Vec<TestA> = table.iter_by_type::<TestA>().cloned().collect();
         assert_eq!(rows, Vec::from([TestA(1), TestA(2), TestA(0)]));
+    }
+
+    #[test]
+    fn test_entity_mut_iter() {
+        let mut table = EntityTable::new();
+
+        table.push(TestA(0));
+
+        //let rows : Vec<TestA> = table.iter_mut_by_type::<TestA>().cloned().collect();
+        for test in table.iter_mut_by_type::<TestA>() {
+            test.0 += 1;
+        }
+        let rows : Vec<TestA> = table.iter_by_type::<TestA>().cloned().collect();
+        assert_eq!(rows, Vec::from([TestA(1)]));
+
+        for test in table.iter_mut_by_type::<TestA>() {
+            test.0 += 1;
+        }
+
+        let rows : Vec<TestA> = table.iter_by_type::<TestA>().cloned().collect();
+        assert_eq!(rows, Vec::from([TestA(2)]));
+
+        table.push(TestA(0));
+
+        let rows : Vec<TestA> = table.iter_by_type::<TestA>().cloned().collect();
+        assert_eq!(rows, Vec::from([TestA(2), TestA(0)]));
+
+        for test in table.iter_mut_by_type::<TestA>() {
+            test.0 += 1;
+        }
+
+        let rows : Vec<TestA> = table.iter_by_type::<TestA>().cloned().collect();
+        assert_eq!(rows, Vec::from([TestA(3), TestA(1)]));
+
+        table.push(TestA(0));
+
+        let rows : Vec<TestA> = table.iter_by_type::<TestA>().cloned().collect();
+        assert_eq!(rows, Vec::from([TestA(3), TestA(1), TestA(0)]));
     }
 
     #[test]

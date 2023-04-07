@@ -9,16 +9,19 @@ use super::{prelude::Param, system::{System, IntoSystem}, param::Arg};
 // EachSystem - a system implemented by a function
 // 
 
+pub struct Each<'w, T> {
+    world: &'w World<'w>,
+    item: &'w mut T,
+}
+
 pub trait EachFun<M> {
     type Item;
     type Params: Param;
 
-    fn run(&mut self, each: &mut Self::Item, param: Arg<Self::Params>);
-}
-
-pub struct Each<'w, T> {
-    world: &'w World<'w>,
-    item: &'w mut T,
+    fn run(&mut self, 
+        each: &mut Self::Item, 
+        param: Arg<Self::Params>
+    );
 }
 
 pub struct EachSystem<M, F>
@@ -96,7 +99,7 @@ impl<F:'static,T:'static,P:Param,> EachFun<fn(T, P)> for F
     }
 }
 
-macro_rules! impl_system_function {
+macro_rules! impl_each_function {
     ($($param:ident),*) => {
         #[allow(non_snake_case)]
         impl<F: 'static, T: 'static, $($param: Param),*> EachFun<fn(T, $($param,)*)> for F
@@ -114,14 +117,14 @@ macro_rules! impl_system_function {
     }
 }
 
-impl_system_function!();
-//impl_system_function!(P1);
-impl_system_function!(P1, P2);
-impl_system_function!(P1, P2, P3);
-impl_system_function!(P1, P2, P3, P4);
-impl_system_function!(P1, P2, P3, P4, P5);
-impl_system_function!(P1, P2, P3, P4, P5, P6);
-impl_system_function!(P1, P2, P3, P4, P5, P6, P7);
+impl_each_function!();
+//impl_each_function!(P1);
+impl_each_function!(P1, P2);
+impl_each_function!(P1, P2, P3);
+impl_each_function!(P1, P2, P3, P4);
+impl_each_function!(P1, P2, P3, P4, P5);
+impl_each_function!(P1, P2, P3, P4, P5, P6);
+impl_each_function!(P1, P2, P3, P4, P5, P6, P7);
 
 #[cfg(test)]
 mod tests {
