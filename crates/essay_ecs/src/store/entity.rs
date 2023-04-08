@@ -14,8 +14,6 @@ pub struct EntityRef<T> {
     marker: PhantomData<T>,
 }
 
-pub trait Component {}
-
 impl<'t> EntityTable<'t> {
     pub fn new() -> Self {
         EntityTable {
@@ -37,7 +35,7 @@ impl<'t> EntityTable<'t> {
         }        
     }
 
-    pub(crate) fn add_entity_type<T:EntityCols>(&mut self) -> EntityTypeId {
+    pub(crate) fn add_entity_type<T:Bundle>(&mut self) -> EntityTypeId {
         let mut cols : Vec<ColumnTypeId> = Vec::new();
 
         T::add_cols(self, &mut cols);
@@ -130,7 +128,7 @@ impl<'t> EntityTable<'t> {
         }
     }
 
-    pub(crate) fn iter_mut_by_type<T:EntityCols+'static>(&mut self) -> Entity3MutIterator<T> {
+    pub(crate) fn iter_mut_by_type<T:Bundle>(&mut self) -> Entity3MutIterator<T> {
         let entity_type = self.add_entity_type::<T>();
 
         Entity3MutIterator {
@@ -338,6 +336,7 @@ impl<'a, 't, T:'static> Iterator for Entity3MutIterator<'a, 't, T> {
 
             match self.table.table.get_row_by_type_index(row_type_id, row_index) {
                 Some(row) => {
+                    println!("iter-row {:?} {:?}", entity_row.columns()[0], type_name::<T>());
                     return unsafe {
                         Some(row.ptr(entity_row.columns()[0]).deref_mut())
                     } 
@@ -417,56 +416,6 @@ impl<T:'static> EntityRef<T> {
         table.table.replace_push(self.row_id, value);
     }
 }
-
-pub trait EntityCols {
-    fn add_cols(table: &mut EntityTable, cols: &mut Vec<ColumnTypeId>);
-}
-/*
-impl EntityCols for () {
-    fn add_cols(table: &mut EntityTable, cols: &mut Vec<ColumnTypeId>) {
-    }
-}
-*/
-
-impl<T:Component + 'static> EntityCols for T {
-    fn add_cols(table: &mut EntityTable, cols: &mut Vec<ColumnTypeId>) {
-        cols.push(table.add_column::<T>());
-    }
-}
-/*
-impl<P1:'static,P2:'static> EntityCols for (P1,P2) {
-    fn add_cols(table: &mut EntityTable, cols: &mut Vec<ColumnTypeId>) {
-        cols.push(table.add_column::<P1>());
-        cols.push(table.add_column::<P2>());
-    }
-}
-*/
-
-//
-// EntityCols composed of tuples
-//
-
-macro_rules! impl_entity_tuple {
-    ($($param:ident),*) => {
-        #[allow(non_snake_case)]
-        impl<$($param:'static),*> EntityCols for ($($param,)*)
-        {
-            fn add_cols(
-                table: &mut EntityTable, 
-                cols: &mut Vec<ColumnTypeId>
-            ) {
-                ($(cols.push(table.add_column::<$param>()),
-                )*);
-            }
-        }
-    }
-}
-
-impl_entity_tuple!();
-impl_entity_tuple!(P1,P2);
-impl_entity_tuple!(P1,P2,P3);
-impl_entity_tuple!(P1,P2,P3,P4);
-impl_entity_tuple!(P1,P2,P3,P4,P5);
 
 #[cfg(test)]
 mod tests {
