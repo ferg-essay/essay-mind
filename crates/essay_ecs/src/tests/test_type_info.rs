@@ -1,6 +1,6 @@
 use std::any::TypeId;
 
-use crate::table::prelude::{TypeMetas};
+use crate::store::prelude::{TypeMetas};
 
 #[test]
 fn empty_info_set() {

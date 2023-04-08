@@ -1,8 +1,10 @@
-mod component;
 mod entity;
+mod component;
+mod table;
 
 pub mod prelude {
-    pub use super::entity::{EntityTable, EntityRef, Entity2MutIterator, 
-    Entity3MutIterator};
     pub use super::component::{Insert, Component};
+    pub use super::table::{EntityTable, Entity2MutIterator, 
+    Entity3MutIterator};
+    pub use super::entity::{EntityRef};
 }

@@ -1,6 +1,6 @@
 use crate::{
     system::prelude::{System, IntoSystem, Schedule}, 
-    world::prelude::{World, WorldRef}, table::prelude::{RowRef},
+    world::prelude::{World, WorldRef}, store::prelude::{RowRef},
     entity::prelude::{EntityRef},
 };
 

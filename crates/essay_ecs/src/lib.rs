@@ -1,7 +1,7 @@
 mod entity;
 mod fiber;
 mod builtin_param;
-mod table;
+mod store;
 mod system;
 mod app;
 mod world;

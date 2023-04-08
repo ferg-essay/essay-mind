@@ -1,4 +1,4 @@
-use crate::table::{row::Row, row_meta::ColumnTypeId};
+use crate::store::{row::Row, row_meta::ColumnTypeId};
 
 use super::{prelude::EntityTable};
 

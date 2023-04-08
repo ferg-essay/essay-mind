@@ -723,7 +723,7 @@ impl RowMetas {
 mod tests {
     use std::mem;
 
-    use crate::table::row_meta::{ColumnTypeId, RowTypeId, ColumnType, ColumnItem, ViewTypeId, ViewRowTypeId};
+    use crate::store::row_meta::{ColumnTypeId, RowTypeId, ColumnType, ColumnItem, ViewTypeId, ViewRowTypeId};
 
     use super::RowMetas;
 
