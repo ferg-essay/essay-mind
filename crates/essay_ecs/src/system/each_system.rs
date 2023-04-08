@@ -1,6 +1,6 @@
 use std::{marker::PhantomData, ops::{Deref, DerefMut}};
 
-use crate::{world::prelude::World, store::prelude::EntityCols};
+use crate::{world::prelude::World, store::prelude::Bundle, prelude::Component};
 
 use super::{prelude::Param, system::{System, IntoSystem}, param::Arg};
 
@@ -41,6 +41,15 @@ impl<'w, F:Fiber> In<'w,F> {
         }
     }
 }
+
+impl<'w,F:Fiber,M> Deref for In<'w,F,M> {
+    type Target = F::In;
+
+    fn deref(&self) -> &Self::Target {
+        self.fiber
+    }
+}
+
 pub struct Out<'w, F:Fiber, M=()> {
     world: &'w World<'w>,
     fiber: &'w mut F::Out,
@@ -75,7 +84,7 @@ pub trait FiberIn {
 }
 
 pub trait EachFun<M> {
-    type Entity: EntityCols + 'static;
+    type Entity: Bundle;
     //type EachParams: EachParam;
     type Params: Param;
 
@@ -167,7 +176,7 @@ pub struct IsPlain;
 pub struct IsIn;
 pub struct IsOut;
 
-impl<F:'static,T:EntityCols+'static,P:Param,> EachFun<fn(IsPlain, T, P)> for F
+impl<F:'static,T:Bundle,P:Param,> EachFun<fn(IsPlain, T, P)> for F
     where F:FnMut(&mut T, P) -> () +
             FnMut(&mut T, Arg<P>) -> ()
 {
@@ -192,7 +201,8 @@ impl<F:'static,T:'static,FB:Fiber,P:Param,> EachFun<fn(IsIn, T, FB, P)> for F
 }
 */
 
-impl<F:'static,T:'static,FB:Fiber,> EachFun<fn(IsIn, T, FB)> for F
+    /*
+impl<F:'static,T:Component,FB:Fiber,> EachFun<fn(IsIn, T, FB)> for F
     where F:FnMut(&mut T, In<FB>) -> () +
             FnMut(&mut T, In<FB>) -> ()
 {
@@ -203,7 +213,9 @@ impl<F:'static,T:'static,FB:Fiber,> EachFun<fn(IsIn, T, FB)> for F
         self(&mut entity.0, In::<FB>::new(world, &mut entity.1))
     }
 }
+     */
 
+    /*
 impl<F:'static,T:'static,FB:Fiber,P:Param,> EachFun<fn(IsOut, T, FB, P)> for F
     where F:FnMut(&mut T, Out<FB>, P) -> () +
             FnMut(&mut T, Out<FB>, Arg<P>) -> ()
@@ -215,11 +227,12 @@ impl<F:'static,T:'static,FB:Fiber,P:Param,> EachFun<fn(IsOut, T, FB, P)> for F
         self(&mut entity.0, Out::<FB>::new(world, &mut entity.1), arg)
     }
 }
+     */
 
 macro_rules! impl_each_function {
     ($($param:ident),*) => {
         #[allow(non_snake_case)]
-        impl<F: 'static, T: EntityCols + 'static, $($param: Param),*> EachFun<fn(IsPlain, T, $($param,)*)> for F
+        impl<F: 'static, T: Bundle, $($param: Param),*> EachFun<fn(IsPlain, T, $($param,)*)> for F
         where F:FnMut(&mut T, $($param),*) -> () +
             FnMut(&mut T, $(Arg<$param>),*) -> ()
         {
@@ -245,7 +258,7 @@ impl_each_function!(P1, P2, P3, P4, P5, P6, P7);
 
 #[cfg(test)]
 mod tests {
-    use std::{rc::Rc, cell::RefCell, marker::PhantomData, any::type_name};
+    use std::{rc::Rc, cell::RefCell, marker::PhantomData, any::type_name, ops::Deref};
 
     use essay_ecs_macros::Component;
 
@@ -361,17 +374,21 @@ mod tests {
     #[test]
     fn test_each_in() {
         let mut app = App::new();
-        let ent_ref = app.spawn(TestA(0));
-        ent_ref.push(&mut app, TestInFiber {});
+        let ent_ref = app.spawn(TestA(1));
+        ent_ref.push(&mut app, TestInFiber(2));
 
-        app.add_system(system_each_in);
+        // app.add_system(system_each_in);
 
+        app.update();
+
+        app.spawn(TestA(3));
+        
         app.update();
         // assert_eq!(take(&values), "S-A TestA(0) \"alloc::string::String\"");
     }
 
     fn system_each_in(test: &mut TestA, input: In<TestFiber>) {
-        println!("system-each-in {:?}", test);
+        println!("system-each-in {:?} {:?}", test, Deref::deref(&input));
     }
 
     fn take(values: &Rc<RefCell<Vec<String>>>) -> String {
@@ -405,11 +422,10 @@ mod tests {
         }   
     }
 
-    struct TestInFiber {
-    }
+    #[derive(Debug)]
+    struct TestInFiber(usize);
 
-    struct TypeOutFiber {
-    }
+    struct TypeOutFiber(usize);
 
     #[derive(Component,PartialEq, Debug)]
     struct TestA(u32);

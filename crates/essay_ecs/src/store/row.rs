@@ -1,6 +1,6 @@
 use std::{ptr::NonNull};
 
-use super::{ptr::PtrOwn, row_meta::{RowType, RowTypeId, ColumnType, ColumnTypeId, ColumnItem}};
+use super::{ptr::PtrOwn, row_meta::{RowType, RowTypeId, ColumnTypeId, ColumnItem}};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Ord, PartialOrd)]
 pub struct RowId(u32);
@@ -71,14 +71,18 @@ impl<'t> Row<'t> {
         };
 
         let new_ptr = PtrOwn::make_into(value, &mut storage);
-
+        println!("replace_push {:?} {:?}", new_col.id(), new_col.offset());
         for new_col in new_type.columns() {
+            println!("  col {:?} {:?}", new_col.id(), new_col_id);
             if new_col.id() == new_col_id {
                 new_row.ptrs.push(new_ptr);
             } else {
                 let old_col = old_type.column_find(new_col.id()).unwrap();
 
                 new_row.copy(new_col, self, old_col);
+                println!("  copy {:?}:{:?} {:?}:{:?}", 
+                    new_col.id(), new_col.offset(),
+                    old_col.id(), old_col.offset());
             }
         }
 

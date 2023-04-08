@@ -139,6 +139,12 @@ impl<'a> PtrOwn<'a> {
     }
     */
 
+    /*
+    pub(crate) unsafe fn read<T>(&self) -> T {
+        *self.as_ptr().cast::<T>() // .debug_ensure_aligned()
+    }
+    */
+
     #[inline]
     pub fn as_ptr(self) -> *mut u8 {
         self.0.as_ptr()

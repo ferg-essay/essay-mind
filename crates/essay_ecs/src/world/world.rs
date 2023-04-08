@@ -1,6 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crate::store::{prelude::{Table, RowRef, EntityMutIterator, EntityTable, EntityRef, Entity2MutIterator, Entity3MutIterator, EntityTypeId, EntityCols}, ptr::PtrCell};
+use crate::store::{prelude::{Table, RowRef, EntityMutIterator, EntityTable, EntityRef, Entity2MutIterator, Entity3MutIterator, EntityTypeId, Bundle}, ptr::PtrCell};
 
 use super::resource::Resources;
 
@@ -15,7 +15,7 @@ impl<'w> World<'w> {
         }
     }
 
-    pub(crate) fn add_entity_type<T:EntityCols+'static>(&mut self) -> EntityTypeId {
+    pub(crate) fn add_entity_type<T:Bundle>(&mut self) -> EntityTypeId {
         self.ptr.deref_mut().entities.add_entity_type::<T>()
     }
 
@@ -29,11 +29,11 @@ impl<'w> World<'w> {
         self.ptr.deref().entities.len()
     }
 
-    pub fn iter_mut<T:EntityCols+'static>(&self) -> Entity3MutIterator<T> {
+    pub fn iter_mut<T:Bundle>(&self) -> Entity3MutIterator<T> {
         self.ptr.deref_mut().entities.iter_mut_by_type::<T>()
     }
 
-    pub fn eval<T:EntityCols+'static,F>(&self, fun: &mut F)
+    pub fn eval<T:Bundle,F>(&self, fun: &mut F)
         where F: FnMut(&mut T)
     {
         for entity in self.ptr.deref_mut().entities.iter_mut_by_type::<T>() {
