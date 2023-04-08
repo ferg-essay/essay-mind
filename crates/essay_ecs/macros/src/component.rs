@@ -8,7 +8,7 @@ pub fn derive_component(input: TokenStream) -> TokenStream {
     let name = &ast.ident;
 
     TokenStream::from(quote! {
-        impl crate::component::Component for #name {
+        impl crate::prelude::Component for #name {
 
         }
     })

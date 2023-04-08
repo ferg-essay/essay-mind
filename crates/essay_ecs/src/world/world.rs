@@ -1,6 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crate::store::{prelude::{Table, RowRef, EntityMutIterator, EntityTable, EntityRef, Entity2MutIterator, Entity3MutIterator}, ptr::PtrCell};
+use crate::store::{prelude::{Table, RowRef, EntityMutIterator, EntityTable, EntityRef, Entity2MutIterator, Entity3MutIterator, EntityTypeId, EntityCols}, ptr::PtrCell};
 
 use super::resource::Resources;
 
@@ -15,8 +15,14 @@ impl<'w> World<'w> {
         }
     }
 
-    pub fn add_entity<T:'static>(&mut self, value: T) -> EntityRef<T> {
-        self.ptr.deref_mut().entities.push::<T>(value)
+    pub(crate) fn add_entity_type<T:EntityCols+'static>(&mut self) -> EntityTypeId {
+        self.ptr.deref_mut().entities.add_entity_type::<T>()
+    }
+
+    pub fn add_entity<T:'static>(&mut self, value: T) -> WorldRef<T> {
+        WorldRef {
+            ent_ref: self.ptr.deref_mut().entities.push::<T>(value)
+        }
     }
 
     pub fn len(&self) -> usize {
@@ -59,6 +65,16 @@ impl<'w> WorldInner<'w> {
             entities: EntityTable::new(),
             resources: Resources::new(),
         }
+    }
+}
+
+pub struct WorldRef<T> {
+    ent_ref: EntityRef<T>,
+}
+
+impl<T:'static> WorldRef<T> {
+    pub fn push<S:'static>(&self, world: &mut World, value: S) {
+        self.ent_ref.push(&mut world.ptr.deref_mut().entities, value)
     }
 }
 

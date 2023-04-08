@@ -1,4 +1,4 @@
-use std::marker::PhantomData;
+use std::{marker::PhantomData, any::{TypeId, type_name}};
 
 use super::{prelude::Table, row::{RowId, Row}, row_meta::{EntityRowTypeId, EntityRowType, EntityTypeId}, row_meta::{ColumnTypeId, RowTypeId}};
 
@@ -13,6 +13,8 @@ pub struct EntityRef<T> {
     entity_row_type: EntityRowTypeId,
     marker: PhantomData<T>,
 }
+
+pub trait Component {}
 
 impl<'t> EntityTable<'t> {
     pub fn new() -> Self {
@@ -35,9 +37,31 @@ impl<'t> EntityTable<'t> {
         }        
     }
 
+    pub(crate) fn add_entity_type<T:EntityCols>(&mut self) -> EntityTypeId {
+        let mut cols : Vec<ColumnTypeId> = Vec::new();
+
+        T::add_cols(self, &mut cols);
+
+        self.entity_type(cols)
+    }
+    /*
+    pub(crate) fn add_entity_type_cols(&mut self, e_cols: impl EntityCols) -> EntityTypeId {
+        let mut cols : Vec<ColumnTypeId> = Vec::new();
+
+        //let e_cols : dyn EntityCols = T;
+        e_cols.add_cols(self, &mut cols);
+
+        //println!("Add-entity {:?}", type_name::<T>());
+        self.entity_type(cols)
+    }
+    */
+
+    pub(crate) fn add_column<T:'static>(&mut self) -> ColumnTypeId {
+        self.table.row_meta_mut().add_column::<T>().id()
+    }
+
     pub fn entity_type(&mut self, cols: Vec<ColumnTypeId>) -> EntityTypeId {
-        todo!()
-        //self.table.row_meta.entity_type(cols)
+        self.table.row_meta_mut().entity_type(cols)
     }
 
     pub fn entity_row_type(
@@ -117,7 +141,10 @@ impl<'t> EntityTable<'t> {
                     marker: PhantomData,
                 }
             },
-            None => todo!(),
+            None => {
+                println!("iter_Mut {:?}", type_name::<T>());
+                todo!();
+            }
         }
     }
 
@@ -396,6 +423,56 @@ impl<T:'static> EntityRef<T> {
         table.table.replace_push(self.row_id, value);
     }
 }
+
+pub trait EntityCols {
+    fn add_cols(table: &mut EntityTable, cols: &mut Vec<ColumnTypeId>);
+}
+/*
+impl EntityCols for () {
+    fn add_cols(table: &mut EntityTable, cols: &mut Vec<ColumnTypeId>) {
+    }
+}
+*/
+
+impl<T:Component + 'static> EntityCols for T {
+    fn add_cols(table: &mut EntityTable, cols: &mut Vec<ColumnTypeId>) {
+        cols.push(table.add_column::<T>());
+    }
+}
+/*
+impl<P1:'static,P2:'static> EntityCols for (P1,P2) {
+    fn add_cols(table: &mut EntityTable, cols: &mut Vec<ColumnTypeId>) {
+        cols.push(table.add_column::<P1>());
+        cols.push(table.add_column::<P2>());
+    }
+}
+*/
+
+//
+// EntityCols composed of tuples
+//
+
+macro_rules! impl_entity_tuple {
+    ($($param:ident),*) => {
+        #[allow(non_snake_case)]
+        impl<$($param:'static),*> EntityCols for ($($param,)*)
+        {
+            fn add_cols(
+                table: &mut EntityTable, 
+                cols: &mut Vec<ColumnTypeId>
+            ) {
+                ($(cols.push(table.add_column::<$param>()),
+                )*);
+            }
+        }
+    }
+}
+
+impl_entity_tuple!();
+impl_entity_tuple!(P1,P2);
+impl_entity_tuple!(P1,P2,P3);
+impl_entity_tuple!(P1,P2,P3,P4);
+impl_entity_tuple!(P1,P2,P3,P4,P5);
 
 #[cfg(test)]
 mod tests {

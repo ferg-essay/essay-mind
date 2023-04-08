@@ -7,12 +7,12 @@ pub trait System: 'static {
 pub trait IntoSystem<Marker>: Sized {
     type System:System + 'static;
 
-    fn into_system(this: Self) -> Self::System;
+    fn into_system(this: Self, world: &mut World) -> Self::System;
 }
 
 impl<Sys: System + 'static> IntoSystem<Sys> for Sys {
     type System = Sys;
-    fn into_system(this: Self) -> Sys {
+    fn into_system(this: Self, world: &mut World) -> Sys {
         this
     }
 }

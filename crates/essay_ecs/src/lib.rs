@@ -7,6 +7,7 @@ mod world;
 mod tests;
 
 mod prelude {
-    pub use crate::app::{App};
+    pub use crate::app::{App, AppRef};
     pub use crate::system::prelude::*;
+    pub use crate::store::prelude::{Component};
 }

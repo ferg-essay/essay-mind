@@ -1,6 +1,6 @@
 use crate::{
     system::prelude::{System, IntoSystem, Schedule}, 
-    world::prelude::{World}, store::prelude::{RowRef, EntityRef}
+    world::prelude::{World, WorldRef}, store::prelude::{RowRef, EntityRef}
 };
 
 pub struct App {
@@ -26,13 +26,18 @@ impl App {
      */
     pub fn add_system<M>(&mut self, into_system: impl IntoSystem<M>) -> &mut Self
     {
-        self.schedule.push(Box::new(IntoSystem::into_system(into_system)));
+        self.schedule.push(Box::new(IntoSystem::into_system(
+            into_system,
+            &mut self.world,
+        )));
 
         self
     }
 
-    pub fn spawn<T:'static>(&mut self, value: T) -> EntityRef<T> {
-        self.world.add_entity(value)
+    pub fn spawn<T:'static>(&mut self, value: T) -> AppRef<T> {
+        AppRef {
+            ent_ref: self.world.add_entity(value)
+        }
     }
 
     pub fn add_resource<T:'static>(&mut self, value: T) {
@@ -61,6 +66,15 @@ impl App {
     }
 }
 
+pub struct AppRef<T> {
+    ent_ref: WorldRef<T>,
+}
+
+impl<T:'static> AppRef<T> {
+    pub fn push<S:'static>(&self, app: &mut App, value: S) {
+        self.ent_ref.push(&mut app.world, value)
+    }
+}
 /*
 pub trait IntoSystem<M> {
     fn to_system(&self) -> Box<dyn System>;

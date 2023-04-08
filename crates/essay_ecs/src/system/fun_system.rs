@@ -40,7 +40,7 @@ where
 {
     type System = FunctionSystem<M, F>;
 
-    fn into_system(this: Self) -> Self::System {
+    fn into_system(this: Self, world: &mut World) -> Self::System {
         FunctionSystem {
             fun: this,
             marker: Default::default()
@@ -108,30 +108,33 @@ mod tests {
 
     #[test]
     fn arg_tuples() {
-        let world = World::new();
+        let mut world = World::new();
 
         set_global("init".to_string());
-        system(&world, test_null);
+        system(&mut world, test_null);
         assert_eq!(get_global(), "test-null");
-        system(&world, test_arg1);
+        system(&mut world, test_arg1);
         assert_eq!(get_global(), "test-arg1 u8");
-        system(&world, test_arg2);
+        system(&mut world, test_arg2);
         assert_eq!(get_global(), "test-arg2 u8 u16");
-        system(&world, test_arg3);
+        system(&mut world, test_arg3);
         assert_eq!(get_global(), "test-arg3 u8 u16 u32");
-        system(&world, test_arg4);
+        system(&mut world, test_arg4);
         assert_eq!(get_global(), "test-arg4 u8 u16 u32 u64");
-        system(&world, test_arg5);
+        system(&mut world, test_arg5);
         assert_eq!(get_global(), "test-arg5 u8 u16 u32 u64 i8");
-        system(&world, test_arg6);
+        system(&mut world, test_arg6);
         assert_eq!(get_global(), "test-arg6 u8 u16 u32 u64 i8 i16");
-        system(&world, test_arg7);
+        system(&mut world, test_arg7);
         assert_eq!(get_global(), "test-arg7 u8 u16 u32 u64 i8 i16 i32");
     }
 
-    fn system<M>(world: &World, fun: impl IntoSystem<M>)->String {
+    fn system<M>(world: &mut World, fun: impl IntoSystem<M>)->String {
         set_global("init".to_string());
-        let mut system = IntoSystem::into_system(fun);
+        let mut system = IntoSystem::into_system(
+            fun,
+            world,
+        );
         system.run(world);
         get_global()
     }
