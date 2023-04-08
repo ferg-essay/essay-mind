@@ -371,7 +371,7 @@ mod tests {
     }
 
     fn system_each_in(test: &mut TestA, input: In<TestFiber>) {
-        println!("system-each-in");
+        println!("system-each-in {:?}", test);
     }
 
     fn take(values: &Rc<RefCell<Vec<String>>>) -> String {

@@ -130,21 +130,15 @@ impl<'t> EntityTable<'t> {
         }
     }
 
-    pub(crate) fn iter_mut_by_type<T:'static>(&self) -> Entity3MutIterator<T> {
-        match self.table.row_meta().get_single_entity_type::<T>() {
-            Some(entity_type) => { 
-                Entity3MutIterator {
-                    table: self,
-                    entity_type: entity_type,
-                    entity_type_index: 0,
-                    row_index: 0,
-                    marker: PhantomData,
-                }
-            },
-            None => {
-                println!("iter_Mut {:?}", type_name::<T>());
-                todo!();
-            }
+    pub(crate) fn iter_mut_by_type<T:EntityCols+'static>(&mut self) -> Entity3MutIterator<T> {
+        let entity_type = self.add_entity_type::<T>();
+
+        Entity3MutIterator {
+            table: self,
+            entity_type: entity_type,
+            entity_type_index: 0,
+            row_index: 0,
+            marker: PhantomData,
         }
     }
 
@@ -476,6 +470,8 @@ impl_entity_tuple!(P1,P2,P3,P4,P5);
 
 #[cfg(test)]
 mod tests {
+    use essay_ecs_macros::Component;
+
     use crate::store::row_meta::ColumnTypeId;
 
     use super::EntityTable;
@@ -618,9 +614,9 @@ mod tests {
          */
     }
 
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(Component, Debug, Clone, PartialEq)]
     struct TestA(usize);
 
-    #[derive(Debug, Clone, PartialEq)]
+    #[derive(Component, Debug, Clone, PartialEq)]
     struct TestB(usize);
 }

@@ -29,11 +29,11 @@ impl<'w> World<'w> {
         self.ptr.deref().entities.len()
     }
 
-    pub fn iter_mut<T:'static>(&self) -> Entity3MutIterator<T> {
+    pub fn iter_mut<T:EntityCols+'static>(&self) -> Entity3MutIterator<T> {
         self.ptr.deref_mut().entities.iter_mut_by_type::<T>()
     }
 
-    pub fn eval<T:'static,F>(&self, fun: &mut F)
+    pub fn eval<T:EntityCols+'static,F>(&self, fun: &mut F)
         where F: FnMut(&mut T)
     {
         for entity in self.ptr.deref_mut().entities.iter_mut_by_type::<T>() {
@@ -80,6 +80,8 @@ impl<T:'static> WorldRef<T> {
 
 #[cfg(test)]
 mod tests {
+    use essay_ecs_macros::Component;
+
     use super::World;
 
     #[test]
@@ -122,9 +124,9 @@ mod tests {
         assert_eq!(values.join(","), "TestB(10001),TestB(101)");
     }
 
-    #[derive(Debug)]
+    #[derive(Component, Debug)]
     struct TestA(u32);
 
-    #[derive(Debug)]
+    #[derive(Component, Debug)]
     struct TestB(u16);
 }
