@@ -1,5 +1,6 @@
 use std::marker::PhantomData;
 
+use super::prelude::ViewTypeId;
 use super::row::{RowId, Row};
 use super::row_meta::{RowTypeId, RowMetas, ColumnTypeId, ColumnType, RowType};
 
@@ -21,7 +22,7 @@ impl<'t> Table<'t> {
         col_vec.push(column_type.id());
 
         let row_type = row_meta.add_row(col_vec);
-        row_meta.add_row_type::<()>(row_type);
+        // row_meta.add_row_type::<()>(row_type);
         // let row_type = self.single_role_type::<()>();
 
         Self {
@@ -107,10 +108,11 @@ impl<'t> Table<'t> {
         let row_id = entity_ref.row;
 
         while self.rows.len() <= row_id.index() {
-            let empty_type = self.row_meta.get_row_by_type::<()>().unwrap();
+            let empty_type = self.row_meta.get_single_view_type::<()>().unwrap();
             let empty_row = RowId::new(self.rows.len() as u32);
             unsafe {
-                self.rows.push(Row::new(empty_row, empty_type));
+                todo!();
+            //       self.rows.push(Row::new(empty_row, empty_type));
             }
         }
 
@@ -189,19 +191,19 @@ impl<'t> Table<'t> {
     }
 
     pub fn iter_by_type<T:'static>(&self) -> EntityIterator<T> {
-        match self.row_meta.get_row_by_type::<T>() {
+        match self.row_meta.get_single_view_type::<T>() {
             None => todo!(),
-            Some(row_type) => {
-                EntityIterator::new(&self, row_type.id())
+            Some(view_type) => {
+                EntityIterator::new(&self, view_type)
             }
         }
     }
 
     pub fn iter_mut_by_type<T:'static>(&mut self) -> EntityMutIterator<T> {
-        match self.row_meta.get_row_by_type::<T>() {
+        match self.row_meta.get_single_view_type::<T>() {
             None => todo!(),
-            Some(row_type) => {
-                EntityMutIterator::new(self, row_type.id())
+            Some(view_type) => {
+                EntityMutIterator::new(self, view_type)
             }
         }
     }
@@ -244,15 +246,18 @@ struct RowCursor<'a, 't> {
 }
 
 impl<'a, 't> RowCursor<'a, 't> {
-    fn next(&mut self, row_type: RowTypeId) -> Option<&Row<'t>> {
+    fn next(&mut self, view_type: ViewTypeId) -> Option<&Row<'t>> {
         while self.index < self.table.len() {
            let index = self.index;
             self.index = index + 1;
 
             if let Some(row) = self.table.rows.get(index) {
-                if row.type_id() == row_type {
+                todo!()
+                /*
+                if row.type_id() == view_type {
                     return Some(row)
                 }
+                */
             }
         }
 
@@ -262,12 +267,12 @@ impl<'a, 't> RowCursor<'a, 't> {
 
 pub struct EntityIterator<'a, 't, T> {
     cursor: RowCursor<'a, 't>,
-    type_id: RowTypeId,
+    type_id: ViewTypeId,
     marker: PhantomData<T>,
 }
 
 impl<'a, 't, T> EntityIterator<'a, 't, T> {
-    pub fn new(table: &'a Table<'t>, type_id: RowTypeId) -> Self {
+    pub fn new(table: &'a Table<'t>, type_id: ViewTypeId) -> Self {
         Self {
             cursor: RowCursor { table: table, index: 0 },
             type_id: type_id,
@@ -291,12 +296,12 @@ impl<'a, 't, T:'static> Iterator for EntityIterator<'a, 't, T> {
 
 pub struct EntityMutIterator<'a, 't, T> {
     cursor: RowCursor<'a, 't>,
-    type_id: RowTypeId,
+    type_id: ViewTypeId,
     marker: PhantomData<T>,
 }
 
 impl<'a, 't, T> EntityMutIterator<'a, 't, T> {
-    pub fn new(table: &'a mut Table<'t>, type_id: RowTypeId) -> Self {
+    pub fn new(table: &'a mut Table<'t>, type_id: ViewTypeId) -> Self {
         Self {
             cursor: RowCursor { table: table, index: 0 },
             type_id: type_id,

@@ -9,10 +9,10 @@ pub struct ColumnTypeId(usize);
 pub struct RowTypeId(usize);
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub struct EntityTypeId(usize);
+pub struct ViewTypeId(usize);
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub struct EntityRowTypeId(usize);
+pub struct ViewRowTypeId(usize);
 
 #[derive(Clone, Debug)]
 pub struct ColumnType {
@@ -21,12 +21,16 @@ pub struct ColumnType {
     length: usize,
 
     rows: Vec<RowTypeId>,
-    entities: Vec<EntityTypeId>,
+    views: Vec<ViewTypeId>,
 }
 
 #[derive(Clone, Debug)]
 pub struct ColumnItem {
     id: ColumnTypeId,
+    row_type_id: RowTypeId,
+
+    index: usize,
+
     align: usize,
     length: usize,
 
@@ -40,17 +44,17 @@ pub struct RowType {
     length: usize,
 }
 
-pub struct EntityType {
-    id: EntityTypeId,
+pub struct ViewType {
+    id: ViewTypeId,
     cols: Vec<ColumnTypeId>,
 
-    row_types: Vec<EntityRowTypeId>,
+    row_types: Vec<ViewRowTypeId>,
 }
 
-pub struct EntityRowType {
-    id: EntityRowTypeId,
+pub struct ViewRowType {
+    id: ViewRowTypeId,
 
-    entity_type_id: EntityTypeId,
+    view_type_id: ViewTypeId,
     row_type_id: RowTypeId,
 
     columns: Vec<usize>,
@@ -59,22 +63,23 @@ pub struct EntityRowType {
 pub(crate) struct RowMetas {
     col_type_metas: TypeMetas,
     col_types: Vec<ColumnType>,
-    col_type_rows: Vec<Vec<RowTypeId>>,
+    // col_type_rows: Vec<Vec<RowTypeId>>,
 
-
-    //row_type_metas: TypeMetas,
     row_col_map: HashMap<Vec<ColumnTypeId>,RowTypeId>,
-    row_type_map: HashMap<TypeId,RowTypeId>,
     row_types: Vec<RowType>,
 
-    entity_types: Vec<EntityType>,
-    entity_col_map: HashMap<Vec<ColumnTypeId>,EntityTypeId>,
+    view_col_map: HashMap<Vec<ColumnTypeId>,ViewTypeId>,
+    view_types: Vec<ViewType>,
 
-    entity_row_types: Vec<EntityRowType>,
-    entity_row_map: HashMap<(EntityTypeId,RowTypeId), EntityRowTypeId>,
+    view_row_map: HashMap<(ViewTypeId,RowTypeId), ViewRowTypeId>,
+    view_row_types: Vec<ViewRowType>,
 
-    entity_rows: Vec<Vec<EntityRowTypeId>>,
+    view_rows: Vec<Vec<ViewRowTypeId>>,
 }
+
+//
+// implementation
+//
 
 impl ColumnTypeId {
     pub fn index(&self) -> usize {
@@ -150,35 +155,35 @@ impl RowType {
     }
 }
 
-impl EntityTypeId {
+impl ViewTypeId {
     pub fn index(&self) -> usize {
         self.0
     }
 }
 
-impl EntityType {
-    pub fn id(&self) -> EntityTypeId {
+impl ViewType {
+    pub fn id(&self) -> ViewTypeId {
         self.id
     }
 
-    pub(crate) fn rows(&self) -> &Vec<EntityRowTypeId> {
+    pub(crate) fn rows(&self) -> &Vec<ViewRowTypeId> {
         &self.row_types
     }
 }
 
-impl EntityRowTypeId {
+impl ViewRowTypeId {
     pub fn index(&self) -> usize {
         self.0
     }
 }
 
-impl EntityRowType {
-    pub fn id(&self) -> EntityRowTypeId {
+impl ViewRowType {
+    pub fn id(&self) -> ViewRowTypeId {
         self.id
     }
 
-    pub(crate) fn entity_type_id(&self) -> EntityTypeId {
-        self.entity_type_id
+    pub(crate) fn entity_type_id(&self) -> ViewTypeId {
+        self.view_type_id
     }
 
     pub(crate) fn row_type_id(&self) -> RowTypeId {
@@ -200,12 +205,12 @@ impl EntityRowType {
     //pub(crate) fn 
 }
 
-impl EntityRowType {
+impl ViewRowType {
     pub fn new(
-        id: EntityRowTypeId, 
+        id: ViewRowTypeId, 
         row: &RowType, 
-        entity: &EntityType
-    ) -> EntityRowType {
+        entity: &ViewType
+    ) -> ViewRowType {
         let mut columns = Vec::<usize>::new();
 
         for col in &entity.cols {
@@ -217,9 +222,9 @@ impl EntityRowType {
             columns.push(index);
         }
 
-        EntityRowType {
+        ViewRowType {
             id,
-            entity_type_id: entity.id,
+            view_type_id: entity.id,
             row_type_id: row.id(),
             columns: columns,
         }
@@ -237,18 +242,17 @@ impl RowMetas {
             col_types: Vec::new(),
 
             row_col_map: HashMap::new(),
-            row_type_map: HashMap::new(),
             row_types: Vec::new(),
 
-            col_type_rows: Vec::new(),
+            // col_type_rows: Vec::new(),
 
-            entity_types: Vec::new(),
-            entity_col_map: HashMap::new(),
+            view_types: Vec::new(),
+            view_col_map: HashMap::new(),
 
-            entity_row_types: Vec::new(),
-            entity_row_map: HashMap::new(),
+            view_row_types: Vec::new(),
+            view_row_map: HashMap::new(),
 
-            entity_rows: Vec::new(),
+            view_rows: Vec::new(),
         }
     }
 
@@ -266,7 +270,7 @@ impl RowMetas {
                 align: align,
                 length: length,
                 rows: Vec::new(),
-                entities: Vec::new(),
+                views: Vec::new(),
             };
 
             self.push_col(col_type);
@@ -277,7 +281,7 @@ impl RowMetas {
 
     fn push_col(&mut self, col_type: ColumnType) {
         self.col_types.push(col_type);
-        self.col_type_rows.push(Vec::new());
+        // self.col_type_rows.push(Vec::new());
     }
 
     pub fn get_column_type<T:'static>(&self) -> Option<&ColumnType> {
@@ -336,13 +340,25 @@ impl RowMetas {
         let mut length: usize = 0;
         let mut align: usize = 1;
 
+        let len = self.row_col_map.len();
+        //let type_id = self.row_type_metas.add_type::<T>();
+        let row_type_id = *self.row_col_map.entry(columns.clone()).or_insert_with(|| {
+            RowTypeId(len)
+        });
+
+        if row_type_id.index() < len {
+            return row_type_id;
+        }
+
         let mut column_items = Vec::<ColumnItem>::new();
 
-        for column_id in &columns {
+        for (index, column_id) in columns.iter().enumerate() {
             let column_type = self.col_types.get(column_id.0).unwrap();
 
             let mut col = ColumnItem {
                 id: column_type.id(),
+                row_type_id: row_type_id,
+                index: index,
                 length: column_type.length(),
                 align: column_type.align(),
                 offset: 0,
@@ -355,23 +371,14 @@ impl RowMetas {
             column_items.push(col);
         }
 
-        //let type_id = self.row_type_metas.add_type::<T>();
-        let len = self.row_col_map.len();
-        let row_type_id = self.row_col_map.entry(columns.clone()).or_insert_with(|| {
-            RowTypeId(len)
+        self.push_row_type(RowType {
+            id: row_type_id,
+            columns: column_items,
+            length: length,
+            align: align,
         });
-        let row_type_id = *row_type_id;
 
-        if row_type_id.index() == self.row_types.len() {
-            self.push_row_type(RowType {
-                id: row_type_id,
-                columns: column_items,
-                length: length,
-                align: align,
-            });
-
-            self.fill_row_columns(row_type_id);
-        }
+        self.fill_row_columns(row_type_id);
 
         row_type_id
     }
@@ -396,9 +403,9 @@ impl RowMetas {
         row_type_id: RowTypeId, 
         col_ids: &Vec<ColumnTypeId>
     ) {
-        let mut entities: Vec<EntityTypeId> = Vec::new();
+        let mut entities: Vec<ViewTypeId> = Vec::new();
 
-        for entity_type in &self.entity_types {
+        for entity_type in &self.view_types {
             if entity_type
                 .cols
                 .iter()
@@ -409,7 +416,7 @@ impl RowMetas {
         }
 
         for entity_id in entities {
-            self.add_entity_row(row_type_id, entity_id);
+            self.add_view_row(row_type_id, entity_id);
         }
     }
 
@@ -417,14 +424,15 @@ impl RowMetas {
         let row_type_id = row_type.id();
 
         for col in &row_type.columns {
-            let col_rows = self.col_type_rows.get_mut(col.id().index()).unwrap();
+            let col_type = self.col_types.get_mut(col.id().index()).unwrap();
 
-            col_rows.push(row_type_id);
+            col_type.rows.push(row_type_id);
         }
 
         self.row_types.push(row_type);
     }
 
+    /*
     pub fn add_row_type<T:'static>(&mut self, row_type: RowTypeId) -> RowTypeId {
         let type_id = TypeId::of::<T>();
 
@@ -432,7 +440,9 @@ impl RowMetas {
 
         row_type
     }
+    */
 
+    /*
     pub fn get_row_by_type<T:'static>(&self) -> Option<&RowType> {
         match self.row_type_map.get(&TypeId::of::<T>()) {
             Some(row_id) => {
@@ -441,6 +451,7 @@ impl RowMetas {
             None => None,
         }
     }
+    */
 
     pub fn get_row_id(&self, row_type_id: RowTypeId) -> &RowType {
         self.row_types.get(row_type_id.index()).unwrap()
@@ -455,7 +466,7 @@ impl RowMetas {
     }
 
     pub fn col_rows(&self, col: ColumnTypeId) -> Iter<RowTypeId> {
-        self.col_type_rows.get(col.index()).unwrap().iter()
+        self.col_types.get(col.index()).unwrap().rows.iter()
     }
 
     pub fn col_join_rows(&self, cols: Vec<ColumnTypeId>) -> Vec<RowTypeId> {
@@ -478,38 +489,38 @@ impl RowMetas {
         rows
     }
 
-    pub fn entity_type(&mut self, cols: Vec<ColumnTypeId>) -> EntityTypeId {
-        let len = self.entity_types.len();
+    pub fn add_view_type(&mut self, cols: Vec<ColumnTypeId>) -> ViewTypeId {
+        let len = self.view_types.len();
 
-        let type_id = *self.entity_col_map
+        let type_id = *self.view_col_map
             .entry(cols.clone())
             .or_insert_with(|| {
-            EntityTypeId(len)
+            ViewTypeId(len)
         });
 
         if type_id.0 == len {
-            self.entity_types.push(EntityType {
+            self.view_types.push(ViewType {
                 id: type_id,
                 cols: cols,
                 row_types: Vec::new(),
             });
 
-            self.entity_rows.push(Vec::new());
+            self.view_rows.push(Vec::new());
 
-            self.fill_entity(type_id);
+            self.fill_view(type_id);
         }
 
         type_id
     }
 
-    pub fn fill_entity(&mut self, entity_type_id: EntityTypeId) {
-        let entity_type = self.get_entity_type(entity_type_id);
+    pub fn fill_view(&mut self, entity_type_id: ViewTypeId) {
+        let entity_type = self.get_view_type(entity_type_id);
         let cols = entity_type.cols.clone();
 
         for col in &cols {
             let col_type = self.get_mut_column(*col);
 
-            col_type.entities.push(entity_type_id);
+            col_type.views.push(entity_type_id);
         }
 
         let rows : Vec<RowTypeId> = self.row_types.iter().map(|row| row.id()).collect();
@@ -525,43 +536,43 @@ impl RowMetas {
         }
 
         for row_id in match_rows {
-            self.add_entity_row(row_id, entity_type_id);
+            self.add_view_row(row_id, entity_type_id);
         }
     }
 
-    pub fn single_entity_type<T:'static>(&mut self) -> EntityTypeId {
+    pub fn single_view_type<T:'static>(&mut self) -> ViewTypeId {
         let column_type = self.add_column::<T>();
         let mut col_vec = Vec::<ColumnTypeId>::new();
         col_vec.push(column_type.id());
 
-        self.entity_type(col_vec)
+        self.add_view_type(col_vec)
     }
 
-    pub(crate) fn get_single_entity_type<T:'static>(&self) -> Option<EntityTypeId> {
+    pub(crate) fn get_single_view_type<T:'static>(&self) -> Option<ViewTypeId> {
         match self.get_column_type::<T>() {
             Some(col) => {
                 let mut col_vec = Vec::<ColumnTypeId>::new();
                 col_vec.push(col.id());
 
-                self.get_entity_type_cols(&col_vec)
+                self.get_view_type_cols(&col_vec)
             },
             None => None
         }
     }
 
-    pub(crate) fn get_entity_type_cols(&self, cols: &Vec<ColumnTypeId>) -> Option<EntityTypeId> {
-        match self.entity_col_map.get(cols) {
+    pub(crate) fn get_view_type_cols(&self, cols: &Vec<ColumnTypeId>) -> Option<ViewTypeId> {
+        match self.view_col_map.get(cols) {
             Some(type_id) => Some(*type_id),
             None => None,
         }
     }
 
-    pub fn get_entity_type(&self, id: EntityTypeId) -> &EntityType {
-        self.entity_types.get(id.index()).unwrap()
+    pub fn get_view_type(&self, id: ViewTypeId) -> &ViewType {
+        self.view_types.get(id.index()).unwrap()
     }
 
-    fn get_mut_entity_type(&mut self, id: EntityTypeId) -> &mut EntityType {
-        self.entity_types.get_mut(id.index()).unwrap()
+    fn get_mut_view_type(&mut self, id: ViewTypeId) -> &mut ViewType {
+        self.view_types.get_mut(id.index()).unwrap()
     }
 
     /*
@@ -592,79 +603,79 @@ impl RowMetas {
     }
      */
 
-    pub(crate) fn add_entity_row(
+    pub(crate) fn add_view_row(
         &mut self,
         row_id: RowTypeId, 
-        entity_id: EntityTypeId
-    ) -> EntityRowTypeId {
-        let len = self.entity_row_types.len();
+        view_id: ViewTypeId
+    ) -> ViewRowTypeId {
+        let len = self.view_row_types.len();
 
-        let type_id = self.entity_row_map
-            .entry((entity_id, row_id))
+        let type_id = self.view_row_map
+            .entry((view_id, row_id))
             .or_insert_with(|| {
-            EntityRowTypeId(len)
+            ViewRowTypeId(len)
         });
 
         let type_id = *type_id;
 
         if type_id.index() == len {
             // let entity_type = self.get_entity_type(entity_id).expect("entity-type");
-            self.push_entity_row(row_id, entity_id, type_id);
+            self.push_view_row(row_id, view_id, type_id);
         }
 
         // self.entity_row_types.get(type_id.index()).expect("known entity type")
         type_id
     }
 
-    fn push_entity_row(
+    fn push_view_row(
         &mut self, 
         row_type_id: RowTypeId,
-        entity_id: EntityTypeId, 
-        type_id: EntityRowTypeId
+        view_id: ViewTypeId, 
+        type_id: ViewRowTypeId
     ) {
         let row = self.get_row_id(row_type_id);
         let row_id = row.id();
-        let entity_type = self.get_entity_type(entity_id);
+        let entity_type = self.get_view_type(view_id);
 
-        assert_eq!(type_id.index(), self.entity_row_types.len());
+        assert_eq!(type_id.index(), self.view_row_types.len());
 
-        self.entity_row_types.push(EntityRowType::new(type_id, row, entity_type));
+        self.view_row_types.push(ViewRowType::new(type_id, row, entity_type));
 
-        let entity_type = self.get_mut_entity_type(entity_id);
+        let entity_type = self.get_mut_view_type(view_id);
         entity_type.row_types.push(type_id);
     }
 
     fn row_type(
         &mut self, 
-        entity_id: EntityTypeId, 
+        entity_id: ViewTypeId, 
         row_id: RowTypeId, 
-        type_id: EntityRowTypeId
-    ) -> EntityRowType {
-        let entity_type = self.get_entity_type(entity_id);
+        type_id: ViewRowTypeId
+    ) -> ViewRowType {
+        let entity_type = self.get_view_type(entity_id);
 
         let row = self.get_row_id(row_id);
 
-        EntityRowType::new(type_id, row, entity_type)
+        ViewRowType::new(type_id, row, entity_type)
     }
 
-    pub fn entity_row_cols(
+    pub fn view_row_cols(
         &mut self, 
         row_type_id: RowTypeId, 
         columns: Vec<ColumnTypeId>
-    ) -> EntityRowTypeId {
-        let entity_type_id = self.entity_type(columns);
+    ) -> ViewRowTypeId {
+        let entity_type_id = self.add_view_type(columns);
         //let entity_type = self.entity_types.get(entity_type_id.index()).unwrap();
 
-        self.add_entity_row(row_type_id, entity_type_id)
+        self.add_view_row(row_type_id, entity_type_id)
     }
 
 
-    pub fn get_entity_row(&self, id: EntityRowTypeId) -> &EntityRowType {
-        self.entity_row_types.get(id.index()).unwrap()
+    pub fn get_view_row(&self, id: ViewRowTypeId) -> &ViewRowType {
+        self.view_row_types.get(id.index()).unwrap()
     }
 
-    pub fn get_entity_rows(&self, id: EntityTypeId) -> &Vec<EntityRowTypeId> {
-        self.entity_rows.get(id.index()).unwrap()
+    pub fn get_view_rows(&self, id: ViewTypeId) -> &Vec<ViewRowTypeId> {
+        self.view_rows.get(id.index()).unwrap()
     }
 
     /*
@@ -690,21 +701,21 @@ impl RowMetas {
     }
     */
 
-    pub(crate) fn push_entity_type(
+    pub(crate) fn push_view_type(
         &mut self, 
-        entity_type_id: EntityTypeId, 
+        view_type_id: ViewTypeId, 
         col_type_id: ColumnTypeId
-    ) -> EntityTypeId {
-        let entity_type = self.get_entity_type(entity_type_id);
+    ) -> ViewTypeId {
+        let view_type = self.get_view_type(view_type_id);
 
-        let mut cols = entity_type.cols.clone();
+        let mut cols = view_type.cols.clone();
         cols.push(col_type_id);
 
-        self.entity_type(cols)
+        self.add_view_type(cols)
     }
 
-    pub fn entity_rows(&self, entity_type: EntityTypeId) -> &Vec<EntityRowTypeId> {
-        self.entity_rows.get(entity_type.index()).unwrap()
+    pub fn entity_rows(&self, entity_type: ViewTypeId) -> &Vec<ViewRowTypeId> {
+        self.view_rows.get(entity_type.index()).unwrap()
     }
 }
 
@@ -712,7 +723,7 @@ impl RowMetas {
 mod tests {
     use std::mem;
 
-    use crate::store::row_meta::{ColumnTypeId, RowTypeId, ColumnType, ColumnItem, EntityTypeId, EntityRowTypeId};
+    use crate::table::row_meta::{ColumnTypeId, RowTypeId, ColumnType, ColumnItem, ViewTypeId, ViewRowTypeId};
 
     use super::RowMetas;
 
@@ -725,14 +736,14 @@ mod tests {
         assert_eq!(col_type.length(), mem::size_of::<usize>());
         assert_eq!(col_type.align(), mem::align_of::<usize>());
         assert_eq!(col_type.rows.len(), 0);
-        assert_eq!(col_type.entities.len(), 0);
+        assert_eq!(col_type.views.len(), 0);
 
         let col_type = meta.add_column::<TestB>();
         assert_eq!(col_type.id(), ColumnTypeId(1));
         assert_eq!(col_type.length(), mem::size_of::<usize>());
         assert_eq!(col_type.align(), mem::align_of::<usize>());
         assert_eq!(col_type.rows.len(), 0);
-        assert_eq!(col_type.entities.len(), 0);
+        assert_eq!(col_type.views.len(), 0);
 
         // check double add
         let col_type = meta.add_column::<TestA>();
@@ -760,7 +771,7 @@ mod tests {
         let col_a = meta.get_column(ColumnTypeId(0));
         assert_eq!(col_a.rows.len(), 1);
         assert_eq!(col_a.rows[0], RowTypeId(0));
-        assert_eq!(col_a.entities.len(), 0);
+        assert_eq!(col_a.views.len(), 0);
 
         let type_a_id = meta.single_row_type::<TestA>();
         assert_eq!(type_a_id, RowTypeId(0));
@@ -778,7 +789,7 @@ mod tests {
 
         let col_a = meta.get_column(ColumnTypeId(0));
         assert_eq!(col_a.rows.len(), 1);
-        assert_eq!(col_a.entities.len(), 0);
+        assert_eq!(col_a.views.len(), 0);
 
         let type_b_id = meta.single_row_type::<TestB>();
         assert_eq!(type_b_id, RowTypeId(1));
@@ -797,7 +808,7 @@ mod tests {
         let col_b = meta.get_column(ColumnTypeId(1));
         assert_eq!(col_b.rows.len(), 1);
         assert_eq!(col_b.rows[0], RowTypeId(1));
-        assert_eq!(col_b.entities.len(), 0);
+        assert_eq!(col_b.views.len(), 0);
     }
 
     #[test]
@@ -941,75 +952,75 @@ mod tests {
     }
 
     #[test]
-    fn row_then_entity() {
+    fn row_then_view() {
         let mut meta = RowMetas::new();
 
         let row_id_a = meta.single_row_type::<TestA>();
         assert_eq!(row_id_a, RowTypeId(0));
 
-        let entity_id_a = meta.single_entity_type::<TestA>();
-        assert_eq!(entity_id_a, EntityTypeId(0));
+        let view_id_a = meta.single_view_type::<TestA>();
+        assert_eq!(view_id_a, ViewTypeId(0));
 
-        let entity_a = meta.get_entity_type(entity_id_a);
-        assert_eq!(entity_a.id(), EntityTypeId(0));
-        let cols = &entity_a.cols;
+        let view_a = meta.get_view_type(view_id_a);
+        assert_eq!(view_a.id(), ViewTypeId(0));
+        let cols = &view_a.cols;
         assert_eq!(cols.len(), 1);
         assert_eq!(cols[0], ColumnTypeId(0));
 
         let col_a = meta.get_column(ColumnTypeId(0));
         assert_eq!(col_a.rows.len(), 1);
         assert_eq!(col_a.rows[0], RowTypeId(0));
-        assert_eq!(col_a.entities.len(), 1);
-        assert_eq!(col_a.entities[0], EntityTypeId(0));
+        assert_eq!(col_a.views.len(), 1);
+        assert_eq!(col_a.views[0], ViewTypeId(0));
 
-        let entity_row_a = meta.get_entity_row(EntityRowTypeId(0));
-        assert_eq!(entity_row_a.id(), EntityRowTypeId(0));
+        let entity_row_a = meta.get_view_row(ViewRowTypeId(0));
+        assert_eq!(entity_row_a.id(), ViewRowTypeId(0));
         assert_eq!(entity_row_a.row_type_id(), RowTypeId(0));
-        assert_eq!(entity_row_a.entity_type_id(), EntityTypeId(0));
+        assert_eq!(entity_row_a.entity_type_id(), ViewTypeId(0));
     }
 
     #[test]
-    fn entity_then_row() {
+    fn view_then_row() {
         let mut meta = RowMetas::new();
 
-        let entity_id_a = meta.single_entity_type::<TestA>();
-        assert_eq!(entity_id_a, EntityTypeId(0));
+        let entity_id_a = meta.single_view_type::<TestA>();
+        assert_eq!(entity_id_a, ViewTypeId(0));
 
         let row_id_a = meta.single_row_type::<TestA>();
         assert_eq!(row_id_a, RowTypeId(0));
 
         //meta.push_row(row_id_a, col_id_b);
 
-        let entity_a = meta.get_entity_type(entity_id_a);
-        assert_eq!(entity_a.id(), EntityTypeId(0));
+        let entity_a = meta.get_view_type(entity_id_a);
+        assert_eq!(entity_a.id(), ViewTypeId(0));
         let cols = &entity_a.cols;
         assert_eq!(cols.len(), 1);
         assert_eq!(cols[0], ColumnTypeId(0));
         let rows = &entity_a.row_types;
         assert_eq!(rows.len(), 1);
-        assert_eq!(rows[0], EntityRowTypeId(0));
+        assert_eq!(rows[0], ViewRowTypeId(0));
 
         let col_a = meta.get_column(ColumnTypeId(0));
         assert_eq!(col_a.rows.len(), 1);
         assert_eq!(col_a.rows[0], RowTypeId(0));
-        assert_eq!(col_a.entities.len(), 1);
-        assert_eq!(col_a.entities[0], EntityTypeId(0));
+        assert_eq!(col_a.views.len(), 1);
+        assert_eq!(col_a.views[0], ViewTypeId(0));
 
-        let entity_row_a = meta.get_entity_row(EntityRowTypeId(0));
-        assert_eq!(entity_row_a.id(), EntityRowTypeId(0));
+        let entity_row_a = meta.get_view_row(ViewRowTypeId(0));
+        assert_eq!(entity_row_a.id(), ViewRowTypeId(0));
         assert_eq!(entity_row_a.row_type_id(), RowTypeId(0));
-        assert_eq!(entity_row_a.entity_type_id(), EntityTypeId(0));
+        assert_eq!(entity_row_a.entity_type_id(), ViewTypeId(0));
     }
 
     #[test]
-    fn entity_then_row2() {
+    fn view_then_row2() {
         let mut meta = RowMetas::new();
 
-        let entity_id_a = meta.single_entity_type::<TestA>();
-        assert_eq!(entity_id_a, EntityTypeId(0));
+        let entity_id_a = meta.single_view_type::<TestA>();
+        assert_eq!(entity_id_a, ViewTypeId(0));
 
-        let entity_id_b = meta.single_entity_type::<TestB>();
-        assert_eq!(entity_id_b, EntityTypeId(1));
+        let entity_id_b = meta.single_view_type::<TestB>();
+        assert_eq!(entity_id_b, ViewTypeId(1));
 
         let row_id_a = meta.single_row_type::<TestA>();
         assert_eq!(row_id_a, RowTypeId(0));
@@ -1019,25 +1030,25 @@ mod tests {
 
         //meta.push_row(row_id_a, col_id_b);
 
-        let entity_b = meta.get_entity_type(entity_id_b);
-        assert_eq!(entity_b.id(), EntityTypeId(1));
+        let entity_b = meta.get_view_type(entity_id_b);
+        assert_eq!(entity_b.id(), ViewTypeId(1));
         let cols = &entity_b.cols;
         assert_eq!(cols.len(), 1);
         assert_eq!(cols[0], ColumnTypeId(1));
         let rows = &entity_b.row_types;
         assert_eq!(rows.len(), 1);
-        assert_eq!(rows[0], EntityRowTypeId(1));
+        assert_eq!(rows[0], ViewRowTypeId(1));
 
         let col_b = meta.get_column(ColumnTypeId(1));
         assert_eq!(col_b.rows.len(), 1);
         assert_eq!(col_b.rows[0], RowTypeId(1));
-        assert_eq!(col_b.entities.len(), 1);
-        assert_eq!(col_b.entities[0], EntityTypeId(1));
+        assert_eq!(col_b.views.len(), 1);
+        assert_eq!(col_b.views[0], ViewTypeId(1));
 
-        let entity_row_b = meta.get_entity_row(EntityRowTypeId(1));
-        assert_eq!(entity_row_b.id(), EntityRowTypeId(1));
+        let entity_row_b = meta.get_view_row(ViewRowTypeId(1));
+        assert_eq!(entity_row_b.id(), ViewRowTypeId(1));
         assert_eq!(entity_row_b.row_type_id(), RowTypeId(1));
-        assert_eq!(entity_row_b.entity_type_id(), EntityTypeId(1));
+        assert_eq!(entity_row_b.entity_type_id(), ViewTypeId(1));
     }
 
 

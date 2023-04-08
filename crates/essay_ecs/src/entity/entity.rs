@@ -1,6 +1,10 @@
 use std::{marker::PhantomData, any::{TypeId, type_name}};
 
-use super::{prelude::Table, row::{RowId, Row}, row_meta::{EntityRowTypeId, EntityRowType, EntityTypeId}, row_meta::{ColumnTypeId, RowTypeId}};
+use crate::table::{prelude::{Table, RowId, Row}, 
+    row_meta::{ViewRowTypeId, ViewRowType, ViewTypeId}, 
+    row_meta::{ColumnTypeId, RowTypeId}};
+
+use super::component::Insert;
 
 pub struct EntityTable<'w> {
     table: Table<'w>,
@@ -10,7 +14,7 @@ pub struct EntityTable<'w> {
 pub struct EntityRef<T> {
     row_id: RowId,
     row_type: RowTypeId,
-    entity_row_type: EntityRowTypeId,
+    entity_row_type: ViewRowTypeId,
     marker: PhantomData<T>,
 }
 
@@ -35,7 +39,7 @@ impl<'t> EntityTable<'t> {
         }        
     }
 
-    pub(crate) fn add_entity_type<T:Bundle>(&mut self) -> EntityTypeId {
+    pub(crate) fn add_entity_type<T:Insert>(&mut self) -> ViewTypeId {
         let mut cols : Vec<ColumnTypeId> = Vec::new();
 
         T::add_cols(self, &mut cols);
@@ -58,32 +62,32 @@ impl<'t> EntityTable<'t> {
         self.table.row_meta_mut().add_column::<T>().id()
     }
 
-    pub fn entity_type(&mut self, cols: Vec<ColumnTypeId>) -> EntityTypeId {
-        self.table.row_meta_mut().entity_type(cols)
+    pub fn entity_type(&mut self, cols: Vec<ColumnTypeId>) -> ViewTypeId {
+        self.table.row_meta_mut().add_view_type(cols)
     }
 
     pub fn entity_row_type(
         &mut self, 
         row_id: RowTypeId, 
-        entity_id: EntityTypeId
-    ) -> EntityRowTypeId {
+        entity_id: ViewTypeId
+    ) -> ViewRowTypeId {
         let row_type = self.table.get_row_type(row_id);
 
         todo!()
         //self.entity_meta.entity_row(row_type, entity_id)
     }
 
-    pub fn entity_row_by_type<T:'static>(&mut self, row_id: RowTypeId) -> EntityRowTypeId {
-        let entity_id = self.table.row_meta_mut().single_entity_type::<T>();
+    pub fn entity_row_by_type<T:'static>(&mut self, row_id: RowTypeId) -> ViewRowTypeId {
+        let entity_id = self.table.row_meta_mut().single_view_type::<T>();
 
-        self.table.row_meta_mut().add_entity_row(row_id, entity_id)
+        self.table.row_meta_mut().add_view_row(row_id, entity_id)
     }
 
     pub(crate) fn push_entity_type(
         &mut self, 
-        entity_row_type: EntityRowTypeId, 
+        entity_row_type: ViewRowTypeId, 
         col_type_id: ColumnTypeId
-    ) -> EntityRowTypeId {
+    ) -> ViewRowTypeId {
         todo!();
         /*
         let entity_row = self.entity_meta
@@ -114,7 +118,7 @@ impl<'t> EntityTable<'t> {
     }
 
     pub(crate) fn iter_by_type<T:'static>(&self) -> Entity3Iterator<T> {
-        match self.table.row_meta().get_single_entity_type::<T>() {
+        match self.table.row_meta().get_single_view_type::<T>() {
             Some(entity_type) => { 
                 Entity3Iterator {
                     table: self,
@@ -128,7 +132,7 @@ impl<'t> EntityTable<'t> {
         }
     }
 
-    pub(crate) fn iter_mut_by_type<T:Bundle>(&mut self) -> Entity3MutIterator<T> {
+    pub(crate) fn iter_mut_by_type<T:Insert>(&mut self) -> Entity3MutIterator<T> {
         let entity_type = self.add_entity_type::<T>();
 
         Entity3MutIterator {
@@ -140,7 +144,7 @@ impl<'t> EntityTable<'t> {
         }
     }
 
-    pub(crate) fn get_single_entity_type<T:'static>(&self) -> Option<EntityTypeId> {
+    pub(crate) fn get_single_entity_type<T:'static>(&self) -> Option<ViewTypeId> {
         todo!();
         /*
         match self.table.get_column_type_id::<T>() {
@@ -174,13 +178,13 @@ impl<'t> EntityTable<'t> {
 
 struct EntityCursor<'a, 't> {
     table: &'a EntityTable<'t>,
-    entity_type: EntityTypeId,
+    entity_type: ViewTypeId,
     entity_type_index: usize,
     row_index: usize,
 }
 
 impl<'a, 't> EntityCursor<'a, 't> {
-    fn new(table: &'a EntityTable<'t>, entity_type: EntityTypeId) -> Self {
+    fn new(table: &'a EntityTable<'t>, entity_type: ViewTypeId) -> Self {
         Self {
             table: table,
             entity_type: entity_type,
@@ -190,7 +194,7 @@ impl<'a, 't> EntityCursor<'a, 't> {
     }
 
     fn next(&mut self) -> Option<&Row<'a>> {
-        let entity = self.table.table.row_meta().get_entity_type(self.entity_type);
+        let entity = self.table.table.row_meta().get_view_type(self.entity_type);
 
         while self.entity_type_index < entity.rows().len() {
             let row_type_id = entity.rows()[self.entity_type_index];
@@ -227,14 +231,14 @@ impl<'a, 't> EntityCursor<'a, 't> {
 
 pub struct Entity3Iterator<'a, 't, T> {
     table: &'a EntityTable<'t>,
-    entity_type: EntityTypeId,
+    entity_type: ViewTypeId,
     entity_type_index: usize,
     row_index: usize,
     marker: PhantomData<T>,
 }
 
 impl<'a, 't, T> Entity3Iterator<'a, 't, T> {
-    fn new(table: &'a EntityTable<'t>, entity_type: EntityTypeId) -> Self {
+    fn new(table: &'a EntityTable<'t>, entity_type: ViewTypeId) -> Self {
         Self {
             table: table,
             entity_type: entity_type,
@@ -245,7 +249,7 @@ impl<'a, 't, T> Entity3Iterator<'a, 't, T> {
     }
 
     fn next(&mut self) -> Option<&Row<'a>> {
-        let entity = self.table.table.row_meta().get_entity_type(self.entity_type);
+        let entity = self.table.table.row_meta().get_view_type(self.entity_type);
 
         while self.entity_type_index < entity.rows().len() {
             let row_type_id = entity.rows()[self.entity_type_index];
@@ -271,7 +275,7 @@ impl<'a, 't, T:'static> Iterator for Entity3Iterator<'a, 't, T> {
     type Item=&'a T;
 
     fn next(&mut self) -> Option<&'a T> {
-        let entity = self.table.table.row_meta().get_entity_type(self.entity_type);
+        let entity = self.table.table.row_meta().get_view_type(self.entity_type);
 
         while self.entity_type_index < entity.rows().len() {
             let entity_row_type_id = entity.rows()[self.entity_type_index];
@@ -279,7 +283,7 @@ impl<'a, 't, T:'static> Iterator for Entity3Iterator<'a, 't, T> {
             let row_index = self.row_index;
             self.row_index += 1;
 
-            let entity_row = self.table.table.row_meta().get_entity_row(entity_row_type_id);
+            let entity_row = self.table.table.row_meta().get_view_row(entity_row_type_id);
             let row_type_id = entity_row.row_type_id();
 
             match self.table.table.get_row_by_type_index(row_type_id, row_index) {
@@ -301,14 +305,14 @@ impl<'a, 't, T:'static> Iterator for Entity3Iterator<'a, 't, T> {
 
 pub struct Entity3MutIterator<'a, 't, T> {
     table: &'a EntityTable<'t>,
-    entity_type: EntityTypeId,
+    entity_type: ViewTypeId,
     entity_type_index: usize,
     row_index: usize,
     marker: PhantomData<T>,
 }
 
 impl<'a, 't, T> Entity3MutIterator<'a, 't, T> {
-    fn new(table: &'a EntityTable<'t>, entity_type: EntityTypeId) -> Self {
+    fn new(table: &'a EntityTable<'t>, entity_type: ViewTypeId) -> Self {
         Self {
             table: table,
             entity_type: entity_type,
@@ -323,7 +327,7 @@ impl<'a, 't, T:'static> Iterator for Entity3MutIterator<'a, 't, T> {
     type Item=&'a mut T;
 
     fn next(&mut self) -> Option<&'a mut T> {
-        let entity = self.table.table.row_meta().get_entity_type(self.entity_type);
+        let entity = self.table.table.row_meta().get_view_type(self.entity_type);
 
         while self.entity_type_index < entity.rows().len() {
             let entity_row_type_id = entity.rows()[self.entity_type_index];
@@ -331,7 +335,7 @@ impl<'a, 't, T:'static> Iterator for Entity3MutIterator<'a, 't, T> {
             let row_index = self.row_index;
             self.row_index += 1;
 
-            let entity_row = self.table.table.row_meta().get_entity_row(entity_row_type_id);
+            let entity_row = self.table.table.row_meta().get_view_row(entity_row_type_id);
             let row_type_id = entity_row.row_type_id();
 
             match self.table.table.get_row_by_type_index(row_type_id, row_index) {
@@ -358,7 +362,7 @@ pub struct Entity2Iterator<'a, 't, T> {
 }
 
 impl<'a, 't, T> Entity2Iterator<'a, 't, T> {
-    pub fn new(table: &'a EntityTable<'t>, entity_type: EntityTypeId) -> Self {
+    pub fn new(table: &'a EntityTable<'t>, entity_type: ViewTypeId) -> Self {
         Self {
             cursor: EntityCursor::new(table, entity_type),
             marker: PhantomData,
@@ -386,7 +390,7 @@ pub struct Entity2MutIterator<'a, 't, T> {
 }
 
 impl<'a, 't, T> Entity2MutIterator<'a, 't, T> {
-    pub fn new(table: &'a mut EntityTable<'t>, entity_type: EntityTypeId) -> Self {
+    pub fn new(table: &'a mut EntityTable<'t>, entity_type: ViewTypeId) -> Self {
         Self {
             cursor: EntityCursor::new(table, entity_type),
             marker: PhantomData,
@@ -421,7 +425,7 @@ impl<T:'static> EntityRef<T> {
 mod tests {
     use essay_ecs_macros::Component;
 
-    use crate::store::row_meta::ColumnTypeId;
+    use crate::table::row_meta::ColumnTypeId;
 
     use super::EntityTable;
 

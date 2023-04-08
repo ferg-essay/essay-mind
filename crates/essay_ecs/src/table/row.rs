@@ -5,7 +5,7 @@ use super::{ptr::PtrOwn, row_meta::{RowType, RowTypeId, ColumnTypeId, ColumnItem
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Ord, PartialOrd)]
 pub struct RowId(u32);
 
-pub(crate) struct Row<'t> {
+pub struct Row<'t> {
     row_id: RowId,
     type_id: RowTypeId,
     data: Vec<u8>,
@@ -40,7 +40,7 @@ impl<'t> Row<'t> {
     }
 
     pub fn ptr(&self, index: usize) -> &PtrOwn<'t> {
-        self.ptrs.get(index).expect("unavailable index")
+        self.ptrs.get(index).unwrap()
     }
 
     pub(crate) unsafe fn push<T>(&mut self, value: T, col_type: &ColumnItem) {
@@ -137,6 +137,10 @@ impl<'t> Row<'t> {
         } else {
             None
         }
+    }
+
+    pub(crate) fn insert<T:'static>(&self, index: usize, this: T) {
+        todo!()
     }
 }
 

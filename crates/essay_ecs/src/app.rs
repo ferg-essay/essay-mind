@@ -1,6 +1,7 @@
 use crate::{
     system::prelude::{System, IntoSystem, Schedule}, 
-    world::prelude::{World, WorldRef}, store::prelude::{RowRef, EntityRef}
+    world::prelude::{World, WorldRef}, table::prelude::{RowRef},
+    entity::prelude::{EntityRef},
 };
 
 pub struct App {

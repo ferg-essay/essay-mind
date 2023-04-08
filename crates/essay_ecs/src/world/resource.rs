@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::store::prelude::{TypeMetas, RowMeta, Table, TypeIndex, RowRef};
+use crate::table::prelude::{TypeMetas, RowMeta, Table, TypeIndex, RowRef};
 
 pub struct Resources<'w> {
     types: TypeMetas,

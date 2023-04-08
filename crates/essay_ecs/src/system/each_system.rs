@@ -1,6 +1,6 @@
 use std::{marker::PhantomData, ops::{Deref, DerefMut}};
 
-use crate::{world::prelude::World, store::prelude::Bundle, prelude::Component};
+use crate::{world::prelude::World, entity::prelude::Insert};
 
 use super::{prelude::Param, system::{System, IntoSystem}, param::Arg};
 
@@ -84,7 +84,7 @@ pub trait FiberIn {
 }
 
 pub trait EachFun<M> {
-    type Entity: Bundle;
+    type Entity: Insert;
     //type EachParams: EachParam;
     type Params: Param;
 
@@ -176,7 +176,7 @@ pub struct IsPlain;
 pub struct IsIn;
 pub struct IsOut;
 
-impl<F:'static,T:Bundle,P:Param,> EachFun<fn(IsPlain, T, P)> for F
+impl<F:'static,T:Insert,P:Param,> EachFun<fn(IsPlain, T, P)> for F
     where F:FnMut(&mut T, P) -> () +
             FnMut(&mut T, Arg<P>) -> ()
 {
@@ -232,7 +232,7 @@ impl<F:'static,T:'static,FB:Fiber,P:Param,> EachFun<fn(IsOut, T, FB, P)> for F
 macro_rules! impl_each_function {
     ($($param:ident),*) => {
         #[allow(non_snake_case)]
-        impl<F: 'static, T: Bundle, $($param: Param),*> EachFun<fn(IsPlain, T, $($param,)*)> for F
+        impl<F: 'static, T: Insert, $($param: Param),*> EachFun<fn(IsPlain, T, $($param,)*)> for F
         where F:FnMut(&mut T, $($param),*) -> () +
             FnMut(&mut T, $(Arg<$param>),*) -> ()
         {
