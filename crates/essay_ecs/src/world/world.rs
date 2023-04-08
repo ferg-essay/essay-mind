@@ -23,7 +23,7 @@ impl<'w> World<'w> {
         self.ptr.deref_mut().entities.add_entity_type::<T>()
     }
 
-    pub fn add_entity<T:'static>(&mut self, value: T) -> WorldRef<T> {
+    pub fn add_entity<T:Insert>(&mut self, value: T) -> WorldRef {
         WorldRef {
             ent_ref: self.ptr.deref_mut().entities.push::<T>(value)
         }
@@ -72,11 +72,11 @@ impl<'w> WorldInner<'w> {
     }
 }
 
-pub struct WorldRef<T> {
-    ent_ref: EntityRef<T>,
+pub struct WorldRef {
+    ent_ref: EntityRef,
 }
 
-impl<T:'static> WorldRef<T> {
+impl WorldRef {
     pub fn push<S:'static>(&self, world: &mut World, value: S) {
         self.ent_ref.push(&mut world.ptr.deref_mut().entities, value)
     }

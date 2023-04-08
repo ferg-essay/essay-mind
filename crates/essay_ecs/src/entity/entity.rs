@@ -1,18 +1,19 @@
 use std::marker::PhantomData;
 
-use crate::store::{prelude::{RowId, RowTypeId}, row_meta::ViewRowTypeId};
+use crate::{store::{prelude::{RowId, RowTypeId}, row_meta::ViewRowTypeId}, prelude::Component};
 
-use super::prelude::EntityTable;
+use super::{prelude::EntityTable, component::ViewQuery};
 
+#[derive(Debug,Clone,Copy,PartialEq,Hash,PartialOrd,Eq)]
+pub struct EntityId(usize);
 
-pub struct EntityRef<T> {
+pub struct EntityRef {
     row_id: RowId,
     row_type: RowTypeId,
     entity_row_type: ViewRowTypeId,
-    marker: PhantomData<T>,
 }
 
-impl<T:'static> EntityRef<T> {
+impl EntityRef {
     pub(crate) fn new(
         row_id: RowId, 
         row_type: RowTypeId,
@@ -22,17 +23,15 @@ impl<T:'static> EntityRef<T> {
             row_id: row_id,
             row_type: row_type,
             entity_row_type: entity_row_type,
-            marker: PhantomData,
         }
     }
 
-    pub fn get<'a>(&self, table: &'a EntityTable) -> Option<&'a T> {
-        todo!();
-        /*
-        let row_type = table.entity_meta.get_entity_row(self.entity_row_type);
-            
-        table.table.get_row(self.row_id, row_type.columns())
-        */
+    pub fn id(&self) -> EntityId {
+        EntityId(self.row_id.index())
+    }
+
+    pub fn get<'a,T:Component>(&self, table: &'a EntityTable) -> &'a T {
+        table.get_row::<T>(self.row_id)
     }
 
     pub fn push<S:'static>(&self, table: &mut EntityTable, value: S) {

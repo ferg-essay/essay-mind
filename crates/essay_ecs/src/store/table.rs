@@ -54,6 +54,18 @@ impl<'t> Table<'t> {
         self.row_meta.get_row_id(row_type_id)
     }
 
+    pub(crate) fn push_empty_row(&mut self, row_type_id: RowTypeId) -> RowId {
+        let row_type = self.row_meta.get_row_id(row_type_id);
+        let row_id = RowId::new(self.rows.len() as u32);
+
+        unsafe {
+            let mut row = Row::new(row_id, row_type);
+            self.rows.push(row);
+        }
+
+        row_id
+    }
+
     pub fn push<T:'static>(&mut self, value: T) -> RowRef<T> {
         let row_type_id = self.row_meta.single_row_type::<T>();
         let row_type = self.row_meta.get_row_id(row_type_id);

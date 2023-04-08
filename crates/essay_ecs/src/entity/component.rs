@@ -1,4 +1,4 @@
-use crate::store::{row::Row, row_meta::ColumnTypeId};
+use crate::store::{row::Row, row_meta::{ColumnTypeId, RowType}};
 
 use super::{prelude::EntityTable};
 
@@ -8,49 +8,81 @@ pub trait Component:'static {}
 pub struct ComponentId(usize);
 
 
-pub trait Insert:'static {
-    fn add_cols(table: &mut EntityTable, cols: &mut Vec<ColumnTypeId>);
+//
+// Insert tuples of components
+//
 
-    fn insert(row: &mut Row, index: usize, this: Self) -> usize;
+pub trait Insert:'static {
+    fn add_cols(table: &mut EntityTable, cols: &mut InsertMap);
+
+    fn insert(row: &mut Row, cols: &InsertMap, index: usize, this: Self) -> usize;
+}
+
+pub struct InsertMap {
+    col_ids: Vec<ColumnTypeId>,
+    row_cols: Vec<usize>,
+}
+
+impl InsertMap {
+    pub fn new() -> Self {
+        Self {
+            col_ids: Vec::new(),
+            row_cols: Vec::new(),
+        }
+    }
+
+    fn push(&mut self, id: ColumnTypeId) {
+        self.col_ids.push(id);
+    }
+
+    fn fill(&mut self, row: &RowType) {
+        for col_id in &self.col_ids {
+            self.row_cols.push(row.column_position(*col_id).unwrap());
+        }
+    }
+
+    fn index(&self, index: usize) -> usize {
+        self.row_cols[index]
+    }
+
+    pub(crate) fn column_types(&self) -> &Vec<ColumnTypeId> {
+        &self.col_ids
+    }
 }
 
 impl<T:Component> Insert for T {
-    fn add_cols(table: &mut EntityTable, cols: &mut Vec<ColumnTypeId>) {
+    fn add_cols(table: &mut EntityTable, cols: &mut InsertMap) {
         cols.push(table.add_column::<T>());
     }
 
-    fn insert(row: &mut Row, index: usize, this: Self) -> usize {
-        row.insert(index, this);
+    fn insert(row: &mut Row, cols: &InsertMap, index: usize, this: Self) -> usize {
+        row.insert(cols.index(index), this);
 
         index + 1
     }
 }
 
-//
-// Bundle composed of tuples
-//
-
 macro_rules! impl_insert_tuple {
-    ($($param:ident),*) => {
+    ($($part:ident),*) => {
         #[allow(non_snake_case)]
-        impl<$($param:Insert),*> Insert for ($($param,)*)
+        impl<$($part:Insert),*> Insert for ($($part,)*)
         {
             fn add_cols(
                 table: &mut EntityTable, 
-                cols: &mut Vec<ColumnTypeId>
+                cols: &mut InsertMap
             ) {
                 $(
-                    $param::add_cols(table, cols);
+                    $part::add_cols(table, cols);
                 )*
             }
 
-            fn insert(row: &mut Row, index: usize, this: Self) -> usize {
+            fn insert(row: &mut Row, cols: &InsertMap, index: usize, this: Self) -> usize {
                 let mut index = index;
 
-                let ($($param),*) = this;
+                let ($($part),*) = this;
 
                 $(
-                    index = $param::insert(row, index, $param);
+                    index = $part::insert(row, cols, index, $part);
                 )*
         
                 index
@@ -64,6 +96,10 @@ impl_insert_tuple!(P1,P2);
 impl_insert_tuple!(P1,P2,P3);
 impl_insert_tuple!(P1,P2,P3,P4);
 impl_insert_tuple!(P1,P2,P3,P4,P5);
+
+//
+// query tuples of components
+//
 
 pub trait ViewQuery<'a> {
     fn query(row: &'a Row, i: &mut usize) -> Self;

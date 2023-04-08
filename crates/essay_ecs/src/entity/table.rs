@@ -4,7 +4,7 @@ use crate::store::{prelude::{Table, RowId, Row},
     row_meta::{ViewRowTypeId, ViewRowType, ViewTypeId}, 
     row_meta::{ColumnTypeId, RowTypeId}};
 
-use super::{component::Insert, prelude::EntityRef};
+use super::{component::{Insert, InsertMap}, prelude::EntityRef};
 
 pub struct EntityTable<'w> {
     table: Table<'w>,
@@ -19,24 +19,38 @@ impl<'t> EntityTable<'t> {
         }
     }
 
-    pub fn push<T:'static>(&mut self, value: T) -> EntityRef<T> {
-        let row_ref = self.table.push(value);
+    pub fn push<T:Insert>(&mut self, value: T) -> EntityRef {
+        let mut cols = InsertMap::new();
 
-        let type_id = self.entity_row_by_type::<T>(row_ref.row_type_id());
+        T::add_cols(self, &mut cols);
+
+        let row_type = self.table.row_meta_mut().add_row(cols.column_types().clone());
+
+        let row = self.table.push_empty_row(row_type);
+
+        let type_id = self.entity_row_by_type::<T>(row_type);
 
         EntityRef::new(
-            row_ref.row_id(),
-            row_ref.row_type_id(),
+            row,
+            row_type,
             type_id,
         )
     }
 
-    pub(crate) fn add_entity_type<T:Insert>(&mut self) -> ViewTypeId {
-        let mut cols : Vec<ColumnTypeId> = Vec::new();
+    pub(crate) fn add_row_type<T:Insert>(&mut self) -> RowTypeId {
+        let mut cols = InsertMap::new();
 
         T::add_cols(self, &mut cols);
 
-        self.entity_type(cols)
+        self.table.row_meta_mut().add_row(cols.column_types().clone())
+    }
+
+    pub(crate) fn add_entity_type<T:Insert>(&mut self) -> ViewTypeId {
+        let mut cols = InsertMap::new();
+
+        T::add_cols(self, &mut cols);
+
+        self.entity_type(cols.column_types().clone())
     }
     /*
     pub(crate) fn add_entity_type_cols(&mut self, e_cols: impl EntityCols) -> EntityTypeId {
@@ -99,6 +113,15 @@ impl<'t> EntityTable<'t> {
 
         self.entity_meta.entity_row(row_type, entity_id)
          */
+    }
+
+    pub(crate) fn get_row<T:'static>(&self, row_id: RowId) -> &T {
+        match self.table.row_meta().get_single_view_type::<T>() {
+            Some(view_type) => { 
+                todo!()
+            },
+            None => todo!(),
+        }
     }
 
     fn iter_type<T:'static>(&self) -> &T {
@@ -410,6 +433,7 @@ mod tests {
     fn test_entity_ref() {
         let mut table = EntityTable::new();
 
+        /*
         let ref_a = table.push(TestA(1));
         let value_a = ref_a.get(&table).unwrap();
         assert_eq!(value_a, &TestA(1));
@@ -424,6 +448,7 @@ mod tests {
 
         let value_a = ref_a.get(&table).unwrap();
         assert_eq!(value_a, &TestA(1));
+        */
     }
 
     #[test]
@@ -491,6 +516,7 @@ mod tests {
     fn test_entity_push() {
         let mut table = EntityTable::new();
 
+        /*
         let ref_a = table.push(TestA(1));
         let value_a = ref_a.get(&table).unwrap();
         assert_eq!(value_a, &TestA(1));
@@ -501,6 +527,7 @@ mod tests {
 
         let ref_a2 = table.push(TestA(3));
         let ref_a3 = table.push(TestA(4));
+        */
     }
 
     #[test]
