@@ -155,6 +155,64 @@ impl RowType {
     }
 }
 
+pub struct InsertMapBuilder {
+    col_ids: Vec<ColumnTypeId>,
+}
+
+pub struct InsertMap {
+    //col_ids: Vec<ColumnTypeId>,
+    row_type: RowTypeId,
+    row_cols: Vec<usize>,
+}
+
+impl InsertMapBuilder {
+    pub fn new() -> Self {
+        Self {
+            col_ids: Vec::new(),
+        }
+    }
+
+    pub fn push(&mut self, id: ColumnTypeId) {
+        self.col_ids.push(id);
+    }
+
+    pub fn columns(&self) -> &Vec<ColumnTypeId> {
+        &self.col_ids
+    }
+
+    pub fn build_insert(&self, row: &RowType) -> InsertMap {
+        //let row_type_id = meta.add_row(self.col_ids.clone());
+        //let row= meta.get_row_id(row_type_id);
+
+        let mut row_cols = Vec::<usize>::new();
+
+        for col_id in &self.col_ids {
+            row_cols.push(row.column_position(*col_id).unwrap());
+        }
+
+        InsertMap {
+            row_type: row.id(),
+            row_cols: row_cols,
+        }
+    }
+
+    /*
+    pub(crate) fn column_types(&self) -> &Vec<ColumnTypeId> {
+        &self.col_ids
+    }
+    */
+}
+
+impl InsertMap {
+    pub fn index(&self, index: usize) -> usize {
+        self.row_cols[index]
+    }
+
+    pub(crate) fn row_type(&self) -> RowTypeId {
+        self.row_type
+    }
+}
+
 impl ViewTypeId {
     pub fn index(&self) -> usize {
         self.0

@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use super::prelude::ViewTypeId;
 use super::row::{RowId, Row};
-use super::row_meta::{RowTypeId, RowMetas, ColumnTypeId, ColumnType, RowType};
+use super::row_meta::{RowTypeId, RowMetas, ColumnTypeId, ColumnType, RowType, InsertMapBuilder};
 
 pub struct Table<'w> {
     row_meta: RowMetas,
@@ -34,29 +34,92 @@ impl<'t> Table<'t> {
         }
     }
 
-    pub(crate) fn row_meta(&self) -> &RowMetas {
+    pub(crate) fn meta(&self) -> &RowMetas {
         &self.row_meta
     }
 
-    pub(crate) fn row_meta_mut(&mut self) -> &mut RowMetas {
+    pub(crate) fn meta_mut(&mut self) -> &mut RowMetas {
         &mut self.row_meta
     }
 
+    /*
     pub fn column_type<T:'static>(&mut self) -> &ColumnType {
         self.row_meta.add_column::<T>()
     }
+    */
 
+    /*
     pub(crate) fn get_column_type_id<T:'static>(&self) -> Option<ColumnTypeId> {
         self.row_meta.get_column_type_id::<T>()
     }
+    */
 
     pub fn get_row_type(&self, row_type_id: RowTypeId) -> &RowType {
         self.row_meta.get_row_id(row_type_id)
     }
 
-    pub(crate) fn push_empty_row(&mut self, row_type_id: RowTypeId) -> RowId {
+    pub fn len(&self) -> usize {
+        self.rows.len()
+    }
+
+    pub fn get<T:'static>(&self, entity: &RowRef<T>) -> Option<&T> {
+        match self.rows.get(entity.row_id().index()) {
+            Some(row) => unsafe { Some(row.get(0)) },
+            None => None,
+        }
+    }
+
+    pub fn get_mut<T:'static>(&mut self, entity: &RowRef<T>) -> Option<&mut T> {
+        match self.rows.get_mut(entity.row_id().index()) {
+            Some(row) => unsafe { 
+                Some(row.get_mut(0))
+            },
+            None => None,
+        }
+    }
+
+    pub fn push<T:'static>(&mut self, value: T) -> RowRef<T> {
+        let mut builder = InsertMapBuilder::new();
+        builder.push(self.row_meta.add_column::<T>().id());
+
+        let row_type_id = self.row_meta.add_row(builder.columns().clone());
+        let row_type = self.row_meta.get_row_id(row_type_id);
+        let cols = builder.build_insert(row_type); // self.row_meta.get_row_id(row_type));
+
+        let row_id = unsafe {
+            let row_id = self.push_empty_row(row_type_id);
+            let row = self.rows.get_mut(row_id.index()).unwrap();
+            row.insert(&cols, 0, value);
+
+            row_id
+        };
+        /*
         let row_type = self.row_meta.get_row_id(row_type_id);
         let row_id = RowId::new(self.rows.len() as u32);
+
+        unsafe { 
+            let mut row = Row::new(row_id, row_type);
+            row.push(value, row_type.column(0));
+            self.rows.push(row);
+        }
+        */
+
+        RowRef {
+            type_id: row_type_id,
+            row: row_id,
+            marker: PhantomData,
+        }
+    }
+
+    pub(crate) unsafe fn push_empty_row(&mut self, row_type_id: RowTypeId) -> RowId {
+        let row_type = self.row_meta.get_row_id(row_type_id);
+        let row_id = RowId::new(self.rows.len() as u32);
+
+        while self.type_rows.len() <= row_type_id.index() {
+            self.type_rows.push(Vec::new());
+        }
+
+        self.type_rows[row_type_id.index()].push(row_id);
 
         unsafe {
             let mut row = Row::new(row_id, row_type);
@@ -66,32 +129,8 @@ impl<'t> Table<'t> {
         row_id
     }
 
-    pub fn push<T:'static>(&mut self, value: T) -> RowRef<T> {
-        let row_type_id = self.row_meta.single_row_type::<T>();
-        let row_type = self.row_meta.get_row_id(row_type_id);
-        let row_id = RowId::new(self.rows.len() as u32);
-
-        unsafe { 
-            let mut row = Row::new(row_id, row_type);
-            row.push(value, row_type.column(0));
-            self.rows.push(row);
-        }
-
-        while self.type_rows.len() <= row_type_id.index() {
-            self.type_rows.push(Vec::new());
-        }
-
-        self.type_rows[row_type_id.index()].push(row_id);
-
-        RowRef {
-            type_id: row_type_id,
-            row: row_id,
-            marker: PhantomData,
-        }
-    }
-
     pub fn replace_push<T:'static>(&mut self, row_id: RowId, value: T) {
-        let col_type_id = self.column_type::<T>().id();
+        let col_type_id = self.meta_mut().add_column::<T>().id();
         let row = self.rows.get(row_id.index()).unwrap();
         let old_type_id = row.type_id();
         let new_type_id = self.row_meta.push_row(old_type_id, col_type_id);
@@ -99,7 +138,7 @@ impl<'t> Table<'t> {
         let new_type = self.row_meta.get_row_id(new_type_id);
 
         let new_row = unsafe {
-            row.replace_push(value, old_type, new_type, col_type_id)
+            row.expand(value, old_type, new_type, col_type_id)
         };
 
         let new_row_id = new_row.id();
@@ -135,26 +174,6 @@ impl<'t> Table<'t> {
         self.rows[row_id.index()] = row;
     }
 
-    pub fn len(&self) -> usize {
-        self.rows.len()
-    }
-
-    pub fn get<T:'static>(&self, entity: &RowRef<T>) -> Option<&T> {
-        match self.rows.get(entity.row_id().index()) {
-            Some(row) => unsafe { row.get(entity.row_id(), 0) },
-            None => None,
-        }
-    }
-
-    pub fn get_mut<T:'static>(&mut self, entity: &RowRef<T>) -> Option<&mut T> {
-        match self.rows.get_mut(entity.row_id().index()) {
-            Some(row) => unsafe { 
-                row.get_mut(entity.row_id(), 0) 
-            },
-            None => None,
-        }
-    }
-
     /*
     pub fn get_row(&self, row_id: RowId) -> &'t Row {
         self.rows.get(row_id.index())
@@ -165,6 +184,7 @@ impl<'t> Table<'t> {
     }
     */
 
+    /*
     pub(crate) unsafe fn get_fun<'a,F,R:'static>(
         &'a self, 
         row_id: RowId, 
@@ -176,8 +196,17 @@ impl<'t> Table<'t> {
 
         fun(row, ptr_map)
     }
+    */
 
-    pub fn get_row<T:'static>(
+    pub(crate) fn get_row(&self, row_id: RowId) -> Option<&Row> {
+        self.rows.get(row_id.index())
+    }
+
+    pub(crate) fn get_mut_row(&mut self, row_id: RowId) -> Option<&mut Row<'t>> {
+        self.rows.get_mut(row_id.index())
+    }
+
+    pub fn get_row_value<T:'static>(
         &self, 
         row_id: RowId,
         cols: &Vec<usize>,
@@ -185,7 +214,7 @@ impl<'t> Table<'t> {
         match self.rows.get(row_id.index()) {
             Some(row) => {
                 unsafe {
-                    row.get(row_id, *cols.get(0).unwrap())
+                    Some(row.get(*cols.get(0).unwrap()))
                 }
             },
             None => None,
@@ -300,7 +329,8 @@ impl<'a, 't, T:'static> Iterator for EntityIterator<'a, 't, T> {
         match self.cursor.next(self.type_id) {
             None => { return None },
             Some(row) => {
-                    return unsafe { Some(row.ptr(0).deref()) };
+                todo!()
+                //return unsafe { Some(row.get(0)) };
             }
         }
     }
@@ -329,7 +359,8 @@ impl<'a, 't, T:'static> Iterator for EntityMutIterator<'a, 't, T> {
         match self.cursor.next(self.type_id) {
             None => { return None },
             Some(row) => {
-                return unsafe { Some(row.ptr(0).deref_mut()) };
+                todo!()
+                //return unsafe { Some(row.get_mut(0)) };
             }
         }
     }

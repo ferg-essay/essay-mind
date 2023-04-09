@@ -121,6 +121,24 @@ impl<'a> PtrOwn<'a> {
         PtrOwn::new(*storage)
     }
 
+    pub unsafe fn write<T>(&mut self, value: T) {
+        let len = mem::size_of::<T>();
+
+        let offset = 0;
+        
+        let mut value = ManuallyDrop::new(value);
+        let source: NonNull<u8> = NonNull::from(&mut *value).cast();
+
+        std::ptr::copy_nonoverlapping::<u8>(
+            source.as_ptr(), 
+            self.0.as_ptr(),
+            len
+        );
+        // println!("src {:?} target {:?}", ptr.as_ptr(), storage);
+    
+        //PtrOwn::new(*storage)
+    }
+
     #[inline]
     pub unsafe fn deref<T>(self) -> &'a T {
         &*self.as_ptr().cast::<T>() // .debug_ensure_aligned()

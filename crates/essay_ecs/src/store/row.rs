@@ -1,6 +1,6 @@
 use std::{ptr::NonNull};
 
-use super::{ptr::PtrOwn, row_meta::{RowType, RowTypeId, ColumnTypeId, ColumnItem}};
+use super::{ptr::PtrOwn, row_meta::{RowType, RowTypeId, ColumnTypeId, ColumnItem, RowMetas, InsertMap}};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Ord, PartialOrd)]
 pub struct RowId(u32);
@@ -23,12 +23,24 @@ impl<'t> Row<'t> {
         let mut data = Vec::<u8>::new();
         data.resize(len, 0); // TODO: ignoring alignment
 
-        Self {
+        let mut row = Self {
             row_id: row_id,
             type_id: row_type.id(),
             data: data,
             ptrs: Vec::new(),
+        };
+
+        for col in row_type.columns() {
+            let data = unsafe { 
+                NonNull::new_unchecked(row.data.as_mut_ptr().add(col.offset()))
+            };
+
+            let ptr = PtrOwn::new(data);
+
+            row.ptrs.push(ptr);
         }
+
+        row
     }
 
     pub fn id(&self) -> RowId {
@@ -39,8 +51,12 @@ impl<'t> Row<'t> {
         self.type_id
     }
 
-    pub fn ptr(&self, index: usize) -> &PtrOwn<'t> {
-        self.ptrs.get(index).unwrap()
+    pub(crate) unsafe fn insert<T:'static>(
+        &mut self, 
+        cols: &InsertMap,
+        index: usize, 
+        this: T) {
+        self.ptrs[cols.index(index)].write(this);
     }
 
     pub(crate) unsafe fn push<T>(&mut self, value: T, col_type: &ColumnItem) {
@@ -55,7 +71,7 @@ impl<'t> Row<'t> {
         self.ptrs.push(ptr);
     }
 
-    pub(crate) unsafe fn replace_push<'a,T>(
+    pub(crate) unsafe fn expand<'a,T>(
         &self, 
         value: T, 
         old_type: &RowType,
@@ -71,9 +87,8 @@ impl<'t> Row<'t> {
         };
 
         let new_ptr = PtrOwn::make_into(value, &mut storage);
-        println!("replace_push {:?} {:?}", new_col.id(), new_col.offset());
+
         for new_col in new_type.columns() {
-            println!("  col {:?} {:?}", new_col.id(), new_col_id);
             if new_col.id() == new_col_id {
                 new_row.ptrs.push(new_ptr);
             } else {
@@ -111,55 +126,12 @@ impl<'t> Row<'t> {
         self.ptrs.push(ptr);
     }
 
-    pub(crate) unsafe fn get_fun<'a,F,R:'static>(
-        &'a self, 
-        row_id: RowId, 
-        ptr_map: &Vec<usize>,
-        mut fun: F
-    ) -> &'a R
-    where F: FnMut(&'a Row, &Vec<usize>) -> &'a R {
-        assert_eq!(row_id, self.row_id);
-
-        fun(self, ptr_map)
+    pub(crate) unsafe fn get<T:'static>(&self, index: usize) -> &'t T {
+        self.ptrs.get(index).unwrap().deref()
     }
 
-    pub(crate) unsafe fn get<T:'static>(&self, row_id: RowId, index: usize) -> Option<&T> {
-        if row_id == self.row_id {
-            Some(self.ptrs.get(index).unwrap().deref())
-        } else {
-            None
-        }
-    }
-
-    pub unsafe fn get_mut<T:'static>(&mut self, row_id: RowId, index: usize) -> Option<&mut T> {
-        if row_id == self.row_id {
-            Some(self.ptrs.get(index).unwrap().deref_mut())
-        } else {
-            None
-        }
-    }
-
-    pub(crate) fn insert<T:'static>(&self, index: usize, this: T) {
-        todo!()
-    }
-}
-
-#[derive(Clone, Copy, PartialEq, Eq, Hash)]
-pub struct RowMeta {
-    row_id: RowId,
-    type_id: RowTypeId,
-}
-
-impl RowMeta {
-    pub fn new(row_id: RowId, type_id: RowTypeId) -> Self {
-        Self {
-            row_id,
-            type_id,
-        }
-    }
-
-    pub(crate) fn id(&self) -> RowId {
-        self.row_id
+    pub(crate) unsafe fn get_mut<T:'static>(&self, index: usize) -> &'t mut T {
+        self.ptrs.get(index).unwrap().deref_mut()
     }
 }
 

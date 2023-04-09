@@ -1,4 +1,4 @@
-use crate::store::{row::Row, row_meta::{ColumnTypeId, RowType}};
+use crate::store::{row::Row, row_meta::{ColumnTypeId, RowType, InsertMap, InsertMapBuilder}};
 
 use super::{prelude::EntityTable};
 
@@ -13,52 +13,22 @@ pub struct ComponentId(usize);
 //
 
 pub trait Insert:'static {
-    fn add_cols(table: &mut EntityTable, cols: &mut InsertMap);
+    fn add_cols(table: &mut EntityTable, cols: &mut InsertMapBuilder);
 
     fn insert(row: &mut Row, cols: &InsertMap, index: usize, this: Self) -> usize;
 }
 
-pub struct InsertMap {
-    col_ids: Vec<ColumnTypeId>,
-    row_cols: Vec<usize>,
-}
-
-impl InsertMap {
-    pub fn new() -> Self {
-        Self {
-            col_ids: Vec::new(),
-            row_cols: Vec::new(),
-        }
-    }
-
-    fn push(&mut self, id: ColumnTypeId) {
-        self.col_ids.push(id);
-    }
-
-    fn fill(&mut self, row: &RowType) {
-        for col_id in &self.col_ids {
-            self.row_cols.push(row.column_position(*col_id).unwrap());
-        }
-    }
-
-    fn index(&self, index: usize) -> usize {
-        self.row_cols[index]
-    }
-
-    pub(crate) fn column_types(&self) -> &Vec<ColumnTypeId> {
-        &self.col_ids
-    }
-}
-
 impl<T:Component> Insert for T {
-    fn add_cols(table: &mut EntityTable, cols: &mut InsertMap) {
+    fn add_cols(table: &mut EntityTable, cols: &mut InsertMapBuilder) {
         cols.push(table.add_column::<T>());
     }
 
     fn insert(row: &mut Row, cols: &InsertMap, index: usize, this: Self) -> usize {
-        row.insert(cols.index(index), this);
+        unsafe {
+            row.insert(cols, index, this);
 
-        index + 1
+            index + 1
+        }
     }
 }
 
@@ -69,7 +39,7 @@ macro_rules! impl_insert_tuple {
         {
             fn add_cols(
                 table: &mut EntityTable, 
-                cols: &mut InsertMap
+                cols: &mut InsertMapBuilder
             ) {
                 $(
                     $part::add_cols(table, cols);
@@ -110,7 +80,7 @@ impl<'a,T:Component> ViewQuery<'a> for &'a T {
         let index = *i;
         *i += 1;
 
-        unsafe { row.ptr(index).deref() }
+        unsafe { row.get::<T>(index) }
     }
 }
 
@@ -119,7 +89,7 @@ impl<'a,T:Component> ViewQuery<'a> for &'a mut T {
         let index = *i;
         *i += 1;
 
-        unsafe { row.ptr(index).deref_mut() }
+        unsafe { row.get_mut::<T>(index) }
     }
 }
 

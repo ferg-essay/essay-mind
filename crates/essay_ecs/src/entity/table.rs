@@ -1,10 +1,10 @@
 use std::{marker::PhantomData, any::{TypeId, type_name}};
 
 use crate::store::{prelude::{Table, RowId, Row}, 
-    row_meta::{ViewRowTypeId, ViewRowType, ViewTypeId}, 
+    row_meta::{ViewRowTypeId, ViewRowType, ViewTypeId, InsertMap, InsertMapBuilder}, 
     row_meta::{ColumnTypeId, RowTypeId}};
 
-use super::{component::{Insert, InsertMap}, prelude::EntityRef};
+use super::{component::{Insert}, prelude::EntityRef};
 
 pub struct EntityTable<'w> {
     table: Table<'w>,
@@ -20,38 +20,46 @@ impl<'t> EntityTable<'t> {
     }
 
     pub fn push<T:Insert>(&mut self, value: T) -> EntityRef {
-        let mut cols = InsertMap::new();
+        let cols = self.add_insert_map::<T>();
+        let row_type = cols.row_type();
 
-        T::add_cols(self, &mut cols);
+        let row_id = unsafe {
+            let row_id = self.table.push_empty_row(row_type);
+            let row = self.table.get_mut_row(row_id).unwrap();
 
-        let row_type = self.table.row_meta_mut().add_row(cols.column_types().clone());
+            T::insert(row, &cols, 0, value);
 
-        let row = self.table.push_empty_row(row_type);
+            row_id
+        };
 
         let type_id = self.entity_row_by_type::<T>(row_type);
 
         EntityRef::new(
-            row,
+            row_id,
             row_type,
             type_id,
         )
     }
 
-    pub(crate) fn add_row_type<T:Insert>(&mut self) -> RowTypeId {
-        let mut cols = InsertMap::new();
+    pub(crate) fn add_insert_map<T:Insert>(&mut self) -> InsertMap {
+        let mut cols = InsertMapBuilder::new();
 
         T::add_cols(self, &mut cols);
 
-        self.table.row_meta_mut().add_row(cols.column_types().clone())
-    }
+        let row_type_id = self.table.meta_mut().add_row(cols.columns().clone());
+        let row_type = self.table.meta_mut().get_row_id(row_type_id);
 
+        cols.build_insert(row_type)
+    }
+    
     pub(crate) fn add_entity_type<T:Insert>(&mut self) -> ViewTypeId {
-        let mut cols = InsertMap::new();
+        let mut cols = InsertMapBuilder::new();
 
         T::add_cols(self, &mut cols);
 
-        self.entity_type(cols.column_types().clone())
+        self.entity_type(cols.columns().clone())
     }
+    
     /*
     pub(crate) fn add_entity_type_cols(&mut self, e_cols: impl EntityCols) -> EntityTypeId {
         let mut cols : Vec<ColumnTypeId> = Vec::new();
@@ -65,11 +73,11 @@ impl<'t> EntityTable<'t> {
     */
 
     pub(crate) fn add_column<T:'static>(&mut self) -> ColumnTypeId {
-        self.table.row_meta_mut().add_column::<T>().id()
+        self.table.meta_mut().add_column::<T>().id()
     }
 
     pub fn entity_type(&mut self, cols: Vec<ColumnTypeId>) -> ViewTypeId {
-        self.table.row_meta_mut().add_view_type(cols)
+        self.table.meta_mut().add_view_type(cols)
     }
 
     pub fn entity_row_type(
@@ -84,9 +92,9 @@ impl<'t> EntityTable<'t> {
     }
 
     pub fn entity_row_by_type<T:'static>(&mut self, row_id: RowTypeId) -> ViewRowTypeId {
-        let entity_id = self.table.row_meta_mut().single_view_type::<T>();
+        let entity_id = self.table.meta_mut().single_view_type::<T>();
 
-        self.table.row_meta_mut().add_view_row(row_id, entity_id)
+        self.table.meta_mut().add_view_row(row_id, entity_id)
     }
 
     pub(crate) fn push_entity_type(
@@ -116,7 +124,7 @@ impl<'t> EntityTable<'t> {
     }
 
     pub(crate) fn get_row<T:'static>(&self, row_id: RowId) -> &T {
-        match self.table.row_meta().get_single_view_type::<T>() {
+        match self.table.meta().get_single_view_type::<T>() {
             Some(view_type) => { 
                 todo!()
             },
@@ -133,7 +141,7 @@ impl<'t> EntityTable<'t> {
     }
 
     pub(crate) fn iter_by_type<T:'static>(&self) -> Entity3Iterator<T> {
-        match self.table.row_meta().get_single_view_type::<T>() {
+        match self.table.meta().get_single_view_type::<T>() {
             Some(entity_type) => { 
                 Entity3Iterator {
                     table: self,
@@ -148,6 +156,8 @@ impl<'t> EntityTable<'t> {
     }
 
     pub(crate) fn iter_mut_by_type<T:Insert>(&mut self) -> Entity3MutIterator<T> {
+        todo!()
+        /*
         let entity_type = self.add_entity_type::<T>();
 
         Entity3MutIterator {
@@ -157,6 +167,7 @@ impl<'t> EntityTable<'t> {
             row_index: 0,
             marker: PhantomData,
         }
+        */
     }
 
     pub(crate) fn get_single_entity_type<T:'static>(&self) -> Option<ViewTypeId> {
@@ -209,7 +220,7 @@ impl<'a, 't> EntityCursor<'a, 't> {
     }
 
     fn next(&mut self) -> Option<&Row<'a>> {
-        let entity = self.table.table.row_meta().get_view_type(self.entity_type);
+        let entity = self.table.table.meta().get_view_type(self.entity_type);
 
         while self.entity_type_index < entity.rows().len() {
             let row_type_id = entity.rows()[self.entity_type_index];
@@ -264,7 +275,7 @@ impl<'a, 't, T> Entity3Iterator<'a, 't, T> {
     }
 
     fn next(&mut self) -> Option<&Row<'a>> {
-        let entity = self.table.table.row_meta().get_view_type(self.entity_type);
+        let entity = self.table.table.meta().get_view_type(self.entity_type);
 
         while self.entity_type_index < entity.rows().len() {
             let row_type_id = entity.rows()[self.entity_type_index];
@@ -290,7 +301,7 @@ impl<'a, 't, T:'static> Iterator for Entity3Iterator<'a, 't, T> {
     type Item=&'a T;
 
     fn next(&mut self) -> Option<&'a T> {
-        let entity = self.table.table.row_meta().get_view_type(self.entity_type);
+        let entity = self.table.table.meta().get_view_type(self.entity_type);
 
         while self.entity_type_index < entity.rows().len() {
             let entity_row_type_id = entity.rows()[self.entity_type_index];
@@ -298,13 +309,13 @@ impl<'a, 't, T:'static> Iterator for Entity3Iterator<'a, 't, T> {
             let row_index = self.row_index;
             self.row_index += 1;
 
-            let entity_row = self.table.table.row_meta().get_view_row(entity_row_type_id);
+            let entity_row = self.table.table.meta().get_view_row(entity_row_type_id);
             let row_type_id = entity_row.row_type_id();
 
             match self.table.table.get_row_by_type_index(row_type_id, row_index) {
                 Some(row) => {
                     return unsafe {
-                        Some(row.ptr(entity_row.columns()[0]).deref())
+                        Some(row.get(entity_row.columns()[0]))
                     } 
                 }
                 None => {},
@@ -342,7 +353,7 @@ impl<'a, 't, T:'static> Iterator for Entity3MutIterator<'a, 't, T> {
     type Item=&'a mut T;
 
     fn next(&mut self) -> Option<&'a mut T> {
-        let entity = self.table.table.row_meta().get_view_type(self.entity_type);
+        let entity = self.table.table.meta().get_view_type(self.entity_type);
 
         while self.entity_type_index < entity.rows().len() {
             let entity_row_type_id = entity.rows()[self.entity_type_index];
@@ -350,14 +361,14 @@ impl<'a, 't, T:'static> Iterator for Entity3MutIterator<'a, 't, T> {
             let row_index = self.row_index;
             self.row_index += 1;
 
-            let entity_row = self.table.table.row_meta().get_view_row(entity_row_type_id);
+            let entity_row = self.table.table.meta().get_view_row(entity_row_type_id);
             let row_type_id = entity_row.row_type_id();
 
             match self.table.table.get_row_by_type_index(row_type_id, row_index) {
                 Some(row) => {
                     println!("iter-row {:?} {:?}", entity_row.columns()[0], type_name::<T>());
                     return unsafe {
-                        Some(row.ptr(entity_row.columns()[0]).deref_mut())
+                        Some(row.get_mut(entity_row.columns()[0]))
                     } 
                 }
                 None => {},
@@ -540,8 +551,8 @@ mod tests {
         let ref_a2 = table.push(TestA(3));
         let ref_b3 = table.push(TestB(4));
 
-        let col_a = table.table.column_type::<TestA>().id();
-        let col_b = table.table.column_type::<TestA>().id();
+        let col_a = table.table.meta_mut().add_column::<TestA>().id();
+        let col_b = table.table.meta_mut().add_column::<TestA>().id();
 
         let mut cols_a = Vec::<ColumnTypeId>::new();
         cols_a.push(col_a);
