@@ -24,12 +24,15 @@ impl<'t> EntityTable<'t> {
         let row_type = cols.row_type();
 
         let row_id = unsafe {
+            todo!()
+            /*
             let row_id = self.table.push_empty_row(row_type);
             let row = self.table.get_mut_row(row_id).unwrap();
 
             T::insert(row, &cols, 0, value);
 
             row_id
+            */
         };
 
         let type_id = self.entity_row_by_type::<T>(row_type);
@@ -77,7 +80,7 @@ impl<'t> EntityTable<'t> {
     }
 
     pub fn entity_type(&mut self, cols: Vec<ColumnTypeId>) -> ViewTypeId {
-        self.table.meta_mut().add_view_type(cols)
+        self.table.meta_mut().add_view(cols)
     }
 
     pub fn entity_row_type(
@@ -220,7 +223,7 @@ impl<'a, 't> EntityCursor<'a, 't> {
     }
 
     fn next(&mut self) -> Option<&Row<'a>> {
-        let entity = self.table.table.meta().get_view_type(self.entity_type);
+        let entity = self.table.table.meta().get_view(self.entity_type);
 
         while self.entity_type_index < entity.rows().len() {
             let row_type_id = entity.rows()[self.entity_type_index];
@@ -275,7 +278,7 @@ impl<'a, 't, T> Entity3Iterator<'a, 't, T> {
     }
 
     fn next(&mut self) -> Option<&Row<'a>> {
-        let entity = self.table.table.meta().get_view_type(self.entity_type);
+        let entity = self.table.table.meta().get_view(self.entity_type);
 
         while self.entity_type_index < entity.rows().len() {
             let row_type_id = entity.rows()[self.entity_type_index];
@@ -301,7 +304,7 @@ impl<'a, 't, T:'static> Iterator for Entity3Iterator<'a, 't, T> {
     type Item=&'a T;
 
     fn next(&mut self) -> Option<&'a T> {
-        let entity = self.table.table.meta().get_view_type(self.entity_type);
+        let entity = self.table.table.meta().get_view(self.entity_type);
 
         while self.entity_type_index < entity.rows().len() {
             let entity_row_type_id = entity.rows()[self.entity_type_index];
@@ -353,7 +356,7 @@ impl<'a, 't, T:'static> Iterator for Entity3MutIterator<'a, 't, T> {
     type Item=&'a mut T;
 
     fn next(&mut self) -> Option<&'a mut T> {
-        let entity = self.table.table.meta().get_view_type(self.entity_type);
+        let entity = self.table.table.meta().get_view(self.entity_type);
 
         while self.entity_type_index < entity.rows().len() {
             let entity_row_type_id = entity.rows()[self.entity_type_index];

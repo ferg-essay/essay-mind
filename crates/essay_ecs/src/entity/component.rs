@@ -1,4 +1,4 @@
-use crate::store::{row::Row, row_meta::{ColumnTypeId, RowType, InsertMap, InsertMapBuilder}};
+use crate::store::{row::Row, row_meta::{InsertMap, InsertMapBuilder}};
 
 use super::{prelude::EntityTable};
 
@@ -61,7 +61,7 @@ macro_rules! impl_insert_tuple {
     }
 }
 
-impl_insert_tuple!();
+//impl_insert_tuple!();
 impl_insert_tuple!(P1,P2);
 impl_insert_tuple!(P1,P2,P3);
 impl_insert_tuple!(P1,P2,P3,P4);
@@ -111,7 +111,7 @@ macro_rules! impl_query_tuple {
     }
 }
 
-impl_query_tuple!();
+//impl_query_tuple!();
 impl_query_tuple!(P1,P2);
 impl_query_tuple!(P1,P2,P3);
 impl_query_tuple!(P1,P2,P3,P4);

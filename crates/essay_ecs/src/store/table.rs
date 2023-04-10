@@ -12,6 +12,95 @@ pub struct Table<'w> {
     type_rows: Vec<Vec<RowId>>,
 }
 
+//
+// query tuples of components
+//
+
+pub trait ViewQuery<'t> {
+    type Item;
+
+    fn build(query: &mut ViewQueryBuilder);
+
+    unsafe fn query<'a>(row: &'a Row<'t>, cursor: &mut ViewQueryCursor) -> Self::Item;
+}
+
+enum AccessType {
+    AccessRef,
+    AccessMut
+}
+
+pub struct ViewQueryBuilder<'a> {
+    meta: &'a mut RowMetas, 
+    cols: Vec<ColumnTypeId>,
+}
+
+pub struct ViewQueryMap {
+    view: ViewTypeId,
+    cols: Vec<usize>,
+}
+
+impl ViewQueryMap {
+    fn new_cursor(&self) -> ViewQueryCursor {
+        ViewQueryCursor {
+            cols: &self.cols,
+            index: 0,
+        }
+    }
+}
+
+pub struct ViewQueryCursor<'a> {
+    cols: &'a Vec<usize>,
+    index: usize,
+}
+
+impl<'a> ViewQueryCursor<'a> {
+    pub fn next(&mut self) -> usize {
+        let index = self.index;
+        self.index += 1;
+
+        self.cols[index]
+    }
+}
+
+impl<'a> ViewQueryBuilder<'a> {
+    fn new(meta: &'a mut RowMetas) -> Self {
+        Self {
+            meta: meta,
+            cols: Vec::new(),
+        }
+    }
+
+    fn add_ref<T:'static>(&mut self) {
+        let col_type = self.meta.add_column::<T>();
+
+        self.cols.push(col_type.id());
+    }
+
+    fn add_mut<T:'static>(&mut self) {
+        let col_type = self.meta.add_column::<T>();
+
+        self.cols.push(col_type.id());
+    }
+
+    fn build(self) -> ViewQueryMap {
+        let view_id = self.meta.add_view(self.cols.clone());
+        let view = self.meta.get_view(view_id);
+
+        let cols = self.cols.iter()
+            .map(|col_id| view.column_position(*col_id).unwrap())
+            .collect();
+
+        ViewQueryMap {
+            view: view_id,
+            cols: cols,
+        }
+    }
+}
+
+//
+// implementation
+//
+
 impl<'t> Table<'t> {
     pub fn new() -> Self {
         let mut row_meta = RowMetas::new();
@@ -78,6 +167,14 @@ impl<'t> Table<'t> {
         }
     }
 
+    pub(crate) fn get_row(&self, row_id: RowId) -> Option<&Row> {
+        self.rows.get(row_id.index())
+    }
+
+    pub(crate) fn get_mut_row(&mut self, row_id: RowId) -> Option<&mut Row<'t>> {
+        self.rows.get_mut(row_id.index())
+    }
+
     pub fn push<T:'static>(&mut self, value: T) -> RowRef<T> {
         let mut builder = InsertMapBuilder::new();
         builder.push(self.row_meta.add_column::<T>().id());
@@ -87,12 +184,13 @@ impl<'t> Table<'t> {
         let cols = builder.build_insert(row_type); // self.row_meta.get_row_id(row_type));
 
         let row_id = unsafe {
-            let row_id = self.push_empty_row(row_type_id);
-            let row = self.rows.get_mut(row_id.index()).unwrap();
+            let row = self.push_empty_row(row_type_id);
+
             row.insert(&cols, 0, value);
 
-            row_id
+            row.id()
         };
+
         /*
         let row_type = self.row_meta.get_row_id(row_type_id);
         let row_id = RowId::new(self.rows.len() as u32);
@@ -111,7 +209,7 @@ impl<'t> Table<'t> {
         }
     }
 
-    pub(crate) unsafe fn push_empty_row(&mut self, row_type_id: RowTypeId) -> RowId {
+    pub(crate) unsafe fn push_empty_row(&mut self, row_type_id: RowTypeId) -> &mut Row<'t> {
         let row_type = self.row_meta.get_row_id(row_type_id);
         let row_id = RowId::new(self.rows.len() as u32);
 
@@ -122,11 +220,10 @@ impl<'t> Table<'t> {
         self.type_rows[row_type_id.index()].push(row_id);
 
         unsafe {
-            let mut row = Row::new(row_id, row_type);
-            self.rows.push(row);
-        }
+            self.rows.push(Row::new(row_id, row_type));
 
-        row_id
+            self.rows.get_mut(row_id.index()).unwrap()
+        }
     }
 
     pub fn replace_push<T:'static>(&mut self, row_id: RowId, value: T) {
@@ -198,14 +295,6 @@ impl<'t> Table<'t> {
     }
     */
 
-    pub(crate) fn get_row(&self, row_id: RowId) -> Option<&Row> {
-        self.rows.get(row_id.index())
-    }
-
-    pub(crate) fn get_mut_row(&mut self, row_id: RowId) -> Option<&mut Row<'t>> {
-        self.rows.get_mut(row_id.index())
-    }
-
     pub fn get_row_value<T:'static>(
         &self, 
         row_id: RowId,
@@ -231,13 +320,21 @@ impl<'t> Table<'t> {
         }
     }
 
-    pub fn iter_by_type<T:'static>(&self) -> EntityIterator<T> {
-        match self.row_meta.get_single_view_type::<T>() {
-            None => todo!(),
-            Some(view_type) => {
-                EntityIterator::new(&self, view_type)
-            }
-        }
+    pub fn iter_by_type<T:ViewQuery<'t>+'static>(&mut self) -> ViewIterator2<'_,'t,T> {
+        let mut builder = ViewQueryBuilder::new(self.meta_mut());
+
+        T::build(&mut builder);
+
+        let view_query = builder.build();
+        
+        unsafe { self.iter_by_view(view_query) }
+    }
+
+    unsafe fn iter_by_view<T:ViewQuery<'t>+'static>(
+        &self, 
+        view_query: ViewQueryMap
+    ) -> ViewIterator2<'_,'t,T> {
+        ViewIterator2::new(self, view_query)
     }
 
     pub fn iter_mut_by_type<T:'static>(&mut self) -> EntityMutIterator<T> {
@@ -366,9 +463,144 @@ impl<'a, 't, T:'static> Iterator for EntityMutIterator<'a, 't, T> {
     }
 }
 
+pub struct ViewIterator<'a, 't, T:ViewQuery<'t>> {
+    cursor: ViewCursor<'a, 't>,
+    view_id: ViewTypeId,
+    view_query: ViewQueryMap,
+    marker: PhantomData<T>,
+}
+
+impl<'a, 't, T:ViewQuery<'t>> ViewIterator<'a, 't, T> {
+    pub fn new(table: &'a Table<'t>, view_query: ViewQueryMap) -> Self {
+        Self {
+            cursor: ViewCursor::new(table, view_query.view),
+            view_id: view_query.view,
+            view_query: view_query,
+            marker: PhantomData,
+        }
+    }
+}
+
+impl<'a, 't, T:ViewQuery<'t>+'static> Iterator for ViewIterator<'a, 't, T> {
+    type Item=T::Item;
+
+    fn next(&mut self) -> Option<T::Item> {
+        todo!()
+        /*
+        match self.cursor.next() {
+            None => { return None },
+            Some(row) => {
+                unsafe { Some(T::query(row, &mut self.view_query.new_cursor())) }
+            }
+        }
+        */
+    }
+}
+
+pub struct ViewCursor<'a, 't> {
+    table: &'a Table<'t>,
+    view_type: ViewTypeId,
+    view_type_index: usize,
+    row_index: usize,
+}
+
+impl<'a, 't> ViewCursor<'a, 't> {
+    fn new(table: &'a Table<'t>, view_type: ViewTypeId) -> Self {
+        Self {
+            table: table,
+            view_type,
+            view_type_index: 0,
+            row_index: 0,
+        }
+    }
+
+    fn next(&mut self) -> Option<&Row<'a>> {
+        let view = self.table.meta().get_view(self.view_type);
+
+        while self.view_type_index < view.rows().len() {
+            let row_type_id = view.rows()[self.view_type_index];
+            let row_index = self.row_index;
+            self.row_index += 1;
+
+            match self.table.rows.get(row_index) {
+                Some(row) => return Some(row),
+                None => {},
+            };
+
+            self.view_type_index += 1;
+            self.row_index = 0;
+        }
+
+        None
+    }
+}
+
+pub struct ViewIterator2<'a, 't, T:ViewQuery<'t>> {
+    table: &'a Table<'t>,
+
+    view_id: ViewTypeId,
+    query: ViewQueryMap,
+
+    view_type_index: usize,
+
+    row_index: usize,
+
+    marker: PhantomData<T>,
+}
+
+impl<'a, 't, T:ViewQuery<'t>> ViewIterator2<'a, 't, T> {
+    fn new(
+        table: &'a Table<'t>, 
+        query: ViewQueryMap,
+    ) -> Self {
+        Self {
+            table: table,
+
+            view_id: query.view,
+            query,
+
+            view_type_index: 0,
+            row_index: 0,
+
+            marker: PhantomData,
+        }
+    }
+}
+
+impl<'a, 't, T:ViewQuery<'t>> Iterator for ViewIterator2<'a, 't, T> {
+    type Item = T::Item;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let view = self.table.meta().get_view(self.view_id);
+
+        while self.view_type_index < view.rows().len() {
+            let view_row_id = view.rows()[self.view_type_index];
+            let view_row = self.table.meta().get_view_row(view_row_id);
+            let row_type_id = view_row.row_type_id();
+            let row_index = self.row_index;
+            self.row_index += 1;
+
+            match self.table.type_rows[row_type_id.index()].get(row_index) {
+                Some(row_id) => {
+                    let row = &self.table.rows[row_id.index()];
+                    return unsafe { Some(T::query(row, &mut self.query.new_cursor())) };
+                }
+                None => {},
+            };
+
+            self.view_type_index += 1;
+            self.row_index = 0;
+        }
+
+        None
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::Table;
+    use crate::store::prelude::Row;
+
+    use super::{Table, ViewQuery, ViewQueryCursor};
 
     #[test]
     fn spawn() {
@@ -378,34 +610,34 @@ mod tests {
         table.push(TestA(1));
         assert_eq!(table.len(), 1);
 
-        let mut values : Vec<String> = table.iter_by_type()
-            .map(|t: &TestA| format!("{:?}", t))
+        let mut values : Vec<String> = table.iter_by_type::<&TestA>()
+            .map(|t| format!("{:?}", t))
             .collect();
         assert_eq!(values.join(","), "TestA(1)");
 
         table.push(TestB(10000));
         assert_eq!(table.len(), 2);
 
-        values = table.iter_by_type().map(|t: &TestA| format!("{:?}", t)).collect();
+        values = table.iter_by_type::<&TestA>().map(|t| format!("{:?}", t)).collect();
         assert_eq!(values.join(","), "TestA(1)");
 
-        values = table.iter_by_type().map(|t: &TestB| format!("{:?}", t)).collect();
+        values = table.iter_by_type::<&TestB>().map(|t| format!("{:?}", t)).collect();
         assert_eq!(values.join(","), "TestB(10000)");
 
         table.push(TestB(100));
         assert_eq!(table.len(), 3);
 
-        values = table.iter_by_type().map(|t: &TestA| format!("{:?}", t)).collect();
+        values = table.iter_by_type::<&TestA>().map(|t: &TestA| format!("{:?}", t)).collect();
         assert_eq!(values.join(","), "TestA(1)");
 
-        values = table.iter_by_type().map(|t: &TestB| format!("{:?}", t)).collect();
+        values = table.iter_by_type::<&TestB>().map(|t: &TestB| format!("{:?}", t)).collect();
         assert_eq!(values.join(","), "TestB(10000),TestB(100)");
 
-        for entity in table.iter_mut_by_type::<TestB>() {
+        for entity in table.iter_by_type::<&mut TestB>() {
             entity.0 += 1;
         }
         //table.iter_by_type().map(|t: &TestB| values.push(format!("{:?}", t)));
-        values = table.iter_by_type().map(|t: &TestB| format!("{:?}", t)).collect();
+        values = table.iter_by_type::<&TestB>().map(|t: &TestB| format!("{:?}", t)).collect();
         assert_eq!(values.join(","), "TestB(10001),TestB(101)");
     }
 
@@ -423,4 +655,43 @@ mod tests {
 
     #[derive(Debug)]
     struct TestB(u16);
+
+    trait TestComponent:'static {}
+    
+    impl TestComponent for TestA {}
+    impl TestComponent for TestB {}
+
+    impl<'a,'t,T:TestComponent> ViewQuery<'t> for &'a T
+    where 't: 'a
+    {
+        type Item = &'a T;
+
+        fn build(query: &mut super::ViewQueryBuilder) {
+            query.add_ref::<T>()
+        }
+    
+        unsafe fn query<'b>(
+            row: &'b Row<'t>, 
+            cursor: &mut ViewQueryCursor
+        ) -> Self::Item {
+            row.get::<T>(cursor.next())
+        }
+    }
+
+    impl<'a,'t,T:TestComponent> ViewQuery<'t> for &'a mut T
+    where 't: 'a
+    {
+        type Item = &'a mut T;
+
+        fn build(query: &mut super::ViewQueryBuilder) {
+            query.add_ref::<T>()
+        }
+    
+        unsafe fn query<'b>(
+            row: &'b Row<'t>, 
+            cursor: &mut ViewQueryCursor
+        ) -> Self::Item {
+            row.get_mut::<T>(cursor.next())
+        }
+    }
 }

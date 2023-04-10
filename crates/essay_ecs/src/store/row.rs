@@ -95,9 +95,6 @@ impl<'t> Row<'t> {
                 let old_col = old_type.column_find(new_col.id()).unwrap();
 
                 new_row.copy(new_col, self, old_col);
-                println!("  copy {:?}:{:?} {:?}:{:?}", 
-                    new_col.id(), new_col.offset(),
-                    old_col.id(), old_col.offset());
             }
         }
 
