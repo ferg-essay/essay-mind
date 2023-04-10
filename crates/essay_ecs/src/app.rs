@@ -35,7 +35,7 @@ impl App {
         self
     }
 
-    pub fn spawn<T:Insert>(&mut self, value: T) -> AppRef {
+    pub fn spawn<M,T:Insert<M>>(&mut self, value: T) -> AppRef {
         AppRef {
             ent_ref: self.world.add_entity(value)
         }

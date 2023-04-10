@@ -48,7 +48,7 @@ pub struct RowType {
     length: usize,
 }
 
-pub trait Insert:'static {
+pub trait Insert<M>:'static {
     type Item;
 
     fn build(builder: &mut InsertBuilder);

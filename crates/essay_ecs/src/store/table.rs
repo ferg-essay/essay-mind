@@ -4,11 +4,12 @@ use super::prelude::{ViewTypeId, QueryCursor};
 use super::row::{RowId, Row};
 use super::row_meta::{RowTypeId, RowMetas, ColumnTypeId, ColumnType, RowType, InsertBuilder, Query, QueryBuilder, QueryPlan, Insert, InsertPlan, InsertCursor};
 
-pub struct Table<'w> {
+pub struct Table<'t,M:'static> {
     row_meta: RowMetas,
-    rows: Vec<Row<'w>>,
+    rows: Vec<Row<'t>>,
 
     type_rows: Vec<Vec<RowId>>,
+    marker: PhantomData<M>,
 }
 
 pub struct RowRef {
@@ -20,7 +21,7 @@ pub struct RowRef {
 // implementation
 //
 
-impl<'t> Table<'t> {
+impl<'t,M> Table<'t,M> {
     pub fn new() -> Self {
         let mut row_meta = RowMetas::new();
 
@@ -36,6 +37,7 @@ impl<'t> Table<'t> {
             rows: Vec::new(),
 
             type_rows: Vec::new(),
+            marker: PhantomData,
         }
     }
 
@@ -60,10 +62,10 @@ impl<'t> Table<'t> {
     }
 
     pub fn push_single<T:'static>(&mut self, value: T) -> RowRef {
-        self.push::<Single<T>>(value)
+        self.push::<Single<T,M>>(value)
     }
 
-    pub fn push<T:Insert>(&mut self, value: T::Item) -> RowRef {
+    pub fn push<T:Insert<M>>(&mut self, value: T::Item) -> RowRef {
         let plan = self.insert_plan::<T>();
 
         unsafe {
@@ -78,7 +80,7 @@ impl<'t> Table<'t> {
         }
     }
 
-    fn insert_plan<T:Insert>(&mut self) -> InsertPlan {
+    fn insert_plan<T:Insert<M>>(&mut self) -> InsertPlan {
         let mut builder = InsertBuilder::new(self.meta_mut());
 
         T::build(&mut builder);
@@ -147,7 +149,7 @@ impl<'t> Table<'t> {
     // query
     //
 
-    pub fn query<'a,T:Query>(&mut self) -> QueryIterator<'_,'t,T> {
+    pub fn query<'a,T:Query>(&mut self) -> QueryIterator<'_,'t,M,T> {
         let plan = self.get_query_plan::<T>();
         
         unsafe { self.query_with_plan(plan) }
@@ -164,7 +166,7 @@ impl<'t> Table<'t> {
     pub(crate) unsafe fn query_with_plan<'a,T:Query>(
         &self, 
         plan: QueryPlan
-    ) -> QueryIterator<'_,'t,T> {
+    ) -> QueryIterator<'_,'t,M,T> {
         QueryIterator::new(self, plan)
     }
 
@@ -237,11 +239,11 @@ impl<'t> Table<'t> {
     }
 }
 
-pub struct Single<T> {
-    marker: PhantomData<T>,
+pub struct Single<T,M> {
+    marker: PhantomData<(T,M)>,
 }
 
-impl<T:'static> Insert for Single<T> {
+impl<T:'static,M:'static> Insert<M> for Single<T,M> {
     type Item = T;
 
     fn build(builder: &mut InsertBuilder) {
@@ -253,8 +255,8 @@ impl<T:'static> Insert for Single<T> {
     }
 }
 
-pub struct QueryIterator<'a, 't, T:Query> {
-    table: &'a Table<'t>,
+pub struct QueryIterator<'a, 't, M:'static, T:Query> {
+    table: &'a Table<'t,M>,
 
     view_id: ViewTypeId,
     query: QueryPlan,
@@ -266,9 +268,9 @@ pub struct QueryIterator<'a, 't, T:Query> {
     marker: PhantomData<T>,
 }
 
-impl<'a, 't, T:Query> QueryIterator<'a, 't, T> {
+impl<'a, 't, M, T:Query> QueryIterator<'a, 't, M, T> {
     fn new(
-        table: &'a Table<'t>, 
+        table: &'a Table<'t,M>, 
         query: QueryPlan,
     ) -> Self {
         Self {
@@ -285,7 +287,7 @@ impl<'a, 't, T:Query> QueryIterator<'a, 't, T> {
     }
 }
 
-impl<'a, 't, T:Query> Iterator for QueryIterator<'a, 't, T>
+impl<'a, 't, M, T:Query> Iterator for QueryIterator<'a, 't, M, T>
 {
     type Item = T::Item<'a>;
 
@@ -326,13 +328,13 @@ impl RowRef {
 
 #[cfg(test)]
 mod tests {
-    use crate::store::prelude::{Row, QueryCursor};
+    use crate::store::{prelude::{Row, QueryCursor}, row_meta::{Insert, InsertBuilder, InsertCursor}};
 
     use super::{Table, Query};
 
     #[test]
     fn spawn() {
-        let mut table = Table::new();
+        let mut table = Table::<IsTest>::new();
         assert_eq!(table.len(), 0);
 
         table.push_single(TestA(1));
@@ -370,8 +372,23 @@ mod tests {
     }
 
     #[test]
+    fn push_type() {
+        let mut table = Table::<IsTest>::new();
+        assert_eq!(table.len(), 0);
+
+        table.push::<TestA>(TestA(1));
+        assert_eq!(table.len(), 1);
+
+        let mut values : Vec<String> = table.query::<&TestA>()
+            .map(|t| format!("{:?}", t))
+            .collect();
+        assert_eq!(values.join(","), "TestA(1)");
+    }
+
+
+    #[test]
     fn eval() {
-        let mut table = Table::new();
+        let mut table = Table::<IsTest>::new();
         let row_id = table.push_single(TestA(1)).row_id();
 
 
@@ -388,9 +405,22 @@ mod tests {
     
     impl TestComponent for TestA {}
     impl TestComponent for TestB {}
+    
+    struct IsTest;
 
-    impl<T:TestComponent> Query for &T
-    {
+    impl<T:TestComponent> Insert<IsTest> for T {
+        type Item = Self;
+
+        fn build(builder: &mut InsertBuilder) {
+            builder.add_column::<T>()
+        }
+
+        unsafe fn insert(cursor: &mut InsertCursor, value: Self::Item) {
+            cursor.insert(value);
+        }
+    }
+
+    impl<T:TestComponent> Query for &T {
         type Item<'a> = &'a T;
 
         fn build(query: &mut super::QueryBuilder) {
@@ -402,8 +432,7 @@ mod tests {
         }
     }
 
-    impl<T:TestComponent> Query for &mut T
-    {
+    impl<T:TestComponent> Query for &mut T {
         type Item<'a> = &'a mut T;
 
         fn build(query: &mut super::QueryBuilder) {

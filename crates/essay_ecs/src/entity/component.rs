@@ -11,8 +11,8 @@ pub struct ComponentId(usize);
 //
 // Insert tuples of components
 //
-
-impl<T:Component> Insert for T {
+struct IsEntity;
+impl<T:Component> Insert<IsEntity> for T {
     type Item = Self;
 
     fn build(builder: &mut InsertBuilder) {
@@ -48,13 +48,13 @@ macro_rules! impl_insert_tuple {
         }
     }
 }
-
+/*
 //impl_insert_tuple!();
 impl_insert_tuple!(P1,P2);
 impl_insert_tuple!(P1,P2,P3);
 impl_insert_tuple!(P1,P2,P3,P4);
 impl_insert_tuple!(P1,P2,P3,P4,P5);
-
+*/
 //
 // query tuples of components
 //

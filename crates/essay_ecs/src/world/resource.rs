@@ -2,9 +2,11 @@ use std::marker::PhantomData;
 
 use crate::{store::prelude::{Table, RowRef}, type_meta::TypeMetas};
 
+struct IsResource;
+
 pub struct Resources<'w> {
     types: TypeMetas,
-    table: Table<'w>,
+    table: Table<'w,IsResource>,
     //resources: Vec<RowMeta>,
 }
 
