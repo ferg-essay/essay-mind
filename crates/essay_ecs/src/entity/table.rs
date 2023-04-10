@@ -76,7 +76,7 @@ impl<'t> EntityTable<'t> {
     */
 
     pub(crate) fn add_column<T:'static>(&mut self) -> ColumnTypeId {
-        self.table.meta_mut().add_column::<T>().id()
+        self.table.meta_mut().add_column::<T>()
     }
 
     pub fn entity_type(&mut self, cols: Vec<ColumnTypeId>) -> ViewTypeId {
@@ -88,7 +88,7 @@ impl<'t> EntityTable<'t> {
         row_id: RowTypeId, 
         entity_id: ViewTypeId
     ) -> ViewRowTypeId {
-        let row_type = self.table.get_row_type(row_id);
+        let row_type = self.table.meta().get_row_id(row_id);
 
         todo!()
         //self.entity_meta.entity_row(row_type, entity_id)
@@ -315,6 +315,8 @@ impl<'a, 't, T:'static> Iterator for Entity3Iterator<'a, 't, T> {
             let entity_row = self.table.table.meta().get_view_row(entity_row_type_id);
             let row_type_id = entity_row.row_type_id();
 
+            todo!();
+            /*
             match self.table.table.get_row_by_type_index(row_type_id, row_index) {
                 Some(row) => {
                     return unsafe {
@@ -323,6 +325,7 @@ impl<'a, 't, T:'static> Iterator for Entity3Iterator<'a, 't, T> {
                 }
                 None => {},
             };
+            */
 
             self.entity_type_index += 1;
             self.row_index = 0;
@@ -367,6 +370,8 @@ impl<'a, 't, T:'static> Iterator for Entity3MutIterator<'a, 't, T> {
             let entity_row = self.table.table.meta().get_view_row(entity_row_type_id);
             let row_type_id = entity_row.row_type_id();
 
+            todo!();
+            /*
             match self.table.table.get_row_by_type_index(row_type_id, row_index) {
                 Some(row) => {
                     println!("iter-row {:?} {:?}", entity_row.columns()[0], type_name::<T>());
@@ -376,6 +381,7 @@ impl<'a, 't, T:'static> Iterator for Entity3MutIterator<'a, 't, T> {
                 }
                 None => {},
             };
+            */
 
             self.entity_type_index += 1;
             self.row_index = 0;
@@ -554,8 +560,8 @@ mod tests {
         let ref_a2 = table.push(TestA(3));
         let ref_b3 = table.push(TestB(4));
 
-        let col_a = table.table.meta_mut().add_column::<TestA>().id();
-        let col_b = table.table.meta_mut().add_column::<TestA>().id();
+        let col_a = table.table.meta_mut().add_column::<TestA>();
+        let col_b = table.table.meta_mut().add_column::<TestA>();
 
         let mut cols_a = Vec::<ColumnTypeId>::new();
         cols_a.push(col_a);

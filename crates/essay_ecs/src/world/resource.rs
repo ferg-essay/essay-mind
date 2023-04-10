@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::store::prelude::{TypeMetas, Table, TypeIndex, RowRef};
+use crate::{store::prelude::{Table, RowRef}, type_meta::TypeMetas};
 
 pub struct Resources<'w> {
     types: TypeMetas,
@@ -26,7 +26,7 @@ impl<'w> Resources<'w> {
     }
 
     pub fn set_ref<T:'static>(&mut self, entity_ref: &RowRef<T>, value: T) {
-        self.table.set(entity_ref, value);
+        self.table.replace(entity_ref, value);
     }
 
     pub fn get_by_type<T:'static>(&mut self) -> Option<&T> {

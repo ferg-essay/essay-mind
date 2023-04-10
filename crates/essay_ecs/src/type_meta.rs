@@ -4,9 +4,6 @@ use std::{
     collections::HashMap
 };
 
-pub trait Component {
-}
-
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Ord, PartialOrd, Debug)]
 pub struct TypeIndex(usize);
 

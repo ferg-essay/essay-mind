@@ -12,6 +12,23 @@ pub struct Row<'t> {
     ptrs: Vec<PtrOwn<'t>>,
 }
 
+impl RowId {
+    pub fn new(id: u32) -> RowId {
+        RowId(id)
+    }
+
+    #[inline]
+    pub const fn index(&self) -> usize {
+        self.0 as usize
+    }
+}
+
+impl From<u32> for RowId {
+    fn from(value: u32) -> Self {
+        RowId(value)
+    }
+}
+
 // TODO: alignment, drop, columns, non-vec backing
 impl<'t> Row<'t> {
     pub(crate) unsafe fn new(
@@ -112,7 +129,6 @@ impl<'t> Row<'t> {
         for i in 0..length {
             self.data[i + new_offset] = old_row.data[i + old_offset];
         }
-        //self.data.copy_from_slice(&old_row.data[old_offset..old_offset + length]);
 
         let mut storage = unsafe { 
             NonNull::new_unchecked(self.data.as_mut_ptr().add(new_offset))
@@ -129,22 +145,5 @@ impl<'t> Row<'t> {
 
     pub(crate) unsafe fn get_mut<T:'static>(&self, index: usize) -> &'t mut T {
         self.ptrs.get(index).unwrap().deref_mut()
-    }
-}
-
-impl RowId {
-    pub fn new(id: u32) -> RowId {
-        RowId(id)
-    }
-
-    #[inline]
-    pub const fn index(&self) -> usize {
-        self.0 as usize
-    }
-}
-
-impl From<u32> for RowId {
-    fn from(value: u32) -> Self {
-        RowId(value)
     }
 }
