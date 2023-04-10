@@ -19,7 +19,7 @@ impl<'w> World<'w> {
     }
 
 
-    pub(crate) fn add_entity_type<M,T:Query>(&mut self) -> ViewTypeId {
+    pub(crate) fn add_entity_type<M,T:Insert<M>>(&mut self) -> ViewTypeId {
         todo!();
         //self.ptr.deref_mut().entities.add_entity_type::<T>()
     }

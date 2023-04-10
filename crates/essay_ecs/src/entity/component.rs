@@ -12,6 +12,7 @@ pub struct ComponentId(usize);
 // Insert tuples of components
 //
 struct IsEntity;
+/*
 impl<T:Component> Insert<IsEntity> for T {
     type Item = Self;
 
@@ -48,6 +49,7 @@ macro_rules! impl_insert_tuple {
         }
     }
 }
+*/
 /*
 //impl_insert_tuple!();
 impl_insert_tuple!(P1,P2);

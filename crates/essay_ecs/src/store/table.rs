@@ -62,10 +62,25 @@ impl<'t,M> Table<'t,M> {
     }
 
     pub fn push_single<T:'static>(&mut self, value: T) -> RowRef {
-        self.push::<Single<T,M>>(value)
+        let mut builder = InsertBuilder::new(self.meta_mut());
+
+        builder.add_column::<T>();
+
+        let plan = builder.build();
+
+        unsafe {
+            let row = self.push_empty_row(plan.row_type());
+
+            plan.cursor(row).insert(value);
+
+            RowRef {
+                type_id: plan.row_type(),
+                row: row.id(),
+            }
+        }
     }
 
-    pub fn push<T:Insert<M>>(&mut self, value: T::Item) -> RowRef {
+    pub fn push<T:Insert<M>>(&mut self, value: T) -> RowRef {
         let plan = self.insert_plan::<T>();
 
         unsafe {
@@ -149,13 +164,13 @@ impl<'t,M> Table<'t,M> {
     // query
     //
 
-    pub fn query<'a,T:Query>(&mut self) -> QueryIterator<'_,'t,M,T> {
+    pub fn query<'a,T:Query<M>>(&mut self) -> QueryIterator<'_,'t,M,T> {
         let plan = self.get_query_plan::<T>();
         
         unsafe { self.query_with_plan(plan) }
     }
 
-    pub(crate) fn get_query_plan<'a,T:Query>(&mut self) -> QueryPlan {
+    pub(crate) fn get_query_plan<'a,T:Query<M>>(&mut self) -> QueryPlan {
         let mut builder = QueryBuilder::new(self.meta_mut());
 
         T::build(&mut builder);
@@ -163,7 +178,7 @@ impl<'t,M> Table<'t,M> {
         builder.build()
     }
 
-    pub(crate) unsafe fn query_with_plan<'a,T:Query>(
+    pub(crate) unsafe fn query_with_plan<'a,T:Query<M>>(
         &self, 
         plan: QueryPlan
     ) -> QueryIterator<'_,'t,M,T> {
@@ -239,6 +254,7 @@ impl<'t,M> Table<'t,M> {
     }
 }
 
+/*
 pub struct Single<T,M> {
     marker: PhantomData<(T,M)>,
 }
@@ -254,8 +270,9 @@ impl<T:'static,M:'static> Insert<M> for Single<T,M> {
         cursor.insert(value)
     }
 }
+*/
 
-pub struct QueryIterator<'a, 't, M:'static, T:Query> {
+pub struct QueryIterator<'a, 't, M:'static, T:Query<M>> {
     table: &'a Table<'t,M>,
 
     view_id: ViewTypeId,
@@ -268,7 +285,7 @@ pub struct QueryIterator<'a, 't, M:'static, T:Query> {
     marker: PhantomData<T>,
 }
 
-impl<'a, 't, M, T:Query> QueryIterator<'a, 't, M, T> {
+impl<'a, 't, M, T:Query<M>> QueryIterator<'a, 't, M, T> {
     fn new(
         table: &'a Table<'t,M>, 
         query: QueryPlan,
@@ -287,7 +304,7 @@ impl<'a, 't, M, T:Query> QueryIterator<'a, 't, M, T> {
     }
 }
 
-impl<'a, 't, M, T:Query> Iterator for QueryIterator<'a, 't, M, T>
+impl<'a, 't, M, T:Query<M>> Iterator for QueryIterator<'a, 't, M, T>
 {
     type Item = T::Item<'a>;
 
@@ -316,6 +333,77 @@ impl<'a, 't, M, T:Query> Iterator for QueryIterator<'a, 't, M, T>
     }
 }
 
+//
+// insert composed of tuples
+//
+
+macro_rules! impl_insert_tuple {
+    ($($part:ident),*) => {
+        #[allow(non_snake_case)]
+        impl<M,$($part:Insert<M>),*> Insert<M> for ($($part,)*)
+        {
+            /*
+            type Item = ($(
+                <$part as Insert<M>>::Item,
+            )*);
+            */
+
+            fn build(builder: &mut InsertBuilder) {
+                $(
+                    $part::build(builder);
+                )*
+            }
+
+            unsafe fn insert<'a>(cursor: &mut InsertCursor, value: Self) {
+                let ($($part,)*) = value;
+                $(
+                    $part::insert(cursor, $part);
+                )*
+            }
+        }
+    }
+}
+
+//impl_query_tuple!();
+impl_insert_tuple!(P1,P2);
+//impl_query_tuple!(P1,P2,P3);
+//impl_query_tuple!(P1,P2,P3,P4);
+//impl_query_tuple!(P1,P2,P3,P4,P5);
+
+//
+// View query composed of tuples
+//
+
+macro_rules! impl_query_tuple {
+    ($($part:ident),*) => {
+        #[allow(non_snake_case)]
+        impl<M,$($part:Query<M>),*> Query<M> for ($($part,)*)
+        {
+            type Item<'a> = ($(
+                <$part as Query<M>>::Item<'a>,
+            )*);
+
+            fn build(builder: &mut QueryBuilder) {
+                $(
+                    $part::build(builder);
+                )*
+            }
+
+            unsafe fn query<'a>(row: &'a Row, cursor: &mut QueryCursor) -> Self::Item<'a> {
+                ($(
+                    $part::query(row, cursor),
+                )*)
+            }
+        }
+    }
+}
+
+//impl_query_tuple!();
+impl_query_tuple!(P1,P2);
+impl_query_tuple!(P1,P2,P3);
+//impl_query_tuple!(P1,P2,P3,P4);
+//impl_query_tuple!(P1,P2,P3,P4,P5);
+
 impl RowRef {
     pub fn row_id(&self) -> RowId {
         self.row
@@ -330,7 +418,7 @@ impl RowRef {
 mod tests {
     use crate::store::{prelude::{Row, QueryCursor}, row_meta::{Insert, InsertBuilder, InsertCursor}};
 
-    use super::{Table, Query};
+    use super::{Table, Query, QueryIterator};
 
     #[test]
     fn spawn() {
@@ -377,6 +465,7 @@ mod tests {
         assert_eq!(table.len(), 0);
 
         table.push::<TestA>(TestA(1));
+        //table.push(TestC(1));
         assert_eq!(table.len(), 1);
 
         let mut values : Vec<String> = table.query::<&TestA>()
@@ -385,6 +474,26 @@ mod tests {
         assert_eq!(values.join(","), "TestA(1)");
     }
 
+    #[test]
+    fn push_tuple() {
+        let mut table = Table::<IsTest>::new();
+        assert_eq!(table.len(), 0);
+
+        table.push((TestA(1),TestB(2)));
+        //table.push(TestC(1));
+        assert_eq!(table.len(), 1);
+
+        let mut values : Vec<String> = table.query::<&TestA>()
+            .map(|t| format!("{:?}", t))
+            .collect();
+        assert_eq!(values.join(","), "TestA(1)");
+
+//        values = table.query::<&TestB>().map(|t: &TestB| format!("{:?}", t)).collect();
+        //assert_eq!(values.join(","), "TestB(2)");
+
+        values = table.query::<(&TestA,&TestB)>().map(|(a, b)| format!("({:?},{:?})", a, b)).collect();
+        assert_eq!(values.join(","), "(TestA(1),TestB(2))");
+    }
 
     #[test]
     fn eval() {
@@ -394,6 +503,17 @@ mod tests {
 
 
     }
+    #[test]
+    fn test_table() {
+        let mut table = TestTable::new();
+        table.push(TestA(1));
+        table.push((TestA(2),TestB(3)));
+
+        let mut values : Vec<String> = table.query::<&TestA>()
+            .map(|t: &TestA| format!("{:?}", t))
+            .collect();
+        assert_eq!(values.join(","), "TestA(1),TestA(2)");
+    }
 
     #[derive(Debug)]
     struct TestA(u32);
@@ -401,26 +521,38 @@ mod tests {
     #[derive(Debug)]
     struct TestB(u16);
 
+    #[derive(Debug)]
+    struct TestC(u32);
+
     trait TestComponent:'static {}
     
     impl TestComponent for TestA {}
     impl TestComponent for TestB {}
     
     struct IsTest;
+    struct IsTestC;
 
     impl<T:TestComponent> Insert<IsTest> for T {
-        type Item = Self;
-
         fn build(builder: &mut InsertBuilder) {
             builder.add_column::<T>()
         }
 
-        unsafe fn insert(cursor: &mut InsertCursor, value: Self::Item) {
+        unsafe fn insert(cursor: &mut InsertCursor, value: Self) {
             cursor.insert(value);
         }
     }
 
-    impl<T:TestComponent> Query for &T {
+    impl Insert<IsTestC> for TestC {
+        fn build(builder: &mut InsertBuilder) {
+            builder.add_column::<TestC>()
+        }
+
+        unsafe fn insert(cursor: &mut InsertCursor, value: Self) {
+            cursor.insert(value);
+        }
+    }
+
+    impl<T:TestComponent> Query<IsTest> for &T {
         type Item<'a> = &'a T;
 
         fn build(query: &mut super::QueryBuilder) {
@@ -432,7 +564,7 @@ mod tests {
         }
     }
 
-    impl<T:TestComponent> Query for &mut T {
+    impl<T:TestComponent> Query<IsTest> for &mut T {
         type Item<'a> = &'a mut T;
 
         fn build(query: &mut super::QueryBuilder) {
@@ -441,6 +573,27 @@ mod tests {
     
         unsafe fn query<'a>(row: &'a Row, cursor: &mut QueryCursor) -> Self::Item<'a> {
             cursor.deref_mut::<T>(row)
+        }
+    }
+
+    struct TestTable<'t> {
+        table: Table<'t,IsTest>,
+    }
+
+    impl<'t> TestTable<'t> {
+        fn new() -> Self {
+            Self {
+                table: Table::new(),
+            }
+        }
+
+        fn push<T:Insert<IsTest>>(&mut self, value: T)
+        {
+             self.table.push::<T>(value);
+        }
+
+        fn query<T:Query<IsTest,Item<'t>=T>>(&mut self) -> QueryIterator<IsTest,T> {
+            self.table.query()
         }
     }
 }

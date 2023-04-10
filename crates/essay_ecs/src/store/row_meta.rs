@@ -47,13 +47,19 @@ pub struct RowType {
     align: usize,
     length: usize,
 }
-
+/*
 pub trait Insert<M>:'static {
     type Item;
 
     fn build(builder: &mut InsertBuilder);
 
     unsafe fn insert(cursor: &mut InsertCursor, value: Self::Item);
+}
+*/
+pub trait Insert<M>:'static {
+    fn build(builder: &mut InsertBuilder);
+
+    unsafe fn insert(cursor: &mut InsertCursor, value: Self);
 }
 
 pub struct InsertBuilder<'a> {
@@ -88,7 +94,7 @@ pub struct ViewRowType {
     columns: Vec<usize>,
 }
 
-pub trait Query {
+pub trait Query<M> {
     type Item<'a>;
 
     fn build(query: &mut QueryBuilder);

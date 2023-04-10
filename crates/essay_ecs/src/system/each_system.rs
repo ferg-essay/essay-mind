@@ -84,7 +84,7 @@ pub trait FiberIn {
 }
 
 pub trait EachFun<M> {
-    type Entity: Query;
+    type Entity: Query<IsEntity>;
     //type EachParams: EachParam;
     type Params: Param;
 
@@ -174,8 +174,8 @@ where
 pub struct IsPlain;
 pub struct IsIn;
 pub struct IsOut;
-
-impl<F:'static,T:Query,P:Param,> EachFun<fn(IsPlain, T, P)> for F
+pub struct IsEntity;
+impl<F:'static,T:Query<IsEntity>,P:Param,> EachFun<fn(IsPlain, T, P)> for F
     where F:FnMut(&mut T, P) -> () +
             FnMut(&mut T, Arg<P>) -> ()
 {
@@ -231,7 +231,7 @@ impl<F:'static,T:'static,FB:Fiber,P:Param,> EachFun<fn(IsOut, T, FB, P)> for F
 macro_rules! impl_each_function {
     ($($param:ident),*) => {
         #[allow(non_snake_case)]
-        impl<F: 'static, T: Query, $($param: Param),*> EachFun<fn(IsPlain, T, $($param,)*)> for F
+        impl<F: 'static, T: Query<IsEntity>, $($param: Param),*> EachFun<fn(IsPlain, T, $($param,)*)> for F
         where F:FnMut(&mut T, $($param),*) -> () +
             FnMut(&mut T, $(Arg<$param>),*) -> ()
         {
