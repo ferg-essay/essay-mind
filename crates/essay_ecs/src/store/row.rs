@@ -1,6 +1,6 @@
 use std::{ptr::NonNull};
 
-use super::{ptr::PtrOwn, row_meta::{RowType, RowTypeId, ColumnTypeId, ColumnItem, RowMetas, InsertMap}};
+use super::{ptr::PtrOwn, row_meta::{RowType, RowTypeId, ColumnTypeId, ColumnItem, RowMetas, InsertPlan}};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Ord, PartialOrd)]
 pub struct RowId(u32);
@@ -68,24 +68,16 @@ impl<'t> Row<'t> {
         self.type_id
     }
 
-    pub(crate) unsafe fn insert<T:'static>(
-        &mut self, 
-        cols: &InsertMap,
-        index: usize, 
-        this: T) {
-        self.ptrs[cols.index(index)].write(this);
+    pub(crate) unsafe fn deref<T:'static>(&self, index: usize) -> &'t T {
+        self.ptrs.get(index).unwrap().deref()
     }
 
-    pub(crate) unsafe fn push<T>(&mut self, value: T, col_type: &ColumnItem) {
-        let offset = col_type.offset();
+    pub(crate) unsafe fn deref_mut<T:'static>(&self, index: usize) -> &'t mut T {
+        self.ptrs.get(index).unwrap().deref_mut()
+    }
 
-        let mut storage = unsafe { 
-            NonNull::new_unchecked(self.data.as_mut_ptr().add(offset))
-        };
-
-        let ptr = PtrOwn::make_into(value, &mut storage);
-
-        self.ptrs.push(ptr);
+    pub(crate) unsafe fn write<T:'static>(&mut self, index: usize, value: T) {
+        self.ptrs[index].write(value); // TODO: drop for replace(?)
     }
 
     pub(crate) unsafe fn expand<'a,T>(
@@ -137,13 +129,5 @@ impl<'t> Row<'t> {
         let ptr = PtrOwn::new(storage);
 
         self.ptrs.push(ptr);
-    }
-
-    pub(crate) unsafe fn get<T:'static>(&self, index: usize) -> &'t T {
-        self.ptrs.get(index).unwrap().deref()
-    }
-
-    pub(crate) unsafe fn get_mut<T:'static>(&self, index: usize) -> &'t mut T {
-        self.ptrs.get(index).unwrap().deref_mut()
     }
 }

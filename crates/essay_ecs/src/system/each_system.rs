@@ -1,6 +1,6 @@
 use std::{marker::PhantomData, ops::{Deref, DerefMut}};
 
-use crate::{world::prelude::World, entity::prelude::Insert};
+use crate::{world::prelude::World, store::row_meta::Insert};
 
 use super::{prelude::Param, system::{System, IntoSystem}, param::Arg};
 

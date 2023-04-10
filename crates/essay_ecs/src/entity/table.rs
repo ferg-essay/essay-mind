@@ -1,10 +1,10 @@
 use std::{marker::PhantomData, any::{TypeId, type_name}};
 
 use crate::store::{prelude::{Table, RowId, Row}, 
-    row_meta::{ViewRowTypeId, ViewRowType, ViewTypeId, InsertMap, InsertMapBuilder}, 
+    row_meta::{ViewRowTypeId, ViewRowType, ViewTypeId, InsertPlan, InsertBuilder, Insert}, 
     row_meta::{ColumnTypeId, RowTypeId}};
 
-use super::{component::{Insert}, prelude::EntityRef};
+use super::{prelude::EntityRef};
 
 pub struct EntityTable<'w> {
     table: Table<'w>,
@@ -44,23 +44,29 @@ impl<'t> EntityTable<'t> {
         )
     }
 
-    pub(crate) fn add_insert_map<T:Insert>(&mut self) -> InsertMap {
+    pub(crate) fn add_insert_map<T:Insert>(&mut self) -> InsertPlan {
+        todo!();
+        /*
         let mut cols = InsertMapBuilder::new();
 
-        T::add_cols(self, &mut cols);
+        T::build(&mut cols);
 
         let row_type_id = self.table.meta_mut().add_row(cols.columns().clone());
         let row_type = self.table.meta_mut().get_row_id(row_type_id);
 
         cols.build_insert(row_type)
+        */
     }
     
     pub(crate) fn add_entity_type<T:Insert>(&mut self) -> ViewTypeId {
+        todo!();
+        /*
         let mut cols = InsertMapBuilder::new();
 
-        T::add_cols(self, &mut cols);
+        T::build(&mut cols);
 
         self.entity_type(cols.columns().clone())
+        */
     }
     
     /*

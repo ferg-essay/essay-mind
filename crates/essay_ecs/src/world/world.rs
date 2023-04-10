@@ -1,9 +1,8 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crate::store::{prelude::{Table, RowRef, ViewTypeId}, ptr::PtrCell};
+use crate::store::{prelude::{Table, RowRef, ViewTypeId}, ptr::PtrCell, row_meta::Insert};
 use crate::entity::prelude::{EntityTable,
-    EntityRef, Entity2MutIterator, Entity3MutIterator, 
-    Insert
+    EntityRef, Entity2MutIterator, Entity3MutIterator
 };
 
 use super::resource::Resources;

@@ -1,4 +1,4 @@
-use crate::store::{row::Row, row_meta::{InsertMap, InsertMapBuilder}};
+use crate::store::{row::Row, row_meta::{InsertPlan, InsertBuilder, Insert, InsertCursor}};
 
 use super::{prelude::EntityTable};
 
@@ -12,50 +12,38 @@ pub struct ComponentId(usize);
 // Insert tuples of components
 //
 
-pub trait Insert:'static {
-    fn add_cols(table: &mut EntityTable, cols: &mut InsertMapBuilder);
-
-    fn insert(row: &mut Row, cols: &InsertMap, index: usize, this: Self) -> usize;
-}
-
 impl<T:Component> Insert for T {
-    fn add_cols(table: &mut EntityTable, cols: &mut InsertMapBuilder) {
-        cols.push(table.add_column::<T>());
+    type Item = Self;
+
+    fn build(builder: &mut InsertBuilder) {
+        builder.add_column::<T>();
     }
 
-    fn insert(row: &mut Row, cols: &InsertMap, index: usize, this: Self) -> usize {
-        unsafe {
-            row.insert(cols, index, this);
-
-            index + 1
-        }
+    unsafe fn insert(cursor: &mut InsertCursor, this: Self::Item) {
+        cursor.insert(this);
     }
 }
 
 macro_rules! impl_insert_tuple {
     ($($part:ident),*) => {
         #[allow(non_snake_case)]
-        impl<$($part:Insert),*> Insert for ($($part,)*)
-        {
-            fn add_cols(
-                table: &mut EntityTable, 
-                cols: &mut InsertMapBuilder
+        impl<$($part:Insert<Item = $part>),*> Insert for ($($part,)*) {
+            type Item = Self;
+
+            fn build(
+                builder: &mut InsertBuilder, 
             ) {
                 $(
-                    $part::add_cols(table, cols);
+                    $part::build(builder);
                 )*
             }
 
-            fn insert(row: &mut Row, cols: &InsertMap, index: usize, this: Self) -> usize {
-                let mut index = index;
-
+            unsafe fn insert(cursor: &mut InsertCursor, this: Self) {
                 let ($($part),*) = this;
 
                 $(
-                    index = $part::insert(row, cols, index, $part);
+                    $part::insert(cursor, $part);
                 )*
-        
-                index
             }
         }
     }
@@ -80,7 +68,7 @@ impl<'a,T:Component> ViewQuery<'a> for &'a T {
         let index = *i;
         *i += 1;
 
-        unsafe { row.get::<T>(index) }
+        unsafe { row.deref::<T>(index) }
     }
 }
 
@@ -89,7 +77,7 @@ impl<'a,T:Component> ViewQuery<'a> for &'a mut T {
         let index = *i;
         *i += 1;
 
-        unsafe { row.get_mut::<T>(index) }
+        unsafe { row.deref_mut::<T>(index) }
     }
 }
 

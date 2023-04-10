@@ -5,6 +5,6 @@ mod table;
 
 pub mod prelude {
     pub use super::row::{RowId, Row};
-    pub use super::table::{Table, RowRef, ViewIterator};
+    pub use super::table::{Table, RowRef, QueryIterator};
     pub use super::row_meta::{ViewTypeId, RowTypeId, Query, QueryBuilder, QueryCursor};
 }

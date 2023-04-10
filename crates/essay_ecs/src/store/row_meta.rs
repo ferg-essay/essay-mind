@@ -48,6 +48,30 @@ pub struct RowType {
     length: usize,
 }
 
+pub trait Insert:'static {
+    type Item;
+
+    fn build(builder: &mut InsertBuilder);
+
+    unsafe fn insert(cursor: &mut InsertCursor, value: Self::Item);
+}
+
+pub struct InsertBuilder<'a> {
+    meta: &'a mut RowMetas,
+    columns: Vec<ColumnTypeId>,
+}
+
+pub struct InsertPlan {
+    row_type: RowTypeId,
+    row_cols: Vec<usize>,
+}
+
+pub struct InsertCursor<'a, 't> {
+    row: &'a mut Row<'t>,
+    map: &'a InsertPlan,
+    index: usize,
+}
+
 pub struct ViewType {
     id: ViewTypeId,
     cols: Vec<ColumnTypeId>,
@@ -189,34 +213,27 @@ impl RowType {
     }
 }
 
-pub struct InsertMapBuilder {
-    col_ids: Vec<ColumnTypeId>,
-}
-
-pub struct InsertMap {
-    row_type: RowTypeId,
-    row_cols: Vec<usize>,
-}
-
-impl InsertMapBuilder {
-    pub fn new() -> Self {
+impl<'a> InsertBuilder<'a> {
+    pub(crate) fn new(meta: &'a mut RowMetas) -> Self {
         Self {
-            col_ids: Vec::new(),
+            meta: meta,
+            columns: Vec::new(),
         }
     }
 
-    pub fn push(&mut self, id: ColumnTypeId) {
-        self.col_ids.push(id);
+    /*
+    fn push(&mut self, id: ColumnTypeId) {
+        self.columns.push(id);
     }
 
-    pub fn columns(&self) -> &Vec<ColumnTypeId> {
-        &self.col_ids
+    pub(crate) fn columns(&self) -> &Vec<ColumnTypeId> {
+        &self.columns
     }
 
-    pub fn build_insert(&self, row: &RowType) -> InsertMap {
+    pub(crate) fn build_insert(&self, row: &RowType) -> InsertMap {
         let mut row_cols = Vec::<usize>::new();
 
-        for col_id in &self.col_ids {
+        for col_id in &self.columns {
             row_cols.push(row.column_position(*col_id).unwrap());
         }
 
@@ -225,9 +242,32 @@ impl InsertMapBuilder {
             row_cols: row_cols,
         }
     }
+    */
+
+    pub(crate) fn add_column<T:'static>(&mut self) {
+        let id = self.meta.add_column::<T>();
+        
+        self.columns.push(id);
+    }
+
+    pub(crate) fn build(self) -> InsertPlan {
+        let row_id = self.meta.add_row(self.columns.clone());
+        let row = self.meta.get_row_id(row_id);
+
+        let mut row_cols = Vec::<usize>::new();
+
+        for col_id in &self.columns {
+            row_cols.push(row.column_position(*col_id).unwrap());
+        }
+
+        InsertPlan {
+            row_type: row.id(),
+            row_cols: row_cols,
+        }
+    }
 }
 
-impl InsertMap {
+impl InsertPlan {
     pub fn index(&self, index: usize) -> usize {
         self.row_cols[index]
     }
@@ -235,7 +275,28 @@ impl InsertMap {
     pub(crate) fn row_type(&self) -> RowTypeId {
         self.row_type
     }
+
+    pub(crate) fn cursor<'a, 't>(&'a self, row: &'a mut Row<'t>) -> InsertCursor<'a, 't> {
+        InsertCursor {
+            map: &self,
+            row: row,
+            index: 0, 
+        }
+    }
 }
+
+impl<'a, 't> InsertCursor<'a, 't> {
+    pub unsafe fn insert<T:'static>(&mut self, value: T) {
+        let index = self.index;
+        self.index += 1;
+
+        self.row.write::<T>(self.map.row_cols[index], value);
+    }
+}
+
+//
+// view
+//
 
 impl ViewTypeId {
     pub fn index(&self) -> usize {
@@ -307,12 +368,12 @@ impl ViewRowType {
     }
 }
 
-pub(crate) struct ViewQueryMap {
+pub(crate) struct QueryPlan {
     view: ViewTypeId,
     cols: Vec<usize>,
 }
 
-impl ViewQueryMap {
+impl QueryPlan {
     pub(crate) fn new_cursor(&self) -> QueryCursor {
         QueryCursor {
             cols: &self.cols,
@@ -354,7 +415,7 @@ impl<'a> QueryBuilder<'a> {
         self.cols.push(col_id);
     }
 
-    pub(crate) fn build(self) -> ViewQueryMap {
+    pub(crate) fn build(self) -> QueryPlan {
         let view_id = self.meta.add_view(self.cols.clone());
         let view = self.meta.get_view(view_id);
 
@@ -362,7 +423,7 @@ impl<'a> QueryBuilder<'a> {
             .map(|col_id| view.column_position(*col_id).unwrap())
             .collect();
 
-        ViewQueryMap {
+        QueryPlan {
             view: view_id,
             cols: cols,
         }
