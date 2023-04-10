@@ -147,13 +147,13 @@ impl<'t> Table<'t> {
     // query
     //
 
-    pub fn query<T:Query<'t>+'static>(&mut self) -> QueryIterator<'_,'t,T> {
+    pub fn query<'a,T:Query>(&mut self) -> QueryIterator<'_,'t,T> {
         let plan = self.get_query_plan::<T>();
         
         unsafe { self.query_with_plan(plan) }
     }
 
-    pub(crate) fn get_query_plan<T:Query<'t>>(&mut self) -> QueryPlan {
+    pub(crate) fn get_query_plan<'a,T:Query>(&mut self) -> QueryPlan {
         let mut builder = QueryBuilder::new(self.meta_mut());
 
         T::build(&mut builder);
@@ -161,7 +161,7 @@ impl<'t> Table<'t> {
         builder.build()
     }
 
-    pub(crate) unsafe fn query_with_plan<T:Query<'t>+'static>(
+    pub(crate) unsafe fn query_with_plan<'a,T:Query>(
         &self, 
         plan: QueryPlan
     ) -> QueryIterator<'_,'t,T> {
@@ -253,7 +253,7 @@ impl<T:'static> Insert for Single<T> {
     }
 }
 
-pub struct QueryIterator<'a, 't, T:Query<'t>> {
+pub struct QueryIterator<'a, 't, T:Query> {
     table: &'a Table<'t>,
 
     view_id: ViewTypeId,
@@ -266,7 +266,7 @@ pub struct QueryIterator<'a, 't, T:Query<'t>> {
     marker: PhantomData<T>,
 }
 
-impl<'a, 't, T:Query<'t>> QueryIterator<'a, 't, T> {
+impl<'a, 't, T:Query> QueryIterator<'a, 't, T> {
     fn new(
         table: &'a Table<'t>, 
         query: QueryPlan,
@@ -285,8 +285,9 @@ impl<'a, 't, T:Query<'t>> QueryIterator<'a, 't, T> {
     }
 }
 
-impl<'a, 't, T:Query<'t>> Iterator for QueryIterator<'a, 't, T> {
-    type Item = T::Item;
+impl<'a, 't, T:Query> Iterator for QueryIterator<'a, 't, T>
+{
+    type Item = T::Item<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let view = self.table.meta().get_view(self.view_id);
@@ -388,37 +389,29 @@ mod tests {
     impl TestComponent for TestA {}
     impl TestComponent for TestB {}
 
-    impl<'a,'t,T:TestComponent> Query<'t> for &'a T
-    where 't: 'a
+    impl<T:TestComponent> Query for &T
     {
-        type Item = &'a T;
+        type Item<'a> = &'a T;
 
         fn build(query: &mut super::QueryBuilder) {
             query.add_ref::<T>()
         }
     
-        unsafe fn query<'b>(
-            row: &'b Row<'t>, 
-            cursor: &mut QueryCursor
-        ) -> Self::Item {
-            row.deref::<T>(cursor.next())
+        unsafe fn query<'a>(row: &'a Row, cursor: &mut QueryCursor) -> Self::Item<'a> {
+            cursor.deref::<T>(row)
         }
     }
 
-    impl<'a,'t,T:TestComponent> Query<'t> for &'a mut T
-    where 't: 'a
+    impl<T:TestComponent> Query for &mut T
     {
-        type Item = &'a mut T;
+        type Item<'a> = &'a mut T;
 
         fn build(query: &mut super::QueryBuilder) {
             query.add_ref::<T>()
         }
     
-        unsafe fn query<'b>(
-            row: &'b Row<'t>, 
-            cursor: &mut QueryCursor
-        ) -> Self::Item {
-            row.deref_mut::<T>(cursor.next())
+        unsafe fn query<'a>(row: &'a Row, cursor: &mut QueryCursor) -> Self::Item<'a> {
+            cursor.deref_mut::<T>(row)
         }
     }
 }
