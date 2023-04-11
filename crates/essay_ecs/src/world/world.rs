@@ -1,6 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crate::store::{prelude::{Table, RowRef, ViewTypeId, Query}, ptr::PtrCell, row_meta::Insert};
+use crate::{store::{prelude::{Table, RowRef, ViewTypeId, Query, QueryIterator}, ptr::PtrCell, row_meta::Insert}, entity::prelude::IsEntity};
 use crate::entity::prelude::{EntityTable,
     EntityRef, Entity2MutIterator, Entity3MutIterator
 };
@@ -24,13 +24,10 @@ impl<'w> World<'w> {
         //self.ptr.deref_mut().entities.add_entity_type::<T>()
     }
 
-    pub fn add_entity<M,T:Insert<M>>(&mut self, value: T) -> WorldRef {
-        todo!()
-        /*
+    pub fn add_entity<T:Insert<IsEntity>>(&mut self, value: T) -> WorldRef {
         WorldRef {
-            //ent_ref: self.ptr.deref_mut().entities.push::<T>(value)
+            ent_ref: self.ptr.deref_mut().entities.push::<T>(value)
         }
-        */
     }
 
     pub fn len(&self) -> usize {
@@ -42,12 +39,16 @@ impl<'w> World<'w> {
         todo!();
     }
 
-    pub fn eval<M,T:Insert<M>,F>(&self, fun: &mut F)
-        where F: FnMut(&mut T)
+    pub(crate) fn query<T:Query<IsEntity,Item<'w>=T>>(&self) -> QueryIterator<IsEntity,T> {
+        self.ptr.deref_mut().entities.query::<T>()
+    }
+
+    pub fn eval<'a,T:Query<IsEntity,Item<'a>=T>,F>(&self, fun: &mut F)
+        where F: FnMut(T)
     {
         todo!();
         /*
-        for entity in self.ptr.deref_mut().entities.iter_mut_by_type::<T>() {
+        for entity in self.ptr.deref_mut().entities.query::<T>() {
             fun(entity);
         }
         */
@@ -98,7 +99,6 @@ mod tests {
 
     #[test]
     fn spawn() {
-        /*
         let mut world = World::new();
         assert_eq!(world.len(), 0);
 
@@ -109,6 +109,7 @@ mod tests {
         world.eval(&mut|t: &mut TestA| (&mut values).push(format!("{:?}", t)));
         assert_eq!(values.join(","), "TestA(1)");
 
+        /*
         world.add_entity(TestB(10000));
         assert_eq!(world.len(), 2);
 

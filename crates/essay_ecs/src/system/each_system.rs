@@ -1,9 +1,8 @@
 use std::{marker::PhantomData, ops::{Deref, DerefMut}};
 
-use crate::{world::prelude::World, store::{row_meta::Insert, prelude::Query}};
+use crate::{world::prelude::World, store::{row_meta::Insert, prelude::Query}, prelude::Component};
 
 use super::{prelude::Param, system::{System, IntoSystem}, param::Arg};
-
 
 pub type EntityArg<'w, P> = <P as EachParam>::Arg<'w>;
 
@@ -26,66 +25,8 @@ pub struct Each<'w, T> {
     world: &'w World<'w>,
     item: &'w mut T,
 }
-pub struct In<'w, F:Fiber, M=()> {
-    world: &'w World<'w>,
-    fiber: &'w mut F::In,
-    marker: PhantomData<M>,
-}
-
-impl<'w, F:Fiber> In<'w,F> {
-    fn new(world: &'w World, fiber_in: &'w mut F::In) -> Self {
-        Self {
-            world: world,
-            fiber: fiber_in,
-            marker: PhantomData,
-        }
-    }
-}
-
-impl<'w,F:Fiber,M> Deref for In<'w,F,M> {
-    type Target = F::In;
-
-    fn deref(&self) -> &Self::Target {
-        self.fiber
-    }
-}
-
-pub struct Out<'w, F:Fiber, M=()> {
-    world: &'w World<'w>,
-    fiber: &'w mut F::Out,
-    marker: PhantomData<M>,
-}
-
-impl<'w, F:Fiber> Out<'w,F> {
-    fn new(world: &'w World, fiber_out: &'w mut F::Out) -> Self {
-        Self {
-            world: world,
-            fiber: fiber_out,
-            marker: PhantomData,
-        }
-    }
-}
-
-pub trait Fiber {
-    type In:'static;
-    type Out:'static;
-
-    fn create_in<'w>(&self, world: &World<'w>) -> &Self::In;
-    fn create_in_mut<'w>(&mut self, world: &World<'w>) -> &mut Self::In;
-    fn create_out<'w>(&self, world: &World<'w>) -> &Self::Out;
-    fn create_out_mut<'w>(&mut self, world: &World<'w>) -> &mut Self::Out;
-}
-
-pub trait FiberIn {
-    type In:'static;
-
-    fn create_in<'w>(&self, world: &World<'w>) -> &Self::In;
-    fn create_in_mut<'w>(&mut self, world: &World<'w>) -> &mut Self::In;
-}
-
 pub trait EachFun<M> {
-    type Entity: Query<IsEntity>;
-    //type EachParams: EachParam;
+    type Entity:Component;
     type Params: Param;
 
     fn run<'w>(&mut self, 
@@ -118,15 +59,12 @@ where
     F: EachFun<M>
 {
     fn new(world: &mut World, fun: F) -> Self {
-        todo!();
-        /*
-        let entity_type = world.add_entity_type::<F::Entity>();
-        println!("entity-type {:?}", entity_type);
+        //let entity_type = world.add_entity_type::<F::Entity>();
+        //println!("entity-type {:?}", entity_type);
         Self {
             fun: fun,
             marker: PhantomData,
         }
-        */
     }
 }
 
@@ -136,16 +74,13 @@ where
     F: EachFun<M>
 {
     fn run(&mut self, world: &World) {
-        todo!();
-        /*
-        for entity in world.iter_mut::<F::Entity>() {
+        for entity in world.query::<&mut F::Entity>() {
             let args = F::Params::get_arg(
                 world,
             );
 
             self.fun.run(world, entity, args);
         }
-        */
     }
 }    
 
@@ -175,63 +110,23 @@ pub struct IsPlain;
 pub struct IsIn;
 pub struct IsOut;
 pub struct IsEntity;
-impl<F:'static,T:Query<IsEntity>,P:Param,> EachFun<fn(IsPlain, T, P)> for F
+
+impl<F:'static,T:Component,P:Param,> EachFun<fn(IsPlain, T, P)> for F
     where F:FnMut(&mut T, P) -> () +
             FnMut(&mut T, Arg<P>) -> ()
 {
     type Entity = T;
     type Params = P;
 
-    fn run(&mut self, world: &World, entity: &mut T, arg: Arg<P>) {
+    fn run<'w>(&mut self, world: &'w World<'w>, entity: &'w mut T, arg: Arg<P>) {
         self(entity, arg)
     }
 }
-/*
-impl<F:'static,T:'static,FB:Fiber,P:Param,> EachFun<fn(IsIn, T, FB, P)> for F
-    where F:FnMut(&mut T, In<FB>, P) -> () +
-            FnMut(&mut T, In<FB>, Arg<P>) -> ()
-{
-    type Entity = (T, FB::In);
-    type Params = P;
-
-    fn run(&mut self, world: &World, entity: &mut (T, FB::In), arg: Arg<P>) {
-        self(&mut entity.0, In::<FB>::new(world, &mut entity.1), arg)
-    }
-}
-*/
-
-    /*
-impl<F:'static,T:Component,FB:Fiber,> EachFun<fn(IsIn, T, FB)> for F
-    where F:FnMut(&mut T, In<FB>) -> () +
-            FnMut(&mut T, In<FB>) -> ()
-{
-    type Entity = (T, FB::In);
-    type Params = ();
-
-    fn run(&mut self, world: &World, entity: &mut (T, FB::In), arg: Arg<()>) {
-        self(&mut entity.0, In::<FB>::new(world, &mut entity.1))
-    }
-}
-     */
-
-    /*
-impl<F:'static,T:'static,FB:Fiber,P:Param,> EachFun<fn(IsOut, T, FB, P)> for F
-    where F:FnMut(&mut T, Out<FB>, P) -> () +
-            FnMut(&mut T, Out<FB>, Arg<P>) -> ()
-{
-    type Entity = (T, FB::Out);
-    type Params = P;
-
-    fn run(&mut self, world: &World, entity: &mut (T, FB::Out), arg: Arg<P>) {
-        self(&mut entity.0, Out::<FB>::new(world, &mut entity.1), arg)
-    }
-}
-     */
 
 macro_rules! impl_each_function {
     ($($param:ident),*) => {
         #[allow(non_snake_case)]
-        impl<F: 'static, T: Query<IsEntity>, $($param: Param),*> EachFun<fn(IsPlain, T, $($param,)*)> for F
+        impl<'a,F: 'static, T: Component, $($param: Param),*> EachFun<fn(IsPlain, T, $($param,)*)> for F
         where F:FnMut(&mut T, $($param),*) -> () +
             FnMut(&mut T, $(Arg<$param>),*) -> ()
         {
@@ -247,6 +142,7 @@ macro_rules! impl_each_function {
 }
 
 impl_each_function!();
+/*
 //impl_each_function!(P1);
 impl_each_function!(P1, P2);
 impl_each_function!(P1, P2, P3);
@@ -254,6 +150,7 @@ impl_each_function!(P1, P2, P3, P4);
 impl_each_function!(P1, P2, P3, P4, P5);
 impl_each_function!(P1, P2, P3, P4, P5, P6);
 impl_each_function!(P1, P2, P3, P4, P5, P6, P7);
+*/
 
 #[cfg(test)]
 mod tests {
@@ -263,12 +160,12 @@ mod tests {
 
     use crate::{app::App, world::prelude::World, system::param::Param};
 
-    use super::{Each, In, Fiber};
+    use super::{Each, EachSystem};
 
     #[test]
     fn test_each() {
         let mut app = App::new();
-        /*
+
         app.spawn(TestA(1));
 
         let values = Rc::new(RefCell::new(Vec::<String>::new()));
@@ -291,7 +188,11 @@ mod tests {
 
         app.update();
         assert_eq!(take(&values), "TestA(1), TestA(2)");
-        */
+
+        app.spawn((TestA(3), TestB(4)));
+
+        app.update();
+        assert_eq!(take(&values), "TestA(1), TestA(2), TestA(3)");
     }
 
     #[test]
@@ -397,9 +298,14 @@ mod tests {
         // assert_eq!(take(&values), "S-A TestA(0) \"alloc::string::String\"");
         */
     }
-
+    /*
     fn system_each_in(test: &mut TestA, input: In<TestFiber>) {
         println!("system-each-in {:?} {:?}", test, Deref::deref(&input));
+    }
+    */
+
+    fn system_each_ref(test: &mut TestA) {
+        println!("system-each {:?}", test);
     }
 
     fn take(values: &Rc<RefCell<Vec<String>>>) -> String {
@@ -407,36 +313,6 @@ mod tests {
 
         v.join(", ")
     }
-
-    struct TestFiber {
-
-    }
-    
-    impl Fiber for TestFiber {
-        type In = TestInFiber;
-        type Out = TypeOutFiber;
-
-        fn create_in<'w>(&self, world: &World<'w>) -> &Self::In {
-            todo!()
-        }
-
-        fn create_in_mut<'w>(&mut self, world: &World<'w>) -> &mut Self::In {
-            todo!()
-        }
-
-        fn create_out<'w>(&self, world: &World<'w>) -> &Self::Out {
-            todo!()
-        }
-
-        fn create_out_mut<'w>(&mut self, world: &World<'w>) -> &mut Self::Out {
-            todo!()
-        }   
-    }
-
-    #[derive(Debug)]
-    struct TestInFiber(usize);
-
-    struct TypeOutFiber(usize);
 
     #[derive(Component,PartialEq, Debug)]
     struct TestA(u32);

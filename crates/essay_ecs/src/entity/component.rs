@@ -1,6 +1,6 @@
-use crate::store::{row::Row, row_meta::{InsertPlan, InsertBuilder, Insert, InsertCursor}};
+use crate::store::{row::Row, row_meta::{InsertBuilder, Insert, InsertCursor}, prelude::{Query, QueryBuilder, QueryCursor}};
 
-use super::{prelude::EntityTable};
+use super::prelude::IsEntity;
 
 pub trait Component:'static {}
 
@@ -11,20 +11,20 @@ pub struct ComponentId(usize);
 //
 // Insert tuples of components
 //
-struct IsEntity;
-/*
+//struct IsEntity;
+
 impl<T:Component> Insert<IsEntity> for T {
-    type Item = Self;
+    //type Item = Self;
 
     fn build(builder: &mut InsertBuilder) {
         builder.add_column::<T>();
     }
 
-    unsafe fn insert(cursor: &mut InsertCursor, this: Self::Item) {
+    unsafe fn insert(cursor: &mut InsertCursor, this: Self) {
         cursor.insert(this);
     }
 }
-
+/*
 macro_rules! impl_insert_tuple {
     ($($part:ident),*) => {
         #[allow(non_snake_case)]
@@ -65,21 +65,27 @@ pub trait ViewQuery<'a> {
     fn query(row: &'a Row, i: &mut usize) -> Self;
 }
 
-impl<'a,T:Component> ViewQuery<'a> for &'a T {
-    fn query(row: &'a Row, i: &mut usize) -> Self {
-        let index = *i;
-        *i += 1;
+impl<T:Component> Query<IsEntity> for &T {
+    type Item<'a> = &'a T;
 
-        unsafe { row.deref::<T>(index) }
+    fn build(builder: &mut QueryBuilder) {
+        builder.add_ref::<T>();
+    }
+
+    unsafe fn query<'a>(row: &'a Row, cursor: &mut QueryCursor) -> Self::Item<'a> {
+        cursor.deref(row)
     }
 }
 
-impl<'a,T:Component> ViewQuery<'a> for &'a mut T {
-    fn query(row: &'a Row, i: &mut usize) -> Self {
-        let index = *i;
-        *i += 1;
+impl<T:Component> Query<IsEntity> for &mut T {
+    type Item<'a> = &'a mut T;
 
-        unsafe { row.deref_mut::<T>(index) }
+    fn build(builder: &mut QueryBuilder) {
+        builder.add_ref::<T>();
+    }
+
+    unsafe fn query<'a>(row: &'a Row, cursor: &mut QueryCursor) -> Self::Item<'a> {
+        cursor.deref_mut(row)
     }
 }
 

@@ -1,6 +1,6 @@
 use std::{marker::PhantomData, any::{TypeId, type_name}};
 
-use crate::store::{prelude::{Table, RowId, Row}, 
+use crate::store::{prelude::{Table, RowId, Row, Query, QueryIterator}, 
     row_meta::{ViewRowTypeId, ViewRowType, ViewTypeId, InsertPlan, InsertBuilder, Insert}, 
     row_meta::{ColumnTypeId, RowTypeId}};
 
@@ -8,10 +8,10 @@ use super::{prelude::EntityRef};
 
 pub struct EntityTable<'w> {
     table: Table<'w,IsEntity>,
-//    entity_meta: EntityMeta,
 }
 
 pub struct IsEntity;
+//type InsertEntity = Insert<IsEntity>;
 
 impl<'t> EntityTable<'t> {
     pub fn new() -> Self {
@@ -21,24 +21,13 @@ impl<'t> EntityTable<'t> {
         }
     }
 
-    pub fn push<M,T:Insert<M>>(&mut self, value: T) -> EntityRef {
-        todo!();
-        /*
-        let cols = self.add_insert_map::<T>();
-        let row_type = cols.row_type();
-
-        let row_id = unsafe {
-            todo!()
-        };
-
-        let type_id = self.entity_row_by_type::<T>(row_type);
+    pub fn push<T:Insert<IsEntity>>(&mut self, value: T) -> EntityRef {
+        let row_ref = self.table.push(value);
 
         EntityRef::new(
-            row_id,
-            row_type,
-            type_id,
+            row_ref.row_id(),
+            row_ref.row_type_id(),
         )
-        */
     }
 
     pub(crate) fn add_insert_map<M,T:Insert<M>>(&mut self) -> InsertPlan {
@@ -188,6 +177,10 @@ impl<'t> EntityTable<'t> {
             None => None,
         }
          */
+    }
+
+    pub(crate) fn query<T:Query<IsEntity,Item<'t>=T>>(&mut self) -> QueryIterator<IsEntity,T> {
+        self.table.query::<T>()
     }
 
     /*

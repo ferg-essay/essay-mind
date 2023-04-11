@@ -164,7 +164,7 @@ impl<'t,M> Table<'t,M> {
     // query
     //
 
-    pub fn query<'a,T:Query<M>>(&mut self) -> QueryIterator<'_,'t,M,T> {
+    pub fn query<'a,T:Query<M,Item<'a>=T>>(&mut self) -> QueryIterator<'_,'t,M,T> {
         let plan = self.get_query_plan::<T>();
         
         unsafe { self.query_with_plan(plan) }
@@ -253,24 +253,6 @@ impl<'t,M> Table<'t,M> {
         }
     }
 }
-
-/*
-pub struct Single<T,M> {
-    marker: PhantomData<(T,M)>,
-}
-
-impl<T:'static,M:'static> Insert<M> for Single<T,M> {
-    type Item = T;
-
-    fn build(builder: &mut InsertBuilder) {
-        builder.add_column::<T>()
-    }
-
-    unsafe fn insert(cursor: &mut InsertCursor, value: Self::Item) {
-        cursor.insert(value)
-    }
-}
-*/
 
 pub struct QueryIterator<'a, 't, M:'static, T:Query<M>> {
     table: &'a Table<'t,M>,
@@ -513,6 +495,9 @@ mod tests {
             .map(|t: &TestA| format!("{:?}", t))
             .collect();
         assert_eq!(values.join(","), "TestA(1),TestA(2)");
+
+        values = table.query::<&TestB>().map(|t: &TestB| format!("{:?}", t)).collect();
+        assert_eq!(values.join(","), "TestB(2)");
     }
 
     #[derive(Debug)]
@@ -592,7 +577,9 @@ mod tests {
              self.table.push::<T>(value);
         }
 
-        fn query<T:Query<IsTest,Item<'t>=T>>(&mut self) -> QueryIterator<IsTest,T> {
+        fn query<'a,T>(&mut self) -> QueryIterator<IsTest,T>
+        where T:Query<IsTest,Item<'a>=T>
+        {
             self.table.query()
         }
     }

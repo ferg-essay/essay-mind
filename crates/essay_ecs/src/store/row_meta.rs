@@ -47,15 +47,7 @@ pub struct RowType {
     align: usize,
     length: usize,
 }
-/*
-pub trait Insert<M>:'static {
-    type Item;
 
-    fn build(builder: &mut InsertBuilder);
-
-    unsafe fn insert(cursor: &mut InsertCursor, value: Self::Item);
-}
-*/
 pub trait Insert<M>:'static {
     fn build(builder: &mut InsertBuilder);
 

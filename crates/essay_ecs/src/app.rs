@@ -1,7 +1,7 @@
 use crate::{
     system::prelude::{System, IntoSystem, Schedule}, 
     world::prelude::{World, WorldRef}, store::{prelude::{RowRef}, row_meta::Insert},
-    entity::prelude::{EntityRef},
+    entity::prelude::{EntityRef, IsEntity},
 };
 
 pub struct App {
@@ -35,7 +35,7 @@ impl App {
         self
     }
 
-    pub fn spawn<M,T:Insert<M>>(&mut self, value: T) -> AppRef {
+    pub fn spawn<T:Insert<IsEntity>>(&mut self, value: T) -> AppRef {
         AppRef {
             ent_ref: self.world.add_entity(value)
         }

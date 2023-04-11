@@ -10,19 +10,19 @@ pub struct EntityId(usize);
 pub struct EntityRef {
     row_id: RowId,
     row_type: RowTypeId,
-    entity_row_type: ViewRowTypeId,
+    //entity_row_type: ViewRowTypeId,
 }
 
 impl EntityRef {
     pub(crate) fn new(
         row_id: RowId, 
         row_type: RowTypeId,
-        entity_row_type: ViewRowTypeId
+        //entity_row_type: ViewRowTypeId
     ) -> Self {
         Self {
             row_id: row_id,
             row_type: row_type,
-            entity_row_type: entity_row_type,
+            //entity_row_type: entity_row_type,
         }
     }
 
