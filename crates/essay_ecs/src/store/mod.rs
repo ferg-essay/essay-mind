@@ -1,4 +1,6 @@
-pub(crate) mod row_meta;
+mod cell;
+mod column;
+pub(crate) mod meta;
 pub(crate) mod row;
 pub(crate) mod ptr;
 mod table;
@@ -6,5 +8,5 @@ mod table;
 pub mod prelude {
     pub use super::row::{RowId, Row};
     pub use super::table::{Table, RowRef, QueryIterator};
-    pub use super::row_meta::{ViewTypeId, RowTypeId, Query, QueryBuilder, QueryCursor};
+    pub use super::meta::{ViewTypeId, RowTypeId, Query, QueryBuilder, QueryCursor};
 }

@@ -1,8 +1,8 @@
 use std::{marker::PhantomData, any::{TypeId, type_name}};
 
 use crate::store::{prelude::{Table, RowId, Row, Query, QueryIterator}, 
-    row_meta::{ViewRowTypeId, ViewRowType, ViewTypeId, InsertPlan, InsertBuilder, Insert}, 
-    row_meta::{ColumnTypeId, RowTypeId}};
+    meta::{ViewRowTypeId, ViewRowType, ViewTypeId, InsertPlan, InsertBuilder, Insert}, 
+    meta::{ColumnTypeId, RowTypeId}};
 
 use super::{prelude::EntityRef};
 
@@ -446,7 +446,7 @@ impl<'a, 't, T:'static> Iterator for Entity2MutIterator<'a, 't, T> {
 mod tests {
     use essay_ecs_macros::Component;
 
-    use crate::store::row_meta::ColumnTypeId;
+    use crate::store::meta::ColumnTypeId;
 
     use super::EntityTable;
 

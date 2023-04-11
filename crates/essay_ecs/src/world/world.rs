@@ -1,6 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crate::{store::{prelude::{Table, RowRef, ViewTypeId, Query, QueryIterator}, ptr::PtrCell, row_meta::Insert}, entity::prelude::IsEntity};
+use crate::{store::{prelude::{Table, RowRef, ViewTypeId, Query, QueryIterator}, ptr::PtrCell, meta::Insert}, entity::prelude::IsEntity};
 use crate::entity::prelude::{EntityTable,
     EntityRef, Entity2MutIterator, Entity3MutIterator
 };

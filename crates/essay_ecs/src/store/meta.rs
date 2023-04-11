@@ -1,4 +1,4 @@
-use std::{mem, collections::{HashMap, HashSet}, cmp::max, slice::Iter, any::{TypeId, type_name}, borrow::Cow};
+use std::{mem, collections::{HashMap, HashSet}, cmp::max, slice::Iter, any::{TypeId, type_name}, borrow::Cow, alloc::Layout};
 
 use super::prelude::{Row};
 
@@ -21,8 +21,8 @@ pub struct ColumnType {
     type_id: TypeId,
     name: Cow<'static, str>,
 
-    align: usize,
-    length: usize,
+    layout: Layout,
+    layout_padded: Layout,
 
     rows: Vec<RowTypeId>,
     views: Vec<ViewTypeId>,
@@ -139,12 +139,18 @@ impl ColumnType {
         self.id
     }
 
-    pub fn align(&self) -> usize {
-        self.align
+    #[inline]
+    pub fn size(&self) -> usize {
+        self.layout.size()
+    }
+    
+    pub fn layout_padded(&self) -> &Layout {
+        &self.layout_padded
     }
 
-    pub fn length(&self) -> usize {
-        self.length
+    #[inline]
+    pub fn size_padded(&self) -> usize {
+        self.layout_padded.size()
     }
 }
 
@@ -434,7 +440,7 @@ impl RowMetas {
         }
     }
 
-    pub fn column(&self, id: ColumnTypeId) -> &ColumnType {
+    pub fn get_column(&self, id: ColumnTypeId) -> &ColumnType {
         self.columns.get(id.index()).unwrap()
     }
 
@@ -476,8 +482,9 @@ impl RowMetas {
                 type_id: TypeId::of::<T>(),
                 name: Cow::Borrowed(type_name::<T>()),
 
-                align: align,
-                length: length,
+                layout: Layout::new::<T>(),
+                layout_padded: Layout::new::<T>().pad_to_align(),
+
                 rows: Vec::new(),
                 views: Vec::new(),
             };
@@ -517,14 +524,14 @@ impl RowMetas {
                 col_id: column_type.id(),
                 row_id: row_type_id,
                 index: index,
-                length: column_type.length(),
-                align: column_type.align(),
+                length: column_type.size(),
+                align: column_type.layout_padded().align(),
                 offset: 0,
             };
             item.offset = length;
 
-            length += column_type.length; // TODO: align
-            align = max(align, column_type.align); 
+            length += column_type.size(); // TODO: align
+            align = max(align, column_type.layout_padded().align()); 
 
             items.push(item);
         }
@@ -813,9 +820,9 @@ impl RowMetas {
 
 #[cfg(test)]
 mod tests {
-    use std::mem;
+    use std::{mem, alloc::Layout};
 
-    use crate::store::row_meta::{ColumnTypeId, RowTypeId, ColumnType, ColumnItem, ViewTypeId, ViewRowTypeId};
+    use crate::store::meta::{ColumnTypeId, RowTypeId, ColumnType, ColumnItem, ViewTypeId, ViewRowTypeId};
 
     use super::RowMetas;
 
@@ -824,18 +831,20 @@ mod tests {
         let mut meta = RowMetas::new();
 
         let col_id = meta.add_column::<TestA>();
-        let col_type = meta.column(col_id);
+        let col_type = meta.get_column(col_id);
         assert_eq!(col_type.id(), ColumnTypeId(0));
-        assert_eq!(col_type.length(), mem::size_of::<usize>());
-        assert_eq!(col_type.align(), mem::align_of::<usize>());
+        assert_eq!(col_type.size(), mem::size_of::<usize>());
+        assert_eq!(col_type.size_padded(), mem::size_of::<usize>());
+        //assert_eq!(col_type.layout(), &Layout::new::<TestA>());
+        assert_eq!(col_type.layout_padded(), &Layout::new::<TestA>().pad_to_align());
         assert_eq!(col_type.rows.len(), 0);
         assert_eq!(col_type.views.len(), 0);
 
         let col_id = meta.add_column::<TestB>();
-        let col_type = meta.column(col_id);
+        let col_type = meta.get_column(col_id);
         assert_eq!(col_type.id(), ColumnTypeId(1));
-        assert_eq!(col_type.length(), mem::size_of::<usize>());
-        assert_eq!(col_type.align(), mem::align_of::<usize>());
+        assert_eq!(col_type.size(), mem::size_of::<usize>());
+        //assert_eq!(col_type.align(), mem::align_of::<usize>());
         assert_eq!(col_type.rows.len(), 0);
         assert_eq!(col_type.views.len(), 0);
 
@@ -862,7 +871,7 @@ mod tests {
         assert_eq!(cols[0].length(), mem::size_of::<usize>());
         assert_eq!(cols[0].offset(), 0);
 
-        let col_a = meta.column(ColumnTypeId(0));
+        let col_a = meta.get_column(ColumnTypeId(0));
         assert_eq!(col_a.rows.len(), 1);
         assert_eq!(col_a.rows[0], RowTypeId(0));
         assert_eq!(col_a.views.len(), 0);
@@ -881,7 +890,7 @@ mod tests {
         assert_eq!(cols[0].length(), mem::size_of::<usize>());
         assert_eq!(cols[0].offset(), 0);
 
-        let col_a = meta.column(ColumnTypeId(0));
+        let col_a = meta.get_column(ColumnTypeId(0));
         assert_eq!(col_a.rows.len(), 1);
         assert_eq!(col_a.views.len(), 0);
 
@@ -899,7 +908,7 @@ mod tests {
         assert_eq!(cols[0].length(), mem::size_of::<usize>());
         assert_eq!(cols[0].offset(), 0);
 
-        let col_b = meta.column(ColumnTypeId(1));
+        let col_b = meta.get_column(ColumnTypeId(1));
         assert_eq!(col_b.rows.len(), 1);
         assert_eq!(col_b.rows[0], RowTypeId(1));
         assert_eq!(col_b.views.len(), 0);
@@ -954,12 +963,12 @@ mod tests {
         assert_eq!(cols[1].length(), mem::size_of::<usize>());
         assert_eq!(cols[1].offset(), mem::size_of::<usize>());
 
-        let col_a = meta.column(ColumnTypeId(0));
+        let col_a = meta.get_column(ColumnTypeId(0));
         assert_eq!(col_a.rows.len(), 2);
         assert_eq!(col_a.rows[0], RowTypeId(0));
         assert_eq!(col_a.rows[1], RowTypeId(2));
 
-        let col_b = meta.column(ColumnTypeId(1));
+        let col_b = meta.get_column(ColumnTypeId(1));
         assert_eq!(col_b.rows.len(), 2);
         assert_eq!(col_b.rows[0], RowTypeId(1));
         assert_eq!(col_b.rows[1], RowTypeId(2));
@@ -1061,7 +1070,7 @@ mod tests {
         assert_eq!(cols.len(), 1);
         assert_eq!(cols[0], ColumnTypeId(0));
 
-        let col_a = meta.column(ColumnTypeId(0));
+        let col_a = meta.get_column(ColumnTypeId(0));
         assert_eq!(col_a.rows.len(), 1);
         assert_eq!(col_a.rows[0], RowTypeId(0));
         assert_eq!(col_a.views.len(), 1);
@@ -1094,7 +1103,7 @@ mod tests {
         assert_eq!(rows.len(), 1);
         assert_eq!(rows[0], ViewRowTypeId(0));
 
-        let col_a = meta.column(ColumnTypeId(0));
+        let col_a = meta.get_column(ColumnTypeId(0));
         assert_eq!(col_a.rows.len(), 1);
         assert_eq!(col_a.rows[0], RowTypeId(0));
         assert_eq!(col_a.views.len(), 1);
@@ -1131,7 +1140,7 @@ mod tests {
         assert_eq!(rows.len(), 1);
         assert_eq!(rows[0], ViewRowTypeId(1));
 
-        let col_b = meta.column(ColumnTypeId(1));
+        let col_b = meta.get_column(ColumnTypeId(1));
         assert_eq!(col_b.rows.len(), 1);
         assert_eq!(col_b.rows[0], RowTypeId(1));
         assert_eq!(col_b.views.len(), 1);

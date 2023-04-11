@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use super::prelude::{ViewTypeId, QueryCursor};
 use super::row::{RowId, Row};
-use super::row_meta::{RowTypeId, RowMetas, ColumnTypeId, ColumnType, RowType, InsertBuilder, Query, QueryBuilder, QueryPlan, Insert, InsertPlan, InsertCursor};
+use super::meta::{RowTypeId, RowMetas, ColumnTypeId, ColumnType, RowType, InsertBuilder, Query, QueryBuilder, QueryPlan, Insert, InsertPlan, InsertCursor};
 
 pub struct Table<'t,M:'static> {
     row_meta: RowMetas,
@@ -392,7 +392,7 @@ impl RowRef {
 
 #[cfg(test)]
 mod tests {
-    use crate::store::{prelude::{Row, QueryCursor}, row_meta::{Insert, InsertBuilder, InsertCursor}};
+    use crate::store::{prelude::{Row, QueryCursor}, meta::{Insert, InsertBuilder, InsertCursor}};
 
     use super::{Table, Query, QueryIterator};
 

@@ -1,4 +1,4 @@
-use crate::store::{row::Row, row_meta::{InsertBuilder, Insert, InsertCursor}, prelude::{Query, QueryBuilder, QueryCursor}};
+use crate::store::{row::Row, meta::{InsertBuilder, Insert, InsertCursor}, prelude::{Query, QueryBuilder, QueryCursor}};
 
 use super::prelude::IsEntity;
 

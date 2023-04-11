@@ -1,6 +1,6 @@
 use std::{ptr::NonNull};
 
-use super::{ptr::PtrOwn, row_meta::{RowType, RowTypeId, ColumnTypeId, ColumnItem, RowMetas, InsertPlan}};
+use super::{ptr::PtrOwn, meta::{RowType, RowTypeId, ColumnTypeId, ColumnItem, RowMetas, InsertPlan}};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Ord, PartialOrd)]
 pub struct RowId(u32);

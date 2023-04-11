@@ -22,24 +22,24 @@ where
 pub trait Fun<M> {
     type Params: Param;
 
-    fn run(&mut self, param: Arg<Self::Params>);
+    fn run(&mut self, arg: Arg<Self::Params>);
 }
 
 //
 // Implementation
 //
 
-impl<M, F:'static> System for FunctionSystem<M, F>
+impl<M, F> System for FunctionSystem<M, F>
 where
     M: 'static,
-    F: Fun<M>
+    F: Fun<M> + 'static
 {
     fn run(&mut self, world: &World) {
-        let args = F::Params::get_arg(
+        let arg = F::Params::get_arg(
             world,
         );
 
-        self.fun.run(args);
+        self.fun.run(arg);
     }
 }    
 
@@ -61,18 +61,6 @@ where
 //
 // Function matching
 //
-/*
-impl<F:'static,P:Param,> Fun<fn(P)> for F
-    where F:FnMut(P) -> () +
-            FnMut(Arg<P>) -> ()
-{
-    type Params = P;
-
-    fn run(&mut self, arg: Arg<P>) {
-        self(arg)
-    }
-}
-*/
 
 macro_rules! impl_system_function {
     ($($param:ident),*) => {
@@ -115,7 +103,6 @@ mod tests {
     fn arg_tuples() {
         let mut world = World::new();
 
-        /*
         set_global("init".to_string());
         system(&mut world, test_null);
         assert_eq!(get_global(), "test-null");
@@ -133,7 +120,6 @@ mod tests {
         assert_eq!(get_global(), "test-arg6 u8 u16 u32 u64 i8 i16");
         system(&mut world, test_arg7);
         assert_eq!(get_global(), "test-arg7 u8 u16 u32 u64 i8 i16 i32");
-        */
     }
 
     fn system<M>(world: &mut World, fun: impl IntoSystem<M>)->String {

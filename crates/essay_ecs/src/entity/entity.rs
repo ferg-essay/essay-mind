@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::{store::{prelude::{RowId, RowTypeId}, row_meta::ViewRowTypeId}, prelude::Component};
+use crate::{store::{prelude::{RowId, RowTypeId}, meta::ViewRowTypeId}, prelude::Component};
 
 use super::{prelude::EntityTable, component::ViewQuery};
 
