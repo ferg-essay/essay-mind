@@ -1,6 +1,6 @@
 use std::{marker::PhantomData, ops::{Deref, DerefMut}};
 
-use crate::{world::prelude::World, store::{row_meta::Insert, prelude::Query}, prelude::Component};
+use crate::{world::prelude::World, store::{row_meta::Insert, prelude::Query}, prelude::Component, entity::prelude::IsEntity};
 
 use super::{prelude::Param, system::{System, IntoSystem}, param::Arg};
 
@@ -25,13 +25,15 @@ pub struct Each<'w, T> {
     world: &'w World<'w>,
     item: &'w mut T,
 }
+
 pub trait EachFun<M> {
-    type Entity:Component;
+    //type Entity:Query<IsEntity>;
+    type Entity<'w>:Query<IsEntity>;
     type Params: Param;
 
-    fn run<'w>(&mut self, 
-        world: &'w World<'w>,
-        each: &'w mut Self::Entity, 
+    fn run<'a,'w>(&mut self, 
+        world: &World<'w>,
+        entity: <Self::Entity<'w> as Query<IsEntity>>::Item<'w>, // <'a>, 
         param: Arg<Self::Params>
     );
 }
@@ -58,7 +60,7 @@ impl<M, F:'static> EachSystem<M, F>
 where
     F: EachFun<M>
 {
-    fn new(world: &mut World, fun: F) -> Self {
+    fn new<'w>(world: &mut World<'w>, fun: F) -> Self {
         //let entity_type = world.add_entity_type::<F::Entity>();
         //println!("entity-type {:?}", entity_type);
         Self {
@@ -73,8 +75,8 @@ where
     M: 'static,
     F: EachFun<M>
 {
-    fn run(&mut self, world: &World) {
-        for entity in world.query::<&mut F::Entity>() {
+    fn run<'w>(&mut self, world: &World<'w>) {
+        for entity in world.query::<F::Entity<'w>>() {
             let args = F::Params::get_arg(
                 world,
             );
@@ -96,10 +98,6 @@ where
 
     fn into_system(this: Self, world: &mut World) -> Self::System {
         EachSystem::new(world, this)
-        /* {
-            fun: this,
-            marker: Default::default()
-        }*/
     }
 }
 
@@ -109,39 +107,53 @@ where
 pub struct IsPlain;
 pub struct IsIn;
 pub struct IsOut;
-pub struct IsEntity;
+//pub struct IsEntity;
 
-impl<F:'static,T:Component,P:Param,> EachFun<fn(IsPlain, T, P)> for F
-    where F:FnMut(&mut T, P) -> () +
-            FnMut(&mut T, Arg<P>) -> ()
+impl<F:'static,T:Query<IsEntity>,P:Param,> EachFun<fn(IsPlain, T, P)> for F
+    where for<'w> F:FnMut(T::Item<'w>, P) -> () +
+            FnMut(T::Item<'w>, Arg<P>) -> ()
 {
-    type Entity = T;
+    type Entity<'w> = T;
     type Params = P;
 
-    fn run<'w>(&mut self, world: &'w World<'w>, entity: &'w mut T, arg: Arg<P>) {
+    fn run<'b,'w>(&mut self, world: &World<'w>, entity: T::Item<'w>, arg: Arg<P>) {
         self(entity, arg)
+    }
+}
+
+impl<F:'static,T> EachFun<fn(IsPlain, T)> for F
+    where for<'w>
+        T:Query<IsEntity>,
+        for<'w> F:FnMut(T) -> () +
+            FnMut(T::Item<'w>) -> ()
+{
+    type Entity<'w> = T;
+    type Params = ();
+
+    fn run<'b,'w>(&mut self, world: &World<'w>, entity: T::Item<'w>, arg: Arg<()>) {
+        self(entity)
     }
 }
 
 macro_rules! impl_each_function {
     ($($param:ident),*) => {
         #[allow(non_snake_case)]
-        impl<'a,F: 'static, T: Component, $($param: Param),*> EachFun<fn(IsPlain, T, $($param,)*)> for F
-        where F:FnMut(&mut T, $($param),*) -> () +
-            FnMut(&mut T, $(Arg<$param>),*) -> ()
+        impl<F: 'static, T:Query<IsEntity>, $($param: Param),*> EachFun<fn(IsPlain, T, $($param,)*)> for F
+        where for<'a> F:FnMut(T::Item<'a>, $($param),*) -> () +
+            FnMut(T::Item<'a>, $(Arg<$param>),*) -> ()
         {
             type Entity = T;
             type Params = ($($param),*);
 
-            fn run(&mut self, world: &World, each: &mut T, arg: Arg<($($param,)*)>) {
+            fn run<'b,'w>(&mut self, world: &'w World, entity: T::Item<'b>, arg: Arg<($($param,)*)>) {
                 let ($($param,)*) = arg;
-                self(each, $($param,)*)
+                self(entity, $($param,)*)
             }
         }
     }
 }
 
-impl_each_function!();
+//impl_each_function!();
 /*
 //impl_each_function!(P1);
 impl_each_function!(P1, P2);
@@ -169,8 +181,10 @@ mod tests {
         app.spawn(TestA(1));
 
         let values = Rc::new(RefCell::new(Vec::<String>::new()));
-        let ptr = values.clone();
 
+        //app.add_system(system_each_ref);
+
+        let ptr = values.clone();
         app.add_system(move |t :&mut TestA| {
             ptr.borrow_mut().push(format!("{:?}", t));
         });
@@ -193,6 +207,68 @@ mod tests {
 
         app.update();
         assert_eq!(take(&values), "TestA(1), TestA(2), TestA(3)");
+    }
+
+    #[test]
+    fn test_each_ref() {
+        let mut app = App::new();
+
+        app.spawn(TestA(1));
+
+        let values = Rc::new(RefCell::new(Vec::<String>::new()));
+
+        //app.add_system(system_each_ref);
+
+        let ptr = values.clone();
+        app.add_system(move |t :&TestA| {
+            ptr.borrow_mut().push(format!("{:?}", t));
+        });
+
+        app.update();
+        assert_eq!(take(&values), "TestA(1)");
+    }
+
+    #[test]
+    fn test_each_a_b() {
+        let mut app = App::new();
+
+        app.spawn(TestA(1));
+        app.spawn(TestB(2));
+        app.spawn((TestA(3),TestB(4)));
+
+        let values = Rc::new(RefCell::new(Vec::<String>::new()));
+        let ptr = values.clone();
+
+        app.add_system(move |t :&mut TestA| {
+            ptr.borrow_mut().push(format!("a-{:?}", t));
+        });
+
+        let ptr = values.clone();
+        app.add_system(move |t :&mut TestB| {
+            ptr.borrow_mut().push(format!("b-{:?}", t));
+        });
+
+        app.update();
+        assert_eq!(take(&values), "a-TestA(1), a-TestA(3), b-TestB(2), b-TestB(4)");
+    }
+
+    #[test]
+    fn test_each_tuple() {
+        let mut app = App::new();
+
+        app.spawn(TestA(1));
+        app.spawn(TestB(2));
+        app.spawn((TestA(3),TestB(4)));
+
+        let values = Rc::new(RefCell::new(Vec::<String>::new()));
+        let ptr = values.clone();
+
+        app.add_system(move |a:(&TestA, &TestB)| {
+            ptr.borrow_mut().push(format!("{:?}", a));
+        });
+
+        app.update();
+        assert_eq!(take(&values), "(TestA(3), TestB(4))");
     }
 
     #[test]

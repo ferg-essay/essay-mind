@@ -88,10 +88,17 @@ pub struct ViewRowType {
 
 pub trait Query<M> {
     type Item<'a>;
+    //type Item;
 
     fn build(query: &mut QueryBuilder);
 
-    unsafe fn query<'a>(row: &'a Row, cursor: &mut QueryCursor) -> Self::Item<'a>;
+    unsafe fn query<'a,'t>(cursor: &mut QueryCursor<'a,'t>) -> Self::Item<'t>;// : 'a;
+}
+
+pub struct QueryCursor<'a,'t> {
+    row: &'a Row<'t>,
+    cols: &'a Vec<usize>,
+    index: usize,
 }
 
 enum AccessType {
@@ -102,11 +109,6 @@ enum AccessType {
 pub struct QueryBuilder<'a> {
     meta: &'a mut RowMetas, 
     cols: Vec<ColumnTypeId>,
-}
-
-pub struct QueryCursor<'a> {
-    cols: &'a Vec<usize>,
-    index: usize,
 }
 
 pub(crate) struct RowMetas {
@@ -372,8 +374,12 @@ pub(crate) struct QueryPlan {
 }
 
 impl QueryPlan {
-    pub(crate) fn new_cursor<'a>(&'a self) -> QueryCursor {
+    pub(crate) fn new_cursor<'a,'t>(
+        &'a self, 
+        row: &'a Row<'t>
+    ) -> QueryCursor<'a,'t> {
         QueryCursor {
+            row: row,
             cols: &self.cols,
             index: 0,
         }
@@ -384,19 +390,19 @@ impl QueryPlan {
     }
 }
 
-impl<'a> QueryCursor<'a> {
-    pub unsafe fn deref<'b,T:'static>(&mut self, row: &'b Row) -> &'b T {
+impl<'a,'t> QueryCursor<'a,'t> {
+    pub unsafe fn deref<T:'static>(&mut self) -> &'t T {
         let index = self.index;
         self.index += 1;
 
-        row.deref(self.cols[index])
+        self.row.deref(self.cols[index])
     }
 
-    pub unsafe fn deref_mut<'b,T:'static>(&mut self, row: &'b Row) -> &'b mut T {
+    pub unsafe fn deref_mut<T:'static>(&mut self) -> &'t mut T {
         let index = self.index;
         self.index += 1;
 
-        row.deref_mut(self.cols[index])
+        self.row.deref_mut(self.cols[index])
     }
 }
 

@@ -179,7 +179,12 @@ impl<'t> EntityTable<'t> {
          */
     }
 
+    /*
     pub(crate) fn query<T:Query<IsEntity,Item<'t>=T>>(&mut self) -> QueryIterator<IsEntity,T> {
+        self.table.query::<T>()
+    }
+    */
+    pub(crate) fn query<T:Query<IsEntity>>(&mut self) -> QueryIterator<'_,'t,IsEntity,T> {
         self.table.query::<T>()
     }
 

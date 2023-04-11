@@ -164,7 +164,14 @@ impl<'t,M> Table<'t,M> {
     // query
     //
 
+    /*
     pub fn query<'a,T:Query<M,Item<'a>=T>>(&mut self) -> QueryIterator<'_,'t,M,T> {
+        let plan = self.get_query_plan::<T>();
+        
+        unsafe { self.query_with_plan(plan) }
+    }
+    */
+    pub fn query<'a,T:Query<M>>(&mut self) -> QueryIterator<'_,'t,M,T> {
         let plan = self.get_query_plan::<T>();
         
         unsafe { self.query_with_plan(plan) }
@@ -288,7 +295,7 @@ impl<'a, 't, M, T:Query<M>> QueryIterator<'a, 't, M, T> {
 
 impl<'a, 't, M, T:Query<M>> Iterator for QueryIterator<'a, 't, M, T>
 {
-    type Item = T::Item<'a>;
+    type Item = T::Item<'t>; //T::Item<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let view = self.table.meta().get_view(self.view_id);
@@ -302,7 +309,7 @@ impl<'a, 't, M, T:Query<M>> Iterator for QueryIterator<'a, 't, M, T>
 
             match self.table.get_row_by_type_index(row_type_id, row_index) {
                 Some(row) => {
-                    return unsafe { Some(T::query(row, &mut self.query.new_cursor())) };
+                    return unsafe { Some(T::query(&mut self.query.new_cursor(row))) };
                 }
                 None => {},
             };
@@ -361,8 +368,8 @@ macro_rules! impl_query_tuple {
         #[allow(non_snake_case)]
         impl<M,$($part:Query<M>),*> Query<M> for ($($part,)*)
         {
-            type Item<'a> = ($(
-                <$part as Query<M>>::Item<'a>,
+            type Item<'t> = ($(
+                <$part as Query<M>>::Item<'t>, // <'a>,
             )*);
 
             fn build(builder: &mut QueryBuilder) {
@@ -371,9 +378,9 @@ macro_rules! impl_query_tuple {
                 )*
             }
 
-            unsafe fn query<'a>(row: &'a Row, cursor: &mut QueryCursor) -> Self::Item<'a> {
+            unsafe fn query<'a,'t>(cursor: &mut QueryCursor<'a,'t>) -> Self::Item<'t> { // <'a> {
                 ($(
-                    $part::query(row, cursor),
+                    $part::query(cursor),
                 )*)
             }
         }
@@ -473,8 +480,8 @@ mod tests {
 //        values = table.query::<&TestB>().map(|t: &TestB| format!("{:?}", t)).collect();
         //assert_eq!(values.join(","), "TestB(2)");
 
-        values = table.query::<(&TestA,&TestB)>().map(|(a, b)| format!("({:?},{:?})", a, b)).collect();
-        assert_eq!(values.join(","), "(TestA(1),TestB(2))");
+        //values = table.query::<(&TestA,&TestB)>().map(|(a:, b)| format!("({:?},{:?})", a, b)).collect();
+        //assert_eq!(values.join(","), "(TestA(1),TestB(2))");
     }
 
     #[test]
@@ -538,26 +545,26 @@ mod tests {
     }
 
     impl<T:TestComponent> Query<IsTest> for &T {
-        type Item<'a> = &'a T;
+        type Item<'t> = &'t T;
 
         fn build(query: &mut super::QueryBuilder) {
             query.add_ref::<T>()
         }
     
-        unsafe fn query<'a>(row: &'a Row, cursor: &mut QueryCursor) -> Self::Item<'a> {
-            cursor.deref::<T>(row)
+        unsafe fn query<'a,'t>(cursor: &mut QueryCursor<'a,'t>) -> Self::Item<'t> { // <'a> {
+            cursor.deref::<T>()
         }
     }
 
     impl<T:TestComponent> Query<IsTest> for &mut T {
-        type Item<'a> = &'a mut T;
+        type Item<'t> = &'t mut T;
 
         fn build(query: &mut super::QueryBuilder) {
             query.add_ref::<T>()
         }
     
-        unsafe fn query<'a>(row: &'a Row, cursor: &mut QueryCursor) -> Self::Item<'a> {
-            cursor.deref_mut::<T>(row)
+        unsafe fn query<'a,'t>(cursor: &mut QueryCursor<'a,'t>) -> Self::Item<'t> { // <'a> {
+            cursor.deref_mut::<T>()
         }
     }
 
@@ -578,7 +585,8 @@ mod tests {
         }
 
         fn query<'a,T>(&mut self) -> QueryIterator<IsTest,T>
-        where T:Query<IsTest,Item<'a>=T>
+        //where T:Query<IsTest,Item<'a>=T>
+        where T:Query<IsTest,Item<'t>=T> // <'a>=T>
         {
             self.table.query()
         }

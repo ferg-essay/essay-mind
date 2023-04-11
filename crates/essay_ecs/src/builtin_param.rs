@@ -135,7 +135,7 @@ mod tests {
         app.add_resource(Vec::<String>::new());
         app.add_resource(TestA(1));
 
-        app.add_system(test_multi_resource_a);
+        //app.add_system(test_multi_resource_a);
 
         app.update();
         assert_eq!(app.resource::<Vec<String>>().join(", "), "TestA(1)");

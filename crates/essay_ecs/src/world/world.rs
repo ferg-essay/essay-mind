@@ -39,11 +39,16 @@ impl<'w> World<'w> {
         todo!();
     }
 
+    /*
     pub(crate) fn query<T:Query<IsEntity,Item<'w>=T>>(&self) -> QueryIterator<IsEntity,T> {
         self.ptr.deref_mut().entities.query::<T>()
     }
+    */
+    pub(crate) fn query<T:Query<IsEntity>>(&self) -> QueryIterator<'_,'w,IsEntity,T> {
+        self.ptr.deref_mut().entities.query::<T>()
+    }
 
-    pub fn eval<'a,T:Query<IsEntity,Item<'a>=T>,F>(&self, fun: &mut F)
+    pub fn eval<'a,T:Query<IsEntity>,F>(&self, fun: &mut F)
         where F: FnMut(T)
     {
         todo!();

@@ -66,26 +66,26 @@ pub trait ViewQuery<'a> {
 }
 
 impl<T:Component> Query<IsEntity> for &T {
-    type Item<'a> = &'a T;
+    type Item<'t> = &'t T;
 
     fn build(builder: &mut QueryBuilder) {
         builder.add_ref::<T>();
     }
 
-    unsafe fn query<'a>(row: &'a Row, cursor: &mut QueryCursor) -> Self::Item<'a> {
-        cursor.deref(row)
+    unsafe fn query<'a,'t>(cursor: &mut QueryCursor<'a,'t>) -> Self::Item<'t> { // Self::Item { // <'a> {
+        cursor.deref::<T>()
     }
 }
 
 impl<T:Component> Query<IsEntity> for &mut T {
-    type Item<'a> = &'a mut T;
+    type Item<'t> = &'t mut T;
 
     fn build(builder: &mut QueryBuilder) {
         builder.add_ref::<T>();
     }
 
-    unsafe fn query<'a>(row: &'a Row, cursor: &mut QueryCursor) -> Self::Item<'a> {
-        cursor.deref_mut(row)
+    unsafe fn query<'a,'t>(cursor: &mut QueryCursor<'a,'t>) -> Self::Item<'t> { //<'a> {
+        cursor.deref_mut::<T>()
     }
 }
 

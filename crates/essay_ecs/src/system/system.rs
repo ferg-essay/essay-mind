@@ -10,7 +10,7 @@ pub trait IntoSystem<Marker>: Sized {
     fn into_system(this: Self, world: &mut World) -> Self::System;
 }
 
-impl<Sys: System + 'static> IntoSystem<Sys> for Sys {
+impl<'w,Sys: System + 'static> IntoSystem<Sys> for Sys {
     type System = Sys;
     fn into_system(this: Self, world: &mut World) -> Sys {
         this
