@@ -1,4 +1,4 @@
-use crate::store::{row::Row, meta::{InsertBuilder, Insert, InsertCursor}, prelude::{Query, QueryBuilder, QueryCursor}};
+use crate::store::{row::Row, meta::{InsertBuilder2, Insert2, InsertCursor2}, prelude::{Query2, QueryBuilder2, QueryCursor2}};
 
 use super::prelude::IsEntity;
 
@@ -13,14 +13,14 @@ pub struct ComponentId(usize);
 //
 //struct IsEntity;
 
-impl<T:Component> Insert<IsEntity> for T {
+impl<T:Component> Insert2<IsEntity> for T {
     //type Item = Self;
 
-    fn build(builder: &mut InsertBuilder) {
+    fn build(builder: &mut InsertBuilder2) {
         builder.add_column::<T>();
     }
 
-    unsafe fn insert(cursor: &mut InsertCursor, this: Self) {
+    unsafe fn insert(cursor: &mut InsertCursor2, this: Self) {
         cursor.insert(this);
     }
 }
@@ -65,26 +65,26 @@ pub trait ViewQuery<'a> {
     fn query(row: &'a Row, i: &mut usize) -> Self;
 }
 
-impl<T:Component> Query<IsEntity> for &T {
+impl<T:Component> Query2<IsEntity> for &T {
     type Item<'t> = &'t T;
 
-    fn build(builder: &mut QueryBuilder) {
+    fn build(builder: &mut QueryBuilder2) {
         builder.add_ref::<T>();
     }
 
-    unsafe fn query<'a,'t>(cursor: &mut QueryCursor<'a,'t>) -> Self::Item<'t> { // Self::Item { // <'a> {
+    unsafe fn query<'a,'t>(cursor: &mut QueryCursor2<'a,'t>) -> Self::Item<'t> { // Self::Item { // <'a> {
         cursor.deref::<T>()
     }
 }
 
-impl<T:Component> Query<IsEntity> for &mut T {
+impl<T:Component> Query2<IsEntity> for &mut T {
     type Item<'t> = &'t mut T;
 
-    fn build(builder: &mut QueryBuilder) {
+    fn build(builder: &mut QueryBuilder2) {
         builder.add_ref::<T>();
     }
 
-    unsafe fn query<'a,'t>(cursor: &mut QueryCursor<'a,'t>) -> Self::Item<'t> { //<'a> {
+    unsafe fn query<'a,'t>(cursor: &mut QueryCursor2<'a,'t>) -> Self::Item<'t> { //<'a> {
         cursor.deref_mut::<T>()
     }
 }

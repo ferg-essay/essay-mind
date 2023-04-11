@@ -1,12 +1,12 @@
 use std::marker::PhantomData;
 
-use crate::{store::prelude::{Table, RowRef}, type_meta::TypeMetas};
+use crate::{store::prelude::{Table2, RowRef}, type_meta::TypeMetas};
 
 struct IsResource;
 
 pub struct Resources<'w> {
     types: TypeMetas,
-    table: Table<'w,IsResource>,
+    table: Table2<'w,IsResource>,
     //resources: Vec<RowMeta>,
 }
 
@@ -14,7 +14,7 @@ impl<'w> Resources<'w> {
     pub fn new() -> Self {
         Self {
             types: TypeMetas::new(),
-            table: Table::new(),
+            table: Table2::new(),
             //resources: Vec::new(),
         }
     }

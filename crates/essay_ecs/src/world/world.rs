@@ -1,6 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crate::{store::{prelude::{Table, RowRef, ViewTypeId, Query, QueryIterator}, ptr::PtrCell, meta::Insert}, entity::prelude::IsEntity};
+use crate::{store::{prelude::{Table2, RowRef, ViewTypeId, Query2, QueryIterator}, ptr::PtrCell, meta::Insert2}, entity::prelude::IsEntity};
 use crate::entity::prelude::{EntityTable,
     EntityRef, Entity2MutIterator, Entity3MutIterator
 };
@@ -19,12 +19,12 @@ impl<'w> World<'w> {
     }
 
 
-    pub(crate) fn add_entity_type<M,T:Insert<M>>(&mut self) -> ViewTypeId {
+    pub(crate) fn add_entity_type<M,T:Insert2<M>>(&mut self) -> ViewTypeId {
         todo!();
         //self.ptr.deref_mut().entities.add_entity_type::<T>()
     }
 
-    pub fn add_entity<T:Insert<IsEntity>>(&mut self, value: T) -> WorldRef {
+    pub fn add_entity<T:Insert2<IsEntity>>(&mut self, value: T) -> WorldRef {
         WorldRef {
             ent_ref: self.ptr.deref_mut().entities.push::<T>(value)
         }
@@ -34,7 +34,7 @@ impl<'w> World<'w> {
         self.ptr.deref().entities.len()
     }
 
-    pub fn iter_mut<M,T:Insert<M>>(&self) -> Entity3MutIterator<T> {
+    pub fn iter_mut<M,T:Insert2<M>>(&self) -> Entity3MutIterator<T> {
         //self.ptr.deref_mut().entities.iter_mut_by_type::<T>()
         todo!();
     }
@@ -44,11 +44,11 @@ impl<'w> World<'w> {
         self.ptr.deref_mut().entities.query::<T>()
     }
     */
-    pub(crate) fn query<T:Query<IsEntity>>(&self) -> QueryIterator<'_,'w,IsEntity,T> {
+    pub(crate) fn query<T:Query2<IsEntity>>(&self) -> QueryIterator<'_,'w,IsEntity,T> {
         self.ptr.deref_mut().entities.query::<T>()
     }
 
-    pub fn eval<'a,T:Query<IsEntity>,F>(&self, fun: &mut F)
+    pub fn eval<'a,T:Query2<IsEntity>,F>(&self, fun: &mut F)
         where F: FnMut(T)
     {
         todo!();

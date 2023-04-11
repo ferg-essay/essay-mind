@@ -5,9 +5,12 @@ use std::{marker::PhantomData, cmp};
 use std::alloc::Layout;
 
 use super::meta::{ColumnTypeId, ColumnType, RowMetas};
+use super::prelude::RowId;
 
-pub struct Column<'c, T> {
+pub(crate) struct Column<'c> {
     meta: ColumnType,
+
+    inc: usize,
     pad_size: usize,
 
     data: NonNull<u8>,
@@ -15,24 +18,24 @@ pub struct Column<'c, T> {
     len: usize,
     capacity: usize,
 
-    marker: PhantomData<&'c T>,
+    marker: PhantomData<&'c u8>,
 }
 
-impl<'c, T:'static> Column<'c, T> {
-    const INC : usize = if mem::size_of::<T>() < 8 {
-        8
-    } else if mem::size_of::<T>() < 64 {
-        4
-    } else {
-        1
-    };
-
-    pub(crate) fn new(metas: &mut RowMetas) -> Self {
+impl<'c> Column<'c> {
+    pub(crate) fn new<T:'static>(metas: &mut RowMetas) -> Self {
         let id = metas.add_column::<T>();
         let meta = metas.get_column(id);
 
         let pad_size = meta.layout_padded().size();
-        
+
+        let inc: usize = if mem::size_of::<T>() < 8 {
+            8
+        } else if mem::size_of::<T>() < 64 {
+            4
+        } else {
+            1
+        };
+            
         // zero-length items are pre-allocated
         let length = if pad_size == 0 { 1 } else { 0 };
         let capacity = length;
@@ -42,9 +45,11 @@ impl<'c, T:'static> Column<'c, T> {
         Self {
             meta: meta.clone(),
 
-            data: data,
-            
             pad_size: pad_size,
+            inc: inc,
+
+            data: data,
+
             len: length,
             capacity: capacity,
 
@@ -71,45 +76,43 @@ impl<'c, T:'static> Column<'c, T> {
         self.len == 0
     }
     
-    pub fn get(&self, index: usize) -> Option<&'c T> {
+    pub(crate) unsafe fn get<T>(&self, row: RowId) -> Option<&'c T> {
+        let index = row.index();
+        
         if index < self.len {
             let offset = self.offset(index);
 
-            unsafe {
-                Some(&*self.data.as_ptr().add(offset).cast::<T>())
-            }
+            Some(&*self.data.as_ptr().add(offset).cast::<T>())
         } else {
             None
         }
     }
     
-    pub fn get_mut(&self, index: usize) -> Option<&'c mut T> {
+    pub(crate) unsafe fn get_mut<T>(&self, row: RowId) -> Option<&'c mut T> {
+        let index = row.index();
+
         if index < self.len {
             let offset = self.offset(index);
 
-            unsafe {
-                Some(&mut *self.data.as_ptr().add(offset).cast::<T>())
-            }
+            Some(&mut *self.data.as_ptr().add(offset).cast::<T>())
         } else {
             None
         }
     }
 
-    pub fn push(&mut self, value: T) -> usize {
+    pub(crate) unsafe fn push<T>(&mut self, value: T) -> RowId {
         self.reserve(1);
 
         let index = self.len;
 
-        unsafe {
-            self.write(index, value);
-        }
+        self.write(index, value);
         
         self.len += 1;
 
-        index
+        RowId::new(index as u32)
     }
 
-    unsafe fn write(&mut self, index: usize, value: T) {
+    unsafe fn write<T>(&mut self, index: usize, value: T) {
         assert!(index < self.capacity);
 
         let mut value = ManuallyDrop::new(value);
@@ -134,7 +137,7 @@ impl<'c, T:'static> Column<'c, T> {
         let avail = self.capacity - self.len;
 
         if avail < len {
-            let delta = cmp::max(Self::INC, len - avail);
+            let delta = cmp::max(self.inc, len - avail);
 
             self.extend(self.len + delta);
         }
@@ -194,77 +197,91 @@ fn dangling_data(align: usize) -> NonNull<u8> {
 
 #[cfg(test)]
 mod tests {
-    use crate::store::meta::RowMetas;
+    use crate::store::{meta::RowMetas, prelude::RowId};
 
     use super::Column;
 
     #[test]
     fn col_null() {
         let mut metas = RowMetas::new();
-        let col = Column::<()>::new(&mut metas);
+        let col = Column::new::<()>(&mut metas);
 
         assert_eq!(col.capacity(), 1);
         assert_eq!(col.len(), 1);
         
         //assert_eq!(col.push(()), 0);
-        assert_eq!(col.get(0), Some(&()));
-        assert_eq!(col.get(1), None);
+        unsafe {
+            assert_eq!(col.get::<()>(RowId::new(0)), Some(&()));
+            assert_eq!(col.get::<()>(RowId::new(1)), None);
+        }
     }
 
     #[test]
     fn col_u8() {
         let mut metas = RowMetas::new();
-        let mut col = Column::<u8>::new(&mut metas);
+        let mut col = Column::new::<u8>(&mut metas);
 
         assert_eq!(col.capacity(), 0);
         assert_eq!(col.len(), 0);
         
-        assert_eq!(col.get(0), None);
+        unsafe {
+            assert_eq!(col.get::<u8>(RowId::new(0)), None);
 
-        assert_eq!(col.push(1), 0);
+            assert_eq!(col.push::<u8>(1), RowId::new(0));
+        }
 
         assert_eq!(col.capacity(), 8);
         assert_eq!(col.len(), 1);
 
-        assert_eq!(col.get(0), Some(&1));
-        assert_eq!(col.get(1), None);
+        unsafe {
+            assert_eq!(col.get::<u8>(RowId::new(0)), Some(&1));
+            assert_eq!(col.get::<u8>(RowId::new(1)), None);
 
-        assert_eq!(col.push(2), 1);
+            assert_eq!(col.push::<u8>(2), RowId::new(1));
+        }
 
         assert_eq!(col.capacity(), 8);
         assert_eq!(col.len(), 2);
 
-        assert_eq!(col.get(0), Some(&1));
-        assert_eq!(col.get(1), Some(&2));
-        assert_eq!(col.get(2), None);
+        unsafe {
+            assert_eq!(col.get::<u8>(RowId::new(0)), Some(&1));
+            assert_eq!(col.get::<u8>(RowId::new(1)), Some(&2));
+            assert_eq!(col.get::<u8>(RowId::new(2)), None);
+        }
     }
 
     #[test]
     fn col_u16() {
         let mut metas = RowMetas::new();
-        let mut col = Column::<TestA>::new(&mut metas);
+        let mut col = Column::new::<TestA>(&mut metas);
 
         assert_eq!(col.capacity(), 0);
         assert_eq!(col.len(), 0);
         
-        assert_eq!(col.get(0), None);
+        unsafe {
+            assert_eq!(col.get::<TestA>(RowId::new(0)), None);
 
-        assert_eq!(col.push(TestA(1)), 0);
+            assert_eq!(col.push::<TestA>(TestA(1)), RowId::new(0));
+        }
 
         assert_eq!(col.capacity(), 8);
         assert_eq!(col.len(), 1);
 
-        assert_eq!(col.get(0), Some(&TestA(1)));
-        assert_eq!(col.get(1), None);
+        unsafe {
+            assert_eq!(col.get::<TestA>(RowId::new(0)), Some(&TestA(1)));
+            assert_eq!(col.get::<TestA>(RowId::new(1)), None);
 
-        assert_eq!(col.push(TestA(1002)), 1);
+            assert_eq!(col.push::<TestA>(TestA(1002)), RowId::new(1));   
+        }
 
         assert_eq!(col.capacity(), 8);
         assert_eq!(col.len(), 2);
 
-        assert_eq!(col.get(0), Some(&TestA(1)));
-        assert_eq!(col.get(1), Some(&TestA(1002)));
-        assert_eq!(col.get(2), None);
+        unsafe {
+            assert_eq!(col.get::<TestA>(RowId::new(0)), Some(&TestA(1)));
+            assert_eq!(col.get::<TestA>(RowId::new(1)), Some(&TestA(1002)));
+            assert_eq!(col.get::<TestA>(RowId::new(2)), None);
+        }
     }
 
     #[derive(Debug, PartialEq)]

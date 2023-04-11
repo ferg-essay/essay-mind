@@ -1,13 +1,13 @@
 use std::{marker::PhantomData, any::{TypeId, type_name}};
 
-use crate::store::{prelude::{Table, RowId, Row, Query, QueryIterator}, 
-    meta::{ViewRowTypeId, ViewRowType, ViewTypeId, InsertPlan, InsertBuilder, Insert}, 
+use crate::store::{prelude::{Table2, RowId, Row, Query2, QueryIterator}, 
+    meta::{ViewRowTypeId, ViewRowType, ViewTypeId, InsertPlan2, InsertBuilder2, Insert2}, 
     meta::{ColumnTypeId, RowTypeId}};
 
 use super::{prelude::EntityRef};
 
 pub struct EntityTable<'w> {
-    table: Table<'w,IsEntity>,
+    table: Table2<'w,IsEntity>,
 }
 
 pub struct IsEntity;
@@ -16,12 +16,12 @@ pub struct IsEntity;
 impl<'t> EntityTable<'t> {
     pub fn new() -> Self {
         EntityTable {
-            table: Table::new(),
+            table: Table2::new(),
   //          entity_meta: EntityMeta::new(),
         }
     }
 
-    pub fn push<T:Insert<IsEntity>>(&mut self, value: T) -> EntityRef {
+    pub fn push<T:Insert2<IsEntity>>(&mut self, value: T) -> EntityRef {
         let row_ref = self.table.push(value);
 
         EntityRef::new(
@@ -30,7 +30,7 @@ impl<'t> EntityTable<'t> {
         )
     }
 
-    pub(crate) fn add_insert_map<M,T:Insert<M>>(&mut self) -> InsertPlan {
+    pub(crate) fn add_insert_map<M,T:Insert2<M>>(&mut self) -> InsertPlan2 {
         todo!();
         /*
         let mut cols = InsertMapBuilder::new();
@@ -44,7 +44,7 @@ impl<'t> EntityTable<'t> {
         */
     }
     
-    pub(crate) fn add_entity_type<M,T:Insert<M>>(&mut self) -> ViewTypeId {
+    pub(crate) fn add_entity_type<M,T:Insert2<M>>(&mut self) -> ViewTypeId {
         todo!();
         /*
         let mut cols = InsertMapBuilder::new();
@@ -150,7 +150,7 @@ impl<'t> EntityTable<'t> {
         }
     }
 
-    pub(crate) fn iter_mut_by_type<M,T:Insert<M>>(&mut self) -> Entity3MutIterator<T> {
+    pub(crate) fn iter_mut_by_type<M,T:Insert2<M>>(&mut self) -> Entity3MutIterator<T> {
         todo!()
         /*
         let entity_type = self.add_entity_type::<T>();
@@ -184,7 +184,7 @@ impl<'t> EntityTable<'t> {
         self.table.query::<T>()
     }
     */
-    pub(crate) fn query<T:Query<IsEntity>>(&mut self) -> QueryIterator<'_,'t,IsEntity,T> {
+    pub(crate) fn query<T:Query2<IsEntity>>(&mut self) -> QueryIterator<'_,'t,IsEntity,T> {
         self.table.query::<T>()
     }
 

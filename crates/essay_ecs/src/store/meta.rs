@@ -48,25 +48,25 @@ pub struct RowType {
     length: usize,
 }
 
-pub trait Insert<M>:'static {
-    fn build(builder: &mut InsertBuilder);
+pub trait Insert2<M>:'static {
+    fn build(builder: &mut InsertBuilder2);
 
-    unsafe fn insert(cursor: &mut InsertCursor, value: Self);
+    unsafe fn insert(cursor: &mut InsertCursor2, value: Self);
 }
 
-pub struct InsertBuilder<'a> {
+pub struct InsertBuilder2<'a> {
     meta: &'a mut RowMetas,
     columns: Vec<ColumnTypeId>,
 }
 
-pub struct InsertPlan {
+pub struct InsertPlan2 {
     row_type: RowTypeId,
     row_cols: Vec<usize>,
 }
 
-pub struct InsertCursor<'a, 't> {
+pub struct InsertCursor2<'a, 't> {
     row: &'a mut Row<'t>,
-    map: &'a InsertPlan,
+    map: &'a InsertPlan2,
     index: usize,
 }
 
@@ -86,15 +86,15 @@ pub struct ViewRowType {
     columns: Vec<usize>,
 }
 
-pub trait Query<M> {
+pub trait Query2<M> {
     type Item<'a>;
 
-    fn build(query: &mut QueryBuilder);
+    fn build(query: &mut QueryBuilder2);
 
-    unsafe fn query<'a,'t>(cursor: &mut QueryCursor<'a,'t>) -> Self::Item<'t>;
+    unsafe fn query<'a,'t>(cursor: &mut QueryCursor2<'a,'t>) -> Self::Item<'t>;
 }
 
-pub struct QueryCursor<'a,'t> {
+pub struct QueryCursor2<'a,'t> {
     row: &'a Row<'t>,
     cols: &'a Vec<usize>,
     index: usize,
@@ -105,7 +105,7 @@ enum AccessType {
     AccessMut
 }
 
-pub struct QueryBuilder<'a> {
+pub struct QueryBuilder2<'a> {
     meta: &'a mut RowMetas, 
     cols: Vec<ColumnTypeId>,
 }
@@ -218,7 +218,7 @@ impl RowType {
     }
 }
 
-impl<'a> InsertBuilder<'a> {
+impl<'a> InsertBuilder2<'a> {
     pub(crate) fn new(meta: &'a mut RowMetas) -> Self {
         Self {
             meta: meta,
@@ -232,7 +232,7 @@ impl<'a> InsertBuilder<'a> {
         self.columns.push(id);
     }
 
-    pub(crate) fn build(self) -> InsertPlan {
+    pub(crate) fn build(self) -> InsertPlan2 {
         let row_id = self.meta.add_row(self.columns.clone());
         let row = self.meta.get_row_id(row_id);
 
@@ -242,14 +242,14 @@ impl<'a> InsertBuilder<'a> {
             row_cols.push(row.column_position(*col_id).unwrap());
         }
 
-        InsertPlan {
+        InsertPlan2 {
             row_type: row.id(),
             row_cols: row_cols,
         }
     }
 }
 
-impl InsertPlan {
+impl InsertPlan2 {
     pub fn index(&self, index: usize) -> usize {
         self.row_cols[index]
     }
@@ -258,8 +258,8 @@ impl InsertPlan {
         self.row_type
     }
 
-    pub(crate) fn cursor<'a, 't>(&'a self, row: &'a mut Row<'t>) -> InsertCursor<'a, 't> {
-        InsertCursor {
+    pub(crate) fn cursor<'a, 't>(&'a self, row: &'a mut Row<'t>) -> InsertCursor2<'a, 't> {
+        InsertCursor2 {
             map: &self,
             row: row,
             index: 0, 
@@ -267,7 +267,7 @@ impl InsertPlan {
     }
 }
 
-impl<'a, 't> InsertCursor<'a, 't> {
+impl<'a, 't> InsertCursor2<'a, 't> {
     pub unsafe fn insert<T:'static>(&mut self, value: T) {
         let index = self.index;
         self.index += 1;
@@ -350,17 +350,17 @@ impl ViewRowType {
     }
 }
 
-pub(crate) struct QueryPlan {
+pub(crate) struct QueryPlan2 {
     view: ViewTypeId,
     cols: Vec<usize>,
 }
 
-impl QueryPlan {
+impl QueryPlan2 {
     pub(crate) fn new_cursor<'a,'t>(
         &'a self, 
         row: &'a Row<'t>
-    ) -> QueryCursor<'a,'t> {
-        QueryCursor {
+    ) -> QueryCursor2<'a,'t> {
+        QueryCursor2 {
             row: row,
             cols: &self.cols,
             index: 0,
@@ -372,7 +372,7 @@ impl QueryPlan {
     }
 }
 
-impl<'a,'t> QueryCursor<'a,'t> {
+impl<'a,'t> QueryCursor2<'a,'t> {
     pub unsafe fn deref<T:'static>(&mut self) -> &'t T {
         let index = self.index;
         self.index += 1;
@@ -388,7 +388,7 @@ impl<'a,'t> QueryCursor<'a,'t> {
     }
 }
 
-impl<'a> QueryBuilder<'a> {
+impl<'a> QueryBuilder2<'a> {
     pub(crate) fn new(meta: &'a mut RowMetas) -> Self {
         Self {
             meta: meta,
@@ -408,7 +408,7 @@ impl<'a> QueryBuilder<'a> {
         self.cols.push(col_id);
     }
 
-    pub(crate) fn build(self) -> QueryPlan {
+    pub(crate) fn build(self) -> QueryPlan2 {
         let view_id = self.meta.add_view(self.cols.clone());
         let view = self.meta.get_view(view_id);
 
@@ -416,7 +416,7 @@ impl<'a> QueryBuilder<'a> {
             .map(|col_id| view.column_position(*col_id).unwrap())
             .collect();
 
-        QueryPlan {
+        QueryPlan2 {
             view: view_id,
             cols: cols,
         }

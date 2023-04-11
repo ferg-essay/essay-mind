@@ -22,10 +22,11 @@ impl EntityRef {
             //entity_row_type: entity_row_type,
         }
     }
-
+    /*
     pub fn id(&self) -> EntityId2 {
         EntityId2(self.row_id.index())
     }
+    */
 
     pub fn get<'a,T:Component>(&self, table: &'a EntityTable) -> &'a T {
         table.get_row::<T>(self.row_id)
