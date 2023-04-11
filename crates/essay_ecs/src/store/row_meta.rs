@@ -88,11 +88,10 @@ pub struct ViewRowType {
 
 pub trait Query<M> {
     type Item<'a>;
-    //type Item;
 
     fn build(query: &mut QueryBuilder);
 
-    unsafe fn query<'a,'t>(cursor: &mut QueryCursor<'a,'t>) -> Self::Item<'t>;// : 'a;
+    unsafe fn query<'a,'t>(cursor: &mut QueryCursor<'a,'t>) -> Self::Item<'t>;
 }
 
 pub struct QueryCursor<'a,'t> {
@@ -220,29 +219,6 @@ impl<'a> InsertBuilder<'a> {
             columns: Vec::new(),
         }
     }
-
-    /*
-    fn push(&mut self, id: ColumnTypeId) {
-        self.columns.push(id);
-    }
-
-    pub(crate) fn columns(&self) -> &Vec<ColumnTypeId> {
-        &self.columns
-    }
-
-    pub(crate) fn build_insert(&self, row: &RowType) -> InsertMap {
-        let mut row_cols = Vec::<usize>::new();
-
-        for col_id in &self.columns {
-            row_cols.push(row.column_position(*col_id).unwrap());
-        }
-
-        InsertMap {
-            row_type: row.id(),
-            row_cols: row_cols,
-        }
-    }
-    */
 
     pub(crate) fn add_column<T:'static>(&mut self) {
         let id = self.meta.add_column::<T>();

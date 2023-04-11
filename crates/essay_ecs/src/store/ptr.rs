@@ -38,8 +38,6 @@ impl<'a> PtrOwn<'a> {
     pub unsafe fn write<T>(&mut self, value: T) {
         let len = mem::size_of::<T>();
 
-        let offset = 0;
-        
         let mut value = ManuallyDrop::new(value);
         let source: NonNull<u8> = NonNull::from(&mut *value).cast();
 

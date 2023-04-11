@@ -61,7 +61,7 @@ impl<'t,M> Table<'t,M> {
         self.rows.get_mut(row_id.index())
     }
 
-    pub fn push_single<T:'static>(&mut self, value: T) -> RowRef {
+    pub fn push_column<T:'static>(&mut self, value: T) -> RowRef {
         let mut builder = InsertBuilder::new(self.meta_mut());
 
         builder.add_column::<T>();
@@ -164,20 +164,13 @@ impl<'t,M> Table<'t,M> {
     // query
     //
 
-    /*
-    pub fn query<'a,T:Query<M,Item<'a>=T>>(&mut self) -> QueryIterator<'_,'t,M,T> {
-        let plan = self.get_query_plan::<T>();
-        
-        unsafe { self.query_with_plan(plan) }
-    }
-    */
     pub fn query<'a,T:Query<M>>(&mut self) -> QueryIterator<'_,'t,M,T> {
         let plan = self.get_query_plan::<T>();
         
         unsafe { self.query_with_plan(plan) }
     }
 
-    pub(crate) fn get_query_plan<'a,T:Query<M>>(&mut self) -> QueryPlan {
+    pub(crate) fn get_query_plan<T:Query<M>>(&mut self) -> QueryPlan {
         let mut builder = QueryBuilder::new(self.meta_mut());
 
         T::build(&mut builder);
@@ -185,7 +178,7 @@ impl<'t,M> Table<'t,M> {
         builder.build()
     }
 
-    pub(crate) unsafe fn query_with_plan<'a,T:Query<M>>(
+    pub(crate) unsafe fn query_with_plan<T:Query<M>>(
         &self, 
         plan: QueryPlan
     ) -> QueryIterator<'_,'t,M,T> {
@@ -295,7 +288,7 @@ impl<'a, 't, M, T:Query<M>> QueryIterator<'a, 't, M, T> {
 
 impl<'a, 't, M, T:Query<M>> Iterator for QueryIterator<'a, 't, M, T>
 {
-    type Item = T::Item<'t>; //T::Item<'a>;
+    type Item = T::Item<'t>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let view = self.table.meta().get_view(self.view_id);
@@ -331,12 +324,6 @@ macro_rules! impl_insert_tuple {
         #[allow(non_snake_case)]
         impl<M,$($part:Insert<M>),*> Insert<M> for ($($part,)*)
         {
-            /*
-            type Item = ($(
-                <$part as Insert<M>>::Item,
-            )*);
-            */
-
             fn build(builder: &mut InsertBuilder) {
                 $(
                     $part::build(builder);
@@ -414,7 +401,7 @@ mod tests {
         let mut table = Table::<IsTest>::new();
         assert_eq!(table.len(), 0);
 
-        table.push_single(TestA(1));
+        table.push_column(TestA(1));
         assert_eq!(table.len(), 1);
 
         let mut values : Vec<String> = table.query::<&TestA>()
@@ -422,7 +409,7 @@ mod tests {
             .collect();
         assert_eq!(values.join(","), "TestA(1)");
 
-        table.push_single(TestB(10000));
+        table.push_column(TestB(10000));
         assert_eq!(table.len(), 2);
 
         values = table.query::<&TestA>().map(|t| format!("{:?}", t)).collect();
@@ -431,7 +418,7 @@ mod tests {
         values = table.query::<&TestB>().map(|t| format!("{:?}", t)).collect();
         assert_eq!(values.join(","), "TestB(10000)");
 
-        table.push_single(TestB(100));
+        table.push_column(TestB(100));
         assert_eq!(table.len(), 3);
 
         values = table.query::<&TestA>().map(|t: &TestA| format!("{:?}", t)).collect();
@@ -487,7 +474,7 @@ mod tests {
     #[test]
     fn eval() {
         let mut table = Table::<IsTest>::new();
-        let row_id = table.push_single(TestA(1)).row_id();
+        let row_id = table.push_column(TestA(1)).row_id();
 
 
 

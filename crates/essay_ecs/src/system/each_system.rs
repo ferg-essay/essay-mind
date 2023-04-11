@@ -1,33 +1,18 @@
-use std::{marker::PhantomData, ops::{Deref, DerefMut}};
+use std::{marker::PhantomData};
 
-use crate::{world::prelude::World, store::{row_meta::Insert, prelude::Query}, prelude::Component, entity::prelude::IsEntity};
+use crate::{world::prelude::World, store::{prelude::Query}, entity::prelude::IsEntity};
 
 use super::{prelude::Param, system::{System, IntoSystem}, param::Arg};
 
-pub type EntityArg<'w, P> = <P as EachParam>::Arg<'w>;
-
-//
-// EntityParam - parameters specific to an entity
-//
- 
-pub trait EachParam {
-    type Entity;
-    type Arg<'a>;
-
-    fn get_arg<'w>(world: &'w World, entity: &'w Self::Entity) -> Self::Arg<'w>;
-}
-
-//
-// EachSystem - a system implemented by a function
-// 
-
-pub struct Each<'w, T> {
-    world: &'w World<'w>,
-    item: &'w mut T,
+pub struct EachSystem<M, F>
+where
+    F: EachFun<M>
+{
+    fun: F,
+    marker: PhantomData<M>,
 }
 
 pub trait EachFun<M> {
-    //type Entity:Query<IsEntity>;
     type Entity<'w>:Query<IsEntity>;
     type Params: Param;
 
@@ -38,31 +23,16 @@ pub trait EachFun<M> {
     );
 }
 
-pub struct EachSystem<M, F>
-where
-    F: EachFun<M>
-{
-    fun: F,
-    marker: PhantomData<M>,
-}
-
-impl<'w, T> Each<'w, T> {
-    fn get(&self) -> &T {
-        &self.item
-    }
-
-    fn get_mut(&mut self) -> &mut T {
-        &mut self.item
-    }
-}
+//
+// Implementation
+//
 
 impl<M, F:'static> EachSystem<M, F>
 where
     F: EachFun<M>
 {
-    fn new<'w>(world: &mut World<'w>, fun: F) -> Self {
-        //let entity_type = world.add_entity_type::<F::Entity>();
-        //println!("entity-type {:?}", entity_type);
+    fn new<'w>(_world: &mut World<'w>, fun: F) -> Self {
+
         Self {
             fun: fun,
             marker: PhantomData,
@@ -102,50 +72,35 @@ where
 }
 
 //
-// Function matching
+// EachFun: function system matching
 //
 pub struct IsPlain;
-pub struct IsIn;
-pub struct IsOut;
-//pub struct IsEntity;
-
+/*
 impl<F:'static,T:Query<IsEntity>,P:Param,> EachFun<fn(IsPlain, T, P)> for F
-    where for<'w> F:FnMut(T::Item<'w>, P) -> () +
-            FnMut(T::Item<'w>, Arg<P>) -> ()
+    where for<'w> F:FnMut(T, P,) -> () +
+            FnMut(T::Item<'w>, Arg<P>,) -> ()
 {
     type Entity<'w> = T;
-    type Params = P;
+    type Params = (P,);
 
-    fn run<'b,'w>(&mut self, world: &World<'w>, entity: T::Item<'w>, arg: Arg<P>) {
-        self(entity, arg)
+    fn run<'b,'w>(&mut self, world: &World<'w>, entity: T::Item<'w>, arg: Arg<(P,)>) {
+        let (p1,) = arg;
+        self(entity, p1,)
     }
 }
-
-impl<F:'static,T> EachFun<fn(IsPlain, T)> for F
-    where for<'w>
-        T:Query<IsEntity>,
-        for<'w> F:FnMut(T) -> () +
-            FnMut(T::Item<'w>) -> ()
-{
-    type Entity<'w> = T;
-    type Params = ();
-
-    fn run<'b,'w>(&mut self, world: &World<'w>, entity: T::Item<'w>, arg: Arg<()>) {
-        self(entity)
-    }
-}
+*/
 
 macro_rules! impl_each_function {
     ($($param:ident),*) => {
         #[allow(non_snake_case)]
-        impl<F: 'static, T:Query<IsEntity>, $($param: Param),*> EachFun<fn(IsPlain, T, $($param,)*)> for F
-        where for<'a> F:FnMut(T::Item<'a>, $($param),*) -> () +
-            FnMut(T::Item<'a>, $(Arg<$param>),*) -> ()
+        impl<F:'static, T:Query<IsEntity>, $($param: Param),*> EachFun<fn(IsPlain, T, $($param,)*)> for F
+        where for<'w> F:FnMut(T, $($param),*) -> () +
+            FnMut(T::Item<'w>, $(Arg<$param>),*) -> ()
         {
-            type Entity = T;
-            type Params = ($($param),*);
+            type Entity<'w> = T;
+            type Params = ($($param,)*);
 
-            fn run<'b,'w>(&mut self, world: &'w World, entity: T::Item<'b>, arg: Arg<($($param,)*)>) {
+            fn run<'b,'w>(&mut self, _world: &'w World, entity: T::Item<'b>, arg: Arg<($($param,)*)>) {
                 let ($($param,)*) = arg;
                 self(entity, $($param,)*)
             }
@@ -153,26 +108,22 @@ macro_rules! impl_each_function {
     }
 }
 
-//impl_each_function!();
-/*
-//impl_each_function!(P1);
+impl_each_function!();
+impl_each_function!(P1);
 impl_each_function!(P1, P2);
 impl_each_function!(P1, P2, P3);
 impl_each_function!(P1, P2, P3, P4);
 impl_each_function!(P1, P2, P3, P4, P5);
 impl_each_function!(P1, P2, P3, P4, P5, P6);
 impl_each_function!(P1, P2, P3, P4, P5, P6, P7);
-*/
 
 #[cfg(test)]
 mod tests {
-    use std::{rc::Rc, cell::RefCell, marker::PhantomData, any::type_name, ops::Deref};
+    use std::{rc::Rc, cell::RefCell, marker::PhantomData, any::type_name};
 
     use essay_ecs_macros::Component;
 
     use crate::{app::App, world::prelude::World, system::param::Param};
-
-    use super::{Each, EachSystem};
 
     #[test]
     fn test_each() {
@@ -379,10 +330,11 @@ mod tests {
         println!("system-each-in {:?} {:?}", test, Deref::deref(&input));
     }
     */
-
+    /*
     fn system_each_ref(test: &mut TestA) {
         println!("system-each {:?}", test);
     }
+    */
 
     fn take(values: &Rc<RefCell<Vec<String>>>) -> String {
         let v : Vec<String> = values.borrow_mut().drain(..).collect();
@@ -405,7 +357,7 @@ mod tests {
     impl<V> Param for TestArg<V> {
         type Arg<'w> = TestArg<V>;
 
-        fn get_arg<'w>(world: &'w World) -> Self::Arg<'w> {
+        fn get_arg<'w>(_world: &'w World) -> Self::Arg<'w> {
             Self {
                 name: type_name::<V>().to_string(),
                 marker: PhantomData,
