@@ -1,11 +1,8 @@
 use std::marker::PhantomData;
 
-use crate::{store::{prelude::{RowId, RowTypeId}, meta::ViewRowTypeId}, prelude::Component};
+use crate::{store::{prelude::{RowId, RowTypeId}, meta::{ViewRowTypeId, ColumnTypeId}}, prelude::Component};
 
 use super::{prelude::EntityTable, component::ViewQuery};
-
-#[derive(Debug,Clone,Copy,PartialEq,Hash,PartialOrd,Eq)]
-pub struct EntityId(usize);
 
 pub struct EntityRef {
     row_id: RowId,
@@ -26,8 +23,8 @@ impl EntityRef {
         }
     }
 
-    pub fn id(&self) -> EntityId {
-        EntityId(self.row_id.index())
+    pub fn id(&self) -> EntityId2 {
+        EntityId2(self.row_id.index())
     }
 
     pub fn get<'a,T:Component>(&self, table: &'a EntityTable) -> &'a T {
