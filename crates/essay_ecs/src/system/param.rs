@@ -5,7 +5,7 @@ use crate::world::prelude::World;
 //
  
 pub trait Param {
-    type Arg<'a>;
+    type Arg<'w>;
 
     fn get_arg<'w>(world: &'w World) -> Self::Arg<'w>;
 }
@@ -17,7 +17,7 @@ pub trait Param {
 macro_rules! impl_param_tuple {
     ($($param:ident),*) => {
         #[allow(non_snake_case)]
-        impl<$($param: Param),*> Param for ($($param,)*)
+        impl<$($param: Param,)*> Param for ($($param,)*)
         {
             type Arg<'w> = ($($param::Arg<'w>,)*);
 

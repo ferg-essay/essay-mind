@@ -4,6 +4,9 @@ use crate::world::prelude::World;
 
 use super::{system::{System, IntoSystem}, param::{Param, Arg}};
 
+// IsFun prevents collision
+pub struct IsFun;
+
 //
 // FunctionSystem - a system implemented by a function
 // 
@@ -15,6 +18,16 @@ where
     fun: F,
     marker: PhantomData<M>,
 }
+
+pub trait Fun<M> {
+    type Params: Param;
+
+    fn run(&mut self, param: Arg<Self::Params>);
+}
+
+//
+// Implementation
+//
 
 impl<M, F:'static> System for FunctionSystem<M, F>
 where
@@ -29,9 +42,6 @@ where
         self.fun.run(args);
     }
 }    
-
-// IsFun prevents collision
-pub struct IsFun;
 
 impl<M, F:'static> IntoSystem<(M,IsFun)> for F
 where
@@ -51,13 +61,7 @@ where
 //
 // Function matching
 //
-
-pub trait Fun<M> {
-    type Params: Param;
-
-    fn run(&mut self, param: Arg<Self::Params>);
-}
-
+/*
 impl<F:'static,P:Param,> Fun<fn(P)> for F
     where F:FnMut(P) -> () +
             FnMut(Arg<P>) -> ()
@@ -68,15 +72,16 @@ impl<F:'static,P:Param,> Fun<fn(P)> for F
         self(arg)
     }
 }
+*/
 
 macro_rules! impl_system_function {
     ($($param:ident),*) => {
         #[allow(non_snake_case)]
         impl<F: 'static, $($param: Param),*> Fun<fn($($param,)*)> for F
-        where F:FnMut($($param),*) -> () +
-            FnMut($(Arg<$param>),*) -> ()
+        where F:FnMut($($param,)*) -> () +
+            FnMut($(Arg<$param>,)*) -> ()
         {
-            type Params = ($($param),*);
+            type Params = ($($param,)*);
 
             fn run(&mut self, arg: Arg<($($param,)*)>) {
                 let ($($param,)*) = arg;
@@ -87,7 +92,7 @@ macro_rules! impl_system_function {
 }
 
 impl_system_function!();
-//impl_system_function!(P1);
+impl_system_function!(P1);
 impl_system_function!(P1, P2);
 impl_system_function!(P1, P2, P3);
 impl_system_function!(P1, P2, P3, P4);

@@ -4,6 +4,9 @@ use crate::{world::prelude::World, store::{prelude::Query}, entity::prelude::IsE
 
 use super::{prelude::Param, system::{System, IntoSystem}, param::Arg};
 
+// IsEach prevents collisions
+pub struct IsEach;
+
 pub struct EachSystem<M, F>
 where
     F: EachFun<M>
@@ -55,9 +58,6 @@ where
         }
     }
 }    
-
-// IsFun prevents collision
-pub struct IsEach;
 
 impl<M, F:'static> IntoSystem<(M,IsEach)> for F
 where
@@ -210,11 +210,32 @@ mod tests {
         app.spawn(TestA(1));
         app.spawn(TestB(2));
         app.spawn((TestA(3),TestB(4)));
+        app.spawn((TestB(5),TestA(6)));
 
         let values = Rc::new(RefCell::new(Vec::<String>::new()));
         let ptr = values.clone();
 
         app.add_system(move |a:(&TestA, &TestB)| {
+            ptr.borrow_mut().push(format!("{:?}", a));
+        });
+
+        app.update();
+        assert_eq!(take(&values), "(TestA(3), TestB(4))");
+    }
+
+    #[test]
+    fn test_each_tuple_rev() {
+        let mut app = App::new();
+
+        app.spawn(TestA(1));
+        app.spawn(TestB(2));
+        app.spawn((TestA(3),TestB(4)));
+        app.spawn((TestB(5),TestA(6)));
+
+        let values = Rc::new(RefCell::new(Vec::<String>::new()));
+        let ptr = values.clone();
+
+        app.add_system(move |a:(&TestB, &TestA)| {
             ptr.borrow_mut().push(format!("{:?}", a));
         });
 
