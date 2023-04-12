@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use super::column::Column;
 use super::prelude::{ViewTypeId, QueryCursor2};
 use super::row::{RowId, Row};
-use super::meta::{RowTypeId, RowMetas, ColumnTypeId};
+use super::meta::{RowTypeId, RowMetas, ColumnTypeId, EntityTypeId, EntityGroup};
 
 pub struct Table<'t> {
     meta: RowMetas,
@@ -13,6 +13,25 @@ pub struct Table<'t> {
     rows: Vec<Row<'t>>,
 
     type_rows: Vec<Vec<RowId>>,
+
+    entities: Vec<EntityRow>,
+    type_entities: Vec<Vec<EntityId>>,
+}
+
+#[derive(Debug,Clone,Copy,PartialEq,Hash,PartialOrd,Eq)]
+pub struct EntityId(usize);
+
+impl EntityId {
+    fn index(&self) -> usize {
+        self.0
+    }
+}
+
+pub struct EntityRow {
+    id: EntityId,
+    type_id: EntityTypeId,
+
+    columns: Vec<RowId>,
 }
 
 pub struct RowRef {
@@ -28,13 +47,6 @@ impl<'t> Table<'t> {
     pub fn new() -> Self {
         let mut row_meta = RowMetas::new();
 
-        let column_type = row_meta.add_column::<()>();
-        let mut columns = Vec::<ColumnTypeId>::new();
-        columns.push(column_type);
-
-        row_meta.add_row(columns.clone());
-        row_meta.add_view(columns);
-
         Self {
             meta: row_meta,
 
@@ -43,6 +55,9 @@ impl<'t> Table<'t> {
             rows: Vec::new(),
 
             type_rows: Vec::new(),
+            
+            entities: Vec::new(),
+            type_entities: Vec::new(),
         }
     }
 
@@ -55,74 +70,81 @@ impl<'t> Table<'t> {
     }
 
     pub fn len(&self) -> usize {
-        self.rows.len()
+        self.entities.len()
+    }
+    
+    fn add_column<T:'static>(&mut self) -> ColumnTypeId {
+        let column_id = self.meta.add_column::<T>();
+
+        if column_id.index() < self.columns.len() {
+            return column_id;
+        }
+
+        assert_eq!(column_id.index(), self.columns.len());
+
+        self.columns.push(Column::new::<T>(&mut self.meta));
+        
+        column_id
     }
 
-    pub(crate) fn get_row(&self, row_id: RowId) -> Option<&Row> {
-        self.rows.get(row_id.index())
+    fn get_column(&mut self, column_id: ColumnTypeId) -> &mut Column<'t> {
+        &mut self.columns[column_id.index()]
     }
 
-    pub(crate) fn get_mut_row(&mut self, row_id: RowId) -> Option<&mut Row<'t>> {
-        self.rows.get_mut(row_id.index())
-    }
-
-    pub fn push_column<T:'static>(&mut self, value: T) -> RowRef {
-        let mut builder = InsertBuilder::new(self.meta_mut());
+    pub fn push_column<T:'static>(&mut self, value: T) {
+        let mut builder = InsertBuilder::new(self);
 
         builder.add_column::<T>();
 
         let plan = builder.build();
 
+        let mut cursor = plan.cursor(self);
         unsafe {
-            let row = self.push_empty_row(plan.row_type());
-
-            plan.cursor(row).insert(value);
-
-            RowRef {
-                type_id: plan.row_type(),
-                row: row.id(),
-            }
+            cursor.insert(value);
         }
+        cursor.complete();
     }
 
-    pub fn push<T:Insert>(&mut self, value: T) -> RowRef {
+    pub fn push<T:Insert>(&mut self, value: T) {
         let plan = self.insert_plan::<T>();
 
+        let mut cursor = plan.cursor(self);
         unsafe {
-            let row = self.push_empty_row(plan.row_type());
-
-            T::insert(&mut plan.cursor(row), value);
-
-            RowRef {
-                type_id: plan.row_type(),
-                row: row.id(),
-            }
+            T::insert(&mut cursor, value);
         }
+        cursor.complete();
+    }
+
+    fn add_entity_type(&mut self, cols: Vec<ColumnTypeId>) -> EntityTypeId {
+        let entity_type_id = self.meta.add_entity_row(cols);
+
+        while self.type_entities.len() <= entity_type_id.index() {
+            self.type_entities.push(Vec::new());
+        }
+        
+        entity_type_id
+    }
+
+    fn push_entity_row(&mut self, entity_type_id: EntityTypeId, rows: Vec<RowId>) {
+        let entity_id = EntityId(self.entities.len());
+
+        let entity_row = EntityRow {
+            id: entity_id,
+            type_id: entity_type_id,
+            columns: rows,
+        };
+
+        self.entities.push(entity_row);
+        
+        self.type_entities[entity_type_id.index()].push(entity_id);
     }
 
     fn insert_plan<T:Insert>(&mut self) -> InsertPlan {
-        let mut builder = InsertBuilder::new(self.meta_mut());
+        let mut builder = InsertBuilder::new(self);
 
         T::build(&mut builder);
 
         builder.build()
-    }
-
-    unsafe fn push_empty_row(&mut self, row_type_id: RowTypeId) -> &mut Row<'t> {
-        let row_type = self.meta.get_row_id(row_type_id);
-        let row_id = RowId::new(self.rows.len() as u32);
-
-        while self.type_rows.len() <= row_type_id.index() {
-            self.type_rows.push(Vec::new());
-        }
-
-        self.type_rows[row_type_id.index()].push(row_id);
-
-        unsafe {
-            self.rows.push(Row::new(row_id, row_type));
-
-            self.rows.get_mut(row_id.index()).unwrap()
-        }
     }
 
     //
@@ -150,13 +172,29 @@ impl<'t> Table<'t> {
         QueryIterator::new(self, plan)
     }
 
+    unsafe fn deref<T:'static>(
+        &self, 
+        column_id: ColumnTypeId, 
+        row_id: RowId
+    ) -> Option<&'t T> {
+        self.columns[column_id.index()].get(row_id)
+    }
+
+    unsafe fn deref_mut<T:'static>(
+        &self, 
+        column_id: ColumnTypeId, 
+        row_id: RowId
+    ) -> Option<&'t mut T> {
+        self.columns[column_id.index()].get_mut(row_id)
+    }
+
     fn get_row_by_type_index(
         &self, 
-        row_type_id: RowTypeId, 
+        row_type_id: EntityTypeId, 
         row_index: usize
-    ) -> Option<&Row<'t>> {
-        match self.type_rows[row_type_id.index()].get(row_index) {
-            Some(row_id) => self.rows.get(row_id.index()),
+    ) -> Option<&EntityRow> {
+        match self.type_entities[row_type_id.index()].get(row_index) {
+            Some(row_id) => self.entities.get(row_id.index()),
             None => None,
         }
     }
@@ -168,67 +206,66 @@ pub trait Insert:'static {
     unsafe fn insert(cursor: &mut InsertCursor, value: Self);
 }
 
-pub struct InsertBuilder<'a> {
-    meta: &'a mut RowMetas,
+pub struct InsertBuilder<'a,'t> {
+    table: &'a mut Table<'t>,
     columns: Vec<ColumnTypeId>,
 }
 
 pub struct InsertPlan {
-    row_type: RowTypeId,
-    row_cols: Vec<usize>,
+    entity_type: EntityTypeId,
+    columns: Vec<ColumnTypeId>,
 }
 
 pub struct InsertCursor<'a, 't> {
-    row: &'a mut Row<'t>,
-    map: &'a InsertPlan,
+    table: &'a mut Table<'t>,
+    plan: &'a InsertPlan,
     index: usize,
+    rows: Vec<RowId>,
 }
 
-impl<'a> InsertBuilder<'a> {
-    pub(crate) fn new(meta: &'a mut RowMetas) -> Self {
+impl<'a,'t> InsertBuilder<'a,'t> {
+    pub(crate) fn new(table: &'a mut Table<'t>) -> Self {
         Self {
-            meta: meta,
+            table: table,
             columns: Vec::new(),
         }
     }
 
     pub(crate) fn add_column<T:'static>(&mut self) {
-        let id = self.meta.add_column::<T>();
+        let id = self.table.add_column::<T>();
         
         self.columns.push(id);
     }
 
     pub(crate) fn build(self) -> InsertPlan {
-        let row_id = self.meta.add_row(self.columns.clone());
-        let row = self.meta.get_row_id(row_id);
-
-        let mut row_cols = Vec::<usize>::new();
-
-        for col_id in &self.columns {
-            row_cols.push(row.column_position(*col_id).unwrap());
-        }
+        let entity_id = self.table.add_entity_type(self.columns.clone());
 
         InsertPlan {
-            row_type: row.id(),
-            row_cols: row_cols,
+            entity_type: entity_id,
+            columns: self.columns.clone(),
         }
     }
 }
 
 impl InsertPlan {
-    pub fn index(&self, index: usize) -> usize {
-        self.row_cols[index]
+    pub(crate) fn insert<T:'static>(
+        &self,
+        table: &mut Table, 
+        index: usize, 
+        value: T
+    ) -> RowId {
+        unsafe {
+            let column_id = self.columns[index];
+            table.get_column(column_id).push(value)
+        }
     }
 
-    pub(crate) fn row_type(&self) -> RowTypeId {
-        self.row_type
-    }
-
-    pub(crate) fn cursor<'a, 't>(&'a self, row: &'a mut Row<'t>) -> InsertCursor<'a, 't> {
+    pub(crate) fn cursor<'a, 't>(&'a self, table: &'a mut Table<'t>) -> InsertCursor<'a, 't> {
         InsertCursor {
-            map: &self,
-            row: row,
+            plan: &self,
+            table: table,
             index: 0, 
+            rows: Vec::new(),
         }
     }
 }
@@ -238,7 +275,13 @@ impl<'a, 't> InsertCursor<'a, 't> {
         let index = self.index;
         self.index += 1;
 
-        self.row.write::<T>(self.map.row_cols[index], value);
+        let row_id = self.plan.insert(self.table, index, value);
+
+        self.rows.push(row_id);
+    }
+
+    fn complete(self) {
+        self.table.push_entity_row(self.plan.entity_type, self.rows)
     }
 }
 
@@ -251,7 +294,9 @@ pub trait Query {
 }
 
 pub struct QueryCursor<'a,'t> {
-    row: &'a Row<'t>,
+    table: &'a Table<'t>,
+    entity_group: &'a EntityGroup,
+    row: &'a EntityRow,
     cols: &'a Vec<usize>,
     index: usize,
 }
@@ -269,9 +314,13 @@ pub(crate) struct QueryPlan {
 impl QueryPlan {
     pub(crate) fn new_cursor<'a,'t>(
         &'a self, 
-        row: &'a Row<'t>
+        table: &'a Table<'t>,
+        group: &'a EntityGroup,
+        row: &'a EntityRow
     ) -> QueryCursor<'a,'t> {
         QueryCursor {
+            table: table,
+            entity_group: group,
             row: row,
             cols: &self.cols,
             index: 0,
@@ -285,17 +334,23 @@ impl QueryPlan {
 
 impl<'a,'t> QueryCursor<'a,'t> {
     pub unsafe fn deref<T:'static>(&mut self) -> &'t T {
-        let index = self.index;
+        let index = self.cols[self.index];
         self.index += 1;
 
-        self.row.deref(self.cols[index])
+        let column_id = self.entity_group.columns()[index];
+        let row_id = self.row.columns[index];
+
+        self.table.deref::<T>(column_id, row_id).unwrap()
     }
 
     pub unsafe fn deref_mut<T:'static>(&mut self) -> &'t mut T {
-        let index = self.index;
+        let index = self.cols[self.index];
         self.index += 1;
 
-        self.row.deref_mut(self.cols[index])
+        let column_id = self.entity_group.columns()[index];
+        let row_id = self.row.columns[index];
+
+        self.table.deref_mut(column_id, row_id).unwrap()
     }
 }
 
@@ -342,7 +397,7 @@ pub struct QueryIterator<'a, 't, T:Query> {
 
     view_type_index: usize,
 
-    row_index: usize,
+    entity_index: usize,
 
     marker: PhantomData<T>,
 }
@@ -359,7 +414,7 @@ impl<'a, 't, T:Query> QueryIterator<'a, 't, T> {
             query,
 
             view_type_index: 0,
-            row_index: 0,
+            entity_index: 0,
 
             marker: PhantomData,
         }
@@ -377,18 +432,27 @@ impl<'a, 't, T:Query> Iterator for QueryIterator<'a, 't, T>
             let view_row_id = view.rows()[self.view_type_index];
             let view_row = self.table.meta().get_view_row(view_row_id);
             let row_type_id = view_row.row_type_id();
-            let row_index = self.row_index;
-            self.row_index += 1;
+            let entity_type = self.table.meta().get_entity_type(row_type_id);
+            let entity_index = self.entity_index;
+            self.entity_index += 1;
 
-            match self.table.get_row_by_type_index(row_type_id, row_index) {
+            match self.table.get_row_by_type_index(row_type_id, entity_index) {
                 Some(row) => {
-                    return unsafe { Some(T::query(&mut self.query.new_cursor(row))) };
+                    return unsafe { 
+                        let mut cursor = self.query.new_cursor(
+                            self.table,
+                            entity_type, 
+                            row
+                        );
+                        
+                        Some(T::query(&mut cursor))
+                    }
                 }
                 None => {},
             };
 
             self.view_type_index += 1;
-            self.row_index = 0;
+            self.entity_index = 0;
         }
 
         None
@@ -492,11 +556,11 @@ mod tests {
         table.push_column(TestB(10000));
         assert_eq!(table.len(), 2);
 
-        values = table.query::<&TestA>().map(|t| format!("{:?}", t)).collect();
-        assert_eq!(values.join(","), "TestA(1)");
-
         values = table.query::<&TestB>().map(|t| format!("{:?}", t)).collect();
         assert_eq!(values.join(","), "TestB(10000)");
+
+        values = table.query::<&TestA>().map(|t| format!("{:?}", t)).collect();
+        assert_eq!(values.join(","), "TestA(1)");
 
         table.push_column(TestB(100));
         assert_eq!(table.len(), 3);
@@ -510,7 +574,7 @@ mod tests {
         for entity in table.query::<&mut TestB>() {
             entity.0 += 1;
         }
-        //table.iter_by_type().map(|t: &TestB| values.push(format!("{:?}", t)));
+        
         values = table.query::<&TestB>().map(|t: &TestB| format!("{:?}", t)).collect();
         assert_eq!(values.join(","), "TestB(10001),TestB(101)");
     }
@@ -544,21 +608,20 @@ mod tests {
             .collect();
         assert_eq!(values.join(","), "TestA(1)");
 
-//        values = table.query::<&TestB>().map(|t: &TestB| format!("{:?}", t)).collect();
+        //values = table.query::<&TestB>().map(|t: &TestB| format!("{:?}", t)).collect();
         //assert_eq!(values.join(","), "TestB(2)");
 
-        //values = table.query::<(&TestA,&TestB)>().map(|(a:, b)| format!("({:?},{:?})", a, b)).collect();
-        //assert_eq!(values.join(","), "(TestA(1),TestB(2))");
+        values = table.query::<(&TestA,&TestB)>().map(|v| format!("{:?}", v)).collect();
+        assert_eq!(values.join(","), "(TestA(1), TestB(2))");
     }
 
     #[test]
     fn eval() {
         let mut table = Table::new();
-        let row_id = table.push_column(TestA(1)).row_id();
-
-
+        //let row_id = table.push_column(TestA(1)).row_id();
 
     }
+
     #[test]
     fn test_table() {
         let mut table = TestTable::new();
@@ -571,7 +634,7 @@ mod tests {
         assert_eq!(values.join(","), "TestA(1),TestA(2)");
 
         values = table.query::<&TestB>().map(|t: &TestB| format!("{:?}", t)).collect();
-        assert_eq!(values.join(","), "TestB(2)");
+        assert_eq!(values.join(","), "TestB(3)");
     }
 
     #[derive(Debug)]

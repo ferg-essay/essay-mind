@@ -121,6 +121,8 @@ impl<'t,M> Table2<'t,M> {
     }
 
     pub fn replace_extend<T:'static>(&mut self, row_id: RowId, value: T) {
+        todo!();
+        /*
         let col_type_id = self.meta_mut().add_column::<T>();
         let row = self.rows.get(row_id.index()).unwrap();
         let old_type_id = row.type_id();
@@ -143,6 +145,7 @@ impl<'t,M> Table2<'t,M> {
 
         self.type_rows[old_type_id.index()].retain(|row| *row != row_id);
         self.type_rows[new_type_id.index()].push(row_id);
+        */
     }
 
     pub fn get_row_value<T:'static>(
@@ -206,12 +209,15 @@ impl<'t,M> Table2<'t,M> {
     }
 
     pub fn create_ref<T:'static>(&mut self, row_index: u32) -> RowRef {
+        todo!();
+        /*
         let row_type = self.row_meta.single_row_type::<T>();
 
         RowRef {
             type_id: row_type,
             row: RowId::new(row_index),
         }
+        */
     }
 
     pub fn replace<T:'static>(&mut self, entity_ref: &RowRef, value: T) {
@@ -239,7 +245,8 @@ impl<'t,M> Table2<'t,M> {
         row_id: RowTypeId, 
         column_id: ColumnTypeId
     ) -> RowTypeId {
-        self.row_meta.push_row(row_id, column_id)
+        todo!();
+        //self.row_meta.push_row(row_id, column_id)
     }
 
     fn get_row_by_type_index(
@@ -291,6 +298,8 @@ impl<'a, 't, M, T:Query2<M>> Iterator for QueryIterator<'a, 't, M, T>
     type Item = T::Item<'t>;
 
     fn next(&mut self) -> Option<Self::Item> {
+        todo!();
+        /*
         let view = self.table.meta().get_view(self.view_id);
 
         while self.view_type_index < view.rows().len() {
@@ -312,6 +321,7 @@ impl<'a, 't, M, T:Query2<M>> Iterator for QueryIterator<'a, 't, M, T>
         }
 
         None
+        */
     }
 }
 

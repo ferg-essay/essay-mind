@@ -89,7 +89,8 @@ impl<'t> EntityTable<'t> {
     pub fn entity_row_by_type<T:'static>(&mut self, row_id: RowTypeId) -> ViewRowTypeId {
         let entity_id = self.table.meta_mut().single_view_type::<T>();
 
-        self.table.meta_mut().add_view_row(row_id, entity_id)
+        // self.table.meta_mut().add_view_row(row_id, entity_id)
+        todo!();
     }
 
     pub(crate) fn push_entity_type(
