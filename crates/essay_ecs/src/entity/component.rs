@@ -1,4 +1,4 @@
-use crate::table::{
+use crate::entity::{
     prelude::{Query, QueryCursor, QueryBuilder, Insert, InsertBuilder, InsertCursor}};
 
 pub trait Component:'static {}

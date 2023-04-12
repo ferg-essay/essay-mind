@@ -58,7 +58,7 @@ impl<'c, T:'static> UnsafeCell<'c, T> {
 
 #[cfg(test)]
 mod tests {
-    use crate::table::cell::{UnsafeCell};
+    use crate::entity::cell::{UnsafeCell};
 
     #[test]
     fn cell_null() {

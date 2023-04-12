@@ -50,7 +50,7 @@ where
 {
     type System = FunctionSystem<M, F>;
 
-    fn into_system(this: Self, world: &mut World) -> Self::System {
+    fn into_system(this: Self, _world: &mut World) -> Self::System {
         FunctionSystem {
             fun: this,
             marker: Default::default()
@@ -200,7 +200,7 @@ mod tests {
     impl<V> Param for TestArg<V> {
         type Arg<'w> = TestArg<V>;
 
-        fn get_arg<'w>(world: &'w World) -> Self::Arg<'w> {
+        fn get_arg<'w>(_world: &'w World) -> Self::Arg<'w> {
             Self {
                 name: type_name::<V>().to_string(),
                 marker: PhantomData,

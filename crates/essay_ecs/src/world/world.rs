@@ -1,7 +1,4 @@
-use crate::{table::{prelude::{Table, QueryIterator, Query, Insert}, ptr::PtrCell}};
-use crate::entity::prelude::{
-    EntityRef
-};
+use crate::{entity::{prelude::{Table, QueryIterator, Query, Insert}, ptr::PtrCell}};
 
 use super::resource::Resources;
 
@@ -63,16 +60,6 @@ impl<'w> WorldInner<'w> {
             table: Table::new(),
             resources: Resources::new(),
         }
-    }
-}
-
-pub struct WorldRef {
-    ent_ref: EntityRef,
-}
-
-impl WorldRef {
-    pub fn push<S:'static>(&self, world: &mut World, value: S) {
-        self.ent_ref.push(&mut world.ptr.deref_mut().table, value)
     }
 }
 

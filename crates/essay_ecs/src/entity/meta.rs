@@ -565,7 +565,7 @@ impl RowMetas {
 mod tests {
     use std::{mem, alloc::Layout};
 
-    use crate::table::meta::{ColumnTypeId, ViewTypeId, ViewRowTypeId, EntityTypeId};
+    use crate::entity::meta::{ColumnTypeId, ViewTypeId, ViewRowTypeId, EntityTypeId};
 
     use super::RowMetas;
 

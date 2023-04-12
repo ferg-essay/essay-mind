@@ -540,7 +540,7 @@ impl RowRef {
 
 #[cfg(test)]
 mod tests {
-    use crate::{table::{meta::{}}, prelude::Component};
+    use crate::{entity::{meta::{}}, prelude::Component};
 
     use super::{Table, Query, QueryIterator, QueryCursor, InsertCursor, InsertBuilder, Insert};
 

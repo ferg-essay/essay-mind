@@ -1,6 +1,6 @@
 use crate::{
     system::prelude::{IntoSystem, Schedule}, 
-    world::prelude::{World, WorldRef}, table::{prelude::{Insert}},
+    world::prelude::{World}, entity::{prelude::{Insert}},
 };
 
 pub struct App {
@@ -61,16 +61,6 @@ impl App {
     pub fn update(&mut self) -> &mut Self {
         self.schedule.update(&self.world);
         self
-    }
-}
-
-pub struct AppRef {
-    ent_ref: WorldRef,
-}
-
-impl AppRef {
-    pub fn push<S:'static>(&self, app: &mut App, value: S) {
-        self.ent_ref.push(&mut app.world, value)
     }
 }
 /*

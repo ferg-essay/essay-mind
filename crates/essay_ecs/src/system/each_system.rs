@@ -1,6 +1,6 @@
 use std::{marker::PhantomData};
 
-use crate::{world::prelude::World, table::{prelude::Query}};
+use crate::{world::prelude::World, entity::{prelude::Query}};
 
 use super::{prelude::Param, system::{System, IntoSystem}, param::Arg};
 

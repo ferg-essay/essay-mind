@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::{table::prelude::{RowRef, Table}, type_meta::TypeMetas};
+use crate::{entity::prelude::{RowRef, Table}, type_meta::TypeMetas};
 
 struct IsResource;
 

@@ -2,5 +2,5 @@ mod resource;
 mod world;
 
 pub mod prelude {
-    pub use super::world::{World, WorldRef};
+    pub use super::world::{World};
 }
