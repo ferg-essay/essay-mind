@@ -184,8 +184,9 @@ impl<'a, 't, T:Query> Iterator for QueryIterator<'a, 't, T>
         None
     }
 }
+
 //
-// query tuples of components
+// query implementation
 //
 
 impl<T:Component> Query for &T {

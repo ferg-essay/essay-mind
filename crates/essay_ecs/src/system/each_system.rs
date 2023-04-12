@@ -206,7 +206,7 @@ mod tests {
         });
 
         app.update();
-        assert_eq!(take(&values), "(TestA(3), TestB(4))");
+        assert_eq!(take(&values), "(TestA(3), TestB(4)), (TestA(6), TestB(5))");
     }
 
     #[test]
@@ -226,13 +226,13 @@ mod tests {
         });
 
         app.update();
-        assert_eq!(take(&values), "(TestA(3), TestB(4))");
+        assert_eq!(take(&values), "(TestB(4), TestA(3)), (TestB(5), TestA(6))");
     }
 
     #[test]
     fn test_each_mut() {
         let mut app = App::new();
-        /*
+
         app.spawn(TestA(0));
 
         let values = Rc::new(RefCell::new(Vec::<String>::new()));
@@ -256,13 +256,12 @@ mod tests {
 
         app.update();
         assert_eq!(take(&values), "TestA(4), TestA(2)");
-        */
     }
 
     #[test]
     fn test_two_each() {
         let mut app = App::new();
-        /*
+
         app.spawn(TestA(0));
         app.spawn(TestB(0));
 
@@ -291,7 +290,6 @@ mod tests {
 
         app.update();
         assert_eq!(take(&values), "S-A TestA(0), S-A TestA(0), S-B TestB(0)");
-        */
     }
 
     #[test]
