@@ -5,7 +5,7 @@
 
 use std::marker::PhantomData;
 
-use super::{prelude::{Table, ViewId}, meta::{RowType, ViewRowType, TableMeta, ColumnId}, table::{EntityRow, Component}};
+use super::{prelude::{Table, ViewId}, meta::{RowType, ViewRowType, ColumnId}, table::{EntityRow, Component}};
 
 pub trait Query {
     type Item<'a>;
@@ -17,7 +17,7 @@ pub trait Query {
 
 pub struct QueryCursor<'a,'t> {
     table: &'a Table<'t>,
-    entity_group: &'a RowType,
+    row_type: &'a RowType,
     view_row: &'a ViewRowType,
     row: &'a EntityRow,
     cols: &'a Vec<usize>,
@@ -38,13 +38,13 @@ impl QueryPlan {
     pub(crate) fn new_cursor<'a,'t>(
         &'a self, 
         table: &'a Table<'t>,
-        group: &'a RowType,
+        row_type: &'a RowType,
         view_row: &'a ViewRowType,
         row: &'a EntityRow
     ) -> QueryCursor<'a,'t> {
         QueryCursor {
             table: table,
-            entity_group: group,
+            row_type,
             row: row,
             view_row: view_row,
             cols: &self.cols,
@@ -62,7 +62,7 @@ impl<'a,'t> QueryCursor<'a,'t> {
         let index = self.view_row.index_map()[self.cols[self.index]];
         self.index += 1;
 
-        let column_id = self.entity_group.columns()[index];
+        let column_id = self.row_type.columns()[index];
         let row_id = self.row.get_column(index);
 
         self.table.deref::<T>(column_id, row_id).unwrap()
@@ -72,7 +72,7 @@ impl<'a,'t> QueryCursor<'a,'t> {
         let index = self.view_row.index_map()[self.cols[self.index]];
         self.index += 1;
 
-        let column_id = self.entity_group.columns()[index];
+        let column_id = self.row_type.columns()[index];
         let row_id = self.row.get_column(index);
 
         self.table.deref_mut(column_id, row_id).unwrap()
@@ -122,7 +122,7 @@ pub struct QueryIterator<'a, 't, T:Query> {
 
     view_type_index: usize,
 
-    entity_index: usize,
+    row_index: usize,
 
     marker: PhantomData<T>,
 }
@@ -139,7 +139,7 @@ impl<'a, 't, T:Query> QueryIterator<'a, 't, T> {
             query,
 
             view_type_index: 0,
-            entity_index: 0,
+            row_index: 0,
 
             marker: PhantomData,
         }
@@ -157,16 +157,16 @@ impl<'a, 't, T:Query> Iterator for QueryIterator<'a, 't, T>
             let view_row_id = view.view_rows()[self.view_type_index];
             let view_row = self.table.meta().get_view_row(view_row_id);
             let row_type_id = view_row.row_id();
-            let entity_type = self.table.meta().get_row(row_type_id);
-            let entity_index = self.entity_index;
-            self.entity_index += 1;
+            let row_type = self.table.meta().get_row(row_type_id);
+            let row_index = self.row_index;
+            self.row_index += 1;
 
-            match self.table.get_row_by_type_index(row_type_id, entity_index) {
+            match self.table.get_row_by_type_index(row_type_id, row_index) {
                 Some(row) => {
                     return unsafe { 
                         let mut cursor = self.query.new_cursor(
                             self.table,
-                            entity_type, 
+                            row_type, 
                             view_row,
                             row
                         );
@@ -178,7 +178,7 @@ impl<'a, 't, T:Query> Iterator for QueryIterator<'a, 't, T>
             };
 
             self.view_type_index += 1;
-            self.entity_index = 0;
+            self.row_index = 0;
         }
 
         None
@@ -243,5 +243,5 @@ macro_rules! impl_query_tuple {
 //impl_query_tuple!();
 impl_query_tuple!(P1,P2);
 impl_query_tuple!(P1,P2,P3);
-//impl_query_tuple!(P1,P2,P3,P4);
-//impl_query_tuple!(P1,P2,P3,P4,P5);
+impl_query_tuple!(P1,P2,P3,P4);
+impl_query_tuple!(P1,P2,P3,P4,P5);

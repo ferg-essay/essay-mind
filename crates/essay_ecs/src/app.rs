@@ -35,7 +35,7 @@ impl App {
     }
 
     pub fn spawn<T:Insert>(&mut self, value: T) {
-        self.world.add_entity(value)
+        self.world.spawn(value)
     }
 
     pub fn add_resource<T:'static>(&mut self, value: T) {

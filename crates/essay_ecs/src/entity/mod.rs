@@ -5,7 +5,6 @@ mod entity_ref;
 mod cell;
 mod column;
 pub(crate) mod meta;
-pub(crate) mod ptr;
 
 pub mod prelude {
     pub use super::table::{
@@ -18,4 +17,5 @@ pub mod prelude {
         Query, QueryBuilder, QueryCursor, QueryIterator,
     };
     pub use super::meta::{ViewId};
+    pub use super::cell::{PtrCell};
 }

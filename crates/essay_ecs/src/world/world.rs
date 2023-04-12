@@ -1,4 +1,4 @@
-use crate::{entity::{prelude::{Table, QueryIterator, Query, Insert}, ptr::PtrCell}};
+use crate::{entity::{prelude::{Table, QueryIterator, Query, Insert, PtrCell}}};
 
 use super::resource::Resources;
 
@@ -17,7 +17,7 @@ impl<'w> World<'w> {
         self.ptr.deref().table.len()
     }
 
-    pub fn add_entity<T:Insert>(&mut self, value: T) {
+    pub fn spawn<T:Insert>(&mut self, value: T) {
         self.ptr.deref_mut().table.push::<T>(value);
     }
 
@@ -26,14 +26,11 @@ impl<'w> World<'w> {
     }
 
     pub fn eval<'a,T:Query,F>(&self, fun: &mut F)
-        where F: FnMut(T)
+        where F: FnMut(T) + FnMut(<T as Query>::Item<'w>)
     {
-        todo!();
-        /*
-        for entity in self.ptr.deref_mut().entities.query::<T>() {
-            fun(entity);
+        for arg in self.ptr.deref_mut().table.query::<T>() {
+            fun(arg);
         }
-        */
     }
 
     pub fn add_resource<T:'static>(&mut self, value: T) {
@@ -74,15 +71,14 @@ mod tests {
         let mut world = World::new();
         assert_eq!(world.len(), 0);
 
-        world.add_entity(TestA(1));
+        world.spawn(TestA(1));
         assert_eq!(world.len(), 1);
 
         let mut values = Vec::<String>::new();
         world.eval(&mut|t: &mut TestA| (&mut values).push(format!("{:?}", t)));
         assert_eq!(values.join(","), "TestA(1)");
 
-        /*
-        world.add_entity(TestB(10000));
+        world.spawn(TestB(10000));
         assert_eq!(world.len(), 2);
 
         let mut values = Vec::<String>::new();
@@ -93,7 +89,7 @@ mod tests {
         world.eval(&mut|t: &mut TestB| (&mut values).push(format!("{:?}", t)));
         assert_eq!(values.join(","), "TestB(10000)");
 
-        world.add_entity(TestB(100));
+        world.spawn(TestB(100));
         assert_eq!(world.len(), 3);
 
         let mut values = Vec::<String>::new();
@@ -108,7 +104,6 @@ mod tests {
         world.eval(&mut|t: &mut TestB| t.0 += 1);
         world.eval(&mut|t: &mut TestB| (&mut values).push(format!("{:?}", t)));
         assert_eq!(values.join(","), "TestB(10001),TestB(101)");
-        */
     }
 
     #[derive(Component, Debug)]
