@@ -1,7 +1,6 @@
 mod query;
 mod insert;
 mod table;
-mod entity_ref;
 mod cell;
 mod column;
 pub(crate) mod meta;
