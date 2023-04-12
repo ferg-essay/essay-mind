@@ -19,8 +19,9 @@ pub struct InsertBuilder<'a,'t> {
 }
 
 pub struct InsertPlan {
-    entity_type: RowTypeId,
+    row_type: RowTypeId,
     columns: Vec<ColumnId>,
+    index_map: Vec<usize>,
 }
 
 pub struct InsertCursor<'a, 't> {
@@ -45,11 +46,22 @@ impl<'a,'t> InsertBuilder<'a,'t> {
     }
 
     pub(crate) fn build(self) -> InsertPlan {
-        let entity_id = self.table.add_entity_type(self.columns.clone());
+        let row_id = self.table.add_row(self.columns.clone());
+        let row_type = self.table.meta().get_row(row_id);
+
+        let mut index_map = Vec::<usize>::new();
+
+        for row_column in row_type.columns() {
+            index_map.push(self.columns.iter()
+                .position(|c| c == row_column)
+                .unwrap()
+            );
+        }
 
         InsertPlan {
-            entity_type: entity_id,
+            row_type: row_id,
             columns: self.columns.clone(),
+            index_map: index_map,
         }
     }
 }
@@ -88,7 +100,13 @@ impl<'a, 't> InsertCursor<'a, 't> {
     }
 
     pub(crate) fn complete(self) {
-        self.table.push_entity_row(self.plan.entity_type, self.rows)
+        let mut columns = Vec::<RowId>::new();
+
+        for index in &self.plan.index_map {
+            columns.push(self.rows[*index]);
+        }
+
+        self.table.push_row(self.plan.row_type, columns)
     }
 }
 
@@ -97,8 +115,6 @@ impl<'a, 't> InsertCursor<'a, 't> {
 //
 
 impl<T:Component> Insert for T {
-    //type Item = Self;
-
     fn build(builder: &mut InsertBuilder) {
         builder.add_column::<T>();
     }
@@ -136,6 +152,6 @@ macro_rules! impl_insert_tuple {
 
 //impl_query_tuple!();
 impl_insert_tuple!(P1,P2);
-//impl_query_tuple!(P1,P2,P3);
-//impl_query_tuple!(P1,P2,P3,P4);
-//impl_query_tuple!(P1,P2,P3,P4,P5);
+impl_insert_tuple!(P1,P2,P3);
+impl_insert_tuple!(P1,P2,P3,P4);
+impl_insert_tuple!(P1,P2,P3,P4,P5);

@@ -49,7 +49,7 @@ pub struct ViewRowType {
 }
 
 pub(crate) struct TableMeta {
-    col_map: HashMap<TypeId,ColumnId>,
+    column_map: HashMap<TypeId,ColumnId>,
     columns: Vec<ColumnType>,
 
     row_map: HashMap<Vec<ColumnId>,RowTypeId>,
@@ -223,22 +223,22 @@ impl ViewRowType {
 impl TableMeta {
     pub fn new() -> Self {
         Self {
-            col_map: HashMap::new(),
+            column_map: HashMap::new(),
             columns: Vec::new(),
 
             row_map: HashMap::new(),
             rows: Vec::new(),
 
-            views: Vec::new(),
             view_map: HashMap::new(),
+            views: Vec::new(),
 
-            view_rows: Vec::new(),
             view_row_map: HashMap::new(),
+            view_rows: Vec::new(),
         }
     }
 
     //
-    // Columns
+    // Column
     //
 
     pub fn get_column(&self, id: ColumnId) -> &ColumnType {
@@ -250,7 +250,7 @@ impl TableMeta {
     }
 
     pub(crate) fn get_column_by_type<T:'static>(&self) -> Option<ColumnId> {
-        match self.col_map.get(&TypeId::of::<T>()) {
+        match self.column_map.get(&TypeId::of::<T>()) {
             Some(column_type_id) => {
                 Some(ColumnId(column_type_id.index()))
             },
@@ -261,7 +261,7 @@ impl TableMeta {
     pub fn add_column<T:'static>(&mut self) -> ColumnId {
         let type_id = TypeId::of::<T>();
 
-        let id = *self.col_map.entry(type_id)
+        let id = *self.column_map.entry(type_id)
             .or_insert(ColumnId(self.columns.len()));
 
         if self.columns.len() == id.index() {
@@ -355,11 +355,11 @@ impl TableMeta {
         }
     }
 
-    pub fn add_view(&mut self, cols: Vec<ColumnId>) -> ViewId {
+    pub fn add_view(&mut self, columns: &Vec<ColumnId>) -> ViewId {
         let len = self.views.len();
 
         let view_id = *self.view_map
-            .entry(cols.clone())
+            .entry(columns.clone())
             .or_insert_with(|| {
             ViewId(len)
         });
@@ -367,7 +367,7 @@ impl TableMeta {
         if view_id.0 == len {
             self.views.push(ViewType {
                 id: view_id,
-                cols: cols,
+                cols: columns.clone(),
                 view_rows: Vec::new(),
             });
 
@@ -798,7 +798,7 @@ mod tests {
         let mut columns = Vec::<ColumnId>::new();
         columns.push(column_id);
 
-        meta.add_view(columns)
+        meta.add_view(&columns)
     }
 
     struct TestA(usize);

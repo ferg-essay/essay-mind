@@ -24,9 +24,9 @@ pub struct QueryCursor<'a,'t> {
     index: usize,
 }
 
-pub struct QueryBuilder<'a> {
-    meta: &'a mut TableMeta, 
-    cols: Vec<ColumnId>,
+pub struct QueryBuilder<'a, 't> {
+    table: &'a mut Table<'t>, 
+    columns: Vec<ColumnId>,
 }
 
 pub(crate) struct QueryPlan {
@@ -79,31 +79,31 @@ impl<'a,'t> QueryCursor<'a,'t> {
     }
 }
 
-impl<'a> QueryBuilder<'a> {
-    pub(crate) fn new(meta: &'a mut TableMeta) -> Self {
+impl<'a, 't> QueryBuilder<'a, 't> {
+    pub(crate) fn new(table: &'a mut Table<'t>) -> Self {
         Self {
-            meta: meta,
-            cols: Vec::new(),
+            table: table,
+            columns: Vec::new(),
         }
     }
 
     pub fn add_ref<T:'static>(&mut self) {
-        let col_id = self.meta.add_column::<T>();
+        let col_id = self.table.add_column::<T>();
 
-        self.cols.push(col_id);
+        self.columns.push(col_id);
     }
 
     pub fn add_mut<T:'static>(&mut self) {
-        let col_id = self.meta.add_column::<T>();
+        let col_id = self.table.add_column::<T>();
 
-        self.cols.push(col_id);
+        self.columns.push(col_id);
     }
 
     pub(crate) fn build(self) -> QueryPlan {
-        let view_id = self.meta.add_view(self.cols.clone());
-        let view = self.meta.get_view(view_id);
+        let view_id = self.table.add_view(&self.columns);
+        let view = self.table.get_view(view_id);
 
-        let cols = self.cols.iter()
+        let cols = self.columns.iter()
             .map(|col_id| view.column_position(*col_id).unwrap())
             .collect();
 
