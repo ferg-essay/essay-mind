@@ -1,11 +1,12 @@
 use std::mem::{self, ManuallyDrop};
-use std::num::NonZeroUsize;
 use std::ptr::NonNull;
 use std::{marker::PhantomData, cmp};
 use std::alloc::Layout;
 
 use super::meta::{ColumnTypeId, ColumnType, RowMetas};
-use super::prelude::RowId;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Ord, PartialOrd)]
+pub struct RowId(u32);
 
 pub(crate) struct Column<'c> {
     meta: ColumnType,
@@ -195,9 +196,26 @@ fn dangling_data(align: usize) -> NonNull<u8> {
     }
 }
 
+impl RowId {
+    pub fn new(id: u32) -> RowId {
+        RowId(id)
+    }
+
+    #[inline]
+    pub const fn index(&self) -> usize {
+        self.0 as usize
+    }
+}
+
+impl From<u32> for RowId {
+    fn from(value: u32) -> Self {
+        RowId(value)
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::entity::{meta::RowMetas, prelude::RowId};
+    use crate::entity::{meta::RowMetas, column::RowId};
 
     use super::Column;
 

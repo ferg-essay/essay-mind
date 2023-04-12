@@ -1,11 +1,7 @@
-use std::marker::PhantomData;
-
-use super::column::Column;
+use super::column::{Column, RowId};
 use super::insert::{InsertBuilder, Insert, InsertPlan};
-use super::prelude::{ViewTypeId};
 use super::query::{Query, QueryIterator, QueryBuilder, QueryPlan};
-use super::row::{RowId};
-use super::meta::{RowTypeId, RowMetas, ColumnTypeId, EntityTypeId, EntityGroup, ViewRowType};
+use super::meta::{RowTypeId, RowMetas, ColumnTypeId, EntityTypeId};
 
 pub struct Table<'t> {
     meta: RowMetas,
@@ -21,22 +17,11 @@ pub struct Table<'t> {
 #[derive(Debug,Clone,Copy,PartialEq,Hash,PartialOrd,Eq)]
 pub struct EntityId(usize);
 
-impl EntityId {
-    fn index(&self) -> usize {
-        self.0
-    }
-}
-
 pub struct EntityRow {
     id: EntityId,
     type_id: EntityTypeId,
 
     columns: Vec<RowId>,
-}
-impl EntityRow {
-    pub(crate) fn get_column(&self, index: usize) -> RowId {
-        self.columns[index]
-    }
 }
 
 pub struct RowRef {
@@ -209,6 +194,18 @@ impl<'t> Table<'t> {
             Some(row_id) => self.entities.get(row_id.index()),
             None => None,
         }
+    }
+}
+
+impl EntityId {
+    fn index(&self) -> usize {
+        self.0
+    }
+}
+
+impl EntityRow {
+    pub(crate) fn get_column(&self, index: usize) -> RowId {
+        self.columns[index]
     }
 }
 

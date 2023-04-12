@@ -1,4 +1,4 @@
-use super::{prelude::RowId, meta::ColumnTypeId};
+use super::{meta::ColumnTypeId, column::RowId};
 
 #[derive(Debug,Clone,Copy,PartialEq,Hash,PartialOrd,Eq)]
 pub struct EntityId2(usize);
