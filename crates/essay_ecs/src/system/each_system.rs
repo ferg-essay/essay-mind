@@ -1,6 +1,6 @@
 use std::{marker::PhantomData};
 
-use crate::{world::prelude::World, store::{prelude::Query2}, entity::prelude::IsEntity};
+use crate::{world::prelude::World, table::{prelude::Query}};
 
 use super::{prelude::Param, system::{System, IntoSystem}, param::Arg};
 
@@ -16,12 +16,12 @@ where
 }
 
 pub trait EachFun<M> {
-    type Entity<'w>:Query2<IsEntity>;
+    type Entity<'w>:Query;
     type Params: Param;
 
     fn run<'a,'w>(&mut self, 
         world: &World<'w>,
-        entity: <Self::Entity<'w> as Query2<IsEntity>>::Item<'w>, // <'a>, 
+        entity: <Self::Entity<'w> as Query>::Item<'w>, // <'a>, 
         param: Arg<Self::Params>
     );
 }
@@ -75,25 +75,11 @@ where
 // EachFun: function system matching
 //
 pub struct IsPlain;
-/*
-impl<F:'static,T:Query<IsEntity>,P:Param,> EachFun<fn(IsPlain, T, P)> for F
-    where for<'w> F:FnMut(T, P,) -> () +
-            FnMut(T::Item<'w>, Arg<P>,) -> ()
-{
-    type Entity<'w> = T;
-    type Params = (P,);
-
-    fn run<'b,'w>(&mut self, world: &World<'w>, entity: T::Item<'w>, arg: Arg<(P,)>) {
-        let (p1,) = arg;
-        self(entity, p1,)
-    }
-}
-*/
 
 macro_rules! impl_each_function {
     ($($param:ident),*) => {
         #[allow(non_snake_case)]
-        impl<F:'static, T:Query2<IsEntity>, $($param: Param),*> EachFun<fn(IsPlain, T, $($param,)*)> for F
+        impl<F:'static, T:Query, $($param: Param),*> EachFun<fn(IsPlain, T, $($param,)*)> for F
         where for<'w> F:FnMut(T, $($param),*) -> () +
             FnMut(T::Item<'w>, $(Arg<$param>),*) -> ()
         {

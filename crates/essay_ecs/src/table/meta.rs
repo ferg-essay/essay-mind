@@ -1,6 +1,6 @@
 use std::{mem, collections::{HashMap, HashSet}, cmp::max, slice::Iter, any::{TypeId, type_name}, borrow::Cow, alloc::Layout};
 
-use super::{prelude::{Row, RowId}};
+use super::{prelude::{RowId}};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct ColumnTypeId(usize);
@@ -28,46 +28,13 @@ pub struct ColumnType {
     views: Vec<ViewTypeId>,
 }
 
-#[derive(Clone, Debug)]
-pub struct ColumnItem {
-    col_id: ColumnTypeId,
-    row_id: RowTypeId,
+#[derive(Debug,Clone,Copy,PartialEq,Hash,PartialOrd,Eq)]
+pub struct EntityTypeId(usize);
 
-    index: usize,
+pub struct EntityGroup {
+    id: EntityTypeId,
 
-    align: usize,
-    length: usize,
-
-    offset: usize,
-}
-
-pub struct RowType {
-    id: RowTypeId,
-    columns: Vec<ColumnItem>,
-    align: usize,
-    length: usize,
-}
-
-pub trait Insert2<M>:'static {
-    fn build(builder: &mut InsertBuilder2);
-
-    unsafe fn insert(cursor: &mut InsertCursor2, value: Self);
-}
-
-pub struct InsertBuilder2<'a> {
-    meta: &'a mut RowMetas,
     columns: Vec<ColumnTypeId>,
-}
-
-pub struct InsertPlan2 {
-    row_type: RowTypeId,
-    row_cols: Vec<usize>,
-}
-
-pub struct InsertCursor2<'a, 't> {
-    row: &'a mut Row<'t>,
-    map: &'a InsertPlan2,
-    index: usize,
 }
 
 pub struct ViewType {
@@ -86,36 +53,9 @@ pub struct ViewRowType {
     index_map: Vec<usize>,
 }
 
-pub trait Query2<M> {
-    type Item<'a>;
-
-    fn build(query: &mut QueryBuilder2);
-
-    unsafe fn query<'a,'t>(cursor: &mut QueryCursor2<'a,'t>) -> Self::Item<'t>;
-}
-
-pub struct QueryCursor2<'a,'t> {
-    row: &'a Row<'t>,
-    cols: &'a Vec<usize>,
-    index: usize,
-}
-
-enum AccessType {
-    AccessRef,
-    AccessMut
-}
-
-pub struct QueryBuilder2<'a> {
-    meta: &'a mut RowMetas, 
-    cols: Vec<ColumnTypeId>,
-}
-
 pub(crate) struct RowMetas {
     col_map: HashMap<TypeId,ColumnTypeId>,
     columns: Vec<ColumnType>,
-
-    row_map: HashMap<Vec<ColumnTypeId>,RowTypeId>,
-    rows: Vec<RowType>,
 
     entity_row_map: HashMap<Vec<ColumnTypeId>,EntityTypeId>,
     entity_rows: Vec<EntityGroup>,
@@ -157,79 +97,6 @@ impl ColumnType {
     }
 }
 
-impl ColumnItem {
-    pub fn id(&self) -> ColumnTypeId {
-        self.col_id
-    }
-
-    pub fn align(&self) -> usize {
-        self.align
-    }
-
-    pub fn length(&self) -> usize {
-        self.length
-    }
-
-    pub fn offset(&self) -> usize {
-        self.offset
-    }
-}
-
-impl RowTypeId {
-    pub fn index(&self) -> usize {
-        self.0
-    }
-}
-
-impl RowType {
-    pub fn id(&self) -> RowTypeId {
-        self.id
-    }
-
-    pub fn align(&self) -> usize {
-        self.align
-    }
-
-    pub fn length(&self) -> usize {
-        self.length
-    }
-
-    pub fn columns(&self) -> Iter<ColumnItem> {
-        self.columns.iter()
-    }
-
-    pub fn column(&self, index: usize) -> &ColumnItem {
-        self.columns.get(index).unwrap()
-    }
-
-    pub fn column_position(&self, id: ColumnTypeId) -> Option<usize> {
-        self.columns.iter().position(|col| col.id() == id)
-    }
-
-    pub fn column_find(&self, id: ColumnTypeId) -> Option<&ColumnItem> {
-        self.columns.iter().find(|col| col.id() == id)
-    }
-
-    fn contains_columns(&self, cols: &Vec<ColumnTypeId>) -> bool {
-        for col in cols {
-            if self.column_find(*col).is_none() {
-                return false;
-            }
-        }
-
-        true
-    }
-}
-
-#[derive(Debug,Clone,Copy,PartialEq,Hash,PartialOrd,Eq)]
-pub struct EntityTypeId(usize);
-
-pub struct EntityGroup {
-    id: EntityTypeId,
-
-    columns: Vec<ColumnTypeId>,
-}
-
 impl EntityGroup {
     pub(crate) fn id(&self) -> EntityTypeId {
         self.id
@@ -257,64 +124,6 @@ impl EntityGroup {
 impl EntityTypeId {
     pub fn index(&self) -> usize {
         self.0
-    }
-}
-
-impl<'a> InsertBuilder2<'a> {
-    pub(crate) fn new(meta: &'a mut RowMetas) -> Self {
-        Self {
-            meta: meta,
-            columns: Vec::new(),
-        }
-    }
-
-    pub(crate) fn add_column<T:'static>(&mut self) {
-        let id = self.meta.add_column::<T>();
-        
-        self.columns.push(id);
-    }
-
-    pub(crate) fn build(self) -> InsertPlan2 {
-        let row_id = self.meta.add_row(self.columns.clone());
-        let row = self.meta.get_row_id(row_id);
-
-        let mut row_cols = Vec::<usize>::new();
-
-        for col_id in &self.columns {
-            row_cols.push(row.column_position(*col_id).unwrap());
-        }
-
-        InsertPlan2 {
-            row_type: row.id(),
-            row_cols: row_cols,
-        }
-    }
-}
-
-impl InsertPlan2 {
-    pub fn index(&self, index: usize) -> usize {
-        self.row_cols[index]
-    }
-
-    pub(crate) fn row_type(&self) -> RowTypeId {
-        self.row_type
-    }
-
-    pub(crate) fn cursor<'a, 't>(&'a self, row: &'a mut Row<'t>) -> InsertCursor2<'a, 't> {
-        InsertCursor2 {
-            map: &self,
-            row: row,
-            index: 0, 
-        }
-    }
-}
-
-impl<'a, 't> InsertCursor2<'a, 't> {
-    pub unsafe fn insert<T:'static>(&mut self, value: T) {
-        let index = self.index;
-        self.index += 1;
-
-        self.row.write::<T>(self.map.row_cols[index], value);
     }
 }
 
@@ -388,87 +197,11 @@ impl ViewRowType {
     }
 }
 
-pub(crate) struct QueryPlan2 {
-    view: ViewTypeId,
-    cols: Vec<usize>,
-}
-
-impl QueryPlan2 {
-    pub(crate) fn new_cursor<'a,'t>(
-        &'a self, 
-        row: &'a Row<'t>
-    ) -> QueryCursor2<'a,'t> {
-        QueryCursor2 {
-            row: row,
-            cols: &self.cols,
-            index: 0,
-        }
-    }
-
-    pub(crate) fn view(&self) -> ViewTypeId {
-        self.view
-    }
-}
-
-impl<'a,'t> QueryCursor2<'a,'t> {
-    pub unsafe fn deref<T:'static>(&mut self) -> &'t T {
-        let index = self.index;
-        self.index += 1;
-
-        self.row.deref(self.cols[index])
-    }
-
-    pub unsafe fn deref_mut<T:'static>(&mut self) -> &'t mut T {
-        let index = self.index;
-        self.index += 1;
-
-        self.row.deref_mut(self.cols[index])
-    }
-}
-
-impl<'a> QueryBuilder2<'a> {
-    pub(crate) fn new(meta: &'a mut RowMetas) -> Self {
-        Self {
-            meta: meta,
-            cols: Vec::new(),
-        }
-    }
-
-    pub fn add_ref<T:'static>(&mut self) {
-        let col_id = self.meta.add_column::<T>();
-
-        self.cols.push(col_id);
-    }
-
-    pub fn add_mut<T:'static>(&mut self) {
-        let col_id = self.meta.add_column::<T>();
-
-        self.cols.push(col_id);
-    }
-
-    pub(crate) fn build(self) -> QueryPlan2 {
-        let view_id = self.meta.add_view(self.cols.clone());
-        let view = self.meta.get_view(view_id);
-
-        let cols = self.cols.iter()
-            .map(|col_id| view.column_position(*col_id).unwrap())
-            .collect();
-
-        QueryPlan2 {
-            view: view_id,
-            cols: cols,
-        }
-    }
-}
-
 impl RowMetas {
     pub fn new() -> Self {
         Self {
             col_map: HashMap::new(),
             columns: Vec::new(),
-
-            row_map: HashMap::new(),
-            rows: Vec::new(),
 
             entity_row_map: HashMap::new(),
             entity_rows: Vec::new(),
@@ -534,62 +267,6 @@ impl RowMetas {
         }
 
         id
-    }
-
-    pub fn get_row_id(&self, row_type_id: RowTypeId) -> &RowType {
-        self.rows.get(row_type_id.index()).unwrap()
-    }
-
-    pub fn add_row(&mut self, mut columns: Vec<ColumnTypeId>) -> RowTypeId {
-        todo!();
-        /*
-        columns.sort();
-        columns.dedup();
-
-        let mut length: usize = 0;
-        let mut align: usize = 1;
-
-        let len = self.row_map.len();
-        let row_type_id = *self.row_map.entry(columns.clone()).or_insert_with(|| {
-            RowTypeId(len)
-        });
-
-        if row_type_id.index() < len {
-            return row_type_id;
-        }
-
-        let mut items = Vec::<ColumnItem>::new();
-
-        for (index, column_id) in columns.iter().enumerate() {
-            let column_type = self.columns.get(column_id.0).unwrap();
-
-            let mut item = ColumnItem {
-                col_id: column_type.id(),
-                row_id: row_type_id,
-                index: index,
-                length: column_type.size(),
-                align: column_type.layout_padded().align(),
-                offset: 0,
-            };
-            item.offset = length;
-
-            length += column_type.size(); // TODO: align
-            align = max(align, column_type.layout_padded().align()); 
-
-            items.push(item);
-        }
-
-        self.push_row_type(RowType {
-            id: row_type_id,
-            columns: items,
-            length: length,
-            align: align,
-        });
-
-        self.fill_row_columns(row_type_id);
-
-        row_type_id
-        */
     }
 
     pub fn add_entity_row(&mut self, mut columns: Vec<ColumnTypeId>) -> EntityTypeId {
@@ -685,21 +362,6 @@ impl RowMetas {
         for view_Id in views {
             self.add_view_row(row_type_id, view_Id);
         }
-    }
-
-    fn push_row_type(&mut self, row_type: RowType) {
-        todo!();
-        /*
-        let row_type_id = row_type.id();
-
-        for col in &row_type.columns {
-            let col_type = self.columns.get_mut(col.id().index()).unwrap();
-
-            col_type.rows.push(row_type_id);
-        }
-
-        self.rows.push(row_type);
-        */
     }
 
     pub fn single_row_type<T:'static>(&mut self) -> EntityTypeId {
@@ -903,7 +565,7 @@ impl RowMetas {
 mod tests {
     use std::{mem, alloc::Layout};
 
-    use crate::store::meta::{ColumnTypeId, RowTypeId, ColumnType, ColumnItem, ViewTypeId, ViewRowTypeId, EntityTypeId};
+    use crate::table::meta::{ColumnTypeId, ViewTypeId, ViewRowTypeId, EntityTypeId};
 
     use super::RowMetas;
 

@@ -1,16 +1,14 @@
 use std::marker::PhantomData;
 
 use super::column::Column;
-use super::prelude::{ViewTypeId, QueryCursor2};
-use super::row::{RowId, Row};
+use super::prelude::{ViewTypeId};
+use super::row::{RowId};
 use super::meta::{RowTypeId, RowMetas, ColumnTypeId, EntityTypeId, EntityGroup, ViewRowType};
 
 pub struct Table<'t> {
     meta: RowMetas,
 
     columns: Vec<Column<'t>>,
-
-    rows: Vec<Row<'t>>,
 
     type_rows: Vec<Vec<RowId>>,
 
@@ -51,8 +49,6 @@ impl<'t> Table<'t> {
             meta: row_meta,
 
             columns: Vec::new(),
-
-            rows: Vec::new(),
 
             type_rows: Vec::new(),
             
@@ -544,7 +540,7 @@ impl RowRef {
 
 #[cfg(test)]
 mod tests {
-    use crate::store::{prelude::{Row}, meta::{}};
+    use crate::{table::{meta::{}}, prelude::Component};
 
     use super::{Table, Query, QueryIterator, QueryCursor, InsertCursor, InsertBuilder, Insert};
 
@@ -656,12 +652,13 @@ mod tests {
 
     trait TestComponent:'static {}
     
-    impl TestComponent for TestA {}
-    impl TestComponent for TestB {}
+    impl Component for TestA {}
+    impl Component for TestB {}
     
     struct IsTest;
     struct IsTestC;
 
+    /*
     impl<T:TestComponent> Insert for T {
         fn build(builder: &mut InsertBuilder) {
             builder.add_column::<T>()
@@ -671,6 +668,7 @@ mod tests {
             cursor.insert(value);
         }
     }
+    */
 
     impl Insert for TestC {
         fn build(builder: &mut InsertBuilder) {
@@ -682,6 +680,7 @@ mod tests {
         }
     }
 
+    /*
     impl<T:TestComponent> Query for &T {
         type Item<'t> = &'t T;
 
@@ -705,6 +704,7 @@ mod tests {
             cursor.deref_mut::<T>()
         }
     }
+    */
 
     struct TestTable<'t> {
         table: Table<'t>,

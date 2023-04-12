@@ -197,7 +197,7 @@ fn dangling_data(align: usize) -> NonNull<u8> {
 
 #[cfg(test)]
 mod tests {
-    use crate::store::{meta::RowMetas, prelude::RowId};
+    use crate::table::{meta::RowMetas, prelude::RowId};
 
     use super::Column;
 
