@@ -1,11 +1,11 @@
-use super::{meta::ColumnTypeId, column::RowId};
+use super::{meta::{ColumnId, RowTypeId}, column::RowId};
 
 #[derive(Debug,Clone,Copy,PartialEq,Hash,PartialOrd,Eq)]
 pub struct EntityId2(usize);
 
 use std::marker::PhantomData;
 
-use crate::{entity::{prelude::{RowTypeId, Table}, meta::{ViewRowTypeId}}, prelude::Component};
+use crate::{entity::{prelude::{Table}, meta::{ViewRowId}}, prelude::Component};
 
 pub struct EntityRef {
     row_id: RowId,

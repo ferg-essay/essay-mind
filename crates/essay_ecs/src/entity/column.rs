@@ -3,7 +3,7 @@ use std::ptr::NonNull;
 use std::{marker::PhantomData, cmp};
 use std::alloc::Layout;
 
-use super::meta::{ColumnTypeId, ColumnType, RowMetas};
+use super::meta::{ColumnId, ColumnType, TableMeta};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Ord, PartialOrd)]
 pub struct RowId(u32);
@@ -23,7 +23,7 @@ pub(crate) struct Column<'c> {
 }
 
 impl<'c> Column<'c> {
-    pub(crate) fn new<T:'static>(metas: &mut RowMetas) -> Self {
+    pub(crate) fn new<T:'static>(metas: &mut TableMeta) -> Self {
         let id = metas.add_column::<T>();
         let meta = metas.get_column(id);
 
@@ -58,7 +58,7 @@ impl<'c> Column<'c> {
         }
     }
     
-    pub fn id(&self) -> ColumnTypeId {
+    pub fn id(&self) -> ColumnId {
         self.meta.id()
     }
 
@@ -215,13 +215,13 @@ impl From<u32> for RowId {
 
 #[cfg(test)]
 mod tests {
-    use crate::entity::{meta::RowMetas, column::RowId};
+    use crate::entity::{meta::TableMeta, column::RowId};
 
     use super::Column;
 
     #[test]
     fn col_null() {
-        let mut metas = RowMetas::new();
+        let mut metas = TableMeta::new();
         let col = Column::new::<()>(&mut metas);
 
         assert_eq!(col.capacity(), 1);
@@ -236,7 +236,7 @@ mod tests {
 
     #[test]
     fn col_u8() {
-        let mut metas = RowMetas::new();
+        let mut metas = TableMeta::new();
         let mut col = Column::new::<u8>(&mut metas);
 
         assert_eq!(col.capacity(), 0);
@@ -270,7 +270,7 @@ mod tests {
 
     #[test]
     fn col_u16() {
-        let mut metas = RowMetas::new();
+        let mut metas = TableMeta::new();
         let mut col = Column::new::<TestA>(&mut metas);
 
         assert_eq!(col.capacity(), 0);

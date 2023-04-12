@@ -4,7 +4,7 @@ use std::ptr::NonNull;
 use std::{marker::PhantomData, cmp};
 use std::alloc::Layout;
 
-use super::meta::{ColumnTypeId, ColumnType, RowMetas};
+use super::meta::{ColumnId, ColumnType, TableMeta};
 
 pub(crate) struct UnsafeCell<'c, T> {
     data: NonNull<u8>,

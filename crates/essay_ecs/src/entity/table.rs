@@ -1,10 +1,10 @@
 use super::column::{Column, RowId};
 use super::insert::{InsertBuilder, Insert, InsertPlan};
 use super::query::{Query, QueryIterator, QueryBuilder, QueryPlan};
-use super::meta::{RowTypeId, RowMetas, ColumnTypeId, EntityTypeId};
+use super::meta::{TableMeta, ColumnId, RowTypeId};
 
 pub struct Table<'t> {
-    meta: RowMetas,
+    meta: TableMeta,
 
     columns: Vec<Column<'t>>,
 
@@ -19,14 +19,9 @@ pub struct EntityId(usize);
 
 pub struct EntityRow {
     id: EntityId,
-    type_id: EntityTypeId,
+    type_id: RowTypeId,
 
     columns: Vec<RowId>,
-}
-
-pub struct RowRef {
-    row: RowId,
-    type_id: RowTypeId,
 }
 
 pub trait Component:'static {}
@@ -40,7 +35,7 @@ pub struct ComponentId(usize);
 
 impl<'t> Table<'t> {
     pub fn new() -> Self {
-        let mut row_meta = RowMetas::new();
+        let mut row_meta = TableMeta::new();
 
         Self {
             meta: row_meta,
@@ -54,11 +49,11 @@ impl<'t> Table<'t> {
         }
     }
 
-    pub(crate) fn meta(&self) -> &RowMetas {
+    pub(crate) fn meta(&self) -> &TableMeta {
         &self.meta
     }
 
-    pub(crate) fn meta_mut(&mut self) -> &mut RowMetas {
+    pub(crate) fn meta_mut(&mut self) -> &mut TableMeta {
         &mut self.meta
     }
 
@@ -66,7 +61,7 @@ impl<'t> Table<'t> {
         self.entities.len()
     }
     
-    pub(crate) fn add_column<T:'static>(&mut self) -> ColumnTypeId {
+    pub(crate) fn add_column<T:'static>(&mut self) -> ColumnId {
         let column_id = self.meta.add_column::<T>();
 
         if column_id.index() < self.columns.len() {
@@ -80,7 +75,7 @@ impl<'t> Table<'t> {
         column_id
     }
 
-    pub(crate) fn get_column(&mut self, column_id: ColumnTypeId) -> &mut Column<'t> {
+    pub(crate) fn get_column(&mut self, column_id: ColumnId) -> &mut Column<'t> {
         &mut self.columns[column_id.index()]
     }
 
@@ -108,8 +103,8 @@ impl<'t> Table<'t> {
         cursor.complete();
     }
 
-    pub(crate) fn add_entity_type(&mut self, cols: Vec<ColumnTypeId>) -> EntityTypeId {
-        let entity_type_id = self.meta.add_entity_row(cols);
+    pub(crate) fn add_entity_type(&mut self, cols: Vec<ColumnId>) -> RowTypeId {
+        let entity_type_id = self.meta.add_row(cols);
 
         while self.type_entities.len() <= entity_type_id.index() {
             self.type_entities.push(Vec::new());
@@ -120,7 +115,7 @@ impl<'t> Table<'t> {
 
     pub(crate) fn push_entity_row(
         &mut self, 
-        entity_type_id: EntityTypeId, 
+        entity_type_id: RowTypeId, 
         rows: Vec<RowId>
     ) {
         let entity_id = EntityId(self.entities.len());
@@ -171,7 +166,7 @@ impl<'t> Table<'t> {
 
     pub(crate) unsafe fn deref<T:'static>(
         &self, 
-        column_id: ColumnTypeId, 
+        column_id: ColumnId, 
         row_id: RowId
     ) -> Option<&'t T> {
         self.columns[column_id.index()].get(row_id)
@@ -179,7 +174,7 @@ impl<'t> Table<'t> {
 
     pub(crate) unsafe fn deref_mut<T:'static>(
         &self, 
-        column_id: ColumnTypeId, 
+        column_id: ColumnId, 
         row_id: RowId
     ) -> Option<&'t mut T> {
         self.columns[column_id.index()].get_mut(row_id)
@@ -187,7 +182,7 @@ impl<'t> Table<'t> {
 
     pub(crate) fn get_row_by_type_index(
         &self, 
-        row_type_id: EntityTypeId, 
+        row_type_id: RowTypeId, 
         row_index: usize
     ) -> Option<&EntityRow> {
         match self.type_entities[row_type_id.index()].get(row_index) {
@@ -206,16 +201,6 @@ impl EntityId {
 impl EntityRow {
     pub(crate) fn get_column(&self, index: usize) -> RowId {
         self.columns[index]
-    }
-}
-
-impl RowRef {
-    pub fn row_id(&self) -> RowId {
-        self.row
-    }
-
-    pub fn row_type_id(&self) -> RowTypeId {
-        self.type_id
     }
 }
 

@@ -5,7 +5,7 @@
 
 use std::marker::PhantomData;
 
-use super::{prelude::{Table, ViewTypeId}, meta::{EntityGroup, ViewRowType, RowMetas, ColumnTypeId}, table::{EntityRow, Component}};
+use super::{prelude::{Table, ViewId}, meta::{RowType, ViewRowType, TableMeta, ColumnId}, table::{EntityRow, Component}};
 
 pub trait Query {
     type Item<'a>;
@@ -17,7 +17,7 @@ pub trait Query {
 
 pub struct QueryCursor<'a,'t> {
     table: &'a Table<'t>,
-    entity_group: &'a EntityGroup,
+    entity_group: &'a RowType,
     view_row: &'a ViewRowType,
     row: &'a EntityRow,
     cols: &'a Vec<usize>,
@@ -25,12 +25,12 @@ pub struct QueryCursor<'a,'t> {
 }
 
 pub struct QueryBuilder<'a> {
-    meta: &'a mut RowMetas, 
-    cols: Vec<ColumnTypeId>,
+    meta: &'a mut TableMeta, 
+    cols: Vec<ColumnId>,
 }
 
 pub(crate) struct QueryPlan {
-    view: ViewTypeId,
+    view: ViewId,
     cols: Vec<usize>,
 }
 
@@ -38,7 +38,7 @@ impl QueryPlan {
     pub(crate) fn new_cursor<'a,'t>(
         &'a self, 
         table: &'a Table<'t>,
-        group: &'a EntityGroup,
+        group: &'a RowType,
         view_row: &'a ViewRowType,
         row: &'a EntityRow
     ) -> QueryCursor<'a,'t> {
@@ -52,7 +52,7 @@ impl QueryPlan {
         }
     }
 
-    pub(crate) fn view(&self) -> ViewTypeId {
+    pub(crate) fn view(&self) -> ViewId {
         self.view
     }
 }
@@ -80,7 +80,7 @@ impl<'a,'t> QueryCursor<'a,'t> {
 }
 
 impl<'a> QueryBuilder<'a> {
-    pub(crate) fn new(meta: &'a mut RowMetas) -> Self {
+    pub(crate) fn new(meta: &'a mut TableMeta) -> Self {
         Self {
             meta: meta,
             cols: Vec::new(),
@@ -117,7 +117,7 @@ impl<'a> QueryBuilder<'a> {
 pub struct QueryIterator<'a, 't, T:Query> {
     table: &'a Table<'t>,
 
-    view_id: ViewTypeId,
+    view_id: ViewId,
     query: QueryPlan,
 
     view_type_index: usize,
@@ -153,11 +153,11 @@ impl<'a, 't, T:Query> Iterator for QueryIterator<'a, 't, T>
     fn next(&mut self) -> Option<Self::Item> {
         let view = self.table.meta().get_view(self.view_id);
 
-        while self.view_type_index < view.rows().len() {
-            let view_row_id = view.rows()[self.view_type_index];
+        while self.view_type_index < view.view_rows().len() {
+            let view_row_id = view.view_rows()[self.view_type_index];
             let view_row = self.table.meta().get_view_row(view_row_id);
-            let row_type_id = view_row.row_type_id();
-            let entity_type = self.table.meta().get_entity_type(row_type_id);
+            let row_type_id = view_row.row_id();
+            let entity_type = self.table.meta().get_row(row_type_id);
             let entity_index = self.entity_index;
             self.entity_index += 1;
 

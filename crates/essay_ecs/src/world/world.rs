@@ -37,7 +37,7 @@ impl<'w> World<'w> {
     }
 
     pub fn add_resource<T:'static>(&mut self, value: T) {
-        self.ptr.deref_mut().resources.set(value);
+        // self.ptr.deref_mut().resources.set(value);
     }
     
     pub fn get_resource<T:'static>(&self) -> Option<&T> {

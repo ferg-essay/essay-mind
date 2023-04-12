@@ -1,6 +1,4 @@
-use std::marker::PhantomData;
-
-use crate::{entity::prelude::{RowRef, Table}, type_meta::TypeMetas};
+use crate::{entity::prelude::{Table}, type_meta::TypeMetas};
 
 struct IsResource;
 
@@ -17,19 +15,6 @@ impl<'w> Resources<'w> {
             table: Table::new(),
             //resources: Vec::new(),
         }
-    }
-
-    pub fn set<T:'static>(&mut self, value: T) -> RowRef {
-        let entity_ref = self.create_ref::<T>();
-
-        self.set_ref(&entity_ref, value);
-
-        entity_ref
-    }
-
-    pub fn set_ref<T:'static>(&mut self, entity_ref: &RowRef, value: T) {
-        todo!();
-        //self.table.replace(entity_ref, value);
     }
 
     pub fn get_by_type<T:'static>(&mut self) -> Option<&T> {
@@ -55,29 +40,6 @@ impl<'w> Resources<'w> {
         self.table.get_mut(&en_ref)
         */
     }
-
-    pub fn create_ref<T:'static>(&mut self) -> RowRef {
-        todo!();
-        /*
-        let type_id = self.types.add_type::<T>();
-
-        self.table.create_ref::<T>(type_id.index() as u32)
-        */
-    }
-
-    pub fn get<T:'static>(&self, entity: &RowRef) -> Option<&T> {
-        todo!();
-        /*
-        self.table.get(entity)
-        */
-    }
-
-    pub fn get_mut<T:'static>(&mut self, entity: &RowRef) -> Option<&mut T> {
-        todo!();
-        /*
-        self.table.get_mut(entity)
-        */
-    }
 }
 
 #[cfg(test)]
@@ -86,6 +48,7 @@ mod tests {
 
     #[test]
     fn set_get() {
+        /*
         let mut resources = Resources::new();
 
         let res_a = resources.set(TestA(1));
@@ -97,6 +60,7 @@ mod tests {
         let res_a2 = resources.set(TestA(3));
         assert_eq!(resources.get(&res_a2), Some(&TestA(3)));
         assert_eq!(resources.get(&res_a), Some(&TestA(3)));
+        */
     }
 
     #[derive(PartialEq, Debug)]

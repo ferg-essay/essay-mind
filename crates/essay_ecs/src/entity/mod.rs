@@ -9,7 +9,7 @@ pub(crate) mod ptr;
 
 pub mod prelude {
     pub use super::table::{
-        Table, RowRef, Component,
+        Table, Component,
     };
     pub use super::insert::{
         Insert, InsertBuilder, InsertCursor,
@@ -17,5 +17,5 @@ pub mod prelude {
     pub use super::query::{
         Query, QueryBuilder, QueryCursor, QueryIterator,
     };
-    pub use super::meta::{ViewTypeId, RowTypeId};
+    pub use super::meta::{ViewId};
 }

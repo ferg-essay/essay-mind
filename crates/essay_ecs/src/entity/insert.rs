@@ -5,7 +5,7 @@
 
 use crate::prelude::Component;
 
-use super::{meta::{EntityTypeId, ColumnTypeId}, prelude::{Table}, column::RowId};
+use super::{meta::{RowTypeId, ColumnId}, prelude::{Table}, column::RowId};
 
 pub trait Insert:'static {
     fn build(builder: &mut InsertBuilder);
@@ -15,12 +15,12 @@ pub trait Insert:'static {
 
 pub struct InsertBuilder<'a,'t> {
     table: &'a mut Table<'t>,
-    columns: Vec<ColumnTypeId>,
+    columns: Vec<ColumnId>,
 }
 
 pub struct InsertPlan {
-    entity_type: EntityTypeId,
-    columns: Vec<ColumnTypeId>,
+    entity_type: RowTypeId,
+    columns: Vec<ColumnId>,
 }
 
 pub struct InsertCursor<'a, 't> {
