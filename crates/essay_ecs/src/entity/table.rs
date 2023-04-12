@@ -1,7 +1,9 @@
 use std::marker::PhantomData;
 
 use super::column::Column;
+use super::insert::{InsertBuilder, Insert, InsertPlan};
 use super::prelude::{ViewTypeId};
+use super::query::{Query, QueryIterator, QueryBuilder, QueryPlan};
 use super::row::{RowId};
 use super::meta::{RowTypeId, RowMetas, ColumnTypeId, EntityTypeId, EntityGroup, ViewRowType};
 
@@ -31,11 +33,21 @@ pub struct EntityRow {
 
     columns: Vec<RowId>,
 }
+impl EntityRow {
+    pub(crate) fn get_column(&self, index: usize) -> RowId {
+        self.columns[index]
+    }
+}
 
 pub struct RowRef {
     row: RowId,
     type_id: RowTypeId,
 }
+
+pub trait Component:'static {}
+
+#[derive (Debug, PartialEq, Hash, Eq, PartialOrd, Ord)]
+pub struct ComponentId(usize);
 
 //
 // implementation
@@ -69,7 +81,7 @@ impl<'t> Table<'t> {
         self.entities.len()
     }
     
-    fn add_column<T:'static>(&mut self) -> ColumnTypeId {
+    pub(crate) fn add_column<T:'static>(&mut self) -> ColumnTypeId {
         let column_id = self.meta.add_column::<T>();
 
         if column_id.index() < self.columns.len() {
@@ -83,7 +95,7 @@ impl<'t> Table<'t> {
         column_id
     }
 
-    fn get_column(&mut self, column_id: ColumnTypeId) -> &mut Column<'t> {
+    pub(crate) fn get_column(&mut self, column_id: ColumnTypeId) -> &mut Column<'t> {
         &mut self.columns[column_id.index()]
     }
 
@@ -111,7 +123,7 @@ impl<'t> Table<'t> {
         cursor.complete();
     }
 
-    fn add_entity_type(&mut self, cols: Vec<ColumnTypeId>) -> EntityTypeId {
+    pub(crate) fn add_entity_type(&mut self, cols: Vec<ColumnTypeId>) -> EntityTypeId {
         let entity_type_id = self.meta.add_entity_row(cols);
 
         while self.type_entities.len() <= entity_type_id.index() {
@@ -121,7 +133,11 @@ impl<'t> Table<'t> {
         entity_type_id
     }
 
-    fn push_entity_row(&mut self, entity_type_id: EntityTypeId, rows: Vec<RowId>) {
+    pub(crate) fn push_entity_row(
+        &mut self, 
+        entity_type_id: EntityTypeId, 
+        rows: Vec<RowId>
+    ) {
         let entity_id = EntityId(self.entities.len());
 
         let entity_row = EntityRow {
@@ -168,7 +184,7 @@ impl<'t> Table<'t> {
         QueryIterator::new(self, plan)
     }
 
-    unsafe fn deref<T:'static>(
+    pub(crate) unsafe fn deref<T:'static>(
         &self, 
         column_id: ColumnTypeId, 
         row_id: RowId
@@ -176,7 +192,7 @@ impl<'t> Table<'t> {
         self.columns[column_id.index()].get(row_id)
     }
 
-    unsafe fn deref_mut<T:'static>(
+    pub(crate) unsafe fn deref_mut<T:'static>(
         &self, 
         column_id: ColumnTypeId, 
         row_id: RowId
@@ -184,7 +200,7 @@ impl<'t> Table<'t> {
         self.columns[column_id.index()].get_mut(row_id)
     }
 
-    fn get_row_by_type_index(
+    pub(crate) fn get_row_by_type_index(
         &self, 
         row_type_id: EntityTypeId, 
         row_index: usize
@@ -195,338 +211,6 @@ impl<'t> Table<'t> {
         }
     }
 }
-
-pub trait Insert:'static {
-    fn build(builder: &mut InsertBuilder);
-
-    unsafe fn insert(cursor: &mut InsertCursor, value: Self);
-}
-
-pub struct InsertBuilder<'a,'t> {
-    table: &'a mut Table<'t>,
-    columns: Vec<ColumnTypeId>,
-}
-
-pub struct InsertPlan {
-    entity_type: EntityTypeId,
-    columns: Vec<ColumnTypeId>,
-}
-
-pub struct InsertCursor<'a, 't> {
-    table: &'a mut Table<'t>,
-    plan: &'a InsertPlan,
-    index: usize,
-    rows: Vec<RowId>,
-}
-
-impl<'a,'t> InsertBuilder<'a,'t> {
-    pub(crate) fn new(table: &'a mut Table<'t>) -> Self {
-        Self {
-            table: table,
-            columns: Vec::new(),
-        }
-    }
-
-    pub(crate) fn add_column<T:'static>(&mut self) {
-        let id = self.table.add_column::<T>();
-        
-        self.columns.push(id);
-    }
-
-    pub(crate) fn build(self) -> InsertPlan {
-        let entity_id = self.table.add_entity_type(self.columns.clone());
-
-        InsertPlan {
-            entity_type: entity_id,
-            columns: self.columns.clone(),
-        }
-    }
-}
-
-impl InsertPlan {
-    pub(crate) fn insert<T:'static>(
-        &self,
-        table: &mut Table, 
-        index: usize, 
-        value: T
-    ) -> RowId {
-        unsafe {
-            let column_id = self.columns[index];
-            table.get_column(column_id).push(value)
-        }
-    }
-
-    pub(crate) fn cursor<'a, 't>(&'a self, table: &'a mut Table<'t>) -> InsertCursor<'a, 't> {
-        InsertCursor {
-            plan: &self,
-            table: table,
-            index: 0, 
-            rows: Vec::new(),
-        }
-    }
-}
-
-impl<'a, 't> InsertCursor<'a, 't> {
-    pub unsafe fn insert<T:'static>(&mut self, value: T) {
-        let index = self.index;
-        self.index += 1;
-
-        let row_id = self.plan.insert(self.table, index, value);
-
-        self.rows.push(row_id);
-    }
-
-    fn complete(self) {
-        self.table.push_entity_row(self.plan.entity_type, self.rows)
-    }
-}
-
-//
-// Query
-//
-
-pub trait Query {
-    type Item<'a>;
-
-    fn build(query: &mut QueryBuilder);
-
-    unsafe fn query<'a,'t>(cursor: &mut QueryCursor<'a,'t>) -> Self::Item<'t>;
-}
-
-pub struct QueryCursor<'a,'t> {
-    table: &'a Table<'t>,
-    entity_group: &'a EntityGroup,
-    view_row: &'a ViewRowType,
-    row: &'a EntityRow,
-    cols: &'a Vec<usize>,
-    index: usize,
-}
-
-pub struct QueryBuilder<'a> {
-    meta: &'a mut RowMetas, 
-    cols: Vec<ColumnTypeId>,
-}
-
-pub(crate) struct QueryPlan {
-    view: ViewTypeId,
-    cols: Vec<usize>,
-}
-
-impl QueryPlan {
-    pub(crate) fn new_cursor<'a,'t>(
-        &'a self, 
-        table: &'a Table<'t>,
-        group: &'a EntityGroup,
-        view_row: &'a ViewRowType,
-        row: &'a EntityRow
-    ) -> QueryCursor<'a,'t> {
-        QueryCursor {
-            table: table,
-            entity_group: group,
-            row: row,
-            view_row: view_row,
-            cols: &self.cols,
-            index: 0,
-        }
-    }
-
-    pub(crate) fn view(&self) -> ViewTypeId {
-        self.view
-    }
-}
-
-impl<'a,'t> QueryCursor<'a,'t> {
-    pub unsafe fn deref<T:'static>(&mut self) -> &'t T {
-        let index = self.view_row.index_map()[self.cols[self.index]];
-        self.index += 1;
-
-        let column_id = self.entity_group.columns()[index];
-        let row_id = self.row.columns[index];
-
-        self.table.deref::<T>(column_id, row_id).unwrap()
-    }
-
-    pub unsafe fn deref_mut<T:'static>(&mut self) -> &'t mut T {
-        let index = self.view_row.index_map()[self.cols[self.index]];
-        self.index += 1;
-
-        let column_id = self.entity_group.columns()[index];
-        let row_id = self.row.columns[index];
-
-        self.table.deref_mut(column_id, row_id).unwrap()
-    }
-}
-
-impl<'a> QueryBuilder<'a> {
-    pub(crate) fn new(meta: &'a mut RowMetas) -> Self {
-        Self {
-            meta: meta,
-            cols: Vec::new(),
-        }
-    }
-
-    pub fn add_ref<T:'static>(&mut self) {
-        let col_id = self.meta.add_column::<T>();
-
-        self.cols.push(col_id);
-    }
-
-    pub fn add_mut<T:'static>(&mut self) {
-        let col_id = self.meta.add_column::<T>();
-
-        self.cols.push(col_id);
-    }
-
-    pub(crate) fn build(self) -> QueryPlan {
-        let view_id = self.meta.add_view(self.cols.clone());
-        let view = self.meta.get_view(view_id);
-
-        let cols = self.cols.iter()
-            .map(|col_id| view.column_position(*col_id).unwrap())
-            .collect();
-
-        QueryPlan {
-            view: view_id,
-            cols: cols,
-        }
-    }
-}
-
-pub struct QueryIterator<'a, 't, T:Query> {
-    table: &'a Table<'t>,
-
-    view_id: ViewTypeId,
-    query: QueryPlan,
-
-    view_type_index: usize,
-
-    entity_index: usize,
-
-    marker: PhantomData<T>,
-}
-
-impl<'a, 't, T:Query> QueryIterator<'a, 't, T> {
-    fn new(
-        table: &'a Table<'t>, 
-        query: QueryPlan,
-    ) -> Self {
-        Self {
-            table: table,
-
-            view_id: query.view(),
-            query,
-
-            view_type_index: 0,
-            entity_index: 0,
-
-            marker: PhantomData,
-        }
-    }
-}
-
-impl<'a, 't, T:Query> Iterator for QueryIterator<'a, 't, T>
-{
-    type Item = T::Item<'t>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let view = self.table.meta().get_view(self.view_id);
-
-        while self.view_type_index < view.rows().len() {
-            let view_row_id = view.rows()[self.view_type_index];
-            let view_row = self.table.meta().get_view_row(view_row_id);
-            let row_type_id = view_row.row_type_id();
-            let entity_type = self.table.meta().get_entity_type(row_type_id);
-            let entity_index = self.entity_index;
-            self.entity_index += 1;
-
-            match self.table.get_row_by_type_index(row_type_id, entity_index) {
-                Some(row) => {
-                    return unsafe { 
-                        let mut cursor = self.query.new_cursor(
-                            self.table,
-                            entity_type, 
-                            view_row,
-                            row
-                        );
-                        
-                        Some(T::query(&mut cursor))
-                    }
-                }
-                None => {},
-            };
-
-            self.view_type_index += 1;
-            self.entity_index = 0;
-        }
-
-        None
-    }
-}
-
-//
-// insert composed of tuples
-//
-
-macro_rules! impl_insert_tuple {
-    ($($part:ident),*) => {
-        #[allow(non_snake_case)]
-        impl<$($part:Insert),*> Insert for ($($part,)*)
-        {
-            fn build(builder: &mut InsertBuilder) {
-                $(
-                    $part::build(builder);
-                )*
-            }
-
-            unsafe fn insert<'a>(cursor: &mut InsertCursor, value: Self) {
-                let ($($part,)*) = value;
-                $(
-                    $part::insert(cursor, $part);
-                )*
-            }
-        }
-    }
-}
-
-//impl_query_tuple!();
-impl_insert_tuple!(P1,P2);
-//impl_query_tuple!(P1,P2,P3);
-//impl_query_tuple!(P1,P2,P3,P4);
-//impl_query_tuple!(P1,P2,P3,P4,P5);
-
-//
-// View query composed of tuples
-//
-
-macro_rules! impl_query_tuple {
-    ($($part:ident),*) => {
-        #[allow(non_snake_case)]
-        impl<$($part:Query,)*> Query for ($($part,)*)
-        {
-            type Item<'t> = ($(
-                <$part as Query>::Item<'t>, // <'a>,
-            )*);
-
-            fn build(builder: &mut QueryBuilder) {
-                $(
-                    $part::build(builder);
-                )*
-            }
-
-            unsafe fn query<'a,'t>(cursor: &mut QueryCursor<'a,'t>) -> Self::Item<'t> { // <'a> {
-                ($(
-                    $part::query(cursor),
-                )*)
-            }
-        }
-    }
-}
-
-//impl_query_tuple!();
-impl_query_tuple!(P1,P2);
-impl_query_tuple!(P1,P2,P3);
-//impl_query_tuple!(P1,P2,P3,P4);
-//impl_query_tuple!(P1,P2,P3,P4,P5);
 
 impl RowRef {
     pub fn row_id(&self) -> RowId {
@@ -540,9 +224,9 @@ impl RowRef {
 
 #[cfg(test)]
 mod tests {
-    use crate::{entity::{meta::{}}, prelude::Component};
+    use crate::{entity::{meta::{}, insert::InsertCursor}, prelude::Component};
 
-    use super::{Table, Query, QueryIterator, QueryCursor, InsertCursor, InsertBuilder, Insert};
+    use super::{Table, Query, QueryIterator, InsertBuilder, Insert};
 
     #[test]
     fn spawn() {
@@ -658,18 +342,6 @@ mod tests {
     struct IsTest;
     struct IsTestC;
 
-    /*
-    impl<T:TestComponent> Insert for T {
-        fn build(builder: &mut InsertBuilder) {
-            builder.add_column::<T>()
-        }
-
-        unsafe fn insert(cursor: &mut InsertCursor, value: Self) {
-            cursor.insert(value);
-        }
-    }
-    */
-
     impl Insert for TestC {
         fn build(builder: &mut InsertBuilder) {
             builder.add_column::<TestC>()
@@ -679,32 +351,6 @@ mod tests {
             cursor.insert(value);
         }
     }
-
-    /*
-    impl<T:TestComponent> Query for &T {
-        type Item<'t> = &'t T;
-
-        fn build(query: &mut super::QueryBuilder) {
-            query.add_ref::<T>()
-        }
-    
-        unsafe fn query<'a,'t>(cursor: &mut QueryCursor<'a,'t>) -> Self::Item<'t> { // <'a> {
-            cursor.deref::<T>()
-        }
-    }
-
-    impl<T:TestComponent> Query for &mut T {
-        type Item<'t> = &'t mut T;
-
-        fn build(query: &mut super::QueryBuilder) {
-            query.add_ref::<T>()
-        }
-    
-        unsafe fn query<'a,'t>(cursor: &mut QueryCursor<'a,'t>) -> Self::Item<'t> { // <'a> {
-            cursor.deref_mut::<T>()
-        }
-    }
-    */
 
     struct TestTable<'t> {
         table: Table<'t>,
