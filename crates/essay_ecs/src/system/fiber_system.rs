@@ -253,13 +253,18 @@ mod tests {
         //app.add_system(system_each_ref);
 
         let ptr = values.clone();
-        app.add_system(move |t :&mut TestA, input: In<FiberA>| {
+        app.add_system(move |t :&mut TestA, mut input: In<FiberA>| {
             ptr.borrow_mut().push(format!("{:?}", t));
+            ptr.borrow_mut().push(format!("{:?}", input.read()));
+            ptr.borrow_mut().push(format!("{:?}", input.read()));
             ptr.borrow_mut().push(format!("{:?}", input.read()));
         });
 
         app.update();
-        assert_eq!(take(&values), "TestA(1), \"read-value\"");
+        assert_eq!(take(&values), "TestA(1), Some(\"value-b\"), Some(\"value-a\"), None");
+
+        app.update();
+        assert_eq!(take(&values), "TestA(1), None, None, None");
     }
 
     fn take(values: &Rc<RefCell<Vec<String>>>) -> String {
@@ -299,26 +304,33 @@ mod tests {
     struct TickerA;
     struct TickerB;
     struct FiberA;
-    struct InFiberA;
     struct OutFiberA;
 
     struct Tag<const T:char> {
         //marker: PhantomData<T>,
     }
 
+    struct InFiberA {
+        values: Vec<String>,
+    }
+
     impl InFiberA {
         fn new() -> Self {
+            let mut values = Vec::<String>::new();
+            values.push("value-a".to_string());
+            values.push("value-b".to_string());
+
             Self {
+                values: values,
             }
         }
 
         fn new_box() -> FiberInBox<InFiberA> {
-            Box::new(Self {
-            })
+            Box::new(Self::new())
         }
 
-        fn read(&self) -> String {
-            "read-value".to_string()
+        fn read(&mut self) -> Option<String> {
+            self.values.pop()
         }
     }
 
@@ -330,7 +342,7 @@ mod tests {
         }
 
         fn get_mut(&mut self) -> &mut Self::In {
-            todo!()
+            self
         }
     }
 
