@@ -83,7 +83,7 @@ pub struct ViewRowType {
     view_type_id: ViewTypeId,
     entity_type_id: EntityTypeId,
 
-    columns: Vec<usize>,
+    index_map: Vec<usize>,
 }
 
 pub trait Query2<M> {
@@ -349,6 +349,32 @@ impl ViewRowTypeId {
 }
 
 impl ViewRowType {
+    pub fn new(
+        id: ViewRowTypeId, 
+        entity: &EntityGroup, 
+        view: &ViewType
+    ) -> ViewRowType {
+        let mut columns = Vec::<usize>::new();
+
+        for col in &view.cols {
+            let index = entity.columns().iter()
+                .position(|c| c == col).unwrap();
+
+            columns.push(index);
+        }
+
+        ViewRowType {
+            id,
+            view_type_id: view.id,
+            entity_type_id: entity.id(),
+            index_map: columns,
+        }
+    }
+
+    pub fn index_map(&self) -> &Vec<usize> {
+        &self.index_map
+    }
+
     pub fn id(&self) -> ViewRowTypeId {
         self.id
     }
@@ -359,36 +385,6 @@ impl ViewRowType {
 
     pub(crate) fn row_type_id(&self) -> EntityTypeId {
         self.entity_type_id
-    }
-}
-
-impl ViewRowType {
-    pub fn new(
-        id: ViewRowTypeId, 
-        entity: &EntityGroup, 
-        view: &ViewType
-    ) -> ViewRowType {
-        let mut columns = Vec::<usize>::new();
-
-        for col in &view.cols {
-            let (index, _) = entity.columns().iter().enumerate()
-                .find(|(_, col_type)| {
-                    col_type == &col
-            }).expect("entity column missing in row");
-
-            columns.push(index);
-        }
-
-        ViewRowType {
-            id,
-            view_type_id: view.id,
-            entity_type_id: entity.id(),
-            columns: columns,
-        }
-    }
-
-    pub fn columns(&self) -> &Vec<usize> {
-        &self.columns
     }
 }
 

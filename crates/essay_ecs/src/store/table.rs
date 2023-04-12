@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use super::column::Column;
 use super::prelude::{ViewTypeId, QueryCursor2};
 use super::row::{RowId, Row};
-use super::meta::{RowTypeId, RowMetas, ColumnTypeId, EntityTypeId, EntityGroup};
+use super::meta::{RowTypeId, RowMetas, ColumnTypeId, EntityTypeId, EntityGroup, ViewRowType};
 
 pub struct Table<'t> {
     meta: RowMetas,
@@ -285,6 +285,10 @@ impl<'a, 't> InsertCursor<'a, 't> {
     }
 }
 
+//
+// Query
+//
+
 pub trait Query {
     type Item<'a>;
 
@@ -296,6 +300,7 @@ pub trait Query {
 pub struct QueryCursor<'a,'t> {
     table: &'a Table<'t>,
     entity_group: &'a EntityGroup,
+    view_row: &'a ViewRowType,
     row: &'a EntityRow,
     cols: &'a Vec<usize>,
     index: usize,
@@ -316,12 +321,14 @@ impl QueryPlan {
         &'a self, 
         table: &'a Table<'t>,
         group: &'a EntityGroup,
+        view_row: &'a ViewRowType,
         row: &'a EntityRow
     ) -> QueryCursor<'a,'t> {
         QueryCursor {
             table: table,
             entity_group: group,
             row: row,
+            view_row: view_row,
             cols: &self.cols,
             index: 0,
         }
@@ -334,7 +341,7 @@ impl QueryPlan {
 
 impl<'a,'t> QueryCursor<'a,'t> {
     pub unsafe fn deref<T:'static>(&mut self) -> &'t T {
-        let index = self.cols[self.index];
+        let index = self.view_row.index_map()[self.cols[self.index]];
         self.index += 1;
 
         let column_id = self.entity_group.columns()[index];
@@ -344,7 +351,7 @@ impl<'a,'t> QueryCursor<'a,'t> {
     }
 
     pub unsafe fn deref_mut<T:'static>(&mut self) -> &'t mut T {
-        let index = self.cols[self.index];
+        let index = self.view_row.index_map()[self.cols[self.index]];
         self.index += 1;
 
         let column_id = self.entity_group.columns()[index];
@@ -442,6 +449,7 @@ impl<'a, 't, T:Query> Iterator for QueryIterator<'a, 't, T>
                         let mut cursor = self.query.new_cursor(
                             self.table,
                             entity_type, 
+                            view_row,
                             row
                         );
                         
@@ -608,8 +616,8 @@ mod tests {
             .collect();
         assert_eq!(values.join(","), "TestA(1)");
 
-        //values = table.query::<&TestB>().map(|t: &TestB| format!("{:?}", t)).collect();
-        //assert_eq!(values.join(","), "TestB(2)");
+        values = table.query::<&TestB>().map(|t: &TestB| format!("{:?}", t)).collect();
+        assert_eq!(values.join(","), "TestB(2)");
 
         values = table.query::<(&TestA,&TestB)>().map(|v| format!("{:?}", v)).collect();
         assert_eq!(values.join(","), "(TestA(1), TestB(2))");
