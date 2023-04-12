@@ -3,7 +3,7 @@ mod system;
 mod schedule;
 mod param;
 mod each_system;
-mod fiber_system;
+mod channel_system;
 
 pub mod prelude {
     pub use super::system::{System, IntoSystem};

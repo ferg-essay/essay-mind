@@ -2,6 +2,9 @@ use crate::{entity::{prelude::{Table, QueryIterator, Query, Insert, PtrCell}}};
 
 use super::resource::Resources;
 
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
+pub struct Tick(u64);
+
 pub struct World<'w> {
     ptr: PtrCell<'w,WorldInner<'w>>,
 }
@@ -33,6 +36,14 @@ impl<'w> World<'w> {
         }
     }
 
+    pub fn ticks(&self) -> Tick {
+        self.ptr.deref().tick
+    }
+
+    pub fn next_tick(&mut self) -> Tick {
+        self.ptr.deref_mut().next_tick()
+    }
+
     pub fn add_resource<T:'static>(&mut self, value: T) {
         // self.ptr.deref_mut().resources.set(value);
     }
@@ -49,6 +60,8 @@ impl<'w> World<'w> {
 pub struct WorldInner<'w> {
     table: Table<'w>,
     resources: Resources<'w>,
+
+    tick: Tick,
 }
 
 impl<'w> WorldInner<'w> {
@@ -56,7 +69,19 @@ impl<'w> WorldInner<'w> {
         Self {
             table: Table::new(),
             resources: Resources::new(),
+            tick: Tick(0),
         }
+    }
+
+    fn next_tick(&mut self) -> Tick {
+        self.tick = Tick(self.tick.0 + 1);
+        self.tick
+    }
+}
+
+impl From<Tick> for u64 {
+    fn from(value: Tick) -> Self {
+        value.0
     }
 }
 

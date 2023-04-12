@@ -59,6 +59,7 @@ impl App {
     }
 
     pub fn update(&mut self) -> &mut Self {
+        self.world.next_tick();
         self.schedule.update(&self.world);
         self
     }
