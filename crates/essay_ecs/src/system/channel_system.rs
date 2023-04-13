@@ -1,6 +1,11 @@
 use std::{marker::PhantomData, ops::{DerefMut, Deref}};
 
-use crate::{world::prelude::World, prelude::{Param, IntoSystem, System}, entity::prelude::{Query, QueryBuilder, QueryCursor, Insert, InsertBuilder, InsertCursor}};
+use crate::{
+    world::prelude::World, 
+    prelude::{Param, IntoSystem, System}, 
+    entity::prelude::{
+        Query, QueryBuilder, QueryCursor, Insert, InsertBuilder, InsertCursor
+    }};
 
 use super::param::Arg;
 
@@ -14,7 +19,7 @@ pub struct In<'a, C:Channel>(C::In<'a>);
 pub trait InChannel {
     type Channel:Channel;
 
-    fn get<'a>(&'a mut self, world: &'a World) -> <Self::Channel as Channel>::In<'a>;
+    fn get_arg<'a>(&'a mut self, world: &'a World) -> <Self::Channel as Channel>::In<'a>;
 }
 
 type InComponent<C> = Box<dyn InChannel<Channel=C>>;
@@ -24,7 +29,7 @@ pub struct Out<'a, C:Channel>(C::Out<'a>);
 pub trait OutChannel {
     type Channel:Channel;
 
-    fn get<'a>(&'a mut self, world: &'a World) -> <Self::Channel as Channel>::Out<'a>;
+    fn get_arg<'a>(&'a mut self, world: &'a World) -> <Self::Channel as Channel>::Out<'a>;
 }
 
 type OutComponent<C> = Box<dyn OutChannel<Channel=C>>;
@@ -118,8 +123,8 @@ pub trait EachInFun<M> {
     type Channel: Channel;
     type Params: Param;
 
-    fn run<'a,'w>(&mut self, 
-        world: &World<'w>,
+    fn run<'a,'w>(
+        &mut self, 
         item: <Self::Item<'w> as Query>::Item<'w>, // <'a>, 
         input: In<Self::Channel>,
         args: Arg<Self::Params>
@@ -134,34 +139,22 @@ where
     marker: PhantomData<M>,
 }
 
-impl<M, F:'static> EachInSystem<M, F>
-where
-    F: EachInFun<M>
-{
-    fn new<'w>(_world: &mut World<'w>, fun: F) -> Self {
-        Self {
-            fun: fun,
-            marker: PhantomData,
-        }
-    }
-}
-
 impl<M, F:'static> System for EachInSystem<M, F>
 where
     M: 'static,
     F: EachInFun<M>
 {
     fn run<'w>(&mut self, world: &World<'w>) {
-        for (entity, 
+        for (item, 
              input) 
         in world.query::<(F::Item<'w>,InComponent<F::Channel>)>() {
-            let input = In(input.get(world));
+            let input = In(input.get_arg(world));
 
             let args = F::Params::get_arg(
                 world,
             );
 
-            self.fun.run(world, entity, input, args);
+            self.fun.run(item, input, args);
         }
     }
 }    
@@ -174,8 +167,11 @@ where
 {
     type System = EachInSystem<M, F>;
 
-    fn into_system(this: Self, world: &mut World) -> Self::System {
-        EachInSystem::new(world, this)
+    fn into_system(this: Self, _world: &mut World) -> Self::System {
+        EachInSystem {
+            fun: this,
+            marker: PhantomData,
+        }
     }
 }
 
@@ -193,13 +189,12 @@ macro_rules! impl_each_in_params {
 
             fn run<'b,'w>(
                 &mut self, 
-                _world: &World<'w>, 
-                each: T::Item<'w>, 
+                item: T::Item<'w>, 
                 input: In<Self::Channel>,
                 arg: Arg<($($param,)*)>
             ) {
                 let ($($param,)*) = arg;
-                self(each, input, $($param,)*)
+                self(item, input, $($param,)*)
             }
         }
     }
@@ -224,7 +219,6 @@ pub trait EachOutFun<M> {
     type Params: Param;
 
     fn run<'a,'w>(&mut self, 
-        world: &World<'w>,
         item: <Self::Item<'w> as Query>::Item<'w>, // <'a>, 
         out: Out<Self::Channel>,
         args: Arg<Self::Params>
@@ -239,37 +233,25 @@ where
     marker: PhantomData<M>,
 }
 
-impl<M, F:'static> EachOutSystem<M, F>
-where
-    F: EachOutFun<M>
-{
-    fn new<'w>(_world: &mut World<'w>, fun: F) -> Self {
-        Self {
-            fun: fun,
-            marker: PhantomData,
-        }
-    }
-}
-
 impl<M, F:'static> System for EachOutSystem<M, F>
 where
     M: 'static,
     F: EachOutFun<M>
 {
     fn run<'w>(&mut self, world: &World<'w>) {
-        for (entity, 
+        for (item, 
              out) 
         in world.query::<(F::Item<'w>,OutComponent<F::Channel>)>() {
-            let out = Out(out.get(world));
+            let out = Out(out.get_arg(world));
 
-            let args = F::Params::get_arg(
-                world,
-            );
+            let args = F::Params::get_arg
+            (world);
 
-            self.fun.run(world, entity, out, args);
+            self.fun.run(item, out, args);
         }
     }
-}    
+}
+
 struct IsEachOut;
 
 impl<M, F:'static> IntoSystem<(M,IsEachOut)> for F
@@ -279,8 +261,11 @@ where
 {
     type System = EachOutSystem<M, F>;
 
-    fn into_system(this: Self, world: &mut World) -> Self::System {
-        EachOutSystem::new(world, this)
+    fn into_system(this: Self, _world: &mut World) -> Self::System {
+        EachOutSystem {
+            fun: this,
+            marker: PhantomData,
+        }
     }
 }
 
@@ -298,7 +283,6 @@ macro_rules! impl_each_out_params {
 
             fn run<'b,'w>(
                 &mut self, 
-                _world: &World<'w>, 
                 item: T::Item<'w>, 
                 out: Out<Self::Channel>,
                 arg: Arg<($($param,)*)>
@@ -333,24 +317,36 @@ mod tests {
     fn each_in() {
         let mut app = App::new();
 
-        app.spawn((TestA(1), InChannelTest::new_box()));
+        let in_values = Rc::new(RefCell::new(Vec::<String>::new()));
+
+        app.spawn((TestA(1), InChannelTest::new_box(in_values.clone())));
 
         let values = Rc::new(RefCell::new(Vec::<String>::new()));
 
         let ptr = values.clone();
         app.add_system(move |t :&mut TestA, mut input: In<TestChannel>| {
             ptr.borrow_mut().push(format!("{:?}", t));
-            ptr.borrow_mut().push(format!("{:?}", input.read()));
+            for item in input.iter() {
+                ptr.borrow_mut().push(item);
+            }
         });
 
         app.update();
-        assert_eq!(take(&values), "TestA(1), Some(\"value-b(1)\")");
+        assert_eq!(take(&values), "TestA(1)");
+
+        in_values.borrow_mut().push("value-a".to_string());
+        in_values.borrow_mut().push("value-b".to_string());
 
         app.update();
-        assert_eq!(take(&values), "TestA(1), Some(\"value-a(2)\")");
+        assert_eq!(take(&values), "TestA(1), value-a[2], value-b[2]");
 
         app.update();
-        assert_eq!(take(&values), "TestA(1), None");
+        assert_eq!(take(&values), "TestA(1)");
+
+        in_values.borrow_mut().push("value-c".to_string());
+
+        app.update();
+        assert_eq!(take(&values), "TestA(1), value-c[4]");
     }
 
     #[test]
@@ -375,14 +371,56 @@ mod tests {
         assert_eq!(take(&values), "TestA(1)[3]");
     }
 
+    #[test]
+    fn each_in_out() {
+        let mut app = App::new();
+
+        let in_values = Rc::new(RefCell::new(Vec::<String>::new()));
+
+        app.spawn((TestA(1), InChannelTest::new_box(in_values.clone())));
+        app.spawn((TestA(2), OutChannelTest::new_box(in_values.clone())));
+
+        let values = Rc::new(RefCell::new(Vec::<String>::new()));
+
+        let ptr = values.clone();
+
+        app.add_system(move |t :&mut TestA, mut input: In<TestChannel>| {
+            ptr.borrow_mut().push(format!("{:?}", t));
+            for item in input.iter() {
+                ptr.borrow_mut().push(item);
+            }
+        });
+
+        let ptr = values.clone();
+        
+        app.add_system(move |t :&mut TestA, mut out: Out<TestChannel>| {
+            ptr.borrow_mut().push(format!("{:?}", t));
+            out.send(format!("send-{:?}", t));
+        });
+
+        app.update();
+        assert_eq!(take(&values), "TestA(1), TestA(2)");
+
+        app.update();
+        assert_eq!(take(&values), "TestA(1), send-TestA(2)[1][2], TestA(2)");
+
+        app.update();
+        assert_eq!(take(&values), "TestA(1), send-TestA(2)[2][3], TestA(2)");
+
+        app.update();
+        assert_eq!(take(&values), "TestA(1), send-TestA(2)[3][4], TestA(2)");
+    }
+
     fn take(values: &Rc<RefCell<Vec<String>>>) -> String {
-        let v : Vec<String> = values.borrow_mut().drain(..).collect();
+        let v : Vec<String> = values.borrow_mut()
+            .drain(..)
+            .collect();
 
         v.join(", ")
     }
 
     #[derive(Component,PartialEq, Debug)]
-    struct TestA(u32);
+    struct TestA(usize);
     #[derive(Debug)]
     struct TestInFiber(usize);
 
@@ -394,7 +432,7 @@ mod tests {
     }
 
     struct InChannelTest {
-        values: Vec<String>,
+        values: Rc<RefCell<Vec<String>>>,
     }
 
     struct InChannelTestItem<'a> {
@@ -403,11 +441,7 @@ mod tests {
     }
 
     impl InChannelTest {
-        fn new() -> Self {
-            let mut values = Vec::<String>::new();
-            values.push("value-a".to_string());
-            values.push("value-b".to_string());
-
+        fn new(values: Rc<RefCell<Vec<String>>>) -> Self {
             Self {
                 values: values,
             }
@@ -417,15 +451,15 @@ mod tests {
             InChannelTestItem::new(self, tick)
         }
 
-        fn new_box() -> InComponent<TestChannel> {
-            Box::new(Self::new())
+        fn new_box(values: Rc<RefCell<Vec<String>>>) -> InComponent<TestChannel> {
+            Box::new(Self::new(values))
         }
     }
 
     impl InChannel for InChannelTest {
         type Channel = TestChannel;
 
-        fn get(&mut self, world: &World) -> InChannelTestItem {
+        fn get_arg(&mut self, world: &World) -> InChannelTestItem {
             self.new_item(u64::from(world.ticks()))
         }
     }
@@ -438,13 +472,13 @@ mod tests {
             }
         }
 
-        fn read(&mut self) -> Option<String> {
-            match self.fiber_in.values.pop() {
-                Some(value) => {
-                    Some(format!("{}({:?})", value, self.tick))
-                }
-                None => None,
-            }
+        fn iter(&mut self) -> Vec<String> {
+            let values: Vec<String> = self.fiber_in.values.borrow_mut()
+                .drain(..)
+                .map(|s| format!("{}[{}]", s, self.tick))
+                .collect();
+
+            values
         }
     }
 
@@ -476,7 +510,7 @@ mod tests {
     impl OutChannel for OutChannelTest {
         type Channel = TestChannel;
 
-        fn get(&mut self, world: &World) -> OutChannelTestItem {
+        fn get_arg(&mut self, world: &World) -> OutChannelTestItem {
             self.new_item(u64::from(world.ticks()))
         }
     }

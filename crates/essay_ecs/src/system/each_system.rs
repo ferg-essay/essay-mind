@@ -105,11 +105,11 @@ impl_each_function!(P1, P2, P3, P4, P5, P6, P7);
 
 #[cfg(test)]
 mod tests {
-    use std::{rc::Rc, cell::RefCell, marker::PhantomData, any::type_name};
+    use std::{rc::Rc, cell::RefCell};
 
     use essay_ecs_macros::Component;
 
-    use crate::{app::App, world::prelude::World, system::param::Param};
+    use crate::{app::App};
 
     #[test]
     fn test_each() {
@@ -352,21 +352,4 @@ mod tests {
 
     #[derive(Component,PartialEq, Debug)]
     struct TestB(u32);
-    
-    #[derive(Debug)]
-    struct TestArg<V> {
-        name: String,
-        marker: PhantomData<V>,
-    }
-
-    impl<V> Param for TestArg<V> {
-        type Arg<'w> = TestArg<V>;
-
-        fn get_arg<'w>(_world: &'w World) -> Self::Arg<'w> {
-            Self {
-                name: type_name::<V>().to_string(),
-                marker: PhantomData,
-            }
-        }
-    }
 }
