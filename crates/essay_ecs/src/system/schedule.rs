@@ -2,8 +2,10 @@ use crate::world::prelude::World;
 
 use super::system::System;
 
+pub type BoxedSystem<Out=()> = Box<dyn System<Out=Out>>;
+
 pub struct Schedule {
-    systems: Vec<Box<dyn System>>,
+    systems: Vec<BoxedSystem>,
 }
 
 impl Schedule {
@@ -13,7 +15,7 @@ impl Schedule {
         }
     }
 
-    pub fn push(&mut self, system: Box<dyn System>) {
+    pub fn push(&mut self, system: BoxedSystem) {
         self.systems.push(system);
     }
 

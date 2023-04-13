@@ -2,87 +2,11 @@ use std::{marker::PhantomData, ops::{Deref, DerefMut}};
 
 use crate::{world::prelude::World, system::prelude::Param};
 
-struct Res<'w, T> {
-    world: &'w World<'w>,
-    marker: PhantomData<T>,
-}
-
-impl<'w, T:'static> Res<'w, T> {
-    pub fn get(&self) -> &T {
-        self.world.get_resource::<T>().expect("unassigned resource")
-    }
-}
-/*
-impl<'a, T> Param for Res<'a, T> {
-    type Arg<'w> = Res<'w, T>;
-
-    fn get_arg<'w>(world: &'w World) -> Res<'w, T> {
-        Res {
-            world: world,
-            marker: PhantomData,
-        }
-    }
-}
-*/
-
-impl<'a, T:'static> Deref for Res<'a, T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        self.get()
-    }
-}
-
-struct ResMut<'a, 'w, T> {
-    world: &'a World<'w>,
-    marker: PhantomData<T>,
-}
-
-impl<'a, 'w, T:'static> ResMut<'a, 'w, T> {
-    pub fn get(&self) -> &T {
-        self.world.get_resource::<T>().expect("unassigned resource")
-    }
-
-    pub fn get_mut(&self) -> &mut T {
-        self.world.get_resource_mut::<T>().expect("unassigned resource")
-    }
-}
-
-impl<'a, 'w, T:'static> Deref for ResMut<'a, 'w, T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        self.get()
-    }
-}
-
-impl<'a, 'w, T:'static> DerefMut for ResMut<'a, 'w, T> {
-    // type Target = T;
-
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        self.get_mut()
-    }
-}
-/*
-impl<'a, 'w, T> Param for ResMut<'a, 'w, T> {
-    type Arg<'b> = ResMut<'b, 'w, T>;
-
-    fn get_arg<'b>(world: &'b World) -> ResMut<'b, 'w, T> {
-        ResMut {
-            world: world,
-            marker: PhantomData,
-        }
-    }
-}
-*/
-
 #[cfg(test)]
 mod tests {
     use std::{rc::Rc, cell::RefCell};
 
-    use crate::app::App;
-
-    use super::{Res, ResMut};
+    use crate::{app::App, world::prelude::{Res, ResMut}};
 
     #[test]
     fn base_resource() {
@@ -148,7 +72,7 @@ mod tests {
         app.resource_mut::<Vec<String>>().drain(..);
     }
 
-    fn test_multi_resource_a(out: ResMut<Vec<String>>, res: Res<TestA>) {
+    fn test_multi_resource_a(mut out: ResMut<Vec<String>>, res: Res<TestA>) {
         out.get_mut().push(format!("{:?}", res.get()));
     }
 

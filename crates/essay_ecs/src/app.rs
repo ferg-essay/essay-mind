@@ -24,7 +24,7 @@ impl App {
         self
     }
      */
-    pub fn add_system<M>(&mut self, into_system: impl IntoSystem<M>) -> &mut Self
+    pub fn add_system<M>(&mut self, into_system: impl IntoSystem<(), M>) -> &mut Self
     {
         self.schedule.push(Box::new(IntoSystem::into_system(
             into_system,

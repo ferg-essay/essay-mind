@@ -11,44 +11,46 @@ pub struct IsFun;
 // FunctionSystem - a system implemented by a function
 // 
 
-pub struct FunctionSystem<M, F>
+pub struct FunctionSystem<M, F, R>
 where
-    F: Fun<M>
+    F: Fun<M, R>
 {
     fun: F,
-    marker: PhantomData<M>,
+    marker: PhantomData<(M, R)>,
 }
 
-pub trait Fun<M> {
+pub trait Fun<M, R> {
     type Params: Param;
 
-    fn run(&mut self, arg: Arg<Self::Params>);
+    fn run(&mut self, arg: Arg<Self::Params>) -> R;
 }
 
 //
 // Implementation
 //
 
-impl<M, F> System for FunctionSystem<M, F>
+impl<M, F, R:'static> System for FunctionSystem<M, F, R>
 where
     M: 'static,
-    F: Fun<M> + 'static
+    F: Fun<M, R> + 'static
 {
-    fn run(&mut self, world: &World) {
+    type Out = R;
+
+    fn run(&mut self, world: &World) -> Self::Out {
         let arg = F::Params::get_arg(
             world,
         );
 
-        self.fun.run(arg);
+        self.fun.run(arg)
     }
 }    
 
-impl<M, F:'static> IntoSystem<(M,IsFun)> for F
+impl<M, F:'static, R:'static> IntoSystem<R, (M,IsFun)> for F
 where
     M: 'static,
-    F: Fun<M>
+    F: Fun<M, R>
 {
-    type System = FunctionSystem<M, F>;
+    type System = FunctionSystem<M, F, R>;
 
     fn into_system(this: Self, _world: &mut World) -> Self::System {
         FunctionSystem {
@@ -61,7 +63,7 @@ where
 //
 // Function matching
 //
-
+/*
 impl<F: 'static> Fun<fn()> for F
 where F:FnMut() -> ()
 {
@@ -71,17 +73,18 @@ where F:FnMut() -> ()
         self()
     }
 }
+*/
 
 macro_rules! impl_system_function {
     ($($param:ident),*) => {
         #[allow(non_snake_case)]
-        impl<F: 'static, $($param: Param),*> Fun<fn($($param,)*)> for F
-        where F:FnMut($($param,)*) -> () +
-            FnMut($(Arg<$param>,)*) -> ()
+        impl<F: 'static, R, $($param: Param,)*> Fun<fn($($param,)*), R> for F
+        where F:FnMut($($param,)*) -> R +
+            FnMut($(Arg<$param>,)*) -> R
         {
             type Params = ($($param,)*);
 
-            fn run(&mut self, arg: Arg<($($param,)*)>) {
+            fn run(&mut self, arg: Arg<($($param,)*)>) -> R {
                 let ($($param,)*) = arg;
                 self($($param,)*)
             }
@@ -89,7 +92,7 @@ macro_rules! impl_system_function {
     }
 }
 
-// impl_system_function!();
+impl_system_function!();
 impl_system_function!(P1);
 impl_system_function!(P1, P2);
 impl_system_function!(P1, P2, P3);
@@ -132,7 +135,7 @@ mod tests {
         assert_eq!(get_global(), "test-arg7 u8 u16 u32 u64 i8 i16 i32");
     }
 
-    fn system<M>(world: &mut World, fun: impl IntoSystem<M>)->String {
+    fn system<R, M>(world: &mut World, fun: impl IntoSystem<R, M>)->String {
         set_global("init".to_string());
         let mut system = IntoSystem::into_system(
             fun,

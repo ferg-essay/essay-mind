@@ -55,7 +55,7 @@ impl<'w> World<'w> {
     }
     */
 
-    pub fn eval<M>(&mut self, fun: impl IntoSystem<M>)
+    pub fn eval<R, M>(&mut self, fun: impl IntoSystem<R, M>) -> R
     {
         let mut system = IntoSystem::into_system(
             fun,
@@ -119,6 +119,8 @@ mod tests {
     use std::{rc::Rc, cell::RefCell};
 
     use essay_ecs_macros::Component;
+
+    use crate::world::prelude::{Res, ResMut};
 
     use super::World;
 
@@ -225,7 +227,15 @@ mod tests {
         let mut world = World::new();
         assert_eq!(world.len(), 0);
 
-        let out = world.eval(|| { "result"; });
+        assert_eq!(world.eval(|| "result"), "result");
+
+        world.add_resource(TestA(1000));
+
+        assert_eq!(world.eval(|r: Res<TestA>| format!("{:?}", r.get())), "TestA(1000)");
+        assert_eq!(world.eval(|r: Res<TestA>| r.clone()), TestA(1000));
+
+        assert_eq!(world.eval(|mut r: ResMut<TestA>| r.0 += 1), ());
+        assert_eq!(world.eval(|r: Res<TestA>| r.clone()), TestA(1001));
     }
 
     fn push(ptr: &Rc<RefCell<Vec<String>>>, value: String) {
@@ -236,7 +246,7 @@ mod tests {
         ptr.borrow_mut().drain(..).collect::<Vec<String>>().join(", ")
     }
 
-    #[derive(Component, Debug, PartialEq)]
+    #[derive(Component, Clone, Debug, PartialEq)]
     struct TestA(u32);
 
     #[derive(Component, Debug, PartialEq)]

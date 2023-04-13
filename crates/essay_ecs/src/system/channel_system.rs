@@ -147,6 +147,8 @@ where
     M: 'static,
     F: EachInFun<M>
 {
+    type Out = ();
+    
     fn run<'w>(&mut self, world: &World<'w>) {
         for (item, 
              input) 
@@ -163,7 +165,7 @@ where
 }    
 struct IsEachIn;
 
-impl<M, F:'static> IntoSystem<(M,IsEachIn)> for F
+impl<M, F:'static> IntoSystem<(), (M,IsEachIn)> for F
 where
     M: 'static,
     F: EachInFun<M>
@@ -241,6 +243,8 @@ where
     M: 'static,
     F: EachOutFun<M>
 {
+    type Out = ();
+
     fn run<'w>(&mut self, world: &World<'w>) {
         for (item, 
              out) 
@@ -257,7 +261,7 @@ where
 
 struct IsEachOut;
 
-impl<M, F:'static> IntoSystem<(M,IsEachOut)> for F
+impl<M, F:'static> IntoSystem<(), (M,IsEachOut)> for F
 where
     M: 'static,
     F: EachOutFun<M>

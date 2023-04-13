@@ -48,6 +48,8 @@ where
     M: 'static,
     F: EachFun<M>
 {
+    type Out = ();
+    
     fn run<'w>(&mut self, world: &World<'w>) {
         for entity in world.view::<F::Entity<'w>>() {
             let args = F::Params::get_arg(
@@ -59,7 +61,7 @@ where
     }
 }    
 
-impl<M, F:'static> IntoSystem<(M,IsEach)> for F
+impl<M, F:'static> IntoSystem<(), (M,IsEach)> for F
 where
     M: 'static,
     F: EachFun<M>
