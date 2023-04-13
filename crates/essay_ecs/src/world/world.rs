@@ -45,8 +45,12 @@ impl<'w> World<'w> {
         system.run(&self)
     }
 
-    pub fn add_resource<T:'static>(&mut self, value: T) {
-        self.ptr.get_mut().resources.set::<T>(value)
+    pub(crate) fn init_resource<T:Default+'static>(&mut self) {
+        self.ptr.get_mut().resources.init::<T>()
+    }
+
+    pub fn insert_resource<T:'static>(&mut self, value: T) {
+        self.ptr.get_mut().resources.insert::<T>(value)
     }
     
     pub fn get_resource<T:'static>(&self) -> Option<&T> {
@@ -135,7 +139,7 @@ mod tests {
         assert_eq!(world.get_resource::<TestB>(), None);
         assert_eq!(world.get_resource_mut::<TestB>(), None);
 
-        world.add_resource(TestA(1));
+        world.insert_resource(TestA(1));
         assert_eq!(world.get_resource::<TestA>(), Some(&TestA(1)));
         assert_eq!(world.get_resource_mut::<TestA>(), Some(&mut TestA(1)));
         assert_eq!(world.get_resource::<TestB>(), None);
@@ -148,13 +152,13 @@ mod tests {
         assert_eq!(world.get_resource::<TestB>(), None);
         assert_eq!(world.get_resource_mut::<TestB>(), None);
 
-        world.add_resource(TestA(1000));
+        world.insert_resource(TestA(1000));
         assert_eq!(world.get_resource::<TestA>(), Some(&TestA(1000)));
         assert_eq!(world.get_resource_mut::<TestA>(), Some(&mut TestA(1000)));
         assert_eq!(world.get_resource::<TestB>(), None);
         assert_eq!(world.get_resource_mut::<TestB>(), None);
 
-        world.add_resource(TestB(1001));
+        world.insert_resource(TestB(1001));
         assert_eq!(world.get_resource::<TestA>(), Some(&TestA(1000)));
         assert_eq!(world.get_resource_mut::<TestA>(), Some(&mut TestA(1000)));
         assert_eq!(world.get_resource::<TestB>(), Some(&TestB(1001)));
@@ -195,7 +199,7 @@ mod tests {
 
         assert_eq!(world.eval(|| "result"), "result");
 
-        world.add_resource(TestA(1000));
+        world.insert_resource(TestA(1000));
 
         assert_eq!(world.eval(|r: Res<TestA>| format!("{:?}", r.get())), "TestA(1000)");
         assert_eq!(world.eval(|r: Res<TestA>| r.clone()), TestA(1000));

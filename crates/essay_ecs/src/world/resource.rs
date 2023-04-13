@@ -60,7 +60,18 @@ impl<'w> Resources<'w> {
         }
     }
 
-    pub fn set<T:'static>(&mut self, value: T) {
+    pub(crate) fn init<T:Default+'static>(&mut self) {
+        let id = ResourceId::new(self.resources.len());
+        let type_id = TypeId::of::<T>();
+
+        let id = *self.resource_map.entry(type_id).or_insert(id);
+
+        if id.index() == self.resources.len() {
+            self.resources.push(Resource::new(id, T::default()));
+        }
+    }
+
+    pub fn insert<T:'static>(&mut self, value: T) {
         let id = ResourceId::new(self.resources.len());
         let type_id = TypeId::of::<T>();
 
@@ -102,7 +113,7 @@ mod tests {
         assert_eq!(resources.get::<TestB>(), None);
         assert_eq!(resources.get_mut::<TestB>(), None);
 
-        resources.set(TestA(1));
+        resources.insert(TestA(1));
         assert_eq!(resources.get::<TestA>(), Some(&TestA(1)));
         assert_eq!(resources.get_mut::<TestA>(), Some(&mut TestA(1)));
         assert_eq!(resources.get::<TestB>(), None);
@@ -115,13 +126,13 @@ mod tests {
         assert_eq!(resources.get::<TestB>(), None);
         assert_eq!(resources.get_mut::<TestB>(), None);
 
-        resources.set(TestA(1000));
+        resources.insert(TestA(1000));
         assert_eq!(resources.get::<TestA>(), Some(&TestA(1000)));
         assert_eq!(resources.get_mut::<TestA>(), Some(&mut TestA(1000)));
         assert_eq!(resources.get::<TestB>(), None);
         assert_eq!(resources.get_mut::<TestB>(), None);
 
-        resources.set(TestB(1001));
+        resources.insert(TestB(1001));
         assert_eq!(resources.get::<TestA>(), Some(&TestA(1000)));
         assert_eq!(resources.get_mut::<TestA>(), Some(&mut TestA(1000)));
         assert_eq!(resources.get::<TestB>(), Some(&TestB(1000)));

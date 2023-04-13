@@ -62,8 +62,8 @@ mod tests {
     #[test]
     fn multi_resource() {
         let mut app = App::new();
-        app.add_resource(Vec::<String>::new());
-        app.add_resource(TestA(1));
+        app.insert_resource(Vec::<String>::new());
+        app.insert_resource(TestA(1));
 
         //app.add_system(test_multi_resource_a);
 
