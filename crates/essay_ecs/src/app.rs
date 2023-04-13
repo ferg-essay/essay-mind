@@ -3,27 +3,32 @@ use crate::{
     world::prelude::{World}, entity::{prelude::{Insert, EntityId}},
 };
 
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
+pub struct Tick(u64);
+
 pub struct App {
     schedule: Schedule,
     world: World<'static>,
 }
 
+impl Tick {
+    pub fn value(&self) -> u64 {
+        self.0
+    }
+}
+
 impl App {
     pub fn new() -> Self {
-        App {
+        let mut app = App {
             schedule: Schedule::new(),
             world: World::new(),
-        }
+        };
+        
+        app.add_resource(Tick(0));
+
+        app
     }
 
-    /*
-    pub fn add_system<S:System+'static>(&mut self, system: S) -> &mut Self
-    {
-        self.schedule.push(Box::new(system));
-
-        self
-    }
-     */
     pub fn add_system<M>(&mut self, into_system: impl IntoSystem<(), M>) -> &mut Self
     {
         self.schedule.push(Box::new(IntoSystem::into_system(
@@ -59,7 +64,7 @@ impl App {
     }
 
     pub fn update(&mut self) -> &mut Self {
-        self.world.next_tick();
+        self.world.resource_mut::<Tick>().0 += 1;
         self.schedule.update(&self.world);
         self
     }

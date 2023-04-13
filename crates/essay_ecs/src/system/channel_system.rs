@@ -312,7 +312,7 @@ impl_each_out_params!(P1, P2, P3, P4, P5, P6, P7);
 
 #[cfg(test)]
 mod tests {
-    use crate::{prelude::App, world::prelude::World, system::channel_system::Out};
+    use crate::{prelude::App, world::prelude::World, system::channel_system::Out, app::Tick};
 
     use super::{In, Channel, InChannel, InComponent, OutComponent, OutChannel};
 
@@ -489,7 +489,7 @@ mod tests {
         type Channel = TestChannel;
 
         fn get_arg(&mut self, world: &World) -> InChannelTestItem {
-            self.new_item(u64::from(world.ticks()))
+            self.new_item(world.resource::<Tick>().value())
         }
     }
 
@@ -540,7 +540,7 @@ mod tests {
         type Channel = TestChannel;
 
         fn get_arg(&mut self, world: &World) -> OutChannelTestItem {
-            self.new_item(u64::from(world.ticks()))
+            self.new_item(world.resource::<Tick>().value())
         }
     }
 

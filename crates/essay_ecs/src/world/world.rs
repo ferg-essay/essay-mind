@@ -4,9 +4,6 @@ use crate::{entity::{prelude::{Table, ViewIterator, View, Insert, EntityId}}, pr
 
 use super::resource::Resources;
 
-#[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
-pub struct Tick(u64);
-
 pub struct World<'w> {
     ptr: UnsafeCell<WorldInner<'w>>,
 }
@@ -38,23 +35,6 @@ impl<'w> World<'w> {
         unsafe { (*self.ptr.get()).table.iter_view::<V>() }
     }
 
-    /*
-    pub fn eval<'a,V:View,F>(&self, fun: &mut F)
-        where F: FnMut(V) + FnMut(<V as View>::Item<'w>)
-    {
-        for arg in self.view::<V>() {
-            fun(arg);
-        }
-    }
-    */
-
-    /*
-    pub fn eval<'a,F>(&self, fun: &mut impl System)
-    {
-        fun.run(&self);
-    }
-    */
-
     pub fn eval<R, M>(&mut self, fun: impl IntoSystem<R, M>) -> R
     {
         let mut system = IntoSystem::into_system(
@@ -63,14 +43,6 @@ impl<'w> World<'w> {
         );
 
         system.run(&self)
-    }
-
-    pub fn ticks(&self) -> Tick {
-        unsafe { (*self.ptr.get()).tick }
-    }
-
-    pub fn next_tick(&mut self) -> Tick {
-        self.ptr.get_mut().next_tick()
     }
 
     pub fn add_resource<T:'static>(&mut self, value: T) {
@@ -84,13 +56,19 @@ impl<'w> World<'w> {
     pub fn get_resource_mut<T:'static>(&self) -> Option<&mut T> {
         unsafe { (*self.ptr.get()).resources.get_mut::<T>() }
     }
+    
+    pub fn resource<T:'static>(&self) -> &T {
+        self.get_resource::<T>().unwrap()
+    }
+    
+    pub fn resource_mut<T:'static>(&self) -> &mut T {
+        self.get_resource_mut::<T>().unwrap()
+    }
 }
 
 pub struct WorldInner<'w> {
     table: Table<'w>,
     resources: Resources<'w>,
-
-    tick: Tick,
 }
 
 impl<'w> WorldInner<'w> {
@@ -98,19 +76,7 @@ impl<'w> WorldInner<'w> {
         Self {
             table: Table::new(),
             resources: Resources::new(),
-            tick: Tick(0),
         }
-    }
-
-    fn next_tick(&mut self) -> Tick {
-        self.tick = Tick(self.tick.0 + 1);
-        self.tick
-    }
-}
-
-impl From<Tick> for u64 {
-    fn from(value: Tick) -> Self {
-        value.0
     }
 }
 
