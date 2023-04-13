@@ -62,6 +62,16 @@ where
 // Function matching
 //
 
+impl<F: 'static> Fun<fn()> for F
+where F:FnMut() -> ()
+{
+    type Params = ();
+
+    fn run(&mut self, arg: ()) {
+        self()
+    }
+}
+
 macro_rules! impl_system_function {
     ($($param:ident),*) => {
         #[allow(non_snake_case)]
@@ -79,7 +89,7 @@ macro_rules! impl_system_function {
     }
 }
 
-impl_system_function!();
+// impl_system_function!();
 impl_system_function!(P1);
 impl_system_function!(P1, P2);
 impl_system_function!(P1, P2, P3);

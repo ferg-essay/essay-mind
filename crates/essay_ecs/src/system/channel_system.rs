@@ -150,7 +150,7 @@ where
     fn run<'w>(&mut self, world: &World<'w>) {
         for (item, 
              input) 
-        in world.query::<(F::Item<'w>,InComponent<F::Channel>)>() {
+        in world.view::<(F::Item<'w>,InComponent<F::Channel>)>() {
             let input = In(input.get_arg(world));
 
             let args = F::Params::get_arg(
@@ -244,7 +244,7 @@ where
     fn run<'w>(&mut self, world: &World<'w>) {
         for (item, 
              out) 
-        in world.query::<(F::Item<'w>,OutComponent<F::Channel>)>() {
+        in world.view::<(F::Item<'w>,OutComponent<F::Channel>)>() {
             let out = Out(out.get_arg(world));
 
             let args = F::Params::get_arg

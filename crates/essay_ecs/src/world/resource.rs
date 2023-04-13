@@ -1,44 +1,93 @@
+use std::{collections::HashMap, any::TypeId, cell::UnsafeCell};
+
 use crate::{entity::prelude::{Table}, type_meta::TypeMetas};
+
+use super::cell::Ptr;
 
 struct IsResource;
 
-pub struct Resources<'w> {
+#[derive(Copy, Clone, Debug, PartialEq, Hash, PartialOrd)]
+pub struct ResourceId(usize);
+
+struct Resource<'r> {
+    id: ResourceId,
+    value: Ptr<'r>,
+}
+
+pub struct Resources<'r> {
+    resource_map: HashMap<TypeId,ResourceId>,
+    resources: Vec<Resource<'r>>,
     types: TypeMetas,
-    table: Table<'w>,
+    table: Table<'r>,
     //resources: Vec<RowMeta>,
+}
+
+impl ResourceId {
+    fn new(index: usize) -> Self {
+        ResourceId(index)
+    }
+
+    pub fn index(&self) -> usize {
+        self.0
+    }
+}
+
+impl<'r> Resource<'r> {
+    fn new<T>(id: ResourceId, value: T) -> Self {
+        Resource {
+            id: id,
+            value: Ptr::new(value),
+        }
+    }
+
+    unsafe fn deref<T>(&self) -> &'r T {
+        self.value.deref()
+    }
+
+    unsafe fn deref_mut<T>(&self) -> &'r mut T {
+        self.value.deref_mut()
+    }
 }
 
 impl<'w> Resources<'w> {
     pub fn new() -> Self {
         Self {
+            resource_map: HashMap::new(),
+            resources: Vec::new(),
             types: TypeMetas::new(),
             table: Table::new(),
             //resources: Vec::new(),
         }
     }
 
-    pub fn get_by_type<T:'static>(&mut self) -> Option<&T> {
-        todo!();
-        /*
-        let type_id = self.types.add_type::<T>();
+    pub fn set<T:'static>(&mut self, value: T) {
+        let id = ResourceId::new(self.resources.len());
+        let type_id = TypeId::of::<T>();
 
-        let en_ref = self.table.create_ref::<T>(type_id.index() as u32);
+        let id = *self.resource_map.entry(type_id).or_insert(id);
 
-        //self.table.get(&self.create_ref::<T>())
-        self.table.get(&en_ref)
-        */
+        if id.index() == self.resources.len() {
+            self.resources.push(Resource::new(id, value));
+        } else {
+            // TODO: drop
+            self.resources[id.index()] = Resource::new(id, value);
+        }
     }
 
-    pub fn get_mut_by_type<T:'static>(&mut self) -> Option<&mut T> {
-        todo!();
-        /*
-        let type_id = self.types.add_type::<T>();
+    pub fn get<T:'static>(&mut self) -> Option<&T> {
+        let type_id = TypeId::of::<T>();
 
-        let en_ref = self.table.create_ref::<T>(type_id.index() as u32);
+        let id = self.resource_map.get(&type_id)?;
 
-        //self.table.get(&self.create_ref::<T>())
-        self.table.get_mut(&en_ref)
-        */
+        unsafe { Some(self.resources[id.index()].deref()) }
+    }
+
+    pub fn get_mut<T:'static>(&mut self) -> Option<&mut T> {
+        let type_id = TypeId::of::<T>();
+
+        let id = self.resource_map.get(&type_id)?;
+
+        unsafe { Some(self.resources[id.index()].deref_mut()) }
     }
 }
 
@@ -48,19 +97,35 @@ mod tests {
 
     #[test]
     fn set_get() {
-        /*
         let mut resources = Resources::new();
 
-        let res_a = resources.set(TestA(1));
-        assert_eq!(resources.get(&res_a), Some(&TestA(1)));
+        assert_eq!(resources.get::<TestB>(), None);
+        assert_eq!(resources.get_mut::<TestB>(), None);
 
-        let res_b = resources.set(TestB(2));
-        assert_eq!(resources.get(&res_b), Some(&TestB(2)));
+        resources.set(TestA(1));
+        assert_eq!(resources.get::<TestA>(), Some(&TestA(1)));
+        assert_eq!(resources.get_mut::<TestA>(), Some(&mut TestA(1)));
+        assert_eq!(resources.get::<TestB>(), None);
+        assert_eq!(resources.get_mut::<TestB>(), None);
 
-        let res_a2 = resources.set(TestA(3));
-        assert_eq!(resources.get(&res_a2), Some(&TestA(3)));
-        assert_eq!(resources.get(&res_a), Some(&TestA(3)));
-        */
+        resources.get_mut::<TestA>().unwrap().0 += 1;
+
+        assert_eq!(resources.get::<TestA>(), Some(&TestA(2)));
+        assert_eq!(resources.get_mut::<TestA>(), Some(&mut TestA(2)));
+        assert_eq!(resources.get::<TestB>(), None);
+        assert_eq!(resources.get_mut::<TestB>(), None);
+
+        resources.set(TestA(1000));
+        assert_eq!(resources.get::<TestA>(), Some(&TestA(1000)));
+        assert_eq!(resources.get_mut::<TestA>(), Some(&mut TestA(1000)));
+        assert_eq!(resources.get::<TestB>(), None);
+        assert_eq!(resources.get_mut::<TestB>(), None);
+
+        resources.set(TestB(1001));
+        assert_eq!(resources.get::<TestA>(), Some(&TestA(1000)));
+        assert_eq!(resources.get_mut::<TestA>(), Some(&mut TestA(1000)));
+        assert_eq!(resources.get::<TestB>(), Some(&TestB(1000)));
+        assert_eq!(resources.get_mut::<TestB>(), Some(&mut TestB(1000)));
     }
 
     #[derive(PartialEq, Debug)]

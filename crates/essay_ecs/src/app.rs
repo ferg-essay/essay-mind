@@ -1,6 +1,6 @@
 use crate::{
     system::prelude::{IntoSystem, Schedule}, 
-    world::prelude::{World}, entity::{prelude::{Insert}},
+    world::prelude::{World}, entity::{prelude::{Insert, EntityId}},
 };
 
 pub struct App {
@@ -34,7 +34,7 @@ impl App {
         self
     }
 
-    pub fn spawn<T:Insert>(&mut self, value: T) {
+    pub fn spawn<T:Insert>(&mut self, value: T) -> EntityId {
         self.world.spawn(value)
     }
 

@@ -49,7 +49,7 @@ where
     F: EachFun<M>
 {
     fn run<'w>(&mut self, world: &World<'w>) {
-        for entity in world.query::<F::Entity<'w>>() {
+        for entity in world.view::<F::Entity<'w>>() {
             let args = F::Params::get_arg(
                 world,
             );

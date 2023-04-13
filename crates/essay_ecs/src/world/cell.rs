@@ -1,20 +1,17 @@
 use std::fmt::Pointer;
 use std::mem::{self, ManuallyDrop};
-use std::num::NonZeroUsize;
 use std::ptr::NonNull;
 use std::{marker::PhantomData, cmp};
 use std::alloc::Layout;
 
-use super::meta::{ColumnId, ColumnType, TableMeta};
-
-pub(crate) struct UnsafeCell<'c, T> {
+pub(crate) struct Ptr<'p> {
     data: NonNull<u8>,
 
-    marker: PhantomData<&'c T>,
+    marker: PhantomData<&'p u8>,
 }
 
-impl<'c, T:'static> UnsafeCell<'c, T> {
-    pub(crate) fn new(value: T) -> Self {
+impl<'c> Ptr<'c> {
+    pub(crate) fn new<T>(value: T) -> Self {
         let layout = Layout::new::<T>();
         let data = unsafe { std::alloc::alloc(layout) };
         let data = NonNull::new(data).unwrap();
@@ -32,19 +29,15 @@ impl<'c, T:'static> UnsafeCell<'c, T> {
         cell
     }
     
-    pub fn deref(&self) -> &'c T {
-        unsafe {
-            &*self.data.as_ptr().cast::<T>()
-        }
+    pub unsafe fn deref<T>(&self) -> &'c T {
+        &*self.data.as_ptr().cast::<T>()
     }
     
-    pub fn deref_mut(&self) -> &'c mut T {
-        unsafe {
-            &mut *self.data.as_ptr().cast::<T>()
-        }
+    pub unsafe fn deref_mut<T>(&self) -> &'c mut T {
+        &mut *self.data.as_ptr().cast::<T>()
     }
 
-    unsafe fn write(&mut self, value: T) {
+    unsafe fn write<T>(&mut self, value: T) {
         let mut value = ManuallyDrop::new(value);
         let source: NonNull<u8> = NonNull::from(&mut *value).cast();
 
@@ -155,39 +148,39 @@ impl<'t, T> PtrCell<'t, T> {
         }
     }
 
-    pub fn deref(&self) -> &T {
-        unsafe { self.ptr.deref() }
+    pub unsafe fn deref(&self) -> &T {
+        self.ptr.deref()
     }
 
-    pub fn deref_mut(&self) -> &mut T {
-        unsafe { self.ptr.deref_mut() }
+    pub unsafe fn deref_mut(&self) -> &mut T {
+        self.ptr.deref_mut()
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::entity::cell::{UnsafeCell};
-
     #[test]
-    fn cell_null() {
-        let cell = UnsafeCell::<()>::new(());
+    fn ptr_null() {
+        let ptr = Ptr::new::<()>(());
         
-        assert_eq!(cell.deref(), &());
+        unsafe { assert_eq!(ptr.deref::<()>(), &()); }
     }
 
     #[test]
-    fn cell_u8() {
-        let mut cell = UnsafeCell::<u8>::new(1);
+    fn ptr_u8() {
+        let mut ptr = Ptr::new::<u8>(1);
 
-        assert_eq!(cell.deref(), &1);
-        assert_eq!(cell.deref_mut(), &1);
+        unsafe { assert_eq!(ptr.deref::<u8>(), &1); }
+        unsafe { assert_eq!(ptr.deref_mut::<u8>(), &1); }
 
-        *cell.deref_mut() = 3;
+        unsafe { *ptr.deref_mut::<u8>() = 3; }
 
-        assert_eq!(cell.deref(), &3);
-        assert_eq!(cell.deref_mut(), &3);
+        unsafe { assert_eq!(ptr.deref::<u8>(), &3); }
+        unsafe { assert_eq!(ptr.deref_mut::<u8>(), &3); }
     }
     use std::{mem, ptr::NonNull};
+
+    use crate::world::cell::Ptr;
 
     use super::{PtrOwn};
 
