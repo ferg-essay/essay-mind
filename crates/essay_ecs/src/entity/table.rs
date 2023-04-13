@@ -86,7 +86,31 @@ impl<'t> Table<'t> {
         self.spawn_with_plan(plan, value)
     }
 
-    fn insert_plan<T:Insert>(&mut self) -> InsertPlan {
+    pub fn get<T:'static>(&mut self, entity: EntityId) -> Option<&T> {
+        let column_id = self.meta().get_column::<T>()?;
+        let row = self.rows.get(entity.index())?;
+        let row_type = self.meta().row(row.row_type);
+
+        let index = row_type.position(column_id)?;
+
+        unsafe {
+            self.get_by_id(column_id, row.columns[index])
+        }
+    }
+
+    pub fn get_mut<T:'static>(&mut self, entity: EntityId) -> Option<&mut T> {
+        let column_id = self.meta().get_column::<T>()?;
+        let row = self.rows.get(entity.index())?;
+        let row_type = self.meta().row(row.row_type);
+
+        let index = row_type.position(column_id)?;
+
+        unsafe {
+            self.get_mut_by_id(column_id, row.columns[index])
+        }
+    }
+
+    pub(crate) fn insert_plan<T:Insert>(&mut self) -> InsertPlan {
         let mut builder = InsertBuilder::new(self);
 
         T::build(&mut builder);
@@ -170,7 +194,7 @@ impl<'t> Table<'t> {
         self.meta.add_view(columns)
     }
 
-    pub(crate) unsafe fn get<T:'static>(
+    pub(crate) unsafe fn get_by_id<T:'static>(
         &self, 
         column_id: ColumnId, 
         row_id: RowId
@@ -178,7 +202,7 @@ impl<'t> Table<'t> {
         self.columns[column_id.index()].get(row_id)
     }
 
-    pub(crate) unsafe fn get_mut<T:'static>(
+    pub(crate) unsafe fn get_mut_by_id<T:'static>(
         &self, 
         column_id: ColumnId, 
         row_id: RowId
@@ -256,6 +280,36 @@ mod tests {
     }
 
     #[test]
+    fn entity_get() {
+        let mut table = Table::new();
+        assert_eq!(table.len(), 0);
+
+        let id_0 = table.spawn(TestA(1000));
+        assert_eq!(table.len(), 1);
+        assert_eq!(id_0.index(), 0);
+
+        assert_eq!(table.get::<TestA>(id_0), Some(&TestA(1000)));
+        assert_eq!(table.get::<TestB>(id_0), None);
+
+        let id_1 = table.spawn(TestB(1001));
+        assert_eq!(table.len(), 2);
+        assert_eq!(id_1.index(), 1);
+
+        assert_eq!(table.get::<TestA>(id_1), None);
+        assert_eq!(table.get::<TestB>(id_1), Some(&TestB(1001)));
+
+        let id_2 = table.spawn(TestA(1002));
+        assert_eq!(table.len(), 3);
+        assert_eq!(id_2.index(), 2);
+
+        assert_eq!(table.get::<TestA>(id_2), Some(&TestA(1002)));
+        assert_eq!(table.get::<TestB>(id_2), None);
+
+        assert_eq!(table.get::<TestA>(id_0), Some(&TestA(1000)));
+        assert_eq!(table.get::<TestB>(id_0), None);
+    }
+
+    #[test]
     fn push_type() {
         let mut table = Table::new();
         assert_eq!(table.len(), 0);
@@ -316,13 +370,13 @@ mod tests {
         assert_eq!(values.join(","), "TestB(3),TestB(4),TestB(6)");
     }
 
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     struct TestA(u32);
 
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     struct TestB(u16);
 
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     struct TestC(u32);
 
     trait TestComponent:'static {}

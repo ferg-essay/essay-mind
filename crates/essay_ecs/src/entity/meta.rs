@@ -1,4 +1,4 @@
-use std::{mem, collections::{HashMap, HashSet}, slice::Iter, any::{TypeId, type_name}, borrow::Cow, alloc::Layout};
+use std::{mem, collections::{HashMap, HashSet}, slice::Iter, any::{TypeId, type_name}, borrow::Cow, alloc::Layout, marker::PhantomData};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct ColumnId(usize);
@@ -110,7 +110,7 @@ impl ColumnType {
 
 impl RowTypeId {
     pub const INVALID: RowTypeId = RowTypeId(usize::MAX);
-    
+
     #[inline]
     pub fn index(&self) -> usize {
         self.0
@@ -132,6 +132,10 @@ impl RowType {
 
     pub fn find_column(&self, id: ColumnId) -> Option<&ColumnId> {
         self.columns.iter().find(|col| **col == id)
+    }
+
+    pub fn position(&self, id: ColumnId) -> Option<usize> {
+        self.columns.iter().position(|col| *col == id)
     }
 
     fn contains_columns(&self, cols: &Vec<ColumnId>) -> bool {
@@ -292,7 +296,7 @@ impl TableMeta {
     //
 
     pub fn row(&self, id: RowTypeId) -> &RowType {
-        self.rows.get(id.index()).unwrap()
+        &self.rows[id.index()]
     }
 
     pub(crate) fn row_mut(&mut self, id: RowTypeId) -> &mut RowType {

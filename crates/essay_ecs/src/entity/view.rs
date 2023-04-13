@@ -47,7 +47,7 @@ impl ViewPlan {
         row: &'a Row
     ) -> ViewCursor<'a,'t> {
         ViewCursor {
-            table: table,
+            table,
             row_type,
             row: row,
             view_row: view_row,
@@ -69,7 +69,7 @@ impl<'a,'t> ViewCursor<'a,'t> {
         let column_id = self.row_type.columns()[index];
         let row_id = self.row.column_row(index);
 
-        self.table.get::<T>(column_id, row_id).unwrap()
+        self.table.get_by_id::<T>(column_id, row_id).unwrap()
     }
 
     pub unsafe fn deref_mut<T:'static>(&mut self) -> &'t mut T {
@@ -79,7 +79,7 @@ impl<'a,'t> ViewCursor<'a,'t> {
         let column_id = self.row_type.columns()[index];
         let row_id = self.row.column_row(index);
 
-        self.table.get_mut(column_id, row_id).unwrap()
+        self.table.get_mut_by_id(column_id, row_id).unwrap()
     }
 }
 
