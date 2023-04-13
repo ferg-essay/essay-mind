@@ -8,7 +8,7 @@ use std::marker::PhantomData;
 use super::{
     prelude::{Table, ViewId}, 
     meta::{RowType, ViewRowType, ColumnId}, 
-    table::{EntityRow, Component}
+    table::{Row, Component}
 };
 
 pub trait View {
@@ -23,7 +23,7 @@ pub struct ViewCursor<'a,'t> {
     table: &'a Table<'t>,
     row_type: &'a RowType,
     view_row: &'a ViewRowType,
-    row: &'a EntityRow,
+    row: &'a Row,
     cols: &'a Vec<usize>,
     index: usize,
 }
@@ -44,7 +44,7 @@ impl ViewPlan {
         table: &'a Table<'t>,
         row_type: &'a RowType,
         view_row: &'a ViewRowType,
-        row: &'a EntityRow
+        row: &'a Row
     ) -> ViewCursor<'a,'t> {
         ViewCursor {
             table: table,
@@ -67,9 +67,9 @@ impl<'a,'t> ViewCursor<'a,'t> {
         self.index += 1;
 
         let column_id = self.row_type.columns()[index];
-        let row_id = self.row.get_column(index);
+        let row_id = self.row.column_row(index);
 
-        self.table.deref::<T>(column_id, row_id).unwrap()
+        self.table.get::<T>(column_id, row_id).unwrap()
     }
 
     pub unsafe fn deref_mut<T:'static>(&mut self) -> &'t mut T {
@@ -77,9 +77,9 @@ impl<'a,'t> ViewCursor<'a,'t> {
         self.index += 1;
 
         let column_id = self.row_type.columns()[index];
-        let row_id = self.row.get_column(index);
+        let row_id = self.row.column_row(index);
 
-        self.table.deref_mut(column_id, row_id).unwrap()
+        self.table.get_mut(column_id, row_id).unwrap()
     }
 }
 
@@ -105,7 +105,7 @@ impl<'a, 't> ViewBuilder<'a, 't> {
 
     pub(crate) fn build(self) -> ViewPlan {
         let view_id = self.table.add_view(&self.columns);
-        let view = self.table.get_view(view_id);
+        let view = self.table.view(view_id);
 
         let cols = self.columns.iter()
             .map(|col_id| view.column_position(*col_id).unwrap())
@@ -155,13 +155,13 @@ impl<'a, 't, T:View> Iterator for ViewIterator<'a, 't, T>
     type Item = T::Item<'t>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let view = self.table.meta().get_view(self.view_id);
+        let view = self.table.meta().view(self.view_id);
 
         while self.view_type_index < view.view_rows().len() {
             let view_row_id = view.view_rows()[self.view_type_index];
-            let view_row = self.table.meta().get_view_row(view_row_id);
+            let view_row = self.table.meta().view_row(view_row_id);
             let row_type_id = view_row.row_id();
-            let row_type = self.table.meta().get_row(row_type_id);
+            let row_type = self.table.meta().row(row_type_id);
             let row_index = self.row_index;
             self.row_index += 1;
 

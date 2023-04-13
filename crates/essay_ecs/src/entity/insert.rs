@@ -5,7 +5,7 @@
 
 use crate::prelude::Component;
 
-use super::{meta::{RowTypeId, ColumnId}, prelude::{Table}, column::RowId};
+use super::{meta::{RowTypeId, ColumnId}, prelude::{Table}, column::RowId, table::EntityId};
 
 pub trait Insert:'static {
     fn build(builder: &mut InsertBuilder);
@@ -46,8 +46,8 @@ impl<'a,'t> InsertBuilder<'a,'t> {
     }
 
     pub(crate) fn build(self) -> InsertPlan {
-        let row_id = self.table.add_row(self.columns.clone());
-        let row_type = self.table.meta().get_row(row_id);
+        let row_id = self.table.add_row_type(self.columns.clone());
+        let row_type = self.table.meta().row(row_id);
 
         let mut index_map = Vec::<usize>::new();
 
@@ -75,7 +75,7 @@ impl InsertPlan {
     ) -> RowId {
         unsafe {
             let column_id = self.columns[index];
-            table.get_column(column_id).push(value)
+            table.column_mut(column_id).push(value)
         }
     }
 
@@ -99,7 +99,7 @@ impl<'a, 't> InsertCursor<'a, 't> {
         self.rows.push(row_id);
     }
 
-    pub(crate) fn complete(self) {
+    pub(crate) fn complete(self) -> EntityId {
         let mut columns = Vec::<RowId>::new();
 
         for index in &self.plan.index_map {

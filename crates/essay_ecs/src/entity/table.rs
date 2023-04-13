@@ -4,23 +4,21 @@ use super::prelude::ViewId;
 use super::view::{View, ViewIterator, ViewBuilder, ViewPlan};
 use super::meta::{TableMeta, ColumnId, RowTypeId, ViewType};
 
+#[derive(Debug,Clone,Copy,PartialEq,Hash,PartialOrd,Eq)]
+pub struct EntityId(usize);
+
 pub struct Table<'t> {
     meta: TableMeta,
 
     columns: Vec<Column<'t>>,
 
-    type_rows: Vec<Vec<RowId>>,
-
-    rows: Vec<EntityRow>,
+    rows: Vec<Row>,
     rows_by_type: Vec<Vec<EntityId>>,
 }
 
-#[derive(Debug,Clone,Copy,PartialEq,Hash,PartialOrd,Eq)]
-pub struct EntityId(usize);
-
-pub struct EntityRow {
+pub struct Row {
     id: EntityId,
-    type_id: RowTypeId,
+    row_type: RowTypeId,
 
     columns: Vec<RowId>,
 }
@@ -42,8 +40,6 @@ impl<'t> Table<'t> {
             meta: row_meta,
 
             columns: Vec::new(),
-
-            type_rows: Vec::new(),
             
             rows: Vec::new(),
             rows_by_type: Vec::new(),
@@ -54,12 +50,6 @@ impl<'t> Table<'t> {
         &self.meta
     }
 
-    /*
-    pub(crate) fn meta_mut(&mut self) -> &mut TableMeta {
-        &mut self.meta
-    }
-    */
-
     pub fn len(&self) -> usize {
         self.rows.len()
     }
@@ -68,7 +58,7 @@ impl<'t> Table<'t> {
     // Column
     //
 
-    pub(crate) fn get_column(&mut self, column_id: ColumnId) -> &mut Column<'t> {
+    pub(crate) fn column_mut(&mut self, column_id: ColumnId) -> &mut Column<'t> {
         &mut self.columns[column_id.index()]
     }
     
@@ -90,14 +80,10 @@ impl<'t> Table<'t> {
     // row (entity)
     //
 
-    pub fn push<T:Insert>(&mut self, value: T) {
+    pub fn spawn<T:Insert>(&mut self, value: T) -> EntityId {
         let plan = self.insert_plan::<T>();
 
-        let mut cursor = plan.cursor(self);
-        unsafe {
-            T::insert(&mut cursor, value);
-        }
-        cursor.complete();
+        self.spawn_with_plan(plan, value)
     }
 
     fn insert_plan<T:Insert>(&mut self) -> InsertPlan {
@@ -108,7 +94,20 @@ impl<'t> Table<'t> {
         builder.build()
     }
 
-    pub(crate) fn add_row(&mut self, cols: Vec<ColumnId>) -> RowTypeId {
+    pub(crate) fn spawn_with_plan<T:Insert>(
+        &mut self, 
+        plan: InsertPlan, 
+        value: T
+    ) -> EntityId {
+        let mut cursor = plan.cursor(self);
+
+        unsafe {
+            T::insert(&mut cursor, value);
+        }
+        cursor.complete()
+    }
+
+    pub(crate) fn add_row_type(&mut self, cols: Vec<ColumnId>) -> RowTypeId {
         let row_type_id = self.meta.add_row(cols);
 
         while self.rows_by_type.len() <= row_type_id.index() {
@@ -122,18 +121,20 @@ impl<'t> Table<'t> {
         &mut self, 
         row_type_id: RowTypeId, 
         columns: Vec<RowId>
-    ) {
+    ) -> EntityId {
         let entity_id = EntityId(self.rows.len());
 
-        let row = EntityRow {
+        let row = Row {
             id: entity_id,
-            type_id: row_type_id,
+            row_type: row_type_id,
             columns,
         };
 
         self.rows.push(row);
         
         self.rows_by_type[row_type_id.index()].push(entity_id);
+
+        entity_id
     }
 
     //
@@ -161,15 +162,15 @@ impl<'t> Table<'t> {
         ViewIterator::new(self, plan)
     }
 
-    pub(crate) fn get_view(&self, view_id: ViewId) -> &ViewType {
-        self.meta.get_view(view_id)
+    pub(crate) fn view(&self, view_id: ViewId) -> &ViewType {
+        self.meta.view(view_id)
     }
 
     pub(crate) fn add_view(&mut self, columns: &Vec<ColumnId>) -> ViewId {
         self.meta.add_view(columns)
     }
 
-    pub(crate) unsafe fn deref<T:'static>(
+    pub(crate) unsafe fn get<T:'static>(
         &self, 
         column_id: ColumnId, 
         row_id: RowId
@@ -177,7 +178,7 @@ impl<'t> Table<'t> {
         self.columns[column_id.index()].get(row_id)
     }
 
-    pub(crate) unsafe fn deref_mut<T:'static>(
+    pub(crate) unsafe fn get_mut<T:'static>(
         &self, 
         column_id: ColumnId, 
         row_id: RowId
@@ -189,7 +190,7 @@ impl<'t> Table<'t> {
         &self, 
         row_type_id: RowTypeId, 
         row_index: usize
-    ) -> Option<&EntityRow> {
+    ) -> Option<&Row> {
         match self.rows_by_type[row_type_id.index()].get(row_index) {
             Some(row_id) => self.rows.get(row_id.index()),
             None => None,
@@ -203,8 +204,8 @@ impl EntityId {
     }
 }
 
-impl EntityRow {
-    pub(crate) fn get_column(&self, index: usize) -> RowId {
+impl Row {
+    pub(crate) fn column_row(&self, index: usize) -> RowId {
         self.columns[index]
     }
 }
@@ -220,7 +221,7 @@ mod tests {
         let mut table = Table::new();
         assert_eq!(table.len(), 0);
 
-        table.push(TestA(1));
+        table.spawn(TestA(1));
         assert_eq!(table.len(), 1);
 
         let mut values : Vec<String> = table.iter_view::<&TestA>()
@@ -228,7 +229,7 @@ mod tests {
             .collect();
         assert_eq!(values.join(","), "TestA(1)");
 
-        table.push(TestB(10000));
+        table.spawn(TestB(10000));
         assert_eq!(table.len(), 2);
 
         values = table.iter_view::<&TestB>().map(|t| format!("{:?}", t)).collect();
@@ -237,7 +238,7 @@ mod tests {
         values = table.iter_view::<&TestA>().map(|t| format!("{:?}", t)).collect();
         assert_eq!(values.join(","), "TestA(1)");
 
-        table.push(TestB(100));
+        table.spawn(TestB(100));
         assert_eq!(table.len(), 3);
 
         values = table.iter_view::<&TestA>().map(|t: &TestA| format!("{:?}", t)).collect();
@@ -259,7 +260,7 @@ mod tests {
         let mut table = Table::new();
         assert_eq!(table.len(), 0);
 
-        table.push::<TestA>(TestA(1));
+        table.spawn::<TestA>(TestA(1));
         //table.push(TestC(1));
         assert_eq!(table.len(), 1);
 
@@ -274,8 +275,8 @@ mod tests {
         let mut table = Table::new();
         assert_eq!(table.len(), 0);
 
-        table.push((TestA(1),TestB(2)));
-        table.push((TestB(3),TestA(4)));
+        table.spawn((TestA(1),TestB(2)));
+        table.spawn((TestB(3),TestA(4)));
         
         assert_eq!(table.len(), 2);
 
@@ -352,7 +353,7 @@ mod tests {
 
         fn push<T:Insert>(&mut self, value: T)
         {
-             self.table.push::<T>(value);
+             self.table.spawn::<T>(value);
         }
 
         fn query<'a,T>(&mut self) -> ViewIterator<T>

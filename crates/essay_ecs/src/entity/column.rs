@@ -22,10 +22,23 @@ pub(crate) struct Column<'c> {
     marker: PhantomData<&'c u8>,
 }
 
+impl RowId {
+    pub const INVALID: RowId = RowId(u32::MAX);
+
+    pub fn new(index: usize) -> RowId {
+        RowId(index as u32)
+    }
+        
+    #[inline]
+    pub fn index(&self) -> usize {
+        self.0 as usize
+    }
+}
+
 impl<'c> Column<'c> {
     pub(crate) fn new<T:'static>(metas: &mut TableMeta) -> Self {
         let id = metas.add_column::<T>();
-        let meta = metas.get_column(id);
+        let meta = metas.column(id);
 
         let pad_size = meta.layout_padded().size();
 
@@ -110,7 +123,7 @@ impl<'c> Column<'c> {
         
         self.len += 1;
 
-        RowId::new(index as u32)
+        RowId::new(index)
     }
 
     unsafe fn write<T>(&mut self, index: usize, value: T) {
@@ -193,23 +206,6 @@ fn dangling_data(align: usize) -> NonNull<u8> {
         unsafe { NonNull::new_unchecked(align as *mut u8) }
     } else {
         unsafe { NonNull::new_unchecked(8 as *mut u8) }
-    }
-}
-
-impl RowId {
-    pub fn new(id: u32) -> RowId {
-        RowId(id)
-    }
-
-    #[inline]
-    pub const fn index(&self) -> usize {
-        self.0 as usize
-    }
-}
-
-impl From<u32> for RowId {
-    fn from(value: u32) -> Self {
-        RowId(value)
     }
 }
 

@@ -21,7 +21,7 @@ impl<'w> World<'w> {
     }
 
     pub fn spawn<T:Insert>(&mut self, value: T) {
-        self.ptr.deref_mut().table.push::<T>(value);
+        self.ptr.deref_mut().table.spawn::<T>(value);
     }
 
     pub(crate) fn query<T:View>(&self) -> ViewIterator<'_,'w,T> {
