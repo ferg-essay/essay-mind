@@ -1,4 +1,4 @@
-mod query;
+mod view;
 mod insert;
 mod table;
 mod cell;
@@ -12,8 +12,8 @@ pub mod prelude {
     pub use super::insert::{
         Insert, InsertBuilder, InsertCursor,
     };
-    pub use super::query::{
-        Query, QueryBuilder, QueryCursor, QueryIterator,
+    pub use super::view::{
+        View, ViewBuilder, ViewCursor, ViewIterator,
     };
     pub use super::meta::{ViewId};
     pub use super::cell::{PtrCell};

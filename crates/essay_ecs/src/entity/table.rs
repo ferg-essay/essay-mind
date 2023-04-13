@@ -1,7 +1,7 @@
 use super::column::{Column, RowId};
 use super::insert::{InsertBuilder, Insert, InsertPlan};
 use super::prelude::ViewId;
-use super::query::{Query, QueryIterator, QueryBuilder, QueryPlan};
+use super::view::{View, ViewIterator, ViewBuilder, ViewPlan};
 use super::meta::{TableMeta, ColumnId, RowTypeId, ViewType};
 
 pub struct Table<'t> {
@@ -86,22 +86,8 @@ impl<'t> Table<'t> {
         column_id
     }
 
-    pub fn push_column<T:'static>(&mut self, value: T) {
-        let mut builder = InsertBuilder::new(self);
-
-        builder.add_column::<T>();
-
-        let plan = builder.build();
-
-        let mut cursor = plan.cursor(self);
-        unsafe {
-            cursor.insert(value);
-        }
-        cursor.complete();
-    }
-
     //
-    // row
+    // row (entity)
     //
 
     pub fn push<T:Insert>(&mut self, value: T) {
@@ -112,6 +98,14 @@ impl<'t> Table<'t> {
             T::insert(&mut cursor, value);
         }
         cursor.complete();
+    }
+
+    fn insert_plan<T:Insert>(&mut self) -> InsertPlan {
+        let mut builder = InsertBuilder::new(self);
+
+        T::build(&mut builder);
+
+        builder.build()
     }
 
     pub(crate) fn add_row(&mut self, cols: Vec<ColumnId>) -> RowTypeId {
@@ -142,17 +136,30 @@ impl<'t> Table<'t> {
         self.rows_by_type[row_type_id.index()].push(entity_id);
     }
 
-    fn insert_plan<T:Insert>(&mut self) -> InsertPlan {
-        let mut builder = InsertBuilder::new(self);
+    //
+    // View
+    //
+
+    pub fn iter_view<'a,T:View>(&mut self) -> ViewIterator<'_,'t,T> {
+        let plan = self.get_view_plan::<T>();
+        
+        unsafe { self.iter_view_with_plan(plan) }
+    }
+
+    pub(crate) fn get_view_plan<T:View>(&mut self) -> ViewPlan {
+        let mut builder = ViewBuilder::new(self);
 
         T::build(&mut builder);
 
         builder.build()
     }
 
-    //
-    // View
-    //
+    pub(crate) unsafe fn iter_view_with_plan<T:View>(
+        &self, 
+        plan: ViewPlan
+    ) -> ViewIterator<'_,'t,T> {
+        ViewIterator::new(self, plan)
+    }
 
     pub(crate) fn get_view(&self, view_id: ViewId) -> &ViewType {
         self.meta.get_view(view_id)
@@ -160,31 +167,6 @@ impl<'t> Table<'t> {
 
     pub(crate) fn add_view(&mut self, columns: &Vec<ColumnId>) -> ViewId {
         self.meta.add_view(columns)
-    }
-
-    //
-    // query
-    //
-
-    pub fn query<'a,T:Query>(&mut self) -> QueryIterator<'_,'t,T> {
-        let plan = self.get_query_plan::<T>();
-        
-        unsafe { self.query_with_plan(plan) }
-    }
-
-    pub(crate) fn get_query_plan<T:Query>(&mut self) -> QueryPlan {
-        let mut builder = QueryBuilder::new(self);
-
-        T::build(&mut builder);
-
-        builder.build()
-    }
-
-    pub(crate) unsafe fn query_with_plan<T:Query>(
-        &self, 
-        plan: QueryPlan
-    ) -> QueryIterator<'_,'t,T> {
-        QueryIterator::new(self, plan)
     }
 
     pub(crate) unsafe fn deref<T:'static>(
@@ -229,46 +211,46 @@ impl EntityRow {
 
 #[cfg(test)]
 mod tests {
-    use crate::{entity::{meta::{}, insert::InsertCursor}, prelude::Component};
+    use crate::{entity::{insert::InsertCursor}, prelude::Component};
 
-    use super::{Table, Query, QueryIterator, InsertBuilder, Insert};
+    use super::{Table, View, ViewIterator, InsertBuilder, Insert};
 
     #[test]
     fn spawn() {
         let mut table = Table::new();
         assert_eq!(table.len(), 0);
 
-        table.push_column(TestA(1));
+        table.push(TestA(1));
         assert_eq!(table.len(), 1);
 
-        let mut values : Vec<String> = table.query::<&TestA>()
+        let mut values : Vec<String> = table.iter_view::<&TestA>()
             .map(|t| format!("{:?}", t))
             .collect();
         assert_eq!(values.join(","), "TestA(1)");
 
-        table.push_column(TestB(10000));
+        table.push(TestB(10000));
         assert_eq!(table.len(), 2);
 
-        values = table.query::<&TestB>().map(|t| format!("{:?}", t)).collect();
+        values = table.iter_view::<&TestB>().map(|t| format!("{:?}", t)).collect();
         assert_eq!(values.join(","), "TestB(10000)");
 
-        values = table.query::<&TestA>().map(|t| format!("{:?}", t)).collect();
+        values = table.iter_view::<&TestA>().map(|t| format!("{:?}", t)).collect();
         assert_eq!(values.join(","), "TestA(1)");
 
-        table.push_column(TestB(100));
+        table.push(TestB(100));
         assert_eq!(table.len(), 3);
 
-        values = table.query::<&TestA>().map(|t: &TestA| format!("{:?}", t)).collect();
+        values = table.iter_view::<&TestA>().map(|t: &TestA| format!("{:?}", t)).collect();
         assert_eq!(values.join(","), "TestA(1)");
 
-        values = table.query::<&TestB>().map(|t: &TestB| format!("{:?}", t)).collect();
+        values = table.iter_view::<&TestB>().map(|t: &TestB| format!("{:?}", t)).collect();
         assert_eq!(values.join(","), "TestB(10000),TestB(100)");
 
-        for entity in table.query::<&mut TestB>() {
+        for entity in table.iter_view::<&mut TestB>() {
             entity.0 += 1;
         }
         
-        values = table.query::<&TestB>().map(|t: &TestB| format!("{:?}", t)).collect();
+        values = table.iter_view::<&TestB>().map(|t: &TestB| format!("{:?}", t)).collect();
         assert_eq!(values.join(","), "TestB(10001),TestB(101)");
     }
 
@@ -281,7 +263,7 @@ mod tests {
         //table.push(TestC(1));
         assert_eq!(table.len(), 1);
 
-        let mut values : Vec<String> = table.query::<&TestA>()
+        let values : Vec<String> = table.iter_view::<&TestA>()
             .map(|t| format!("{:?}", t))
             .collect();
         assert_eq!(values.join(","), "TestA(1)");
@@ -297,21 +279,21 @@ mod tests {
         
         assert_eq!(table.len(), 2);
 
-        let mut values : Vec<String> = table.query::<&TestA>()
+        let mut values : Vec<String> = table.iter_view::<&TestA>()
             .map(|t| format!("{:?}", t))
             .collect();
         assert_eq!(values.join(","), "TestA(1),TestA(4)");
 
-        values = table.query::<&TestB>().map(|t: &TestB| format!("{:?}", t)).collect();
+        values = table.iter_view::<&TestB>().map(|t: &TestB| format!("{:?}", t)).collect();
         assert_eq!(values.join(","), "TestB(2),TestB(3)");
 
-        values = table.query::<(&TestA,&TestB)>().map(|v| format!("{:?}", v)).collect();
+        values = table.iter_view::<(&TestA,&TestB)>().map(|v| format!("{:?}", v)).collect();
         assert_eq!(values.join(","), "(TestA(1), TestB(2)),(TestA(4), TestB(3))");
     }
 
     #[test]
     fn eval() {
-        let mut table = Table::new();
+        //let mut table = Table::new();
         //let row_id = table.push_column(TestA(1)).row_id();
 
     }
@@ -347,9 +329,6 @@ mod tests {
     impl Component for TestA {}
     impl Component for TestB {}
     
-    struct IsTest;
-    struct IsTestC;
-
     impl Insert for TestC {
         fn build(builder: &mut InsertBuilder) {
             builder.add_column::<TestC>()
@@ -376,11 +355,11 @@ mod tests {
              self.table.push::<T>(value);
         }
 
-        fn query<'a,T>(&mut self) -> QueryIterator<T>
+        fn query<'a,T>(&mut self) -> ViewIterator<T>
         //where T:Query<IsTest,Item<'a>=T>
-        where T:Query<Item<'t>=T> // <'a>=T>
+        where T:View<Item<'t>=T> // <'a>=T>
         {
-            self.table.query()
+            self.table.iter_view()
         }
     }
 }

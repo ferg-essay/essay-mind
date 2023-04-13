@@ -1,6 +1,6 @@
 use std::{marker::PhantomData};
 
-use crate::{world::prelude::World, entity::{prelude::Query}};
+use crate::{world::prelude::World, entity::{prelude::View}};
 
 use super::{prelude::Param, system::{System, IntoSystem}, param::Arg};
 
@@ -16,12 +16,12 @@ where
 }
 
 pub trait EachFun<M> {
-    type Entity<'w>:Query;
+    type Entity<'w>:View;
     type Params: Param;
 
     fn run<'a,'w>(&mut self, 
         world: &World<'w>,
-        entity: <Self::Entity<'w> as Query>::Item<'w>, // <'a>, 
+        entity: <Self::Entity<'w> as View>::Item<'w>, // <'a>, 
         param: Arg<Self::Params>
     );
 }
@@ -79,7 +79,7 @@ pub struct IsPlain;
 macro_rules! impl_each_function {
     ($($param:ident),*) => {
         #[allow(non_snake_case)]
-        impl<F:'static, T:Query, $($param: Param),*> EachFun<fn(IsPlain, T, $($param,)*)> for F
+        impl<F:'static, T:View, $($param: Param),*> EachFun<fn(IsPlain, T, $($param,)*)> for F
         where for<'w> F:FnMut(T, $($param),*) -> () +
             FnMut(T::Item<'w>, $(Arg<$param>),*) -> ()
         {

@@ -5,17 +5,21 @@
 
 use std::marker::PhantomData;
 
-use super::{prelude::{Table, ViewId}, meta::{RowType, ViewRowType, ColumnId}, table::{EntityRow, Component}};
+use super::{
+    prelude::{Table, ViewId}, 
+    meta::{RowType, ViewRowType, ColumnId}, 
+    table::{EntityRow, Component}
+};
 
-pub trait Query {
+pub trait View {
     type Item<'a>;
 
-    fn build(query: &mut QueryBuilder);
+    fn build(builder: &mut ViewBuilder);
 
-    unsafe fn query<'a,'t>(cursor: &mut QueryCursor<'a,'t>) -> Self::Item<'t>;
+    unsafe fn deref<'a,'t>(cursor: &mut ViewCursor<'a,'t>) -> Self::Item<'t>;
 }
 
-pub struct QueryCursor<'a,'t> {
+pub struct ViewCursor<'a,'t> {
     table: &'a Table<'t>,
     row_type: &'a RowType,
     view_row: &'a ViewRowType,
@@ -24,25 +28,25 @@ pub struct QueryCursor<'a,'t> {
     index: usize,
 }
 
-pub struct QueryBuilder<'a, 't> {
+pub struct ViewBuilder<'a, 't> {
     table: &'a mut Table<'t>, 
     columns: Vec<ColumnId>,
 }
 
-pub(crate) struct QueryPlan {
+pub(crate) struct ViewPlan {
     view: ViewId,
     cols: Vec<usize>,
 }
 
-impl QueryPlan {
+impl ViewPlan {
     pub(crate) fn new_cursor<'a,'t>(
         &'a self, 
         table: &'a Table<'t>,
         row_type: &'a RowType,
         view_row: &'a ViewRowType,
         row: &'a EntityRow
-    ) -> QueryCursor<'a,'t> {
-        QueryCursor {
+    ) -> ViewCursor<'a,'t> {
+        ViewCursor {
             table: table,
             row_type,
             row: row,
@@ -57,7 +61,7 @@ impl QueryPlan {
     }
 }
 
-impl<'a,'t> QueryCursor<'a,'t> {
+impl<'a,'t> ViewCursor<'a,'t> {
     pub unsafe fn deref<T:'static>(&mut self) -> &'t T {
         let index = self.view_row.index_map()[self.cols[self.index]];
         self.index += 1;
@@ -79,7 +83,7 @@ impl<'a,'t> QueryCursor<'a,'t> {
     }
 }
 
-impl<'a, 't> QueryBuilder<'a, 't> {
+impl<'a, 't> ViewBuilder<'a, 't> {
     pub(crate) fn new(table: &'a mut Table<'t>) -> Self {
         Self {
             table: table,
@@ -99,7 +103,7 @@ impl<'a, 't> QueryBuilder<'a, 't> {
         self.columns.push(col_id);
     }
 
-    pub(crate) fn build(self) -> QueryPlan {
+    pub(crate) fn build(self) -> ViewPlan {
         let view_id = self.table.add_view(&self.columns);
         let view = self.table.get_view(view_id);
 
@@ -107,18 +111,18 @@ impl<'a, 't> QueryBuilder<'a, 't> {
             .map(|col_id| view.column_position(*col_id).unwrap())
             .collect();
 
-        QueryPlan {
+        ViewPlan {
             view: view_id,
             cols: cols,
         }
     }
 }
 
-pub struct QueryIterator<'a, 't, T:Query> {
+pub struct ViewIterator<'a, 't, T:View> {
     table: &'a Table<'t>,
 
     view_id: ViewId,
-    query: QueryPlan,
+    plan: ViewPlan,
 
     view_type_index: usize,
 
@@ -127,16 +131,16 @@ pub struct QueryIterator<'a, 't, T:Query> {
     marker: PhantomData<T>,
 }
 
-impl<'a, 't, T:Query> QueryIterator<'a, 't, T> {
+impl<'a, 't, T:View> ViewIterator<'a, 't, T> {
     pub(crate) fn new(
         table: &'a Table<'t>, 
-        query: QueryPlan,
+        plan: ViewPlan,
     ) -> Self {
         Self {
             table: table,
 
-            view_id: query.view(),
-            query,
+            view_id: plan.view(),
+            plan,
 
             view_type_index: 0,
             row_index: 0,
@@ -146,7 +150,7 @@ impl<'a, 't, T:Query> QueryIterator<'a, 't, T> {
     }
 }
 
-impl<'a, 't, T:Query> Iterator for QueryIterator<'a, 't, T>
+impl<'a, 't, T:View> Iterator for ViewIterator<'a, 't, T>
 {
     type Item = T::Item<'t>;
 
@@ -164,14 +168,14 @@ impl<'a, 't, T:Query> Iterator for QueryIterator<'a, 't, T>
             match self.table.get_row_by_type_index(row_type_id, row_index) {
                 Some(row) => {
                     return unsafe { 
-                        let mut cursor = self.query.new_cursor(
+                        let mut cursor = self.plan.new_cursor(
                             self.table,
                             row_type, 
                             view_row,
                             row
                         );
                         
-                        Some(T::query(&mut cursor))
+                        Some(T::deref(&mut cursor))
                     }
                 }
                 None => {},
@@ -186,62 +190,62 @@ impl<'a, 't, T:Query> Iterator for QueryIterator<'a, 't, T>
 }
 
 //
-// query implementation
+// view implementation
 //
 
-impl<T:Component> Query for &T {
+impl<T:Component> View for &T {
     type Item<'t> = &'t T;
 
-    fn build(builder: &mut QueryBuilder) {
+    fn build(builder: &mut ViewBuilder) {
         builder.add_ref::<T>();
     }
 
-    unsafe fn query<'a,'t>(cursor: &mut QueryCursor<'a,'t>) -> Self::Item<'t> { // Self::Item { // <'a> {
+    unsafe fn deref<'a,'t>(cursor: &mut ViewCursor<'a,'t>) -> Self::Item<'t> { // Self::Item { // <'a> {
         cursor.deref::<T>()
     }
 }
 
-impl<T:Component> Query for &mut T {
+impl<T:Component> View for &mut T {
     type Item<'t> = &'t mut T;
 
-    fn build(builder: &mut QueryBuilder) {
+    fn build(builder: &mut ViewBuilder) {
         builder.add_ref::<T>();
     }
 
-    unsafe fn query<'a,'t>(cursor: &mut QueryCursor<'a,'t>) -> Self::Item<'t> { //<'a> {
+    unsafe fn deref<'a,'t>(cursor: &mut ViewCursor<'a,'t>) -> Self::Item<'t> { //<'a> {
         cursor.deref_mut::<T>()
     }
 }
 
 //
-// View query composed of tuples
+// View composed of tuples
 //
 
 macro_rules! impl_query_tuple {
     ($($part:ident),*) => {
         #[allow(non_snake_case)]
-        impl<$($part:Query,)*> Query for ($($part,)*)
+        impl<$($part:View,)*> View for ($($part,)*)
         {
             type Item<'t> = ($(
-                <$part as Query>::Item<'t>, // <'a>,
+                <$part as View>::Item<'t>,
             )*);
 
-            fn build(builder: &mut QueryBuilder) {
+            fn build(builder: &mut ViewBuilder) {
                 $(
                     $part::build(builder);
                 )*
             }
 
-            unsafe fn query<'a,'t>(cursor: &mut QueryCursor<'a,'t>) -> Self::Item<'t> { // <'a> {
+            unsafe fn deref<'a,'t>(cursor: &mut ViewCursor<'a,'t>) -> Self::Item<'t> { // <'a> {
                 ($(
-                    $part::query(cursor),
+                    $part::deref(cursor),
                 )*)
             }
         }
     }
 }
 
-//impl_query_tuple!();
+impl_query_tuple!();
 impl_query_tuple!(P1,P2);
 impl_query_tuple!(P1,P2,P3);
 impl_query_tuple!(P1,P2,P3,P4);

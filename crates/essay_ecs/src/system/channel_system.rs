@@ -4,7 +4,7 @@ use crate::{
     world::prelude::World, 
     prelude::{Param, IntoSystem, System}, 
     entity::prelude::{
-        Query, QueryBuilder, QueryCursor, Insert, InsertBuilder, InsertCursor
+        View, ViewBuilder, ViewCursor, Insert, InsertBuilder, InsertCursor
     }};
 
 use super::param::Arg;
@@ -12,6 +12,9 @@ use super::param::Arg;
 pub trait Channel {
     type In<'a>;
     type Out<'a>;
+
+    fn new_in(&mut self) -> InComponent<Self>;
+    fn new_out(&mut self) -> OutComponent<Self>;
 }
 
 pub struct In<'a, C:Channel>(C::In<'a>);
@@ -62,14 +65,14 @@ impl<T:'static> Insert for InComponent<T> {
     }
 }
 
-impl<C:'static> Query for InComponent<C> {
+impl<C:'static> View for InComponent<C> {
     type Item<'t> = &'t mut InComponent<C>;
 
-    fn build(builder: &mut QueryBuilder) {
+    fn build(builder: &mut ViewBuilder) {
         builder.add_ref::<InComponent<C>>();
     }
 
-    unsafe fn query<'a,'t>(cursor: &mut QueryCursor<'a,'t>) -> Self::Item<'t> {
+    unsafe fn deref<'a,'t>(cursor: &mut ViewCursor<'a,'t>) -> Self::Item<'t> {
         cursor.deref_mut::<InComponent<C>>()
     }
 }
@@ -102,14 +105,14 @@ impl<T:'static> Insert for OutComponent<T> {
     }
 }
 
-impl<C:'static> Query for OutComponent<C> {
+impl<C:'static> View for OutComponent<C> {
     type Item<'t> = &'t mut OutComponent<C>;
 
-    fn build(builder: &mut QueryBuilder) {
+    fn build(builder: &mut ViewBuilder) {
         builder.add_ref::<OutComponent<C>>();
     }
 
-    unsafe fn query<'a,'t>(cursor: &mut QueryCursor<'a,'t>) -> Self::Item<'t> {
+    unsafe fn deref<'a,'t>(cursor: &mut ViewCursor<'a,'t>) -> Self::Item<'t> {
         cursor.deref_mut::<OutComponent<C>>()
     }
 }
@@ -119,13 +122,13 @@ impl<C:'static> Query for OutComponent<C> {
 //
 
 pub trait EachInFun<M> {
-    type Item<'w>: Query;
+    type Item<'w>: View;
     type Channel: Channel;
     type Params: Param;
 
     fn run<'a,'w>(
         &mut self, 
-        item: <Self::Item<'w> as Query>::Item<'w>, // <'a>, 
+        item: <Self::Item<'w> as View>::Item<'w>, // <'a>, 
         input: In<Self::Channel>,
         args: Arg<Self::Params>
     );
@@ -178,7 +181,7 @@ where
 macro_rules! impl_each_in_params {
     ($($param:ident),*) => {
         #[allow(non_snake_case)]
-        impl<F:'static, C:Channel, T:Query, $($param: Param),*> 
+        impl<F:'static, C:Channel, T:View, $($param: Param),*> 
         EachInFun<fn(T, C, $($param,)*)> for F
         where for<'w> F:FnMut(T, In<C>, $($param),*) -> () +
             FnMut(T::Item<'w>, In<C>, $(Arg<$param>),*) -> ()
@@ -214,12 +217,12 @@ impl_each_in_params!(P1, P2, P3, P4, P5, P6, P7);
 //
 
 pub trait EachOutFun<M> {
-    type Item<'w>: Query;
+    type Item<'w>: View;
     type Channel: Channel;
     type Params: Param;
 
     fn run<'a,'w>(&mut self, 
-        item: <Self::Item<'w> as Query>::Item<'w>, // <'a>, 
+        item: <Self::Item<'w> as View>::Item<'w>, // <'a>, 
         out: Out<Self::Channel>,
         args: Arg<Self::Params>
     );
@@ -272,7 +275,7 @@ where
 macro_rules! impl_each_out_params {
     ($($param:ident),*) => {
         #[allow(non_snake_case)]
-        impl<F:'static, C:Channel, T:Query, $($param: Param),*> 
+        impl<F:'static, C:Channel, T:View, $($param: Param),*> 
         EachOutFun<fn(T, C, $($param,)*)> for F
         where for<'w> F:FnMut(T, Out<C>, $($param),*) -> () +
             FnMut(T::Item<'w>, Out<C>, $(Arg<$param>),*) -> ()
@@ -319,7 +322,9 @@ mod tests {
 
         let in_values = Rc::new(RefCell::new(Vec::<String>::new()));
 
-        app.spawn((TestA(1), InChannelTest::new_box(in_values.clone())));
+        let mut channel = TestChannel::new(in_values.clone()); 
+
+        app.spawn((TestA(1), channel.new_in()));
 
         let values = Rc::new(RefCell::new(Vec::<String>::new()));
 
@@ -354,8 +359,9 @@ mod tests {
         let mut app = App::new();
 
         let values = Rc::new(RefCell::new(Vec::<String>::new()));
+        let mut channel = TestChannel::new(values.clone()); 
 
-        app.spawn((TestA(1), OutChannelTest::new_box(values.clone())));
+        app.spawn((TestA(1), channel.new_out()));
 
         app.add_system(move |t :&mut TestA, mut out: Out<TestChannel>| {
             out.send(format!("{:?}", t));
@@ -376,9 +382,10 @@ mod tests {
         let mut app = App::new();
 
         let in_values = Rc::new(RefCell::new(Vec::<String>::new()));
+        let mut channel = TestChannel::new(in_values.clone()); 
 
-        app.spawn((TestA(1), InChannelTest::new_box(in_values.clone())));
-        app.spawn((TestA(2), OutChannelTest::new_box(in_values.clone())));
+        app.spawn((TestA(1), channel.new_in()));
+        app.spawn((TestA(2), channel.new_out()));
 
         let values = Rc::new(RefCell::new(Vec::<String>::new()));
 
@@ -424,11 +431,29 @@ mod tests {
     #[derive(Debug)]
     struct TestInFiber(usize);
 
-    struct TestChannel;
+    struct TestChannel {
+        values: Rc<RefCell<Vec<String>>>,
+    }
+
+    impl TestChannel {
+        fn new(values: Rc<RefCell<Vec<String>>>) -> Self {
+            Self {
+                values: values,
+            }
+        }
+    }
 
     impl Channel for TestChannel {
         type In<'a> = InChannelTestItem<'a>;
         type Out<'a> = OutChannelTestItem<'a>;
+
+        fn new_in(&mut self) -> InComponent<Self> {
+            Box::new(InChannelTest::new(self.values.clone()))
+        }
+
+        fn new_out(&mut self) -> OutComponent<Self> {
+            Box::new(OutChannelTest::new(self.values.clone()))
+        }
     }
 
     struct InChannelTest {

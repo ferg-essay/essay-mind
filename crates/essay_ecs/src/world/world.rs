@@ -1,4 +1,4 @@
-use crate::{entity::{prelude::{Table, QueryIterator, Query, Insert, PtrCell}}};
+use crate::{entity::{prelude::{Table, ViewIterator, View, Insert, PtrCell}}};
 
 use super::resource::Resources;
 
@@ -24,14 +24,14 @@ impl<'w> World<'w> {
         self.ptr.deref_mut().table.push::<T>(value);
     }
 
-    pub(crate) fn query<T:Query>(&self) -> QueryIterator<'_,'w,T> {
-        self.ptr.deref_mut().table.query::<T>()
+    pub(crate) fn query<T:View>(&self) -> ViewIterator<'_,'w,T> {
+        self.ptr.deref_mut().table.iter_view::<T>()
     }
 
-    pub fn eval<'a,T:Query,F>(&self, fun: &mut F)
-        where F: FnMut(T) + FnMut(<T as Query>::Item<'w>)
+    pub fn eval<'a,T:View,F>(&self, fun: &mut F)
+        where F: FnMut(T) + FnMut(<T as View>::Item<'w>)
     {
-        for arg in self.ptr.deref_mut().table.query::<T>() {
+        for arg in self.ptr.deref_mut().table.iter_view::<T>() {
             fun(arg);
         }
     }
