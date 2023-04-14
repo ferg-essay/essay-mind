@@ -1,3 +1,4 @@
+mod command;
 mod unsafe_world;
 mod params;
 mod resource;
