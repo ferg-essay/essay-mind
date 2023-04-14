@@ -1,6 +1,6 @@
 use std::{collections::HashMap, any::TypeId, cell::UnsafeCell};
 
-use crate::{entity::prelude::{Table}, type_meta::TypeMetas};
+use crate::{entity::prelude::{Table}};
 
 use super::cell::Ptr;
 
@@ -17,9 +17,7 @@ struct Resource {
 pub struct Resources {
     resource_map: HashMap<TypeId,ResourceId>,
     resources: Vec<Resource>,
-    types: TypeMetas,
     table: Table,
-    //resources: Vec<RowMeta>,
 }
 
 impl ResourceId {
@@ -54,7 +52,6 @@ impl Resources {
         Self {
             resource_map: HashMap::new(),
             resources: Vec::new(),
-            types: TypeMetas::new(),
             table: Table::new(),
             //resources: Vec::new(),
         }
