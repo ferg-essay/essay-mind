@@ -130,7 +130,7 @@ mod tests {
 
     use essay_ecs_macros::Component;
 
-    use crate::{app::App};
+    use crate::app::prelude::App;
 
     #[test]
     fn test_each() {
