@@ -3,7 +3,7 @@ use std::ptr::NonNull;
 use std::{marker::PhantomData, cmp};
 use std::alloc::Layout;
 
-use super::meta::{ColumnId, ColumnType, TableMeta};
+use super::meta::{ColumnId, ColumnType, StoreMeta};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Ord, PartialOrd)]
 pub struct RowId(u32);
@@ -36,7 +36,7 @@ impl RowId {
 }
 
 impl Column {
-    pub(crate) fn new<T:'static>(metas: &mut TableMeta) -> Self {
+    pub(crate) fn new<T:'static>(metas: &mut StoreMeta) -> Self {
         let id = metas.add_column::<T>();
         let meta = metas.column(id);
 
@@ -211,13 +211,13 @@ fn dangling_data(align: usize) -> NonNull<u8> {
 
 #[cfg(test)]
 mod tests {
-    use crate::entity::{meta::TableMeta, column::RowId};
+    use crate::entity::{meta::StoreMeta, column::RowId};
 
     use super::Column;
 
     #[test]
     fn col_null() {
-        let mut metas = TableMeta::new();
+        let mut metas = StoreMeta::new();
         let col = Column::new::<()>(&mut metas);
 
         assert_eq!(col.capacity(), 1);
@@ -232,7 +232,7 @@ mod tests {
 
     #[test]
     fn col_u8() {
-        let mut metas = TableMeta::new();
+        let mut metas = StoreMeta::new();
         let mut col = Column::new::<u8>(&mut metas);
 
         assert_eq!(col.capacity(), 0);
@@ -266,7 +266,7 @@ mod tests {
 
     #[test]
     fn col_u16() {
-        let mut metas = TableMeta::new();
+        let mut metas = StoreMeta::new();
         let mut col = Column::new::<TestA>(&mut metas);
 
         assert_eq!(col.capacity(), 0);

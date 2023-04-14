@@ -145,8 +145,6 @@ mod tests {
     #[derive(ScheduleLabel, PartialEq, Hash, Eq, Clone, Debug)]
     enum TestSchedule {
         A,
-        B,
-        C
     }
 
     #[test]

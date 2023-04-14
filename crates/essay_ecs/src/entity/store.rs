@@ -2,23 +2,23 @@ use super::column::{Column, RowId};
 use super::insert::{InsertBuilder, Insert, InsertPlan};
 use super::prelude::ViewId;
 use super::view::{View, ViewIterator, ViewBuilder, ViewPlan};
-use super::meta::{TableMeta, ColumnId, RowTypeId, ViewType};
+use super::meta::{StoreMeta, ColumnId, TableId, ViewType};
 
 #[derive(Debug,Clone,Copy,PartialEq,Hash,PartialOrd,Eq)]
 pub struct EntityId(usize);
 
-pub struct Table {
-    meta: TableMeta,
+pub struct Store {
+    meta: StoreMeta,
 
     columns: Vec<Column>,
 
     rows: Vec<Row>,
-    rows_by_type: Vec<Vec<EntityId>>,
+    rows_by_table: Vec<Vec<EntityId>>,
 }
 
 pub struct Row {
     id: EntityId,
-    row_type: RowTypeId,
+    table: TableId,
 
     columns: Vec<RowId>,
 }
@@ -32,21 +32,21 @@ pub struct ComponentId(usize);
 // implementation
 //
 
-impl Table {
+impl Store {
     pub fn new() -> Self {
-        let mut row_meta = TableMeta::new();
+        let mut meta = StoreMeta::new();
 
         Self {
-            meta: row_meta,
+            meta,
 
             columns: Vec::new(),
             
             rows: Vec::new(),
-            rows_by_type: Vec::new(),
+            rows_by_table: Vec::new(),
         }
     }
 
-    pub(crate) fn meta(&self) -> &TableMeta {
+    pub(crate) fn meta(&self) -> &StoreMeta {
         &self.meta
     }
 
@@ -89,9 +89,9 @@ impl Table {
     pub fn get<T:'static>(&mut self, entity: EntityId) -> Option<&T> {
         let column_id = self.meta().get_column::<T>()?;
         let row = self.rows.get(entity.index())?;
-        let row_type = self.meta().row(row.row_type);
+        let table = self.meta().table(row.table);
 
-        let index = row_type.position(column_id)?;
+        let index = table.position(column_id)?;
 
         unsafe {
             self.get_by_id(column_id, row.columns[index])
@@ -101,9 +101,9 @@ impl Table {
     pub fn get_mut<T:'static>(&mut self, entity: EntityId) -> Option<&mut T> {
         let column_id = self.meta().get_column::<T>()?;
         let row = self.rows.get(entity.index())?;
-        let row_type = self.meta().row(row.row_type);
+        let table = self.meta().table(row.table);
 
-        let index = row_type.position(column_id)?;
+        let index = table.position(column_id)?;
 
         unsafe {
             self.get_mut_by_id(column_id, row.columns[index])
@@ -131,32 +131,32 @@ impl Table {
         cursor.complete()
     }
 
-    pub(crate) fn add_row_type(&mut self, cols: Vec<ColumnId>) -> RowTypeId {
-        let row_type_id = self.meta.add_row(cols);
+    pub(crate) fn add_table(&mut self, cols: Vec<ColumnId>) -> TableId {
+        let table_id = self.meta.add_table(cols);
 
-        while self.rows_by_type.len() <= row_type_id.index() {
-            self.rows_by_type.push(Vec::new());
+        while self.rows_by_table.len() <= table_id.index() {
+            self.rows_by_table.push(Vec::new());
         }
         
-        row_type_id
+        table_id
     }
 
     pub(crate) fn push_row(
         &mut self, 
-        row_type_id: RowTypeId, 
+        table_id: TableId, 
         columns: Vec<RowId>
     ) -> EntityId {
         let entity_id = EntityId(self.rows.len());
 
         let row = Row {
             id: entity_id,
-            row_type: row_type_id,
+            table: table_id,
             columns,
         };
 
         self.rows.push(row);
         
-        self.rows_by_type[row_type_id.index()].push(entity_id);
+        self.rows_by_table[table_id.index()].push(entity_id);
 
         entity_id
     }
@@ -212,10 +212,10 @@ impl Table {
 
     pub(crate) fn get_row_by_type_index(
         &self, 
-        row_type_id: RowTypeId, 
+        table_id: TableId, 
         row_index: usize
     ) -> Option<&Row> {
-        match self.rows_by_type[row_type_id.index()].get(row_index) {
+        match self.rows_by_table[table_id.index()].get(row_index) {
             Some(row_id) => self.rows.get(row_id.index()),
             None => None,
         }
@@ -238,11 +238,11 @@ impl Row {
 mod tests {
     use crate::{entity::{insert::InsertCursor, Component}};
 
-    use super::{Table, InsertBuilder, Insert};
+    use super::{Store, InsertBuilder, Insert};
 
     #[test]
     fn spawn() {
-        let mut table = Table::new();
+        let mut table = Store::new();
         assert_eq!(table.len(), 0);
 
         table.spawn(TestA(1));
@@ -281,7 +281,7 @@ mod tests {
 
     #[test]
     fn entity_get() {
-        let mut table = Table::new();
+        let mut table = Store::new();
         assert_eq!(table.len(), 0);
 
         let id_0 = table.spawn(TestA(1000));
@@ -311,7 +311,7 @@ mod tests {
 
     #[test]
     fn push_type() {
-        let mut table = Table::new();
+        let mut table = Store::new();
         assert_eq!(table.len(), 0);
 
         table.spawn::<TestA>(TestA(1));
@@ -326,7 +326,7 @@ mod tests {
 
     #[test]
     fn push_tuple() {
-        let mut table = Table::new();
+        let mut table = Store::new();
         assert_eq!(table.len(), 0);
 
         table.spawn((TestA(1),TestB(2)));

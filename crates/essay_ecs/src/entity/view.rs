@@ -6,9 +6,9 @@
 use std::marker::PhantomData;
 
 use super::{
-    prelude::{Table, ViewId}, 
-    meta::{RowType, ViewRowType, ColumnId}, 
-    table::{Row, Component}
+    prelude::{Store, ViewId}, 
+    meta::{Table, ViewTableType, ColumnId}, 
+    store::{Row, Component}
 };
 
 pub trait View {
@@ -20,16 +20,16 @@ pub trait View {
 }
 
 pub struct ViewCursor<'a, 't> {
-    table: &'t Table,
-    row_type: &'a RowType,
-    view_row: &'a ViewRowType,
+    store: &'t Store,
+    table: &'a Table,
+    view_table: &'a ViewTableType,
     row: &'a Row,
     cols: &'a Vec<usize>,
     index: usize,
 }
 
 pub struct ViewBuilder<'a> {
-    table: &'a mut Table, 
+    store: &'a mut Store, 
     columns: Vec<ColumnId>,
 }
 
@@ -41,16 +41,16 @@ pub(crate) struct ViewPlan {
 impl ViewPlan {
     pub(crate) fn new_cursor<'a, 't>(
         &'a self, 
-        table: &'t Table,
-        row_type: &'a RowType,
-        view_row: &'a ViewRowType,
+        store: &'t Store,
+        table: &'a Table,
+        view_row: &'a ViewTableType,
         row: &'a Row
     ) -> ViewCursor<'a, 't> {
         ViewCursor {
+            store,
             table,
-            row_type,
             row: row,
-            view_row: view_row,
+            view_table: view_row,
             cols: &self.cols,
             index: 0,
         }
@@ -63,49 +63,49 @@ impl ViewPlan {
 
 impl<'a, 't> ViewCursor<'a, 't> {
     pub unsafe fn deref<T:'static>(&mut self) -> &'t T {
-        let index = self.view_row.index_map()[self.cols[self.index]];
+        let index = self.view_table.index_map()[self.cols[self.index]];
         self.index += 1;
 
-        let column_id = self.row_type.columns()[index];
+        let column_id = self.table.columns()[index];
         let row_id = self.row.column_row(index);
 
-        self.table.get_by_id::<T>(column_id, row_id).unwrap()
+        self.store.get_by_id::<T>(column_id, row_id).unwrap()
     }
 
     pub unsafe fn deref_mut<T:'static>(&mut self) -> &'t mut T {
-        let index = self.view_row.index_map()[self.cols[self.index]];
+        let index = self.view_table.index_map()[self.cols[self.index]];
         self.index += 1;
 
-        let column_id = self.row_type.columns()[index];
+        let column_id = self.table.columns()[index];
         let row_id = self.row.column_row(index);
 
-        self.table.get_mut_by_id(column_id, row_id).unwrap()
+        self.store.get_mut_by_id(column_id, row_id).unwrap()
     }
 }
 
 impl<'a, 't> ViewBuilder<'a> {
-    pub(crate) fn new(table: &'a mut Table) -> Self {
+    pub(crate) fn new(store: &'a mut Store) -> Self {
         Self {
-            table: table,
+            store,
             columns: Vec::new(),
         }
     }
 
     pub fn add_ref<T:'static>(&mut self) {
-        let col_id = self.table.add_column::<T>();
+        let col_id = self.store.add_column::<T>();
 
         self.columns.push(col_id);
     }
 
     pub fn add_mut<T:'static>(&mut self) {
-        let col_id = self.table.add_column::<T>();
+        let col_id = self.store.add_column::<T>();
 
         self.columns.push(col_id);
     }
 
     pub(crate) fn build(self) -> ViewPlan {
-        let view_id = self.table.add_view(&self.columns);
-        let view = self.table.view(view_id);
+        let view_id = self.store.add_view(&self.columns);
+        let view = self.store.view(view_id);
 
         let cols = self.columns.iter()
             .map(|col_id| view.column_position(*col_id).unwrap())
@@ -119,7 +119,7 @@ impl<'a, 't> ViewBuilder<'a> {
 }
 
 pub struct ViewIterator<'a, T:View> {
-    table: &'a Table,
+    store: &'a Store,
 
     view_id: ViewId,
     plan: ViewPlan,
@@ -133,11 +133,11 @@ pub struct ViewIterator<'a, T:View> {
 
 impl<'a, T:View> ViewIterator<'a, T> {
     pub(crate) fn new(
-        table: &'a Table, 
+        table: &'a Store, 
         plan: ViewPlan,
     ) -> Self {
         Self {
-            table: table,
+            store: table,
 
             view_id: plan.view(),
             plan,
@@ -155,23 +155,23 @@ impl<'a, T:View> Iterator for ViewIterator<'a, T>
     type Item = T::Item<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let view = self.table.meta().view(self.view_id);
+        let view = self.store.meta().view(self.view_id);
 
-        while self.view_type_index < view.view_rows().len() {
-            let view_row_id = view.view_rows()[self.view_type_index];
-            let view_row = self.table.meta().view_row(view_row_id);
-            let row_type_id = view_row.row_id();
-            let row_type = self.table.meta().row(row_type_id);
+        while self.view_type_index < view.view_tables().len() {
+            let view_table_id = view.view_tables()[self.view_type_index];
+            let view_table = self.store.meta().view_table(view_table_id);
+            let table_id = view_table.table_id();
+            let table = self.store.meta().table(table_id);
             let row_index = self.row_index;
             self.row_index += 1;
 
-            match self.table.get_row_by_type_index(row_type_id, row_index) {
+            match self.store.get_row_by_type_index(table_id, row_index) {
                 Some(row) => {
                     return unsafe { 
                         let mut cursor = self.plan.new_cursor(
-                            self.table,
-                            row_type, 
-                            view_row,
+                            self.store,
+                            table, 
+                            view_table,
                             row
                         );
                         

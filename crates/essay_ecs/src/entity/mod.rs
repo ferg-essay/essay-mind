@@ -1,14 +1,14 @@
 mod view;
 mod insert;
-mod table;
+mod store;
 mod column;
 pub(crate) mod meta;
 
-pub use table::Component;
+pub use store::Component;
 
 pub mod prelude {
-    pub use super::table::{
-        Table, Component, EntityId,
+    pub use super::store::{
+        Store, Component, EntityId,
     };
     pub use super::insert::{
         Insert, InsertBuilder, InsertCursor,

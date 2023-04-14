@@ -1,6 +1,6 @@
 use std::cell::UnsafeCell;
 
-use crate::{entity::{prelude::{Table, ViewIterator, View, Insert, EntityId}}, prelude::{System, IntoSystem}, schedule::prelude::{ScheduleLabel, Schedules}};
+use crate::{entity::{prelude::{Store, ViewIterator, View, Insert, EntityId}}, prelude::{System, IntoSystem}, schedule::prelude::{ScheduleLabel, Schedules}};
 
 use super::{resource::Resources, unsafe_world::UnsafeWorld, cell::PtrCell, prelude::Ptr};
 
@@ -16,7 +16,7 @@ impl World {
     pub fn new() -> Self {
         Self {
             ptr: Ptr::new(WorldInner {
-                table: Table::new(),
+                table: Store::new(),
                 resources: Resources::new(),
             }),
         }
@@ -102,7 +102,7 @@ impl World {
 }
 
 pub struct WorldInner {
-    pub(crate) table: Table,
+    pub(crate) table: Store,
     pub(crate) resources: Resources,
 }
 

@@ -3,7 +3,7 @@
 // Insert
 //
 
-use super::{meta::{RowTypeId, ColumnId}, prelude::{Table}, column::RowId, table::EntityId, Component};
+use super::{meta::{TableId, ColumnId}, prelude::{Store}, column::RowId, store::EntityId, Component};
 
 pub trait Insert:'static {
     fn build(builder: &mut InsertBuilder);
@@ -12,52 +12,52 @@ pub trait Insert:'static {
 }
 
 pub struct InsertBuilder<'a> {
-    table: &'a mut Table,
+    store: &'a mut Store,
     columns: Vec<ColumnId>,
 }
 
 pub struct InsertPlan {
-    row_type: RowTypeId,
+    table_id: TableId,
     columns: Vec<ColumnId>,
     index_map: Vec<usize>,
 }
 
 pub struct InsertCursor<'a> {
-    table: &'a mut Table,
+    store: &'a mut Store,
     plan: &'a InsertPlan,
     index: usize,
     rows: Vec<RowId>,
 }
 
 impl<'a,'t> InsertBuilder<'a> {
-    pub(crate) fn new(table: &'a mut Table) -> Self {
+    pub(crate) fn new(store: &'a mut Store) -> Self {
         Self {
-            table: table,
+            store,
             columns: Vec::new(),
         }
     }
 
     pub(crate) fn add_column<T:'static>(&mut self) {
-        let id = self.table.add_column::<T>();
+        let id = self.store.add_column::<T>();
         
         self.columns.push(id);
     }
 
     pub(crate) fn build(self) -> InsertPlan {
-        let row_id = self.table.add_row_type(self.columns.clone());
-        let row_type = self.table.meta().row(row_id);
+        let table_id = self.store.add_table(self.columns.clone());
+        let table = self.store.meta().table(table_id);
 
         let mut index_map = Vec::<usize>::new();
 
-        for row_column in row_type.columns() {
+        for table_column in table.columns() {
             index_map.push(self.columns.iter()
-                .position(|c| c == row_column)
+                .position(|c| c == table_column)
                 .unwrap()
             );
         }
 
         InsertPlan {
-            row_type: row_id,
+            table_id,
             columns: self.columns.clone(),
             index_map: index_map,
         }
@@ -67,20 +67,20 @@ impl<'a,'t> InsertBuilder<'a> {
 impl InsertPlan {
     pub(crate) fn insert<T:'static>(
         &self,
-        table: &mut Table, 
+        store: &mut Store, 
         index: usize, 
         value: T
     ) -> RowId {
         unsafe {
             let column_id = self.columns[index];
-            table.column_mut(column_id).push(value)
+            store.column_mut(column_id).push(value)
         }
     }
 
-    pub(crate) fn cursor<'a>(&'a self, table: &'a mut Table) -> InsertCursor<'a> {
+    pub(crate) fn cursor<'a>(&'a self, store: &'a mut Store) -> InsertCursor<'a> {
         InsertCursor {
             plan: &self,
-            table: table,
+            store,
             index: 0, 
             rows: Vec::new(),
         }
@@ -92,7 +92,7 @@ impl<'a> InsertCursor<'a> {
         let index = self.index;
         self.index += 1;
 
-        let row_id = self.plan.insert(self.table, index, value);
+        let row_id = self.plan.insert(self.store, index, value);
 
         self.rows.push(row_id);
     }
@@ -104,7 +104,7 @@ impl<'a> InsertCursor<'a> {
             columns.push(self.rows[*index]);
         }
 
-        self.table.push_row(self.plan.row_type, columns)
+        self.store.push_row(self.plan.table_id, columns)
     }
 }
 

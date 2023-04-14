@@ -1,16 +1,21 @@
-use std::{mem, collections::{HashMap, HashSet}, slice::Iter, any::{TypeId, type_name}, borrow::Cow, alloc::Layout, marker::PhantomData};
+use std::{
+    collections::{HashMap}, 
+    any::{TypeId, type_name}, 
+    borrow::Cow, 
+    alloc::Layout, 
+};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct ColumnId(usize);
 
 #[derive(Debug,Clone,Copy,PartialEq,Hash,PartialOrd,Eq)]
-pub struct RowTypeId(usize);
+pub struct TableId(usize);
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ViewId(usize);
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub struct ViewRowId(usize);
+pub struct ViewTableId(usize);
 
 #[derive(Clone, Debug)]
 pub struct ColumnType {
@@ -22,12 +27,12 @@ pub struct ColumnType {
     layout: Layout,
     layout_padded: Layout,
 
-    rows: Vec<RowTypeId>,
+    tables: Vec<TableId>,
     views: Vec<ViewId>,
 }
 
-pub struct RowType {
-    id: RowTypeId,
+pub struct Table {
+    id: TableId,
 
     columns: Vec<ColumnId>,
 }
@@ -36,30 +41,30 @@ pub struct ViewType {
     id: ViewId,
     cols: Vec<ColumnId>,
 
-    view_rows: Vec<ViewRowId>,
+    view_tables: Vec<ViewTableId>,
 }
 
-pub struct ViewRowType {
-    id: ViewRowId,
+pub struct ViewTableType {
+    id: ViewTableId,
 
     view_id: ViewId,
-    row_id: RowTypeId,
+    table_id: TableId,
 
     index_map: Vec<usize>,
 }
 
-pub(crate) struct TableMeta {
+pub(crate) struct StoreMeta {
     column_map: HashMap<TypeId,ColumnId>,
     columns: Vec<ColumnType>,
 
-    row_map: HashMap<Vec<ColumnId>,RowTypeId>,
-    rows: Vec<RowType>,
+    table_map: HashMap<Vec<ColumnId>,TableId>,
+    tables: Vec<Table>,
 
     view_map: HashMap<Vec<ColumnId>,ViewId>,
     views: Vec<ViewType>,
 
-    view_row_map: HashMap<(ViewId,RowTypeId), ViewRowId>,
-    view_rows: Vec<ViewRowType>,
+    view_table_map: HashMap<(ViewId,TableId), ViewTableId>,
+    view_tables: Vec<ViewTableType>,
 }
 
 //
@@ -95,21 +100,21 @@ impl ColumnType {
         self.layout_padded.size()
     }
 
-    fn rows(&self) -> &Vec<RowTypeId> {
-        &self.rows
+    fn rows(&self) -> &Vec<TableId> {
+        &self.tables
     }
 
-    fn iter_rows(&self) -> impl Iterator<Item=&RowTypeId> {
-        self.rows.iter()
+    fn iter_rows(&self) -> impl Iterator<Item=&TableId> {
+        self.tables.iter()
     }
 }
 
 //
-// Row
+// Table
 //
 
-impl RowTypeId {
-    pub const INVALID: RowTypeId = RowTypeId(usize::MAX);
+impl TableId {
+    pub const INVALID: TableId = TableId(usize::MAX);
 
     #[inline]
     pub fn index(&self) -> usize {
@@ -117,8 +122,8 @@ impl RowTypeId {
     }
 }
 
-impl RowType {
-    pub(crate) fn id(&self) -> RowTypeId {
+impl Table {
+    pub(crate) fn id(&self) -> TableId {
         self.id
     }
 
@@ -168,8 +173,8 @@ impl ViewType {
         self.cols.iter().position(|col| *col == col_id)
     }
 
-    pub(crate) fn view_rows(&self) -> &Vec<ViewRowId> {
-        &self.view_rows
+    pub(crate) fn view_tables(&self) -> &Vec<ViewTableId> {
+        &self.view_tables
     }
 }
 
@@ -177,36 +182,36 @@ impl ViewType {
 // ViewRow
 //
 
-impl ViewRowId {
+impl ViewTableId {
     pub fn index(&self) -> usize {
         self.0
     }
 }
 
-impl ViewRowType {
+impl ViewTableType {
     pub fn new(
-        id: ViewRowId, 
-        row: &RowType, 
+        id: ViewTableId, 
+        table: &Table, 
         view: &ViewType
-    ) -> ViewRowType {
+    ) -> ViewTableType {
         let mut index_map = Vec::<usize>::new();
 
         for col in &view.cols {
-            let index = row.columns().iter()
+            let index = table.columns().iter()
                 .position(|c| c == col).unwrap();
 
             index_map.push(index);
         }
 
-        ViewRowType {
+        ViewTableType {
             id,
             view_id: view.id,
-            row_id: row.id(),
+            table_id: table.id(),
             index_map,
         }
     }
 
-    pub fn id(&self) -> ViewRowId {
+    pub fn id(&self) -> ViewTableId {
         self.id
     }
 
@@ -214,8 +219,8 @@ impl ViewRowType {
         self.view_id
     }
 
-    pub(crate) fn row_id(&self) -> RowTypeId {
-        self.row_id
+    pub(crate) fn table_id(&self) -> TableId {
+        self.table_id
     }
 
     pub fn index_map(&self) -> &Vec<usize> {
@@ -227,20 +232,20 @@ impl ViewRowType {
 // TableMeta
 //
 
-impl TableMeta {
+impl StoreMeta {
     pub fn new() -> Self {
         Self {
             column_map: HashMap::new(),
             columns: Vec::new(),
 
-            row_map: HashMap::new(),
-            rows: Vec::new(),
+            table_map: HashMap::new(),
+            tables: Vec::new(),
 
             view_map: HashMap::new(),
             views: Vec::new(),
 
-            view_row_map: HashMap::new(),
-            view_rows: Vec::new(),
+            view_table_map: HashMap::new(),
+            view_tables: Vec::new(),
         }
     }
 
@@ -281,7 +286,7 @@ impl TableMeta {
                 layout: Layout::new::<T>(),
                 layout_padded: Layout::new::<T>().pad_to_align(),
 
-                rows: Vec::new(),
+                tables: Vec::new(),
                 views: Vec::new(),
             };
 
@@ -292,48 +297,48 @@ impl TableMeta {
     }
 
     //
-    // Row
+    // Table
     //
 
-    pub fn row(&self, id: RowTypeId) -> &RowType {
-        &self.rows[id.index()]
+    pub fn table(&self, id: TableId) -> &Table {
+        &self.tables[id.index()]
     }
 
-    pub(crate) fn row_mut(&mut self, id: RowTypeId) -> &mut RowType {
-        self.rows.get_mut(id.index()).unwrap()
+    pub(crate) fn table_mut(&mut self, id: TableId) -> &mut Table {
+        self.tables.get_mut(id.index()).unwrap()
     }
 
-    pub fn add_row(&mut self, mut columns: Vec<ColumnId>) -> RowTypeId {
+    pub fn add_table(&mut self, mut columns: Vec<ColumnId>) -> TableId {
         columns.sort();
         columns.dedup();
 
-        let len = self.rows.len();
-        let row_id = *self.row_map.entry(columns.clone()).or_insert_with(|| {
-            RowTypeId(len)
+        let len = self.tables.len();
+        let table_id = *self.table_map.entry(columns.clone()).or_insert_with(|| {
+            TableId(len)
         });
 
-        if row_id.index() < len {
-            return row_id;
+        if table_id.index() < len {
+            return table_id;
         }
 
-        self.rows.push(RowType {
-            id: row_id,
+        self.tables.push(Table {
+            id: table_id,
             columns,
         });
 
-        self.fill_row_columns(row_id);
-        self.add_view_rows_from_row(row_id);
+        self.fill_table_columns(table_id);
+        self.add_view_tables_from_table(table_id);
 
-        row_id
+        table_id
     }
 
-    fn fill_row_columns(&mut self, row_id: RowTypeId) {
-        let columns = self.row(row_id).columns().clone();
+    fn fill_table_columns(&mut self, table_id: TableId) {
+        let columns = self.table(table_id).columns().clone();
 
         for column_id in columns {
             let column = self.column_mut(column_id);
 
-            column.rows.push(row_id);
+            column.tables.push(table_id);
         }
     }
 
@@ -369,80 +374,80 @@ impl TableMeta {
             self.views.push(ViewType {
                 id: view_id,
                 cols: columns.clone(),
-                view_rows: Vec::new(),
+                view_tables: Vec::new(),
             });
 
-            self.add_view_rows_from_view(view_id);
+            self.add_view_tables_from_view(view_id);
         }
 
         view_id
     }
 
     //
-    // ViewRow
+    // ViewTable
     //
 
-    pub fn view_row(&self, id: ViewRowId) -> &ViewRowType {
-        self.view_rows.get(id.index()).unwrap()
+    pub fn view_table(&self, id: ViewTableId) -> &ViewTableType {
+        self.view_tables.get(id.index()).unwrap()
     }
 
-    pub(crate) fn add_view_row(
+    pub(crate) fn add_view_table(
         &mut self,
-        row_id: RowTypeId, 
+        table_id: TableId, 
         view_id: ViewId
-    ) -> ViewRowId {
-        let len = self.view_rows.len();
+    ) -> ViewTableId {
+        let len = self.view_tables.len();
 
-        let view_row_id = *self.view_row_map
-            .entry((view_id, row_id))
+        let view_table_id = *self.view_table_map
+            .entry((view_id, table_id))
             .or_insert_with(|| {
-            ViewRowId(len)
+            ViewTableId(len)
         });
 
-        if view_row_id.index() == len {
-            self.push_view_row(row_id, view_id, view_row_id);
+        if view_table_id.index() == len {
+            self.push_view_table(table_id, view_id, view_table_id);
         }
 
-        view_row_id
+        view_table_id
     }
 
-    fn push_view_row(
+    fn push_view_table(
         &mut self, 
-        row_id: RowTypeId,
+        table_id: TableId,
         view_id: ViewId, 
-        view_row_id: ViewRowId
+        view_table_id: ViewTableId
     ) {
-        let row = self.row(row_id);
+        let table = self.table(table_id);
         let view_type = self.view(view_id);
 
-        assert_eq!(view_row_id.index(), self.view_rows.len());
+        assert_eq!(view_table_id.index(), self.view_tables.len());
 
-        self.view_rows.push(ViewRowType::new(view_row_id, row, view_type));
+        self.view_tables.push(ViewTableType::new(view_table_id, table, view_type));
 
         let view_type = self.view_mut(view_id);
-        view_type.view_rows.push(view_row_id);
+        view_type.view_tables.push(view_table_id);
     }
 
-    fn add_view_rows_from_row(
+    fn add_view_tables_from_table(
         &mut self, 
-        row_id: RowTypeId, 
+        table_id: TableId, 
     ) {
-        let row = self.row(row_id);
+        let table = self.table(table_id);
 
         let mut views: Vec<ViewId> = Vec::new();
 
         for view_type in &self.views {
-            if row.contains_columns(&view_type.cols) {
+            if table.contains_columns(&view_type.cols) {
                 views.push(view_type.id());
             }
         }
 
         for view_id in views {
-            self.add_view_row(row_id, view_id);
+            self.add_view_table(table_id, view_id);
         }
     }
 
-    fn add_view_rows_from_view(&mut self, view_id: ViewId) {
+    fn add_view_tables_from_view(&mut self, view_id: ViewId) {
         let view_type = self.view(view_id);
         let cols = view_type.cols.clone();
 
@@ -452,16 +457,16 @@ impl TableMeta {
             col_type.views.push(view_id);
         }
 
-        let mut match_rows = Vec::<RowTypeId>::new();
+        let mut match_tables = Vec::<TableId>::new();
 
-        for row in &self.rows {
-            if row.contains_columns(&cols) {
-                match_rows.push(row.id());
+        for table in &self.tables {
+            if table.contains_columns(&cols) {
+                match_tables.push(table.id());
             }
         }
 
-        for row_id in match_rows {
-            self.add_view_row(row_id, view_id);
+        for table_id in match_tables {
+            self.add_view_table(table_id, view_id);
         }
     }
 }
@@ -470,13 +475,13 @@ impl TableMeta {
 mod tests {
     use std::{mem, alloc::Layout};
 
-    use crate::entity::meta::{ColumnId, ViewId, ViewRowId, RowTypeId};
+    use crate::entity::meta::{ColumnId, ViewId, ViewTableId, TableId};
 
-    use super::TableMeta;
+    use super::StoreMeta;
 
     #[test]
     fn add_column() {
-        let mut meta = TableMeta::new();
+        let mut meta = StoreMeta::new();
 
         let col_id = meta.add_column::<TestA>();
         let col_type = meta.column(col_id);
@@ -485,7 +490,7 @@ mod tests {
         assert_eq!(col_type.size_padded(), mem::size_of::<usize>());
         //assert_eq!(col_type.layout(), &Layout::new::<TestA>());
         assert_eq!(col_type.layout_padded(), &Layout::new::<TestA>().pad_to_align());
-        assert_eq!(col_type.rows.len(), 0);
+        assert_eq!(col_type.tables.len(), 0);
         assert_eq!(col_type.views.len(), 0);
 
         let col_id = meta.add_column::<TestB>();
@@ -493,7 +498,7 @@ mod tests {
         assert_eq!(col_type.id(), ColumnId(1));
         assert_eq!(col_type.size(), mem::size_of::<usize>());
         //assert_eq!(col_type.align(), mem::align_of::<usize>());
-        assert_eq!(col_type.rows.len(), 0);
+        assert_eq!(col_type.tables.len(), 0);
         assert_eq!(col_type.views.len(), 0);
 
         // check double add
@@ -503,68 +508,68 @@ mod tests {
 
     #[test]
     fn add_single_row() {
-        let mut meta = TableMeta::new();
+        let mut meta = StoreMeta::new();
 
         let type_a_id = single_row_type::<TestA>(&mut meta);
-        assert_eq!(type_a_id, RowTypeId(0));
+        assert_eq!(type_a_id, TableId(0));
 
-        let type_a = meta.row(type_a_id);
-        assert_eq!(type_a.id(), RowTypeId(0));
+        let type_a = meta.table(type_a_id);
+        assert_eq!(type_a.id(), TableId(0));
         let cols = type_a.columns();
         assert_eq!(cols.len(), 1);
         assert_eq!(cols[0], ColumnId(0));
 
         let col_a = meta.column(ColumnId(0));
-        assert_eq!(col_a.rows.len(), 1);
-        assert_eq!(col_a.rows[0], RowTypeId(0));
+        assert_eq!(col_a.tables.len(), 1);
+        assert_eq!(col_a.tables[0], TableId(0));
         assert_eq!(col_a.views.len(), 0);
 
         let type_a_id = single_row_type::<TestA>(&mut meta);
-        assert_eq!(type_a_id, RowTypeId(0));
+        assert_eq!(type_a_id, TableId(0));
 
-        let type_a = meta.row(type_a_id);
-        assert_eq!(type_a.id(), RowTypeId(0));
+        let type_a = meta.table(type_a_id);
+        assert_eq!(type_a.id(), TableId(0));
 
         let cols = type_a.columns();
         assert_eq!(cols.len(), 1);
         assert_eq!(cols[0], ColumnId(0));
 
         let col_a = meta.column(ColumnId(0));
-        assert_eq!(col_a.rows.len(), 1);
+        assert_eq!(col_a.tables.len(), 1);
         assert_eq!(col_a.views.len(), 0);
 
         let type_b_id = single_row_type::<TestB>(&mut meta);
-        assert_eq!(type_b_id, RowTypeId(1));
+        assert_eq!(type_b_id, TableId(1));
 
-        let type_b = meta.row(type_b_id);
-        assert_eq!(type_b.id(), RowTypeId(1));
+        let type_b = meta.table(type_b_id);
+        assert_eq!(type_b.id(), TableId(1));
         let cols = type_b.columns();
         assert_eq!(cols.len(), 1);
         assert_eq!(cols[0], ColumnId(1));
 
         let col_b = meta.column(ColumnId(1));
-        assert_eq!(col_b.rows.len(), 1);
-        assert_eq!(col_b.rows[0], RowTypeId(1));
+        assert_eq!(col_b.tables.len(), 1);
+        assert_eq!(col_b.tables[0], TableId(1));
         assert_eq!(col_b.views.len(), 0);
     }
 
-    fn single_row_type<T:'static>(meta: &mut TableMeta) -> RowTypeId {
+    fn single_row_type<T:'static>(meta: &mut StoreMeta) -> TableId {
         let column_id = meta.add_column::<T>();
         let mut columns = Vec::<ColumnId>::new();
         columns.push(column_id);
 
-        meta.add_row(columns)
+        meta.add_table(columns)
     }
 
     #[test]
     fn push_row() {
-        let mut meta = TableMeta::new();
+        let mut meta = StoreMeta::new();
 
         let type_a_id = single_row_type::<TestA>(&mut meta);
-        assert_eq!(type_a_id, RowTypeId(0));
+        assert_eq!(type_a_id, TableId(0));
 
-        let type_a = meta.row(type_a_id);
-        assert_eq!(type_a.id(), RowTypeId(0));
+        let type_a = meta.table(type_a_id);
+        assert_eq!(type_a.id(), TableId(0));
 
         /*
         let type_aa_id = meta.push_row_by_type::<TestA>(type_a_id);
@@ -611,14 +616,14 @@ mod tests {
 
     #[test]
     fn row_cols() {
-        let mut meta = TableMeta::new();
+        let mut meta = StoreMeta::new();
 
         let type_a = single_row_type::<TestA>(&mut meta);
-        assert_eq!(type_a, RowTypeId(0));
+        assert_eq!(type_a, TableId(0));
 
         let col_a = meta.add_column::<TestA>();
 
-        let row_type = meta.row(type_a);
+        let row_type = meta.table(type_a);
         assert_eq!(row_type.id(), type_a);
         assert_eq!(row_type.columns().len(), 1);
         let cols = row_type.columns();
@@ -626,7 +631,7 @@ mod tests {
         assert_eq!(cols[0], col_a);
 
         let type_b = single_row_type::<TestB>(&mut meta);
-        assert_eq!(type_b, RowTypeId(1));
+        assert_eq!(type_b, TableId(1));
 
         let col_b = meta.add_column::<TestB>();
 
@@ -646,10 +651,10 @@ mod tests {
 
     #[test]
     fn col_rows() {
-        let mut meta = TableMeta::new();
+        let mut meta = StoreMeta::new();
 
         let type_a = single_row_type::<TestA>(&mut meta);
-        assert_eq!(type_a, RowTypeId(0));
+        assert_eq!(type_a, TableId(0));
 
         /*
         let col_a = meta.add_column::<TestA>();
@@ -693,10 +698,10 @@ mod tests {
 
     #[test]
     fn row_then_view() {
-        let mut meta = TableMeta::new();
+        let mut meta = StoreMeta::new();
 
         let row_id_a = single_row_type::<TestA>(&mut meta);
-        assert_eq!(row_id_a, RowTypeId(0));
+        assert_eq!(row_id_a, TableId(0));
 
         let view_id_a = add_view_single::<TestA>(&mut meta);
         assert_eq!(view_id_a, ViewId(0));
@@ -708,26 +713,26 @@ mod tests {
         assert_eq!(cols[0], ColumnId(0));
 
         let col_a = meta.column(ColumnId(0));
-        assert_eq!(col_a.rows.len(), 1);
-        assert_eq!(col_a.rows[0], RowTypeId(0));
+        assert_eq!(col_a.tables.len(), 1);
+        assert_eq!(col_a.tables[0], TableId(0));
         assert_eq!(col_a.views.len(), 1);
         assert_eq!(col_a.views[0], ViewId(0));
 
-        let entity_row_a = meta.view_row(ViewRowId(0));
-        assert_eq!(entity_row_a.id(), ViewRowId(0));
-        assert_eq!(entity_row_a.row_id(), RowTypeId(0));
+        let entity_row_a = meta.view_table(ViewTableId(0));
+        assert_eq!(entity_row_a.id(), ViewTableId(0));
+        assert_eq!(entity_row_a.table_id(), TableId(0));
         assert_eq!(entity_row_a.view_id(), ViewId(0));
     }
 
     #[test]
     fn view_then_row() {
-        let mut meta = TableMeta::new();
+        let mut meta = StoreMeta::new();
 
         let entity_id_a = add_view_single::<TestA>(&mut meta);
         assert_eq!(entity_id_a, ViewId(0));
 
         let row_id_a = single_row_type::<TestA>(&mut meta);
-        assert_eq!(row_id_a, RowTypeId(0));
+        assert_eq!(row_id_a, TableId(0));
 
         //meta.push_row(row_id_a, col_id_b);
 
@@ -736,25 +741,25 @@ mod tests {
         let cols = &entity_a.cols;
         assert_eq!(cols.len(), 1);
         assert_eq!(cols[0], ColumnId(0));
-        let rows = &entity_a.view_rows;
+        let rows = &entity_a.view_tables;
         assert_eq!(rows.len(), 1);
-        assert_eq!(rows[0], ViewRowId(0));
+        assert_eq!(rows[0], ViewTableId(0));
 
         let col_a = meta.column(ColumnId(0));
-        assert_eq!(col_a.rows.len(), 1);
-        assert_eq!(col_a.rows[0], RowTypeId(0));
+        assert_eq!(col_a.tables.len(), 1);
+        assert_eq!(col_a.tables[0], TableId(0));
         assert_eq!(col_a.views.len(), 1);
         assert_eq!(col_a.views[0], ViewId(0));
 
-        let entity_row_a = meta.view_row(ViewRowId(0));
-        assert_eq!(entity_row_a.id(), ViewRowId(0));
-        assert_eq!(entity_row_a.row_id(), RowTypeId(0));
+        let entity_row_a = meta.view_table(ViewTableId(0));
+        assert_eq!(entity_row_a.id(), ViewTableId(0));
+        assert_eq!(entity_row_a.table_id(), TableId(0));
         assert_eq!(entity_row_a.view_id(), ViewId(0));
     }
 
     #[test]
     fn view_then_row2() {
-        let mut meta = TableMeta::new();
+        let mut meta = StoreMeta::new();
 
         let entity_id_a = add_view_single::<TestA>(&mut meta);
         assert_eq!(entity_id_a, ViewId(0));
@@ -763,33 +768,33 @@ mod tests {
         assert_eq!(entity_id_b, ViewId(1));
 
         let row_id_a = single_row_type::<TestA>(&mut meta);
-        assert_eq!(row_id_a, RowTypeId(0));
+        assert_eq!(row_id_a, TableId(0));
 
         let row_id_b = single_row_type::<TestB>(&mut meta);
-        assert_eq!(row_id_b, RowTypeId(1));
+        assert_eq!(row_id_b, TableId(1));
 
         let entity_b = meta.view(entity_id_b);
         assert_eq!(entity_b.id(), ViewId(1));
         let cols = &entity_b.cols;
         assert_eq!(cols.len(), 1);
         assert_eq!(cols[0], ColumnId(1));
-        let rows = &entity_b.view_rows;
+        let rows = &entity_b.view_tables;
         assert_eq!(rows.len(), 1);
-        assert_eq!(rows[0], ViewRowId(1));
+        assert_eq!(rows[0], ViewTableId(1));
 
         let col_b = meta.column(ColumnId(1));
-        assert_eq!(col_b.rows.len(), 1);
-        assert_eq!(col_b.rows[0], RowTypeId(1));
+        assert_eq!(col_b.tables.len(), 1);
+        assert_eq!(col_b.tables[0], TableId(1));
         assert_eq!(col_b.views.len(), 1);
         assert_eq!(col_b.views[0], ViewId(1));
 
-        let entity_row_b = meta.view_row(ViewRowId(1));
-        assert_eq!(entity_row_b.id(), ViewRowId(1));
-        assert_eq!(entity_row_b.row_id(), RowTypeId(1));
+        let entity_row_b = meta.view_table(ViewTableId(1));
+        assert_eq!(entity_row_b.id(), ViewTableId(1));
+        assert_eq!(entity_row_b.table_id(), TableId(1));
         assert_eq!(entity_row_b.view_id(), ViewId(1));
     }
 
-    fn add_view_single<T:'static>(meta: &mut TableMeta) -> ViewId {
+    fn add_view_single<T:'static>(meta: &mut StoreMeta) -> ViewId {
         let column_id = meta.add_column::<T>();
         let mut columns = Vec::<ColumnId>::new();
         columns.push(column_id);
