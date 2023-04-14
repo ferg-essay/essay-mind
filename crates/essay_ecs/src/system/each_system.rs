@@ -60,8 +60,8 @@ where
         self.state = Some(F::Params::init(world, &mut self.meta));
     }
     
-    fn run<'w>(&mut self, world: &World<'w>) {
-        for entity in world.view::<F::Item<'w>>() {
+    fn run<'w>(&mut self, world: &World) {
+        for entity in world.view::<F::Item<'_>>() {
             let args = F::Params::arg(
                 world,
                 self.state.as_mut().unwrap(),

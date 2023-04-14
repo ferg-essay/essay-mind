@@ -72,7 +72,7 @@ impl<C:'static> View for InComponent<C> {
         builder.add_ref::<InComponent<C>>();
     }
 
-    unsafe fn deref<'a,'t>(cursor: &mut ViewCursor<'a,'t>) -> Self::Item<'t> {
+    unsafe fn deref<'a, 't>(cursor: &mut ViewCursor<'a, 't>) -> Self::Item<'t> {
         cursor.deref_mut::<InComponent<C>>()
     }
 }
@@ -112,7 +112,7 @@ impl<C:'static> View for OutComponent<C> {
         builder.add_ref::<OutComponent<C>>();
     }
 
-    unsafe fn deref<'a,'t>(cursor: &mut ViewCursor<'a,'t>) -> Self::Item<'t> {
+    unsafe fn deref<'a, 't>(cursor: &mut ViewCursor<'a, 't>) -> Self::Item<'t> {
         cursor.deref_mut::<OutComponent<C>>()
     }
 }
@@ -155,10 +155,10 @@ where
         self.state = Some(F::Params::init(world, &mut self.meta))
     }
 
-    fn run<'w>(&mut self, world: &World<'w>) {
+    fn run<'w>(&mut self, world: &World) {
         for (item, 
              input) 
-            in world.view::<(F::Item<'w>,InComponent<F::Channel>)>() {
+            in world.view::<(F::Item<'_>,InComponent<F::Channel>)>() {
             let input = In(input.get_arg(world));
 
             let args = F::Params::arg(
@@ -266,10 +266,10 @@ where
         self.state = Some(F::Params::init(world, &mut self.meta));
     }
 
-    fn run<'w>(&mut self, world: &World<'w>) {
+    fn run<'w>(&mut self, world: &World) {
         for (item, 
              out) 
-            in world.view::<(F::Item<'w>,OutComponent<F::Channel>)>() {
+            in world.view::<(F::Item<'_>,OutComponent<F::Channel>)>() {
             let out = Out(out.get_arg(world));
 
             let args = F::Params::arg(

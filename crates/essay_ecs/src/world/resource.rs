@@ -9,16 +9,16 @@ struct IsResource;
 #[derive(Copy, Clone, Debug, PartialEq, Hash, PartialOrd)]
 pub struct ResourceId(usize);
 
-struct Resource<'r> {
+struct Resource {
     id: ResourceId,
-    value: Ptr<'r>,
+    value: Ptr,
 }
 
-pub struct Resources<'r> {
+pub struct Resources {
     resource_map: HashMap<TypeId,ResourceId>,
-    resources: Vec<Resource<'r>>,
+    resources: Vec<Resource>,
     types: TypeMetas,
-    table: Table<'r>,
+    table: Table,
     //resources: Vec<RowMeta>,
 }
 
@@ -32,7 +32,7 @@ impl ResourceId {
     }
 }
 
-impl<'r> Resource<'r> {
+impl Resource {
     fn new<T>(id: ResourceId, value: T) -> Self {
         Resource {
             id: id,
@@ -40,16 +40,16 @@ impl<'r> Resource<'r> {
         }
     }
 
-    unsafe fn deref<T>(&self) -> &'r T {
+    unsafe fn deref<T>(&self) -> &T {
         self.value.deref()
     }
 
-    unsafe fn deref_mut<T>(&self) -> &'r mut T {
+    unsafe fn deref_mut<T>(&self) -> &mut T {
         self.value.deref_mut()
     }
 }
 
-impl<'w> Resources<'w> {
+impl Resources {
     pub fn new() -> Self {
         Self {
             resource_map: HashMap::new(),
@@ -85,7 +85,7 @@ impl<'w> Resources<'w> {
         }
     }
 
-    pub fn get<T:'static>(&mut self) -> Option<&T> {
+    pub fn get<T:'static>(&self) -> Option<&T> {
         let type_id = TypeId::of::<T>();
 
         let id = self.resource_map.get(&type_id)?;

@@ -96,3 +96,21 @@ impl<T:'static> Param for ResMut<'_, T> {
     }
 }
 
+impl Param for &World {
+    type Arg<'w, 's> = &'w World;
+    type State = ();
+
+    fn arg<'w, 's>(
+        world: &'w World,
+        state: &'s mut Self::State,
+    ) -> Self::Arg<'w, 's> {
+        world
+    }
+
+    fn init(world: &mut World, meta: &mut SystemMeta) -> Self::State {
+    }
+
+    fn flush(world: &mut World, state: &mut Self::State) {
+    }
+}
+

@@ -16,11 +16,11 @@ pub trait View {
 
     fn build(builder: &mut ViewBuilder);
 
-    unsafe fn deref<'a,'t>(cursor: &mut ViewCursor<'a,'t>) -> Self::Item<'t>;
+    unsafe fn deref<'a, 't>(cursor: &mut ViewCursor<'a, 't>) -> Self::Item<'t>;
 }
 
-pub struct ViewCursor<'a,'t> {
-    table: &'a Table<'t>,
+pub struct ViewCursor<'a, 't> {
+    table: &'t Table,
     row_type: &'a RowType,
     view_row: &'a ViewRowType,
     row: &'a Row,
@@ -28,8 +28,8 @@ pub struct ViewCursor<'a,'t> {
     index: usize,
 }
 
-pub struct ViewBuilder<'a, 't> {
-    table: &'a mut Table<'t>, 
+pub struct ViewBuilder<'a> {
+    table: &'a mut Table, 
     columns: Vec<ColumnId>,
 }
 
@@ -39,13 +39,13 @@ pub(crate) struct ViewPlan {
 }
 
 impl ViewPlan {
-    pub(crate) fn new_cursor<'a,'t>(
+    pub(crate) fn new_cursor<'a, 't>(
         &'a self, 
-        table: &'a Table<'t>,
+        table: &'t Table,
         row_type: &'a RowType,
         view_row: &'a ViewRowType,
         row: &'a Row
-    ) -> ViewCursor<'a,'t> {
+    ) -> ViewCursor<'a, 't> {
         ViewCursor {
             table,
             row_type,
@@ -61,7 +61,7 @@ impl ViewPlan {
     }
 }
 
-impl<'a,'t> ViewCursor<'a,'t> {
+impl<'a, 't> ViewCursor<'a, 't> {
     pub unsafe fn deref<T:'static>(&mut self) -> &'t T {
         let index = self.view_row.index_map()[self.cols[self.index]];
         self.index += 1;
@@ -83,8 +83,8 @@ impl<'a,'t> ViewCursor<'a,'t> {
     }
 }
 
-impl<'a, 't> ViewBuilder<'a, 't> {
-    pub(crate) fn new(table: &'a mut Table<'t>) -> Self {
+impl<'a, 't> ViewBuilder<'a> {
+    pub(crate) fn new(table: &'a mut Table) -> Self {
         Self {
             table: table,
             columns: Vec::new(),
@@ -118,8 +118,8 @@ impl<'a, 't> ViewBuilder<'a, 't> {
     }
 }
 
-pub struct ViewIterator<'a, 't, T:View> {
-    table: &'a Table<'t>,
+pub struct ViewIterator<'a, T:View> {
+    table: &'a Table,
 
     view_id: ViewId,
     plan: ViewPlan,
@@ -131,9 +131,9 @@ pub struct ViewIterator<'a, 't, T:View> {
     marker: PhantomData<T>,
 }
 
-impl<'a, 't, T:View> ViewIterator<'a, 't, T> {
+impl<'a, T:View> ViewIterator<'a, T> {
     pub(crate) fn new(
-        table: &'a Table<'t>, 
+        table: &'a Table, 
         plan: ViewPlan,
     ) -> Self {
         Self {
@@ -150,9 +150,9 @@ impl<'a, 't, T:View> ViewIterator<'a, 't, T> {
     }
 }
 
-impl<'a, 't, T:View> Iterator for ViewIterator<'a, 't, T>
+impl<'a, T:View> Iterator for ViewIterator<'a, T>
 {
-    type Item = T::Item<'t>;
+    type Item = T::Item<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let view = self.table.meta().view(self.view_id);
@@ -200,7 +200,7 @@ impl<T:Component> View for &T {
         builder.add_ref::<T>();
     }
 
-    unsafe fn deref<'a,'t>(cursor: &mut ViewCursor<'a,'t>) -> Self::Item<'t> { // Self::Item { // <'a> {
+    unsafe fn deref<'a, 't>(cursor: &mut ViewCursor<'a, 't>) -> Self::Item<'t> { // Self::Item { // <'a> {
         cursor.deref::<T>()
     }
 }
@@ -212,7 +212,7 @@ impl<T:Component> View for &mut T {
         builder.add_ref::<T>();
     }
 
-    unsafe fn deref<'a,'t>(cursor: &mut ViewCursor<'a,'t>) -> Self::Item<'t> { //<'a> {
+    unsafe fn deref<'a, 't>(cursor: &mut ViewCursor<'a, 't>) -> Self::Item<'t> { //<'a> {
         cursor.deref_mut::<T>()
     }
 }
@@ -236,7 +236,7 @@ macro_rules! impl_query_tuple {
                 )*
             }
 
-            unsafe fn deref<'a,'t>(cursor: &mut ViewCursor<'a,'t>) -> Self::Item<'t> { // <'a> {
+            unsafe fn deref<'a,'t>(cursor: &mut ViewCursor<'a, 't>) -> Self::Item<'t> { // <'a> {
                 ($(
                     $part::deref(cursor),
                 )*)

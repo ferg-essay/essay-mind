@@ -4,13 +4,11 @@ use std::ptr::NonNull;
 use std::{marker::PhantomData, cmp};
 use std::alloc::Layout;
 
-pub(crate) struct Ptr<'p> {
+pub(crate) struct Ptr {
     data: NonNull<u8>,
-
-    marker: PhantomData<&'p u8>,
 }
 
-impl<'c> Ptr<'c> {
+impl Ptr {
     pub(crate) fn new<T>(value: T) -> Self {
         let layout = Layout::new::<T>();
         let data = unsafe { std::alloc::alloc(layout) };
@@ -19,7 +17,7 @@ impl<'c> Ptr<'c> {
         let mut cell = Self {
             data: data,
 
-            marker: Default::default(),
+            // marker: Default::default(),
         };
 
         unsafe {
@@ -29,11 +27,11 @@ impl<'c> Ptr<'c> {
         cell
     }
     
-    pub unsafe fn deref<T>(&self) -> &'c T {
+    pub unsafe fn deref<T>(&self) -> &T {
         &*self.data.as_ptr().cast::<T>()
     }
     
-    pub unsafe fn deref_mut<T>(&self) -> &'c mut T {
+    pub unsafe fn deref_mut<T>(&self) -> &mut T {
         &mut *self.data.as_ptr().cast::<T>()
     }
 

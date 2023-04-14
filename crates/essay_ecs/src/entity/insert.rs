@@ -13,8 +13,8 @@ pub trait Insert:'static {
     unsafe fn insert(cursor: &mut InsertCursor, value: Self);
 }
 
-pub struct InsertBuilder<'a,'t> {
-    table: &'a mut Table<'t>,
+pub struct InsertBuilder<'a> {
+    table: &'a mut Table,
     columns: Vec<ColumnId>,
 }
 
@@ -24,15 +24,15 @@ pub struct InsertPlan {
     index_map: Vec<usize>,
 }
 
-pub struct InsertCursor<'a, 't> {
-    table: &'a mut Table<'t>,
+pub struct InsertCursor<'a> {
+    table: &'a mut Table,
     plan: &'a InsertPlan,
     index: usize,
     rows: Vec<RowId>,
 }
 
-impl<'a,'t> InsertBuilder<'a,'t> {
-    pub(crate) fn new(table: &'a mut Table<'t>) -> Self {
+impl<'a,'t> InsertBuilder<'a> {
+    pub(crate) fn new(table: &'a mut Table) -> Self {
         Self {
             table: table,
             columns: Vec::new(),
@@ -79,7 +79,7 @@ impl InsertPlan {
         }
     }
 
-    pub(crate) fn cursor<'a, 't>(&'a self, table: &'a mut Table<'t>) -> InsertCursor<'a, 't> {
+    pub(crate) fn cursor<'a>(&'a self, table: &'a mut Table) -> InsertCursor<'a> {
         InsertCursor {
             plan: &self,
             table: table,
@@ -89,7 +89,7 @@ impl InsertPlan {
     }
 }
 
-impl<'a, 't> InsertCursor<'a, 't> {
+impl<'a> InsertCursor<'a> {
     pub unsafe fn insert<T:'static>(&mut self, value: T) {
         let index = self.index;
         self.index += 1;

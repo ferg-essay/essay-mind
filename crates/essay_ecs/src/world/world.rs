@@ -2,37 +2,48 @@ use std::cell::UnsafeCell;
 
 use crate::{entity::{prelude::{Table, ViewIterator, View, Insert, EntityId}}, prelude::{System, IntoSystem}, schedule::prelude::{ScheduleLabel, Schedules}};
 
-use super::resource::Resources;
+use super::{resource::Resources, unsafe_world::UnsafeWorld, cell::PtrCell, prelude::Ptr};
 
-pub struct World<'w> {
-    ptr: UnsafeCell<WorldInner<'w>>,
+pub struct World {
+    ptr: Ptr,
 }
 
-impl<'w> World<'w> {
+impl World {
     pub fn new() -> Self {
         Self {
-            ptr: UnsafeCell::new(WorldInner::new()),
+            ptr: Ptr::new(WorldInner {
+                table: Table::new(),
+                resources: Resources::new(),
+            }),
         }
     }
 
+    fn deref(&self) -> &WorldInner {
+        unsafe { self.ptr.deref::<WorldInner>() }
+    }
+
+    fn deref_mut(&self) -> &mut WorldInner {
+        unsafe { self.ptr.deref_mut::<WorldInner>() }
+    }
+
     pub fn len(&self) -> usize {
-        unsafe { (*self.ptr.get()).table.len() }
+        self.deref().table.len()
     }
 
     pub fn spawn<T:Insert>(&mut self, value: T) -> EntityId {
-        self.ptr.get_mut().table.spawn::<T>(value)
+        self.deref_mut().table.spawn::<T>(value)
     }
 
     pub fn get<T:'static>(&mut self, id: EntityId) -> Option<&T> {
-        unsafe { (*self.ptr.get()).table.get::<T>(id) }
+        self.deref_mut().table.get::<T>(id)
     }
 
     pub fn get_mut<T:'static>(&mut self, id: EntityId) -> Option<&mut T> {
-        unsafe { (*self.ptr.get()).table.get_mut::<T>(id) }
+        self.deref_mut().table.get_mut::<T>(id)
     }
 
-    pub fn view<V:View>(&self) -> ViewIterator<'_,'w,V> {
-        unsafe { (*self.ptr.get()).table.iter_view::<V>() }
+    pub fn view<V:View>(&self) -> ViewIterator<'_,V> {
+        unsafe { self.deref_mut().table.iter_view::<V>() }
     }
 
     pub fn eval<R, M>(&mut self, fun: impl IntoSystem<R, M>) -> R
@@ -40,28 +51,29 @@ impl<'w> World<'w> {
         let mut system = IntoSystem::into_system(fun);
 
         system.init(self);
-        let value = system.run(&self);
+        let value = system.run(self);
         system.flush(self);
 
         value
     }
 }
 
-impl<'w> World<'w> {
+impl World {
     pub(crate) fn init_resource<T:Default+'static>(&mut self) {
-        self.ptr.get_mut().resources.init::<T>()
+        self.deref_mut().resources.init::<T>()
     }
 
     pub fn insert_resource<T:'static>(&mut self, value: T) {
-        self.ptr.get_mut().resources.insert::<T>(value)
+        self.deref_mut().resources.insert::<T>(value)
     }
     
     pub fn get_resource<T:'static>(&self) -> Option<&T> {
-        unsafe { (*self.ptr.get()).resources.get::<T>() }
+        self.deref().resources.get::<T>()
     }
     
     pub fn get_resource_mut<T:'static>(&self) -> Option<&mut T> {
-        unsafe { (*self.ptr.get()).resources.get_mut::<T>() }
+        // TODO!
+        self.deref_mut().resources.get_mut::<T>()
     }
     
     pub fn resource<T:'static>(&self) -> &T {
@@ -73,7 +85,7 @@ impl<'w> World<'w> {
     }
 }
 
-impl<'w> World<'w> {
+impl World {
     pub fn run(&mut self, label: impl ScheduleLabel) {
         let mut schedule = self.resource_mut::<Schedules>().remove(&label).unwrap();
 
@@ -83,18 +95,9 @@ impl<'w> World<'w> {
     }
 }
 
-pub struct WorldInner<'w> {
-    table: Table<'w>,
-    resources: Resources<'w>,
-}
-
-impl<'w> WorldInner<'w> {
-    fn new() -> Self {
-        Self {
-            table: Table::new(),
-            resources: Resources::new(),
-        }
-    }
+pub struct WorldInner {
+    pub(crate) table: Table,
+    pub(crate) resources: Resources,
 }
 
 #[cfg(test)]

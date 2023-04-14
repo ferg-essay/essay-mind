@@ -4,14 +4,14 @@
 
 use crate::{
     system::prelude::{IntoSystem, System}, 
-    world::prelude::{World}, entity::{prelude::{Insert, EntityId}}, schedule::prelude::{Schedule, Schedules, ScheduleLabel},
+    world::prelude::{World, ResMut}, entity::{prelude::{Insert, EntityId}}, schedule::prelude::{Schedule, Schedules, ScheduleLabel}, prelude::Local,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
 pub struct Tick(u64);
 
 pub struct App {
-    world: World<'static>,
+    world: World,
 }
 
 impl Tick {
@@ -129,7 +129,21 @@ impl CoreSchedule {
     }
 
     fn outer_schedule() -> Schedule {
-        Schedule::new()
+        let mut schedule = Schedule::new();
+
+        //schedule.add_system(Self::outer_system);
+
+        schedule
+    }
+
+    fn outer_system(world: &mut World, mut is_startup: Local<bool>) {
+        if ! *is_startup {
+            *is_startup = true;
+
+            world.run(CoreSchedule::Startup);
+        }
+
+        world.run(CoreSchedule::Main);
     }
 
     fn startup_schedule() -> Schedule {

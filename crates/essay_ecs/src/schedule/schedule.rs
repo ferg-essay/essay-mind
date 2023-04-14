@@ -49,7 +49,7 @@ impl Schedule {
         }
     }
 
-    pub fn run(&mut self, world: &World) {
+    pub fn run(&mut self, world: &mut World) {
         for system in &mut self.systems {
             system.run(world);
         }

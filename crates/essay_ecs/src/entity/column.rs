@@ -8,7 +8,7 @@ use super::meta::{ColumnId, ColumnType, TableMeta};
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Ord, PartialOrd)]
 pub struct RowId(u32);
 
-pub(crate) struct Column<'c> {
+pub(crate) struct Column {
     meta: ColumnType,
 
     inc: usize,
@@ -19,7 +19,7 @@ pub(crate) struct Column<'c> {
     len: usize,
     capacity: usize,
 
-    marker: PhantomData<&'c u8>,
+    //marker: PhantomData<&'c u8>,
 }
 
 impl RowId {
@@ -35,7 +35,7 @@ impl RowId {
     }
 }
 
-impl<'c> Column<'c> {
+impl Column {
     pub(crate) fn new<T:'static>(metas: &mut TableMeta) -> Self {
         let id = metas.add_column::<T>();
         let meta = metas.column(id);
@@ -67,7 +67,7 @@ impl<'c> Column<'c> {
             len: length,
             capacity: capacity,
 
-            marker: Default::default(),
+            // marker: Default::default(),
         }
     }
     
@@ -90,7 +90,7 @@ impl<'c> Column<'c> {
         self.len == 0
     }
     
-    pub(crate) unsafe fn get<T>(&self, row: RowId) -> Option<&'c T> {
+    pub(crate) unsafe fn get<T>(&self, row: RowId) -> Option<&T> {
         let index = row.index();
         
         if index < self.len {
@@ -102,7 +102,7 @@ impl<'c> Column<'c> {
         }
     }
     
-    pub(crate) unsafe fn get_mut<T>(&self, row: RowId) -> Option<&'c mut T> {
+    pub(crate) unsafe fn get_mut<T>(&self, row: RowId) -> Option<&mut T> {
         let index = row.index();
 
         if index < self.len {
