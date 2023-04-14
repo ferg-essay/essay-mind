@@ -1,5 +1,6 @@
+mod plugin;
 mod app;
 
-pub mod prelude {
+pub(crate) mod prelude {
     pub use super::app::{App, Tick};
 }

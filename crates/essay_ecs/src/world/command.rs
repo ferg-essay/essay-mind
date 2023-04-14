@@ -1,6 +1,6 @@
 use std::{collections::VecDeque, marker::PhantomData};
 
-use crate::prelude::{Param, SystemMeta, Component};
+use crate::{prelude::{Param, SystemMeta}, entity::prelude::Component};
 
 use super::prelude::World;
 

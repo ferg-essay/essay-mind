@@ -7,11 +7,14 @@ use crate::{
     world::prelude::{World, ResMut}, entity::{prelude::{Insert, EntityId}}, schedule::prelude::{Schedule, Schedules, ScheduleLabel}, prelude::Local,
 };
 
+use super::plugin::{Plugins, Plugin};
+
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
 pub struct Tick(u64);
 
 pub struct App {
     world: World,
+    plugins: Plugins,
 }
 
 impl Tick {
@@ -39,6 +42,7 @@ impl App {
 
         App {
             world: world,
+            plugins: Plugins::default(),
         }
     }
 
@@ -60,10 +64,6 @@ impl App {
         );
     
         self
-    }
-
-    pub fn spawn<T:Insert>(&mut self, value: T) -> EntityId {
-        self.world.spawn(value)
     }
 
     pub fn get_resource<T:'static>(&mut self) -> Option<&T> {
@@ -100,6 +100,32 @@ impl App {
         schedule: Schedule
     ) -> &mut Self {
         self.resource_mut::<Schedules>().insert(label, schedule);
+
+        self
+    }
+
+    pub fn spawn<T:Insert>(&mut self, value: T) -> EntityId {
+        self.world.spawn(value)
+    }
+
+    pub fn add_plugin<P:Plugin+'static>(&mut self, plugin: P) -> &mut Self {
+        let plugin: Box<dyn Plugin> = Box::new(plugin);
+
+        self.plugins.add_name(&plugin);
+        plugin.build(self);
+        self.plugins.push(plugin);
+
+        self
+    }
+
+    pub fn is_plugin_added<P:Plugin>(&self) -> bool {
+        self.plugins.is_plugin_added::<P>()
+    }
+
+    pub fn setup(&mut self) -> &mut Self {
+        for plugin in self.plugins.drain() {
+            plugin.setup(self);
+        }
 
         self
     }
