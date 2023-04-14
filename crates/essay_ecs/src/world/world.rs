@@ -1,6 +1,6 @@
 use std::cell::UnsafeCell;
 
-use crate::{entity::{prelude::{Table, ViewIterator, View, Insert, EntityId}}, prelude::{System, IntoSystem}};
+use crate::{entity::{prelude::{Table, ViewIterator, View, Insert, EntityId}}, prelude::{System, IntoSystem}, schedule::prelude::{ScheduleLabel, Schedules}};
 
 use super::resource::Resources;
 
@@ -37,14 +37,17 @@ impl<'w> World<'w> {
 
     pub fn eval<R, M>(&mut self, fun: impl IntoSystem<R, M>) -> R
     {
-        let mut system = IntoSystem::into_system(
-            fun,
-            self,
-        );
+        let mut system = IntoSystem::into_system(fun);
 
-        system.run(&self)
+        system.init(self);
+        let value = system.run(&self);
+        system.flush(self);
+
+        value
     }
+}
 
+impl<'w> World<'w> {
     pub(crate) fn init_resource<T:Default+'static>(&mut self) {
         self.ptr.get_mut().resources.init::<T>()
     }
@@ -65,8 +68,18 @@ impl<'w> World<'w> {
         self.get_resource::<T>().unwrap()
     }
     
-    pub fn resource_mut<T:'static>(&self) -> &mut T {
+    pub fn resource_mut<T:'static>(&mut self) -> &mut T {
         self.get_resource_mut::<T>().unwrap()
+    }
+}
+
+impl<'w> World<'w> {
+    pub fn run(&mut self, label: impl ScheduleLabel) {
+        let mut schedule = self.resource_mut::<Schedules>().remove(&label).unwrap();
+
+        schedule.run(self);
+
+        self.resource_mut::<Schedules>().insert(label, schedule);
     }
 }
 

@@ -2,7 +2,7 @@ use std::{marker::PhantomData, ops::{DerefMut, Deref}};
 
 use crate::{
     world::prelude::World, 
-    prelude::{Param, IntoSystem, System}, 
+    prelude::{Param, IntoSystem, System, SystemMeta}, 
     entity::prelude::{
         View, ViewBuilder, ViewCursor, Insert, InsertBuilder, InsertCursor
     }};
@@ -139,6 +139,8 @@ where
     F: EachInFun<M>
 {
     fun: F,
+    state: Option<<F::Params as Param>::State>,
+    meta: SystemMeta,
     marker: PhantomData<M>,
 }
 
@@ -149,18 +151,27 @@ where
 {
     type Out = ();
     
+    fn init(&mut self, world: &mut World) {
+        self.state = Some(F::Params::init(world, &mut self.meta))
+    }
+
     fn run<'w>(&mut self, world: &World<'w>) {
         for (item, 
              input) 
-        in world.view::<(F::Item<'w>,InComponent<F::Channel>)>() {
+            in world.view::<(F::Item<'w>,InComponent<F::Channel>)>() {
             let input = In(input.get_arg(world));
 
-            let args = F::Params::get_arg(
+            let args = F::Params::arg(
                 world,
+                self.state.as_mut().unwrap(),
             );
 
             self.fun.run(item, input, args);
         }
+    }
+    
+    fn flush(&mut self, world: &mut World) {
+        F::Params::flush(world, self.state.as_mut().unwrap());
     }
 }    
 struct IsEachIn;
@@ -172,9 +183,13 @@ where
 {
     type System = EachInSystem<M, F>;
 
-    fn into_system(this: Self, _world: &mut World) -> Self::System {
+    fn into_system(this: Self) -> Self::System {
+        let mut meta = SystemMeta::new::<F::Params>();
+
         EachInSystem {
             fun: this,
+            state: None,
+            meta: meta,
             marker: PhantomData,
         }
     }
@@ -235,6 +250,8 @@ where
     F: EachOutFun<M>
 {
     fun: F,
+    state: Option<<F::Params as Param>::State>,
+    meta: SystemMeta,
     marker: PhantomData<M>,
 }
 
@@ -245,17 +262,27 @@ where
 {
     type Out = ();
 
+    fn init(&mut self, world: &mut World) {
+        self.state = Some(F::Params::init(world, &mut self.meta));
+    }
+
     fn run<'w>(&mut self, world: &World<'w>) {
         for (item, 
              out) 
-        in world.view::<(F::Item<'w>,OutComponent<F::Channel>)>() {
+            in world.view::<(F::Item<'w>,OutComponent<F::Channel>)>() {
             let out = Out(out.get_arg(world));
 
-            let args = F::Params::get_arg
-            (world);
-
+            let args = F::Params::arg(
+                world,
+                self.state.as_mut().unwrap(),
+            );
+    
             self.fun.run(item, out, args);
         }
+    }
+
+    fn flush(&mut self, world: &mut World) {
+        F::Params::flush(world, self.state.as_mut().unwrap());
     }
 }
 
@@ -268,9 +295,11 @@ where
 {
     type System = EachOutSystem<M, F>;
 
-    fn into_system(this: Self, _world: &mut World) -> Self::System {
+    fn into_system(this: Self) -> Self::System {
         EachOutSystem {
             fun: this,
+            state: None,
+            meta: SystemMeta::new::<F::Params>(),
             marker: PhantomData,
         }
     }

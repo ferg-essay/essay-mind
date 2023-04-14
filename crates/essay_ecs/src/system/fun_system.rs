@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use crate::world::prelude::World;
+use crate::{world::prelude::World, prelude::SystemMeta};
 
 use super::{system::{System, IntoSystem}, param::{Param, Arg}};
 
@@ -16,6 +16,8 @@ where
     F: Fun<M, R>
 {
     fun: F,
+    state: Option<<F::Params as Param>::State>,
+    meta: SystemMeta,
     marker: PhantomData<(M, R)>,
 }
 
@@ -36,12 +38,21 @@ where
 {
     type Out = R;
 
+    fn init(&mut self, world: &mut World) {
+        self.state = Some(F::Params::init(world, &mut self.meta));
+    }
+
     fn run(&mut self, world: &World) -> Self::Out {
-        let arg = F::Params::get_arg(
+        let arg = F::Params::arg(
             world,
+            self.state.as_mut().unwrap(),
         );
 
         self.fun.run(arg)
+    }
+
+    fn flush(&mut self, world: &mut World) {
+        F::Params::flush(world, self.state.as_mut().unwrap());
     }
 }    
 
@@ -52,9 +63,11 @@ where
 {
     type System = FunctionSystem<M, F, R>;
 
-    fn into_system(this: Self, _world: &mut World) -> Self::System {
+    fn into_system(this: Self) -> Self::System {
         FunctionSystem {
             fun: this,
+            state: None,
+            meta: SystemMeta::new::<F::Params>(),
             marker: Default::default()
         }
     }
@@ -63,17 +76,6 @@ where
 //
 // Function matching
 //
-/*
-impl<F: 'static> Fun<fn()> for F
-where F:FnMut() -> ()
-{
-    type Params = ();
-
-    fn run(&mut self, arg: ()) {
-        self()
-    }
-}
-*/
 
 macro_rules! impl_system_function {
     ($($param:ident),*) => {
@@ -106,7 +108,7 @@ mod tests {
     use std::any::type_name;
     use std::marker::PhantomData;
 
-    use crate::{prelude::{IntoSystem, System}, world::prelude::World};
+    use crate::{prelude::{IntoSystem, System}, world::prelude::World, system::system::SystemMeta};
 
     use super::Param;
 
@@ -137,10 +139,9 @@ mod tests {
 
     fn system<R, M>(world: &mut World, fun: impl IntoSystem<R, M>)->String {
         set_global("init".to_string());
-        let mut system = IntoSystem::into_system(
-            fun,
-            world,
-        );
+        let mut system = IntoSystem::into_system(fun);
+
+        system.init(world);
         system.run(world);
         get_global()
     }
@@ -211,13 +212,25 @@ mod tests {
     }
 
     impl<V> Param for TestArg<V> {
-        type Arg<'w> = TestArg<V>;
+        type Arg<'w, 's> = TestArg<V>;
+        type State = ();
 
-        fn get_arg<'w>(_world: &'w World) -> Self::Arg<'w> {
+        fn arg<'w, 's>(
+            _world: &'w World,
+            _state: &'s mut Self::State,
+        ) -> Self::Arg<'w, 's> {
             Self {
                 name: type_name::<V>().to_string(),
                 marker: PhantomData,
             }
+        }
+
+        fn init(_world: &mut World, _meta: &mut SystemMeta) -> Self::State {
+            ()
+        }
+
+        fn flush(_world: &mut World, _state: &mut Self::State) {
+            ()
         }
     }
  }

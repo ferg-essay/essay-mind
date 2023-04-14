@@ -1,6 +1,6 @@
 use std::{marker::PhantomData};
 
-use crate::{world::prelude::World, entity::{prelude::View}};
+use crate::{world::prelude::World, entity::{prelude::View}, prelude::SystemMeta};
 
 use super::{prelude::Param, system::{System, IntoSystem}, param::Arg};
 
@@ -12,17 +12,19 @@ where
     F: EachFun<M>
 {
     fun: F,
+    state: Option<<F::Params as Param>::State>,
+    meta: SystemMeta,
     marker: PhantomData<M>,
 }
 
 pub trait EachFun<M> {
-    type Entity<'w>:View;
+    type Item<'w>:View;
     type Params: Param;
 
-    fn run<'a,'w>(&mut self, 
-        world: &World<'w>,
-        entity: <Self::Entity<'w> as View>::Item<'w>, // <'a>, 
-        param: Arg<Self::Params>
+    fn run<'a,'w>(
+        &mut self, 
+        item: <Self::Item<'w> as View>::Item<'w>, // <'a>, 
+        arg: Arg<Self::Params>
     );
 }
 
@@ -34,10 +36,14 @@ impl<M, F:'static> EachSystem<M, F>
 where
     F: EachFun<M>
 {
-    fn new<'w>(_world: &mut World<'w>, fun: F) -> Self {
-
+    fn new<'w>(
+        fun: F
+    ) -> Self {
         Self {
             fun: fun,
+            state: None,
+            meta: SystemMeta::new::<F::Params>(),
+
             marker: PhantomData,
         }
     }
@@ -50,16 +56,25 @@ where
 {
     type Out = ();
     
+    fn init(&mut self, world: &mut World) {
+        self.state = Some(F::Params::init(world, &mut self.meta));
+    }
+    
     fn run<'w>(&mut self, world: &World<'w>) {
-        for entity in world.view::<F::Entity<'w>>() {
-            let args = F::Params::get_arg(
+        for entity in world.view::<F::Item<'w>>() {
+            let args = F::Params::arg(
                 world,
+                self.state.as_mut().unwrap(),
             );
-
-            self.fun.run(world, entity, args);
+    
+            self.fun.run(entity, args);
         }
     }
-}    
+    
+    fn flush(&mut self, world: &mut World) {
+        F::Params::flush(world, self.state.as_mut().unwrap());
+    }
+}
 
 impl<M, F:'static> IntoSystem<(), (M,IsEach)> for F
 where
@@ -68,8 +83,8 @@ where
 {
     type System = EachSystem<M, F>;
 
-    fn into_system(this: Self, world: &mut World) -> Self::System {
-        EachSystem::new(world, this)
+    fn into_system(this: Self) -> Self::System {
+        EachSystem::new(this)
     }
 }
 
@@ -85,12 +100,16 @@ macro_rules! impl_each_function {
         where for<'w> F:FnMut(T, $($param),*) -> () +
             FnMut(T::Item<'w>, $(Arg<$param>),*) -> ()
         {
-            type Entity<'w> = T;
+            type Item<'w> = T;
             type Params = ($($param,)*);
 
-            fn run<'b,'w>(&mut self, _world: &'w World, entity: T::Item<'b>, arg: Arg<($($param,)*)>) {
+            fn run<'b,'w>(
+                &mut self, 
+                item: T::Item<'b>, 
+                arg: Arg<($($param,)*)>
+            ) {
                 let ($($param,)*) = arg;
-                self(entity, $($param,)*)
+                self(item, $($param,)*)
             }
         }
     }

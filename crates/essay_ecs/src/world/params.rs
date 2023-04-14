@@ -1,6 +1,6 @@
 use std::{ops::{Deref, DerefMut}};
 
-use crate::prelude::Param;
+use crate::prelude::{Param, SystemMeta};
 
 use super::prelude::World;
 
@@ -16,17 +16,28 @@ impl<'a, T:'static> Res<'a, T> {
     }
 }
 
-impl<'a, T:'static> Param for Res<'a, T> {
-    type Arg<'b> = Res<'b, T>;
+impl<'a, T:'static> Param for Res<'_, T> {
+    type Arg<'w, 's> = Res<'w, T>;
+    type State = ();
 
-    fn get_arg<'b>(world: &'b World) -> Res<'b, T> {
+    fn arg<'w, 's>(
+        world: &'w World,
+        state: &'s mut Self::State,
+    ) -> Res<'w, T> {
         Res {
             value: world.get_resource::<T>().unwrap(),
         }
     }
+
+    fn init(world: &mut World, meta: &mut SystemMeta) -> Self::State {
+        ()
+    }
+
+    fn flush(world: &mut World, state: &mut Self::State) {
+    }
 }
 
-impl<'a, T:'static> Deref for Res<'a, T> {
+impl<T:'static> Deref for Res<'_, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
@@ -38,7 +49,7 @@ pub struct ResMut<'a, T> {
     value: &'a mut T,
 }
 
-impl<'a, T:'static> ResMut<'a, T> {
+impl<T:'static> ResMut<'_, T> {
     pub fn get(&self) -> &T {
         self.value
     }
@@ -56,7 +67,7 @@ impl<T:'static> Deref for ResMut<'_, T> {
     }
 }
 
-impl<'a, T:'static> DerefMut for ResMut<'a, T> {
+impl<'a, T:'static> DerefMut for ResMut<'_, T> {
     // type Target = T;
 
     fn deref_mut(&mut self) -> &mut Self::Target {
@@ -65,12 +76,23 @@ impl<'a, T:'static> DerefMut for ResMut<'a, T> {
 }
 
 impl<T:'static> Param for ResMut<'_, T> {
-    type Arg<'a> = ResMut<'a, T>;
+    type Arg<'w, 's> = ResMut<'w, T>;
+    type State = ();
 
-    fn get_arg<'a>(world: &'a World) -> ResMut<'a, T> {
+    fn init(world: &mut World, meta: &mut SystemMeta) -> Self::State {
+        ()
+    }
+
+    fn arg<'w, 's>(
+        world: &'w World,
+        state: &'s mut Self::State,
+    ) -> ResMut<'w, T> {
         ResMut {
             value: world.get_resource_mut().unwrap()
         }
+    }
+
+    fn flush(world: &mut World, state: &mut Self::State) {
     }
 }
 

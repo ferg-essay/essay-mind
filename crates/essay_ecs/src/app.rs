@@ -44,12 +44,7 @@ impl App {
 
     pub fn add_system<M>(&mut self, into_system: impl IntoSystem<(), M>) -> &mut Self
     {
-        let system = Box::new(IntoSystem::into_system(
-            into_system,
-            &mut self.world,
-        ));
-
-        self.resource_mut::<Schedules>().add_system(&CoreSchedule::Main, system);
+        self.resource_mut::<Schedules>().add_system(&CoreSchedule::Main, into_system);
     
         self
     }
@@ -78,7 +73,7 @@ impl App {
         self.world.insert_resource(value);
     }
 
-    pub fn default_schedule(&mut self) -> &mut Self {
+    pub fn add_default_schedule(&mut self) -> &mut Self {
         self.add_schedule(CoreSchedule::Main, CoreSchedule::main_schedule());
         self.add_schedule(CoreSchedule::Startup, CoreSchedule::startup_schedule());
         self.add_schedule(CoreSchedule::Outer, CoreSchedule::outer_schedule());
@@ -98,18 +93,21 @@ impl App {
 
     pub fn update(&mut self) -> &mut Self {
         self.world.resource_mut::<Tick>().0 += 1;
-        self.world.resource_mut::<Schedules>().run(&CoreSchedule::Main, &self.world);
+
+        self.world.run(CoreSchedule::Main);
+
         self
     }
 
     pub fn eval<R, M>(&mut self, fun: impl IntoSystem<R, M>) -> R
     {
-        let mut system = IntoSystem::into_system(
-            fun,
-            &mut self.world,
-        );
+        let mut system = IntoSystem::into_system(fun);
 
-        system.run(&mut self.world)
+        system.init(&mut self.world);
+        let value = system.run(&mut self.world);
+        system.flush(&mut self.world);
+
+        value
     }
 }
 
@@ -119,7 +117,7 @@ impl Default for App {
 
         app.insert_resource(Tick(0));
 
-        app.default_schedule();
+        app.add_default_schedule();
 
         app
     }

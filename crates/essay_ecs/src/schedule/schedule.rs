@@ -1,14 +1,16 @@
 ///
 /// See Bevy schedule.rs
 /// 
-use std::{hash::{Hash, Hasher}, collections::HashMap, any::Any};
+use std::{hash::{Hash, Hasher}, collections::HashMap};
 
-use crate::{world::prelude::World, prelude::System, util::prelude::DynLabel};
+use crate::{world::prelude::World, prelude::{System, IntoSystem}, util::prelude::DynLabel};
 
 pub type BoxedSystem<Out=()> = Box<dyn System<Out=Out>>;
 pub type BoxedLabel = Box<dyn ScheduleLabel>;
 
 pub struct Schedule {
+    new_systems: Vec<BoxedSystem>,
+
     systems: Vec<BoxedSystem>,
 }
 
@@ -22,22 +24,11 @@ pub trait ScheduleLabel : DynLabel {
     fn box_clone(&self) -> BoxedLabel;
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-enum MainLabel {
-    A,
-    B,
-    C,
-}
-
-impl ScheduleLabel for MainLabel {
-    fn box_clone(&self) -> BoxedLabel {
-        Box::new(Clone::clone(self))
-    }
-}
-
 impl Schedule {
     pub fn new() -> Self {
         Schedule {
+            new_systems: Vec::new(),
+
             systems: Vec::new(),
         }
     }
@@ -46,9 +37,27 @@ impl Schedule {
         self.systems.push(system);
     }
 
+    pub(crate) fn add_system<M>(&mut self, system: impl IntoSystem<(),M>) {
+        self.new_systems.push(Box::new(IntoSystem::into_system(system)));
+    }
+
+    pub fn init(&mut self, world: &mut World) {
+        for mut system in self.new_systems.drain(..) {
+            system.init(world);
+
+            self.systems.push(system);
+        }
+    }
+
     pub fn run(&mut self, world: &World) {
         for system in &mut self.systems {
             system.run(world);
+        }
+    }
+
+    fn flush(&mut self, world: &mut World) {
+        for system in &mut self.systems {
+            system.flush(world);
         }
     }
 }
@@ -62,18 +71,38 @@ impl Schedules {
         self.schedule_map.insert(label.box_clone(), schedule)
     }
 
-    pub fn add_system(&mut self, label: &dyn ScheduleLabel, system: BoxedSystem) {
+    pub fn add_system<M>(
+        &mut self, 
+        label: &dyn ScheduleLabel, 
+        system: impl IntoSystem<(),M>
+    ) {
         self.schedule_map.get_mut(label)
             .expect("add_system with an unknown schedule")
-            .push(system);
+            .add_system(system);
     }
 
-    pub fn run(&mut self, label: &dyn ScheduleLabel, world: &World) {
+    pub fn run(&mut self, label: &dyn ScheduleLabel, world: &mut World) {
         let (key, mut schedule) = self.schedule_map.remove_entry(label).unwrap();
         
+        schedule.init(world);
         schedule.run(world);
+        schedule.flush(world);
 
         self.schedule_map.insert(key, schedule);
+    }
+
+    pub(crate) fn remove(
+        &mut self, 
+        label: &dyn ScheduleLabel
+    ) -> Option<Schedule> {
+        self.schedule_map.remove(label)
+    }
+
+    pub(crate) fn remove_entry(
+        &mut self, 
+        label: &dyn ScheduleLabel
+    ) -> Option<(BoxedLabel, Schedule)> {
+        self.schedule_map.remove_entry(label)
     }
 }
 
