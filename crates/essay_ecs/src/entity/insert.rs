@@ -3,9 +3,7 @@
 // Insert
 //
 
-use crate::prelude::Component;
-
-use super::{meta::{RowTypeId, ColumnId}, prelude::{Table}, column::RowId, table::EntityId};
+use super::{meta::{RowTypeId, ColumnId}, prelude::{Table}, column::RowId, table::EntityId, Component};
 
 pub trait Insert:'static {
     fn build(builder: &mut InsertBuilder);

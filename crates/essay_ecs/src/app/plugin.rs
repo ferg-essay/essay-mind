@@ -63,7 +63,7 @@ mod tests {
 
     use essay_ecs_macros::Component;
 
-    use crate::prelude::{App, Commands, Component};
+    use crate::prelude::{App, Commands};
 
     use super::Plugin;
 

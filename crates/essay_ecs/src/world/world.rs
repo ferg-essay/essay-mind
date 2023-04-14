@@ -8,6 +8,10 @@ pub struct World {
     ptr: Ptr,
 }
 
+pub trait FromWorld : 'static {
+    fn init(world: &mut World) -> Self;
+}
+
 impl World {
     pub fn new() -> Self {
         Self {
@@ -56,11 +60,15 @@ impl World {
 
         value
     }
-}
 
-impl World {
-    pub(crate) fn init_resource<T:Default+'static>(&mut self) {
-        self.deref_mut().resources.init::<T>()
+    pub(crate) fn init_resource<T:FromWorld>(&mut self) {
+        if ! self.deref().resources.get::<T>().is_none() {
+            return;
+        }
+
+        let value = T::init(self);
+
+        self.insert_resource::<T>(value);
     }
 
     pub fn insert_resource<T:'static>(&mut self, value: T) {
@@ -83,10 +91,8 @@ impl World {
     pub fn resource_mut<T:'static>(&mut self) -> &mut T {
         self.get_resource_mut::<T>().unwrap()
     }
-}
 
-impl World {
-    pub fn run(&mut self, label: impl ScheduleLabel) {
+    pub fn run_schedule(&mut self, label: impl ScheduleLabel) {
         let mut schedule = self.resource_mut::<Schedules>().remove(&label).unwrap();
 
         schedule.run(self);
@@ -98,6 +104,12 @@ impl World {
 pub struct WorldInner {
     pub(crate) table: Table,
     pub(crate) resources: Resources,
+}
+
+impl<T:Default+'static> FromWorld for T {
+    fn init(_world: &mut World) -> T {
+        T::default()
+    }
 }
 
 #[cfg(test)]

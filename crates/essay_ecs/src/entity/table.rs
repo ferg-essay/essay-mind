@@ -236,9 +236,9 @@ impl Row {
 
 #[cfg(test)]
 mod tests {
-    use crate::{entity::{insert::InsertCursor}, prelude::Component};
+    use crate::{entity::{insert::InsertCursor, Component}};
 
-    use super::{Table, View, ViewIterator, InsertBuilder, Insert};
+    use super::{Table, InsertBuilder, Insert};
 
     #[test]
     fn spawn() {

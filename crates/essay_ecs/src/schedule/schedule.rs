@@ -1,3 +1,4 @@
+use core::fmt;
 ///
 /// See Bevy schedule.rs
 /// 
@@ -20,7 +21,7 @@ pub struct Schedules {
     schedule_map: HashMap<BoxedLabel, Schedule>,
 }
 
-pub trait ScheduleLabel : DynLabel {
+pub trait ScheduleLabel : DynLabel + fmt::Debug {
     fn box_clone(&self) -> BoxedLabel;
 }
 
@@ -85,7 +86,7 @@ impl Schedules {
         system: impl IntoSystem<(),M>
     ) {
         self.schedule_map.get_mut(label)
-            .expect("add_system with an unknown schedule")
+            .unwrap_or_else(|| panic!("add_system with an unknown schedule {:?}", label))
             .add_system(system);
     }
 
@@ -134,5 +135,22 @@ impl Eq for dyn ScheduleLabel {}
 impl Hash for dyn ScheduleLabel {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.dyn_hash(state);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::prelude::ScheduleLabel;
+
+    #[derive(ScheduleLabel, PartialEq, Hash, Eq, Clone, Debug)]
+    enum TestSchedule {
+        A,
+        B,
+        C
+    }
+
+    #[test]
+    fn schedule_label() {
+        assert_eq!(format!("{:?}", TestSchedule::A), "A");
     }
 }

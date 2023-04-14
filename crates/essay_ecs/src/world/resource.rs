@@ -2,7 +2,7 @@ use std::{collections::HashMap, any::TypeId, cell::UnsafeCell};
 
 use crate::{entity::prelude::{Table}};
 
-use super::cell::Ptr;
+use super::{cell::Ptr, prelude::World, world::FromWorld};
 
 struct IsResource;
 
@@ -56,17 +56,21 @@ impl Resources {
             //resources: Vec::new(),
         }
     }
-
-    pub(crate) fn init<T:Default+'static>(&mut self) {
+    /*
+    pub(crate) fn init<T: FromWorld>(
+        &mut self, 
+        fun: impl FnOnce() -> <T as FromWorld>::Item
+    ) {
         let id = ResourceId::new(self.resources.len());
         let type_id = TypeId::of::<T>();
 
         let id = *self.resource_map.entry(type_id).or_insert(id);
 
         if id.index() == self.resources.len() {
-            self.resources.push(Resource::new(id, T::default()));
+            self.resources.push(Resource::new(id, fun()));
         }
     }
+    */
 
     pub fn insert<T:'static>(&mut self, value: T) {
         let id = ResourceId::new(self.resources.len());

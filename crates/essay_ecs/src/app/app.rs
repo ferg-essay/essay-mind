@@ -1,13 +1,17 @@
+//use essay_ecs_macros::ScheduleLabel;
+
 ///
 /// see bevy ecs/../app.rs
 /// 
 
 use crate::{
     system::prelude::{IntoSystem, System}, 
-    world::prelude::{World, ResMut}, entity::{prelude::{Insert, EntityId}}, schedule::prelude::{Schedule, Schedules, ScheduleLabel}, prelude::Local,
+    world::prelude::{World}, entity::{prelude::{Insert, EntityId}}, 
+        schedule::prelude::{Schedule, Schedules, ScheduleLabel},
+        prelude::Local,
 };
 
-use super::plugin::{Plugins, Plugin};
+use super::{plugin::{Plugins, Plugin}, CoreSchedule};
 
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
 pub struct Tick(u64);
@@ -21,13 +25,6 @@ impl Tick {
     pub fn value(&self) -> u64 {
         self.0
     }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum CoreSchedule {
-    Startup,
-    Main,
-    Outer,
 }
 
 impl App {
@@ -133,7 +130,7 @@ impl App {
     pub fn update(&mut self) -> &mut Self {
         self.world.resource_mut::<Tick>().0 += 1;
 
-        self.world.run(CoreSchedule::Outer);
+        self.world.run_schedule(CoreSchedule::Outer);
 
         self
     }
@@ -178,20 +175,14 @@ impl CoreSchedule {
     fn outer_system(world: &mut World, mut is_startup: Local<bool>) {
         if ! *is_startup {
             *is_startup = true;
-            world.run(CoreSchedule::Startup);
+            world.run_schedule(CoreSchedule::Startup);
         }
 
-        world.run(CoreSchedule::Main);
+        world.run_schedule(CoreSchedule::Main);
     }
 
     fn startup_schedule() -> Schedule {
         Schedule::new()
-    }
-}
-
-impl ScheduleLabel for CoreSchedule {
-    fn box_clone(&self) -> Box<dyn ScheduleLabel> {
-        Box::new(Clone::clone(self))
     }
 }
 

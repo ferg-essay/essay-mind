@@ -4,6 +4,8 @@ mod table;
 mod column;
 pub(crate) mod meta;
 
+pub use table::Component;
+
 pub mod prelude {
     pub use super::table::{
         Table, Component, EntityId,
