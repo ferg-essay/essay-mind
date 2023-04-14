@@ -44,7 +44,20 @@ impl App {
 
     pub fn add_system<M>(&mut self, into_system: impl IntoSystem<(), M>) -> &mut Self
     {
-        self.resource_mut::<Schedules>().add_system(&CoreSchedule::Main, into_system);
+        self.resource_mut::<Schedules>().add_system(
+            &CoreSchedule::Main, 
+            into_system
+        );
+    
+        self
+    }
+
+    pub fn add_startup_system<M>(&mut self, into_system: impl IntoSystem<(), M>) -> &mut Self
+    {
+        self.resource_mut::<Schedules>().add_system(
+            &CoreSchedule::Startup, 
+            into_system
+        );
     
         self
     }
@@ -94,7 +107,7 @@ impl App {
     pub fn update(&mut self) -> &mut Self {
         self.world.resource_mut::<Tick>().0 += 1;
 
-        self.world.run(CoreSchedule::Main);
+        self.world.run(CoreSchedule::Outer);
 
         self
     }
@@ -131,7 +144,7 @@ impl CoreSchedule {
     fn outer_schedule() -> Schedule {
         let mut schedule = Schedule::new();
 
-        //schedule.add_system(Self::outer_system);
+        schedule.add_system(Self::outer_system);
 
         schedule
     }
@@ -139,7 +152,6 @@ impl CoreSchedule {
     fn outer_system(world: &mut World, mut is_startup: Local<bool>) {
         if ! *is_startup {
             *is_startup = true;
-
             world.run(CoreSchedule::Startup);
         }
 
@@ -168,15 +180,34 @@ mod tests {
         let mut app = App::new();
         let value = Vec::<String>::new();
         let value = Rc::new(RefCell::new(value));
-        let ptr = Rc::clone(&value);
 
-        app.add_system(move || value.borrow_mut().push("update".to_string()));
-        assert_eq!(take(&ptr), "");
+        let ptr = Rc::clone(&value);
+        app.add_system(move || ptr.borrow_mut().push("update".to_string()));
+        assert_eq!(take(&value), "");
         app.update();
-        assert_eq!(take(&ptr), "update");
+        assert_eq!(take(&value), "update");
         app.update();
         app.update();
-        assert_eq!(take(&ptr), "update, update");
+        assert_eq!(take(&value), "update, update");
+    }
+
+    #[test]
+    fn startup_system() {
+        let mut app = App::new();
+        let value = Vec::<String>::new();
+        let value = Rc::new(RefCell::new(value));
+
+        let ptr = Rc::clone(&value);
+        app.add_startup_system(move || ptr.borrow_mut().push("startup".to_string()));
+
+        let ptr = Rc::clone(&value);
+        app.add_system(move || ptr.borrow_mut().push("update".to_string()));
+        assert_eq!(take(&value), "");
+        app.update();
+        assert_eq!(take(&value), "startup, update");
+        app.update();
+        app.update();
+        assert_eq!(take(&value), "update, update");
     }
 
     #[test]

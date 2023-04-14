@@ -28,7 +28,7 @@ pub type Arg<'w, 's, P> = <P as Param>::Arg<'w, 's>;
 // Local param
 //
 
-pub struct Local<'s, T:Default + 'static>(&'s mut T);
+pub struct Local<'s, T:Default + 'static>(pub(crate) &'s mut T);
 
 impl<'s, T:Default+'static> Deref for Local<'s, T> {
     type Target = T;

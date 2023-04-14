@@ -155,7 +155,7 @@ where
         self.state = Some(F::Params::init(world, &mut self.meta))
     }
 
-    fn run<'w>(&mut self, world: &World) {
+    unsafe fn run_unsafe<'w>(&mut self, world: &World) {
         for (item, 
              input) 
             in world.view::<(F::Item<'_>,InComponent<F::Channel>)>() {
@@ -266,7 +266,7 @@ where
         self.state = Some(F::Params::init(world, &mut self.meta));
     }
 
-    fn run<'w>(&mut self, world: &World) {
+    unsafe fn run_unsafe<'w>(&mut self, world: &World) {
         for (item, 
              out) 
             in world.view::<(F::Item<'_>,OutComponent<F::Channel>)>() {

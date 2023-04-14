@@ -9,7 +9,11 @@ pub trait System: 'static {
 
     fn init(&mut self, world: &mut World);
 
-    fn run(&mut self, world: &World) -> Self::Out;
+    unsafe fn run_unsafe(&mut self, world: &World) -> Self::Out;
+
+    fn run(&mut self, world: &mut World) -> Self::Out {
+        unsafe { self.run_unsafe(world) }
+    }
 
     fn flush(&mut self, world: &mut World);
 }
@@ -24,7 +28,7 @@ pub struct SystemState<P:Param + 'static> {
 }
 
 impl SystemMeta {
-    pub(crate) fn new<P:Param>() -> SystemMeta {
+    pub(crate) fn new<P>() -> SystemMeta {
         Self {
             name: type_name::<P>().into(),
         }

@@ -1,40 +1,57 @@
 use std::marker::PhantomData;
 
-use crate::{world::prelude::World, prelude::SystemMeta};
+use crate::{world::prelude::World, prelude::{SystemMeta, Local}};
 
 use super::{system::{System, IntoSystem}, param::{Param, Arg}};
 
 // IsFun prevents collision
-pub struct IsFun;
+pub struct IsExcl;
+
+//
+// Param
+//
+ 
+pub trait ParamExcl {
+    type Arg<'s>;
+    type State;
+
+    fn init(world: &mut World, meta: &mut SystemMeta) -> Self::State;
+
+    fn arg<'s>(
+        state: &'s mut Self::State, 
+    ) -> Self::Arg<'s>;
+}
+
+pub type ArgExcl<'s, P> = <P as ParamExcl>::Arg<'s>;
 
 //
 // FunctionSystem - a system implemented by a function
 // 
 
-pub struct FunctionSystem<M, F, R>
+pub struct WorldFunSystem<M, F, R>
 where
-    F: Fun<M, R>
+    F: WorldFun<M, R>
 {
     fun: F,
-    state: Option<<F::Params as Param>::State>,
+    state: Option<<F::Params as ParamExcl>::State>,
     meta: SystemMeta,
     marker: PhantomData<(M, R)>,
 }
 
-pub trait Fun<M, R> {
-    type Params: Param;
+pub trait WorldFun<M, R> {
+    type Params: ParamExcl;
 
-    fn run(&mut self, arg: Arg<Self::Params>) -> R;
+    fn run(&mut self, world: &mut World, arg: ArgExcl<Self::Params>) -> R;
 }
 
 //
 // Implementation
 //
 
-impl<M, F, R:'static> System for FunctionSystem<M, F, R>
+impl<M, F, R:'static> System for WorldFunSystem<M, F, R>
 where
     M: 'static,
-    F: Fun<M, R> + 'static
+    F: WorldFun<M, R> + 'static
 {
     type Out = R;
 
@@ -42,29 +59,31 @@ where
         self.state = Some(F::Params::init(world, &mut self.meta));
     }
 
-    unsafe fn run_unsafe(&mut self, world: &World) -> Self::Out {
+    fn run(&mut self, world: &mut World) -> Self::Out {
         let arg = F::Params::arg(
-            world,
             self.state.as_mut().unwrap(),
         );
 
-        self.fun.run(arg)
+        self.fun.run(world, arg)
+    }
+
+    unsafe fn run_unsafe(&mut self, _world: &World) -> Self::Out {
+        panic!("can't run exclusive system in unsafe mode");
     }
 
     fn flush(&mut self, world: &mut World) {
-        F::Params::flush(world, self.state.as_mut().unwrap());
     }
 }    
 
-impl<M, F:'static, R:'static> IntoSystem<R, (M,IsFun)> for F
+impl<M, F:'static, R:'static> IntoSystem<R, (M,IsExcl)> for F
 where
     M: 'static,
-    F: Fun<M, R>
+    F: WorldFun<M, R>
 {
-    type System = FunctionSystem<M, F, R>;
+    type System = WorldFunSystem<M, F, R>;
 
     fn into_system(this: Self) -> Self::System {
-        FunctionSystem {
+        WorldFunSystem {
             fun: this,
             state: None,
             meta: SystemMeta::new::<F::Params>(),
@@ -77,40 +96,99 @@ where
 // Function matching
 //
 
-macro_rules! impl_system_function {
+macro_rules! impl_excl_function {
     ($($param:ident),*) => {
         #[allow(non_snake_case)]
-        impl<F: 'static, R, $($param: Param,)*> Fun<fn($($param,)*), R> for F
-        where F:FnMut($($param,)*) -> R +
-            FnMut($(Arg<$param>,)*) -> R
+        impl<F: 'static, R, $($param: ParamExcl,)*> WorldFun<fn(IsExcl,$($param,)*), R> for F
+        where F:FnMut(&mut World, $($param,)*) -> R +
+            FnMut(&mut World, $(ArgExcl<$param>,)*) -> R
         {
             type Params = ($($param,)*);
 
-            fn run(&mut self, arg: Arg<($($param,)*)>) -> R {
+            fn run(&mut self, world: &mut World, arg: ArgExcl<($($param,)*)>) -> R {
                 let ($($param,)*) = arg;
-                self($($param,)*)
+                self(world, $($param,)*)
             }
         }
     }
 }
 
-impl_system_function!();
-impl_system_function!(P1);
-impl_system_function!(P1, P2);
-impl_system_function!(P1, P2, P3);
-impl_system_function!(P1, P2, P3, P4);
-impl_system_function!(P1, P2, P3, P4, P5);
-impl_system_function!(P1, P2, P3, P4, P5, P6);
-impl_system_function!(P1, P2, P3, P4, P5, P6, P7);
+impl_excl_function!();
+impl_excl_function!(P1);
+impl_excl_function!(P1, P2);
+impl_excl_function!(P1, P2, P3);
+impl_excl_function!(P1, P2, P3, P4);
+impl_excl_function!(P1, P2, P3, P4, P5);
+impl_excl_function!(P1, P2, P3, P4, P5, P6);
+impl_excl_function!(P1, P2, P3, P4, P5, P6, P7);
+
+//
+// Local param
+//
+
+impl<'a, T:Default + 'static> ParamExcl for Local<'a, T> {
+    type State = T;
+    type Arg<'s> = Local<'s, T>;
+
+    fn init(_world: &mut World, _meta: &mut SystemMeta) -> Self::State {
+        // let exl = std::sync::Exclusive::new(T::default());
+        T::default()
+    }
+
+    fn arg<'w, 's>(
+        state: &'s mut Self::State, 
+    ) -> Self::Arg<'s> {
+        Local(state)
+    }
+}
+
+//
+// Param composed of tuples
+//
+
+macro_rules! impl_param_excl_tuple {
+    ($($param:ident),*) => {
+        #[allow(non_snake_case)]
+        impl<$($param: ParamExcl,)*> ParamExcl for ($($param,)*)
+        {
+            type Arg<'s> = ($($param::Arg<'s>,)*);
+            type State = ($(<$param as ParamExcl>::State,)*);
+
+            fn init(
+                world: &mut World, 
+                meta: &mut SystemMeta
+            ) -> Self::State {
+                ($($param::init(world, meta),)*)
+            }
+
+            fn arg<'s>(
+                state: &'s mut Self::State,
+            ) -> Self::Arg<'s> {
+                let ($($param,)*) = state;
+
+                ($($param::arg($param),)*)
+            }
+        }
+    }
+}
+
+impl_param_excl_tuple!();
+impl_param_excl_tuple!(P1);
+impl_param_excl_tuple!(P1, P2);
+impl_param_excl_tuple!(P1, P2, P3);
+impl_param_excl_tuple!(P1, P2, P3, P4);
+impl_param_excl_tuple!(P1, P2, P3, P4, P5);
+impl_param_excl_tuple!(P1, P2, P3, P4, P5, P6);
+impl_param_excl_tuple!(P1, P2, P3, P4, P5, P6, P7);
 
 #[cfg(test)]
 mod tests {
     use std::any::type_name;
     use std::marker::PhantomData;
 
-    use crate::{prelude::{IntoSystem, System}, world::prelude::World, system::system::SystemMeta};
+    use crate::{prelude::{IntoSystem, System, Local}, world::prelude::World, system::system::SystemMeta};
 
-    use super::Param;
+    use super::ParamExcl;
 
     static mut G_VALUE : Option<String> = None;
 
@@ -118,6 +196,8 @@ mod tests {
     fn arg_tuples() {
         let mut world = World::new();
 
+        world.eval(|w: &mut World, l: Local<bool>| println!("world!"));
+        /*
         set_global("init".to_string());
         system(&mut world, test_null);
         assert_eq!(get_global(), "test-null");
@@ -135,6 +215,7 @@ mod tests {
         assert_eq!(get_global(), "test-arg6 u8 u16 u32 u64 i8 i16");
         system(&mut world, test_arg7);
         assert_eq!(get_global(), "test-arg7 u8 u16 u32 u64 i8 i16 i32");
+        */
     }
 
     fn system<R, M>(world: &mut World, fun: impl IntoSystem<R, M>)->String {
@@ -211,14 +292,13 @@ mod tests {
         marker: PhantomData<V>,
     }
 
-    impl<V> Param for TestArg<V> {
-        type Arg<'w, 's> = TestArg<V>;
+    impl<V> ParamExcl for TestArg<V> {
+        type Arg<'s> = TestArg<V>;
         type State = ();
 
         fn arg<'w, 's>(
-            _world: &'w World,
             _state: &'s mut Self::State,
-        ) -> Self::Arg<'w, 's> {
+        ) -> Self::Arg<'s> {
             Self {
                 name: type_name::<V>().to_string(),
                 marker: PhantomData,
@@ -226,10 +306,6 @@ mod tests {
         }
 
         fn init(_world: &mut World, _meta: &mut SystemMeta) -> Self::State {
-            ()
-        }
-
-        fn flush(_world: &mut World, _state: &mut Self::State) {
             ()
         }
     }

@@ -60,7 +60,7 @@ where
         self.state = Some(F::Params::init(world, &mut self.meta));
     }
     
-    fn run<'w>(&mut self, world: &World) {
+    unsafe fn run_unsafe<'w>(&mut self, world: &World) {
         for entity in world.view::<F::Item<'_>>() {
             let args = F::Params::arg(
                 world,

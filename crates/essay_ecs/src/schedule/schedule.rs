@@ -33,9 +33,11 @@ impl Schedule {
         }
     }
 
+    /*
     pub fn push(&mut self, system: BoxedSystem) {
         self.systems.push(system);
     }
+    */
 
     pub(crate) fn add_system<M>(&mut self, system: impl IntoSystem<(),M>) {
         self.new_systems.push(Box::new(IntoSystem::into_system(system)));
@@ -50,6 +52,12 @@ impl Schedule {
     }
 
     pub fn run(&mut self, world: &mut World) {
+        self.init(world);
+        self.run_systems(world);
+        self.flush(world);
+    }
+
+    pub fn run_systems(&mut self, world: &mut World) {
         for system in &mut self.systems {
             system.run(world);
         }
