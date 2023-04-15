@@ -1,8 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
-use crate::world::prelude::{World, Ptr};
-
-use super::system::SystemMeta;
+use crate::{world::prelude::{World, Ptr}, schedule::SystemMeta};
 
 //
 // Param
@@ -23,6 +21,26 @@ pub trait Param {
 }
 
 pub type Arg<'w, 's, P> = <P as Param>::Arg<'w, 's>;
+
+pub struct SystemState<P:Param + 'static> {
+    state: P::State,
+}
+
+impl<P:Param> SystemState<P> {
+    pub fn new(meta: &mut SystemMeta, world: &mut World) -> Self {
+        let state = P::init(world, meta);
+
+        Self {
+            state: state,
+        }
+    }
+
+    pub fn get<'s, 'w>(&'s mut self, world: &'w World) -> Arg<P>
+        where P: Param
+    {
+        todo!();
+    }
+}
 
 //
 // Local param
@@ -119,7 +137,7 @@ impl_param_tuple!(P1, P2, P3, P4, P5, P6, P7);
 
 #[cfg(test)]
 mod tests {
-    use crate::{world::prelude::{World, ResMut}, prelude::App, schedule::prelude::Schedule};
+    use crate::{world::prelude::{World, ResMut}, prelude::App, schedule::Schedule};
 
     use super::Local;
 
@@ -131,8 +149,6 @@ mod tests {
 
         let mut schedule = Schedule::new();
         schedule.add_system(local_system);
-
-        schedule.init(&mut world);
 
         schedule.run(&mut world);
         assert_eq!(world.resource::<String>(), "local(1)");

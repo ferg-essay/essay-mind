@@ -24,3 +24,8 @@ pub fn derive_component(input: TokenStream) -> TokenStream {
 pub fn derive_schedule_label(input: TokenStream) -> TokenStream {
     label::derive_schedule_label(input)
 }
+
+#[proc_macro_derive(Phase, attributes(component))]
+pub fn derive_task_set(input: TokenStream) -> TokenStream {
+    label::derive_phase(input)
+}

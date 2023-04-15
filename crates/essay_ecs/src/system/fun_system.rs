@@ -1,8 +1,11 @@
 use std::marker::PhantomData;
 
-use crate::{world::prelude::World, prelude::SystemMeta};
+use crate::{
+    world::prelude::World, 
+    schedule::{SystemMeta, IntoSystem, System}
+};
 
-use super::{system::{System, IntoSystem}, param::{Param, Arg}};
+use super::{param::{Param, Arg}};
 
 // IsFun prevents collision
 pub struct IsFun;
@@ -11,17 +14,16 @@ pub struct IsFun;
 // FunctionSystem - a system implemented by a function
 // 
 
-pub struct FunctionSystem<M, F, R>
+pub struct FunctionSystem<F, R, M>
 where
-    F: Fun<M, R>
+    F: Fun<R, M>
 {
     fun: F,
     state: Option<<F::Params as Param>::State>,
-    meta: SystemMeta,
-    marker: PhantomData<(M, R)>,
+    marker: PhantomData<(R, M)>,
 }
 
-pub trait Fun<M, R> {
+pub trait Fun<R, M> {
     type Params: Param;
 
     fn run(&mut self, arg: Arg<Self::Params>) -> R;
@@ -31,15 +33,15 @@ pub trait Fun<M, R> {
 // Implementation
 //
 
-impl<M, F, R:'static> System for FunctionSystem<M, F, R>
+impl<F, R:'static, M> System for FunctionSystem<F, R, M>
 where
     M: 'static,
-    F: Fun<M, R> + 'static
+    F: Fun<R, M> + 'static
 {
     type Out = R;
 
-    fn init(&mut self, world: &mut World) {
-        self.state = Some(F::Params::init(world, &mut self.meta));
+    fn init(&mut self, meta: &mut SystemMeta, world: &mut World) {
+        self.state = Some(F::Params::init(world, meta));
     }
 
     unsafe fn run_unsafe(&mut self, world: &World) -> Self::Out {
@@ -56,18 +58,18 @@ where
     }
 }    
 
-impl<M, F:'static, R:'static> IntoSystem<R, (M,IsFun)> for F
+// struct IsFun;
+impl<F, R:'static, M:'static> IntoSystem<R, fn(M,IsFun)> for F
 where
-    M: 'static,
-    F: Fun<M, R>
+    //M: 'static,
+    F: Fun<R, M> + 'static
 {
-    type System = FunctionSystem<M, F, R>;
+    type System = FunctionSystem<F, R, M>;
 
     fn into_system(this: Self) -> Self::System {
         FunctionSystem {
             fun: this,
             state: None,
-            meta: SystemMeta::new::<F::Params>(),
             marker: Default::default()
         }
     }
@@ -80,7 +82,7 @@ where
 macro_rules! impl_system_function {
     ($($param:ident),*) => {
         #[allow(non_snake_case)]
-        impl<F: 'static, R, $($param: Param,)*> Fun<fn($($param,)*), R> for F
+        impl<F: 'static, R, $($param: Param,)*> Fun<R, fn($($param,)*)> for F
         where F:FnMut($($param,)*) -> R +
             FnMut($(Arg<$param>,)*) -> R
         {
@@ -108,7 +110,7 @@ mod tests {
     use std::any::type_name;
     use std::marker::PhantomData;
 
-    use crate::{prelude::{IntoSystem, System}, world::prelude::World, system::system::SystemMeta};
+    use crate::{world::prelude::World, schedule::{IntoSystem, SystemMeta, Schedule, IntoSystemConfig}};
 
     use super::Param;
 
@@ -137,12 +139,12 @@ mod tests {
         assert_eq!(get_global(), "test-arg7 u8 u16 u32 u64 i8 i16 i32");
     }
 
-    fn system<R, M>(world: &mut World, fun: impl IntoSystem<R, M>)->String {
+    fn system<M>(world: &mut World, fun: impl IntoSystem<(),M>)->String {
         set_global("init".to_string());
-        let mut system = IntoSystem::into_system(fun);
+        let mut schedule = Schedule::new();
+        schedule.add_system(fun);
+        schedule.run(world);
 
-        system.init(world);
-        system.run(world);
         get_global()
     }
 

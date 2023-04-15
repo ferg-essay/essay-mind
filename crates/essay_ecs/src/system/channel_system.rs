@@ -2,7 +2,8 @@ use std::{marker::PhantomData, ops::{DerefMut, Deref}};
 
 use crate::{
     world::prelude::World, 
-    prelude::{Param, IntoSystem, System, SystemMeta}, 
+    prelude::{Param},
+    schedule::{IntoSystem, System, SystemMeta}, 
     entity::prelude::{
         View, ViewBuilder, ViewCursor, Insert, InsertBuilder, InsertCursor
     }};
@@ -140,7 +141,6 @@ where
 {
     fun: F,
     state: Option<<F::Params as Param>::State>,
-    meta: SystemMeta,
     marker: PhantomData<M>,
 }
 
@@ -151,8 +151,8 @@ where
 {
     type Out = ();
     
-    fn init(&mut self, world: &mut World) {
-        self.state = Some(F::Params::init(world, &mut self.meta))
+    fn init(&mut self, meta: &mut SystemMeta, world: &mut World) {
+        self.state = Some(F::Params::init(world, meta));
     }
 
     unsafe fn run_unsafe<'w>(&mut self, world: &World) {
@@ -176,20 +176,16 @@ where
 }    
 struct IsEachIn;
 
-impl<M, F:'static> IntoSystem<(), (M,IsEachIn)> for F
+impl<F,M:'static> IntoSystem<(),fn(M,IsEachIn)> for F
 where
-    M: 'static,
-    F: EachInFun<M>
+    F: EachInFun<M> + 'static
 {
     type System = EachInSystem<M, F>;
 
     fn into_system(this: Self) -> Self::System {
-        let mut meta = SystemMeta::new::<F::Params>();
-
         EachInSystem {
             fun: this,
             state: None,
-            meta: meta,
             marker: PhantomData,
         }
     }
@@ -251,7 +247,6 @@ where
 {
     fun: F,
     state: Option<<F::Params as Param>::State>,
-    meta: SystemMeta,
     marker: PhantomData<M>,
 }
 
@@ -262,8 +257,8 @@ where
 {
     type Out = ();
 
-    fn init(&mut self, world: &mut World) {
-        self.state = Some(F::Params::init(world, &mut self.meta));
+    fn init(&mut self, meta: &mut SystemMeta, world: &mut World) {
+        self.state = Some(F::Params::init(world, meta));
     }
 
     unsafe fn run_unsafe<'w>(&mut self, world: &World) {
@@ -288,9 +283,8 @@ where
 
 struct IsEachOut;
 
-impl<M, F:'static> IntoSystem<(), (M,IsEachOut)> for F
+impl<F:'static,M:'static> IntoSystem<(),fn(M,IsEachOut)> for F
 where
-    M: 'static,
     F: EachOutFun<M>
 {
     type System = EachOutSystem<M, F>;
@@ -299,7 +293,6 @@ where
         EachOutSystem {
             fun: this,
             state: None,
-            meta: SystemMeta::new::<F::Params>(),
             marker: PhantomData,
         }
     }

@@ -4,15 +4,34 @@ use core::fmt;
 /// 
 use std::{hash::{Hash, Hasher}, collections::HashMap};
 
-use crate::{world::prelude::World, prelude::{System, IntoSystem}, util::prelude::DynLabel};
+use crate::{world::prelude::World, util::prelude::DynLabel};
+
+use super::{
+    phase::{IntoPhaseConfig, IntoPhaseConfigs, PhasePreorder, PhaseId, PhaseConfig, DefaultPhase}, 
+    Phase, 
+    preorder::{Preorder, NodeId}, 
+    System, IntoSystem, IntoSystemConfig, SystemConfig, SystemMeta
+};
 
 pub type BoxedSystem<Out=()> = Box<dyn System<Out=Out>>;
 pub type BoxedLabel = Box<dyn ScheduleLabel>;
 
 pub struct Schedule {
-    new_systems: Vec<BoxedSystem>,
+    systems: SchedulePreorder,
 
-    systems: Vec<BoxedSystem>,
+    phases: PhasePreorder,
+
+    is_changed: bool,
+}
+
+struct SchedulePreorder {
+    systems: Vec<SystemItem>,
+
+    uninit_systems: Vec<SystemId>,
+
+    preorder: Preorder,
+
+    order: Vec<SystemId>,
 }
 
 pub struct Schedules {
@@ -25,48 +44,240 @@ pub trait ScheduleLabel : DynLabel + fmt::Debug {
     fn box_clone(&self) -> BoxedLabel;
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, Hash, Eq)]
+pub struct SystemId(pub(crate) usize);
+
+struct SystemItem {
+    id: SystemId,
+    meta: SystemMeta,
+
+    system: BoxedSystem,
+    phase: Option<SystemId>,
+}
+
+impl SystemItem {
+    fn add_phase_arrows(
+        &self, 
+        preorder: &mut Preorder, 
+        prev_map: &HashMap<SystemId, SystemId>
+    ) {
+        if let Some(phase) = &self.phase {
+            preorder.add_arrow(
+                NodeId::from(self.id), 
+                NodeId::from(*phase)
+            );
+
+            if let Some(prev) = prev_map.get(&phase) {
+                preorder.add_arrow(
+                    NodeId::from(*prev), 
+                    NodeId::from(self.id)
+                );
+            }
+        }
+    }
+}
+
 impl Schedule {
     pub fn new() -> Self {
         Schedule {
-            new_systems: Vec::new(),
+            systems: Default::default(),
 
-            systems: Vec::new(),
+            phases: PhasePreorder::new(),
+
+            is_changed: true,
         }
     }
 
-    /*
-    pub fn push(&mut self, system: BoxedSystem) {
-        self.systems.push(system);
+    pub(crate) fn add_system<M>(
+        &mut self, 
+        config: impl IntoSystemConfig<M>
+    ) -> SystemId {
+        let SystemConfig {
+            system,
+            phase,
+        } = config.into_config();
+
+        let phase_id = match phase {
+            Some(phase) => {
+                if phase == Box::new(DefaultPhase) {
+                    self.phases.get_default_phase()
+                } else {
+                    let phase_id = self.phases.add_phase(
+                        PhaseConfig::new(phase)
+                    );
+                    self.init_phases();
+                    Some(phase_id)
+                }
+            }
+            None => None,
+        };
+
+        let phase_id = self.phases.get_server_id(phase_id);
+
+        self.is_changed = true;
+
+        self.systems.add(system, phase_id)
     }
-    */
 
-    pub(crate) fn add_system<M>(&mut self, system: impl IntoSystem<(),M>) {
-        self.new_systems.push(Box::new(IntoSystem::into_system(system)));
+    pub fn set_default_phase(&mut self, task_set: impl Phase) {
+        self.phases.set_default_phase(Box::new(task_set));
     }
 
-    pub fn init(&mut self, world: &mut World) {
-        for mut system in self.new_systems.drain(..) {
-            system.init(world);
+    pub fn add_phase(&mut self, into_config: impl IntoPhaseConfig) {
+        let config = into_config.into_config();
 
-            self.systems.push(system);
+        self.phases.add_phase(config);
+        self.init_phases();
+
+        self.is_changed = true;
+    }
+
+    pub fn add_phases(&mut self, into_config: impl IntoPhaseConfigs) {
+        let config = into_config.into_config();
+
+        self.phases.add_phases(config);
+        self.init_phases();
+
+        self.is_changed = true;
+    }
+
+    fn init_phases(&mut self) {
+        let uninit = self.phases.uninit_phases();
+
+        for phase_id in uninit {
+            let system_id = self.add_system(
+                SystemFlush(phase_id).no_phase()
+            );
+
+            self.phases.set_system_id(phase_id, system_id);
         }
     }
 
     pub fn run(&mut self, world: &mut World) {
-        self.init(world);
-        self.run_systems(world);
-        self.flush(world);
+        while self.is_changed {
+            self.is_changed = false;
+            self.init(world);
+        }
+
+        self.systems.run(world);
+        self.systems.flush(world);
     }
 
-    pub fn run_systems(&mut self, world: &mut World) {
-        for system in &mut self.systems {
-            system.run(world);
+    fn init(&mut self, world: &mut World) {
+        self.systems.init(world);
+        self.init_phases();
+        let task_set_order = self.phases.sort();
+        self.systems.sort(task_set_order);
+    }
+}
+
+impl SchedulePreorder {
+    fn add(
+        &mut self, 
+        system: BoxedSystem,
+        phase_id: Option<SystemId>,
+    ) -> SystemId {
+        // let system: BoxedSystem = Box::new(IntoSystem::into_system(system));
+
+        let id = self.preorder.add_node(0);
+        assert_eq!(id.index(), self.systems.len());
+
+        let id = SystemId::from(id);
+
+        self.systems.push(SystemItem {
+            id,
+            meta: SystemMeta::new(id, system.type_name()),
+            system,
+            phase: phase_id,
+        });
+
+        self.uninit_systems.push(id);
+
+        id
+    }
+
+    fn init(&mut self, world: &mut World) {
+        for id in self.uninit_systems.drain(..) {
+            let system = &mut self.systems[id.index()];
+            //println!("init {:?}", id);
+            system.system.init(&mut system.meta, world);
+        }
+    }
+
+    fn sort(&mut self, phase_order: Vec<SystemId>) {
+        let mut preorder = self.preorder.clone();
+
+        let prev_map = self.prev_map(
+            &mut preorder, 
+            phase_order
+        );
+
+        for system in &self.systems {
+            if ! system.meta.is_flush() {
+                system.add_phase_arrows(&mut preorder, &prev_map);
+            }
+        }
+
+        self.order = preorder.sort().iter()
+            .map(|n| SystemId::from(*n))
+            .collect();
+    }
+
+    fn prev_map(
+        &self, 
+        preorder: &mut Preorder,
+        task_set_order: Vec<SystemId>
+    ) -> HashMap<SystemId,SystemId> {
+        let mut map = HashMap::new();
+
+        let mut iter = task_set_order.iter();
+
+        let Some(prev_id) = iter.next() else { return map };
+
+        let mut prev_id = prev_id;
+
+        for next_id in iter {
+            // println!("Phase set {:?} -> {:?}", prev_id, next_id);
+            preorder.add_arrow(
+                NodeId::from(*prev_id),
+                NodeId::from(*next_id)
+            );
+
+            map.insert(*next_id, *prev_id);
+            prev_id = next_id;
+        }
+
+        map
+    }
+
+    fn run(&mut self, world: &mut World) {
+        for id in &self.order {
+            let system = &mut self.systems[id.index()];
+            
+            if system.meta.is_flush() {
+                // self.flush(world);
+            } else {
+                system.system.run(world);
+            }
         }
     }
 
     fn flush(&mut self, world: &mut World) {
         for system in &mut self.systems {
-            system.flush(world);
+            if ! system.meta.is_flush() {
+                system.system.flush(world);
+            }
+        }
+    }
+}
+
+impl Default for SchedulePreorder {
+    fn default() -> Self {
+        Self { 
+            systems: Default::default(), 
+            preorder: Default::default(),
+            uninit_systems: Default::default(),
+            order: Default::default(),
         }
     }
 }
@@ -83,19 +294,17 @@ impl Schedules {
     pub fn add_system<M>(
         &mut self, 
         label: &dyn ScheduleLabel, 
-        system: impl IntoSystem<(),M>
+        config: impl IntoSystemConfig<M>,
     ) {
         self.schedule_map.get_mut(label)
             .unwrap_or_else(|| panic!("add_system with an unknown schedule {:?}", label))
-            .add_system(system);
+            .add_system::<M>(config);
     }
 
     pub fn run(&mut self, label: &dyn ScheduleLabel, world: &mut World) {
         let (key, mut schedule) = self.schedule_map.remove_entry(label).unwrap();
         
-        schedule.init(world);
         schedule.run(world);
-        schedule.flush(world);
 
         self.schedule_map.insert(key, schedule);
     }
@@ -124,6 +333,43 @@ impl Default for Schedules {
     }
 }
 
+struct SystemFlush(PhaseId);
+
+impl System for SystemFlush {
+    type Out = ();
+
+    fn init(&mut self, meta: &mut SystemMeta, _world: &mut World) {
+        meta.set_exclusive();
+        meta.set_flush();
+    }
+
+    unsafe fn run_unsafe(&mut self, world: &World) -> Self::Out {
+        panic!("SystemFlush[{:?}] run_unsafe can't be called directly", self.0);
+    }
+
+    fn flush(&mut self, world: &mut World) {
+        panic!("SystemFlush[{:?}] flush can't be called directly", self.0);
+    }
+}
+
+impl SystemId {
+    pub fn index(&self) -> usize {
+        self.0
+    }
+}
+
+impl From<NodeId> for SystemId {
+    fn from(value: NodeId) -> Self {
+        SystemId(value.index())
+    }
+}
+
+impl From<SystemId> for NodeId {
+    fn from(value: SystemId) -> Self {
+        NodeId(value.index())
+    }
+}
+
 impl PartialEq for dyn ScheduleLabel {
     fn eq(&self, other: &Self) -> bool {
         self.dyn_eq(other.as_dyn_eq())
@@ -140,15 +386,127 @@ impl Hash for dyn ScheduleLabel {
 
 #[cfg(test)]
 mod tests {
-    use crate::prelude::ScheduleLabel;
+    use std::{rc::Rc, cell::RefCell};
+
+    use crate::{prelude::*, world::prelude::World};
+
+    use super::Schedule;
 
     #[derive(ScheduleLabel, PartialEq, Hash, Eq, Clone, Debug)]
     enum TestSchedule {
         A,
     }
 
+    #[derive(Phase, PartialEq, Hash, Eq, Clone, Debug)]
+    enum TestPhase {
+        A,
+        B,
+        C,
+    }
+
     #[test]
     fn schedule_label() {
         assert_eq!(format!("{:?}", TestSchedule::A), "A");
+    }
+
+    #[test]
+    fn phase_a_b_c() {
+        let values = Rc::new(RefCell::new(Vec::<String>::new()));
+
+        let mut world = World::new();
+
+        // A, default
+        let mut schedule = new_schedule_a_b_c();
+
+        let ptr = values.clone();
+        schedule.add_system((move || { 
+            push(&ptr, "a"); 
+        }).phase(TestPhase::A));
+        
+        let ptr = values.clone();
+        schedule.add_system(move || { 
+            push(&ptr, "b"); 
+        });
+
+        schedule.run(&mut world);
+        assert_eq!(take(&values), "a, b");
+
+        // C, default
+        let mut schedule = new_schedule_a_b_c();
+
+        let ptr = values.clone();
+        schedule.add_system((move || { 
+            push(&ptr, "c"); 
+        }).phase(TestPhase::C));
+        
+        let ptr = values.clone();
+        schedule.add_system(move || { 
+            push(&ptr, "b"); 
+        });
+
+        schedule.run(&mut world);
+        assert_eq!(take(&values), "b, c");
+
+        // default, A
+        let mut schedule = new_schedule_a_b_c();
+
+        let ptr = values.clone();
+        schedule.add_system(move || { 
+            push(&ptr, "b"); 
+        });
+        
+        let ptr = values.clone();
+        schedule.add_system((move || { 
+            push(&ptr, "a"); 
+        }).phase(TestPhase::A));
+
+        schedule.run(&mut world);
+        assert_eq!(take(&values), "a, b");
+
+        // default, C
+        let mut schedule = new_schedule_a_b_c();
+
+        let ptr = values.clone();
+        schedule.add_system(move || { 
+            push(&ptr, "b"); 
+        });
+        
+        let ptr = values.clone();
+        schedule.add_system((move || { 
+            push(&ptr, "c"); 
+        }).phase(TestPhase::C));
+
+        schedule.run(&mut world);
+        assert_eq!(take(&values), "b, c");
+    }
+
+    fn new_schedule_a_b_c() -> Schedule {
+        let mut schedule = Schedule::new();
+        schedule.add_phases((
+            TestPhase::A,
+            TestPhase::B,
+            TestPhase::C,
+        ).chained());
+        schedule.set_default_phase(TestPhase::B);
+
+        schedule
+    }
+
+    fn test_a() {
+        println!("a");
+    }
+
+    fn test_b() {
+        println!("b");
+    }
+
+    fn take(values: &Rc<RefCell<Vec<String>>>) -> String {
+        let str_vec = values.borrow_mut().drain(..).collect::<Vec<String>>();
+
+        return str_vec.join(", ");
+    }
+
+    fn push(values: &Rc<RefCell<Vec<String>>>, s: &str) {
+        values.borrow_mut().push(s.to_string());
     }
 }

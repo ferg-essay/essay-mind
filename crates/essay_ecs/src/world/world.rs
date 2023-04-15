@@ -1,6 +1,9 @@
 use std::cell::UnsafeCell;
 
-use crate::{entity::{prelude::{Store, ViewIterator, View, Insert, EntityId}}, prelude::{System, IntoSystem}, schedule::prelude::{ScheduleLabel, Schedules}};
+use crate::{
+    entity::{prelude::{Store, ViewIterator, View, Insert, EntityId}}, 
+    schedule::{System, IntoSystem, ScheduleLabel, Schedules, SystemMeta}
+};
 
 use super::{resource::Resources, unsafe_world::UnsafeWorld, cell::PtrCell, prelude::Ptr};
 
@@ -54,7 +57,7 @@ impl World {
     {
         let mut system = IntoSystem::into_system(fun);
 
-        system.init(self);
+        system.init(&mut SystemMeta::empty(), self);
         let value = system.run(self);
         system.flush(self);
 

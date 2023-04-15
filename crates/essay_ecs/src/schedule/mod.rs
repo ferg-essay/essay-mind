@@ -1,8 +1,17 @@
+mod phase;
 mod preorder;
 mod schedule;
+mod system;
 
-pub use schedule::ScheduleLabel;
+use essay_ecs_macros::Phase;
+pub use system::{
+    System, IntoSystem, SystemConfig, IntoSystemConfig, SystemMeta,
+};
 
-pub mod prelude {
-    pub use super::schedule::{Schedules, Schedule, ScheduleLabel, BoxedLabel};
-}
+pub use schedule::{
+    Schedules, Schedule, ScheduleLabel, BoxedLabel,
+};
+
+pub use phase::{
+    Phase, IntoPhaseConfig, IntoPhaseConfigs,
+};

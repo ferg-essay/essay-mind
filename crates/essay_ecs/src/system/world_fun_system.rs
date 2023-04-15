@@ -1,11 +1,11 @@
 use std::marker::PhantomData;
 
-use crate::{world::prelude::World, prelude::{SystemMeta, Local}};
+use crate::{world::prelude::World, schedule::{SystemMeta, IntoSystem, System}, prelude::Local};
 
-use super::{system::{System, IntoSystem}, param::{Param, Arg}};
+use super::{param::{Param, Arg}};
 
 // IsFun prevents collision
-pub struct IsExcl;
+pub struct IsWorld;
 
 //
 // Param
@@ -28,17 +28,16 @@ pub type ArgExcl<'s, P> = <P as ParamExcl>::Arg<'s>;
 // FunctionSystem - a system implemented by a function
 // 
 
-pub struct WorldFunSystem<M, F, R>
+pub struct WorldFunSystem<F, R, M>
 where
-    F: WorldFun<M, R>
+    F: WorldFun<R, M>
 {
     fun: F,
     state: Option<<F::Params as ParamExcl>::State>,
-    meta: SystemMeta,
-    marker: PhantomData<(M, R)>,
+    marker: PhantomData<(R, M)>,
 }
 
-pub trait WorldFun<M, R> {
+pub trait WorldFun<R, M> {
     type Params: ParamExcl;
 
     fn run(&mut self, world: &mut World, arg: ArgExcl<Self::Params>) -> R;
@@ -48,15 +47,16 @@ pub trait WorldFun<M, R> {
 // Implementation
 //
 
-impl<M, F, R:'static> System for WorldFunSystem<M, F, R>
+impl<F, R:'static, M> System for WorldFunSystem<F, R, M>
 where
     M: 'static,
-    F: WorldFun<M, R> + 'static
+    F: WorldFun<R, M> + 'static
 {
     type Out = R;
 
-    fn init(&mut self, world: &mut World) {
-        self.state = Some(F::Params::init(world, &mut self.meta));
+    fn init(&mut self, meta: &mut SystemMeta, world: &mut World) {
+        meta.set_exclusive();
+        self.state = Some(F::Params::init(world, meta));
     }
 
     fn run(&mut self, world: &mut World) -> Self::Out {
@@ -75,18 +75,16 @@ where
     }
 }    
 
-impl<M, F:'static, R:'static> IntoSystem<R, (M,IsExcl)> for F
+impl<F:'static, R:'static, M:'static> IntoSystem<R,fn(M,IsWorld)> for F
 where
-    M: 'static,
-    F: WorldFun<M, R>
+    F: WorldFun<R,M>
 {
-    type System = WorldFunSystem<M, F, R>;
+    type System = WorldFunSystem<F, R, M>;
 
     fn into_system(this: Self) -> Self::System {
         WorldFunSystem {
             fun: this,
             state: None,
-            meta: SystemMeta::new::<F::Params>(),
             marker: Default::default()
         }
     }
@@ -99,7 +97,7 @@ where
 macro_rules! impl_excl_function {
     ($($param:ident),*) => {
         #[allow(non_snake_case)]
-        impl<F: 'static, R, $($param: ParamExcl,)*> WorldFun<fn(IsExcl,$($param,)*), R> for F
+        impl<F: 'static, R, $($param: ParamExcl,)*> WorldFun<R, fn(IsWorld,$($param,)*)> for F
         where F:FnMut(&mut World, $($param,)*) -> R +
             FnMut(&mut World, $(ArgExcl<$param>,)*) -> R
         {
@@ -186,7 +184,8 @@ mod tests {
     use std::any::type_name;
     use std::marker::PhantomData;
 
-    use crate::{prelude::{IntoSystem, System, Local}, world::prelude::World, system::system::SystemMeta};
+    use crate::{world::prelude::World, prelude::Local, 
+        schedule::{IntoSystem, SystemMeta, System}};
 
     use super::ParamExcl;
 
@@ -221,9 +220,9 @@ mod tests {
     fn system<R, M>(world: &mut World, fun: impl IntoSystem<R, M>)->String {
         set_global("init".to_string());
         let mut system = IntoSystem::into_system(fun);
-
-        system.init(world);
+        system.init(&mut SystemMeta::empty(), world);
         system.run(world);
+
         get_global()
     }
 

@@ -1,8 +1,10 @@
 use std::{marker::PhantomData};
 
-use crate::{world::prelude::World, entity::{prelude::View}, prelude::SystemMeta};
+use crate::{world::prelude::World, entity::{prelude::View}, 
+    schedule::{System, IntoSystem, SystemMeta}
+};
 
-use super::{prelude::Param, system::{System, IntoSystem}, param::Arg};
+use super::{prelude::Param, param::Arg};
 
 // IsEach prevents collisions
 pub struct IsEach;
@@ -13,7 +15,6 @@ where
 {
     fun: F,
     state: Option<<F::Params as Param>::State>,
-    meta: SystemMeta,
     marker: PhantomData<M>,
 }
 
@@ -42,7 +43,6 @@ where
         Self {
             fun: fun,
             state: None,
-            meta: SystemMeta::new::<F::Params>(),
 
             marker: PhantomData,
         }
@@ -56,8 +56,8 @@ where
 {
     type Out = ();
     
-    fn init(&mut self, world: &mut World) {
-        self.state = Some(F::Params::init(world, &mut self.meta));
+    fn init(&mut self, meta: &mut SystemMeta, world: &mut World) {
+        self.state = Some(F::Params::init(world, meta))
     }
     
     unsafe fn run_unsafe<'w>(&mut self, world: &World) {
@@ -76,9 +76,9 @@ where
     }
 }
 
-impl<M, F:'static> IntoSystem<(), (M,IsEach)> for F
+impl<F:'static, M:'static> IntoSystem<(), fn(M,IsEach)> for F
 where
-    M: 'static,
+    //M: 'static,
     F: EachFun<M>
 {
     type System = EachSystem<M, F>;

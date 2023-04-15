@@ -1,6 +1,6 @@
 //use essay_ecs_macros::ScheduleLabel;
 
-use crate::prelude::ScheduleLabel;
+use crate::prelude::{ScheduleLabel, Phase};
 
 mod plugin;
 mod app;
@@ -10,6 +10,15 @@ pub enum CoreSchedule {
     Startup,
     Main,
     Outer,
+}
+
+#[derive(Phase, Debug, Clone, PartialEq, Eq, Hash)]
+pub enum CoreTaskSet {
+    First,
+    PreUpdate,
+    Update,
+    PostUpdate,
+    Last,
 }
 
 pub(crate) mod prelude {

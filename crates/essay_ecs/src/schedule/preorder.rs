@@ -1,12 +1,14 @@
 use fixedbitset::FixedBitSet;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
-pub struct NodeId(usize);
+pub struct NodeId(pub(crate) usize);
 
+#[derive(Clone)]
 pub struct Preorder {
     nodes: Vec<Node>,
 }
 
+#[derive(Clone)]
 struct Node {
     id: NodeId,
 
@@ -30,8 +32,12 @@ impl Preorder {
     }
 
     pub fn add_arrow(&mut self, source_id: NodeId, target_id: NodeId) {
+        assert_ne!(source_id, target_id);
+
         self.nodes[source_id.0].outgoing.push(target_id);
         self.nodes[target_id.0].incoming.push(source_id);
+
+        // println!("  Arrow {:?} {:?}", source_id, target_id);
     }
 
     pub fn sort(&self) -> Vec<NodeId> {
@@ -44,6 +50,7 @@ impl Preorder {
 
         while results.len() < self.nodes.len() {
             let start_len = results.len();
+            //println!("  Loop: {}", start_len);
 
             completed.clear();
 
@@ -53,11 +60,12 @@ impl Preorder {
                 if ! node.is_incoming_pending(&pending) {
                     completed.insert(index);
                     results.push(node.id);
+                    //println!("   Item: {:?}", node.id());
                 }
             }
 
             if results.len() == start_len {
-                panic!("preorder sort unable to make progress, possible due to loops");
+                panic!("preorder sort unable to make progress, possibly due to loops");
             }
 
             let new_results = &mut results.as_mut_slice()[start_len..];
@@ -75,6 +83,12 @@ impl Preorder {
 impl Default for Preorder {
     fn default() -> Self {
         Self { nodes: Default::default() }
+    }
+}
+
+impl NodeId {
+    pub fn index(&self) -> usize {
+        self.0
     }
 }
 

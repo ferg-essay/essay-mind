@@ -5,13 +5,17 @@
 /// 
 
 use crate::{
-    system::prelude::{IntoSystem, System}, 
-    world::prelude::{World}, entity::{prelude::{Insert, EntityId}}, 
-        schedule::prelude::{Schedule, Schedules, ScheduleLabel},
-        prelude::Local,
+    schedule::{
+        IntoPhaseConfigs,
+        Schedule, Schedules, ScheduleLabel, 
+        IntoSystem, System, IntoSystemConfig, SystemMeta
+    }, 
+    world::prelude::{World}, 
+    entity::{prelude::{Insert, EntityId}}, 
+    prelude::Local,
 };
 
-use super::{plugin::{Plugins, Plugin}, CoreSchedule};
+use super::{plugin::{Plugins, Plugin}, CoreSchedule, CoreTaskSet};
 
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
 pub struct Tick(u64);
@@ -43,7 +47,10 @@ impl App {
         }
     }
 
-    pub fn add_system<M>(&mut self, into_system: impl IntoSystem<(), M>) -> &mut Self
+    pub fn add_system<M>(
+        &mut self, 
+        into_system: impl IntoSystemConfig<M>
+    ) -> &mut Self
     {
         self.resource_mut::<Schedules>().add_system(
             &CoreSchedule::Main, 
@@ -53,7 +60,10 @@ impl App {
         self
     }
 
-    pub fn add_startup_system<M>(&mut self, into_system: impl IntoSystem<(), M>) -> &mut Self
+    pub fn add_startup_system<M>(
+        &mut self, 
+        into_system: impl IntoSystemConfig<M>
+    ) -> &mut Self
     {
         self.resource_mut::<Schedules>().add_system(
             &CoreSchedule::Startup, 
@@ -139,7 +149,7 @@ impl App {
     {
         let mut system = IntoSystem::into_system(fun);
 
-        system.init(&mut self.world);
+        system.init(&mut SystemMeta::empty(), &mut self.world);
         let value = system.run(&mut self.world);
         system.flush(&mut self.world);
 
@@ -161,7 +171,7 @@ impl Default for App {
 
 impl CoreSchedule {
     fn main_schedule() -> Schedule {
-        Schedule::new()
+        CoreTaskSet::main_schedule()
     }
 
     fn outer_schedule() -> Schedule {
@@ -183,6 +193,24 @@ impl CoreSchedule {
 
     fn startup_schedule() -> Schedule {
         Schedule::new()
+    }
+}
+
+impl CoreTaskSet {
+    fn main_schedule() -> Schedule {
+        let mut schedule = Schedule::new();
+
+        schedule.set_default_phase(Self::Update);
+
+        schedule.add_phases((
+            Self::First,
+            Self::PreUpdate,
+            Self::Update,
+            Self::PostUpdate,
+            Self::Last,
+        ).chained());
+
+        schedule
     }
 }
 
