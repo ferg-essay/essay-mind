@@ -958,6 +958,7 @@ version = "0.1.0"
 dependencies = [
  "env_logger",
  "essay_ecs_macros",
+ "fixedbitset",
  "log",
 ]
 
@@ -983,6 +984,12 @@ checksum = "a7a407cfaa3385c4ae6b23e84623d48c2798d06e3e6a1878f7f59f17b3f86499"
 dependencies = [
  "instant",
 ]
+
+[[package]]
+name = "fixedbitset"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0ce7134b9999ecaf8bcd65542e436736ef32ddca1b3e06094cb6ec5755203b80"
 
 [[package]]
 name = "flate2"

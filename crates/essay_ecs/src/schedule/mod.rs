@@ -1,3 +1,4 @@
+mod preorder;
 mod schedule;
 
 pub use schedule::ScheduleLabel;
