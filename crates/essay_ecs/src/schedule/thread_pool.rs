@@ -1,10 +1,11 @@
+use core::fmt;
 use std::{
     thread::{Thread, self, JoinHandle}, 
     sync::{mpsc::{self, Receiver, Sender}, Arc}, 
     time::Duration
 };
 
-use crossbeam_deque::{Worker, Stealer, Injector, Steal};
+use concurrent_queue::{ConcurrentQueue, PopError};
 
 use super::schedule::SystemId;
 
@@ -23,6 +24,10 @@ pub struct ThreadPool {
     executive_reader: Receiver<MainMessage>,
 }
 
+pub struct TaskSender<'a> {
+    thread: &'a ExecutiveThread,
+}
+
 enum MainMessage {
     Start(MainClosure),
     Complete,
@@ -32,6 +37,15 @@ enum MainMessage {
 enum TaskMessage {
     Start(TaskClosure),
     Exit,
+}
+
+impl fmt::Debug for TaskMessage {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Start(_arg0) => f.debug_tuple("Start").finish(),
+            Self::Exit => write!(f, "Exit"),
+        }
+    }
 }
 
 pub struct ExecutiveThread {
@@ -45,19 +59,17 @@ pub struct ExecutiveThread {
 }
 
 struct Registry {
-    injector: Injector<TaskMessage>,
+    queue: ConcurrentQueue<TaskMessage>,
     tasks: Vec<TaskInfo>,
 }
 
 struct TaskInfo {
-    stealer: Stealer<TaskMessage>,
     handle: Option<JoinHandle<()>>,
 }
 
 impl TaskInfo {
-    pub fn new(stealer: Stealer<TaskMessage>) -> Self {
+    pub fn new() -> Self {
         TaskInfo {
-            stealer,
             handle: None,
         }
     }
@@ -65,7 +77,6 @@ impl TaskInfo {
 
 struct TaskThread {
     registry: Arc<Registry>,
-    worker: Worker<TaskMessage>,
     sender: Sender<SystemId>,
     index: usize,
 }
@@ -100,17 +111,12 @@ impl ThreadPoolBuilder {
         };
 
         let mut registry = Registry {
-            injector: Injector::new(),
+            queue: ConcurrentQueue::unbounded(),
             tasks: Vec::new(),
         };
 
-        let mut workers = Vec::new();
         for _ in 0..n_threads {
-            let worker = Worker::new_fifo();
-
-            registry.tasks.push(TaskInfo::new(worker.stealer()));
-
-            workers.push(worker);
+            registry.tasks.push(TaskInfo::new());
         }
 
         let registry = Arc::new(registry);
@@ -119,7 +125,6 @@ impl ThreadPoolBuilder {
         for i in 0..n_threads {
             let mut task_thread = TaskThread::new(
                 Arc::clone(&registry), 
-                workers.remove(0), 
                 task_sender.clone(),
                 i
             );
@@ -191,17 +196,6 @@ impl ThreadPool {
     }
 }
 
-pub struct TaskSender<'a> {
-    thread: &'a ExecutiveThread,
-}
-
-impl<'a> TaskSender<'a> {
-    pub fn send(&self, fun: impl FnOnce() -> SystemId) {
-
-    }
-}
-
-
 impl ExecutiveThread {
     pub fn run(&mut self) {
         let sender = TaskSender { thread: &self };
@@ -225,42 +219,38 @@ impl ExecutiveThread {
             }
         }
     }
+
+    fn unpark(&self) {
+        for h in &self.handles {
+            h.thread().unpark();
+        }
+    }
 }
 
 impl TaskThread {
     pub fn new(
         registry: Arc<Registry>, 
-        worker: Worker<TaskMessage>,
         sender: Sender<SystemId>,
         index: usize
     ) -> Self {
         Self {
             registry,
-            worker,
             sender,
             index,
         }
     }
 
     pub fn run(&mut self) {
-        let worker = &self.worker;
-        let injector = &self.registry.injector;
+        let queue = &self.registry.queue;
 
         loop {
-            let msg = match worker.pop() {
-                Some(msg) => msg,
-                None => {
-                    match injector.steal() {
-                        Steal::Success(msg) => msg,
-                        crossbeam_deque::Steal::Retry => {
-                            continue;
-                        },
-                        crossbeam_deque::Steal::Empty => {
-                            thread::park();
-                            continue;
-                        }
-                    }
+            let msg = match queue.pop() {
+                Ok(msg) => msg,
+                Err(PopError::Empty) => {
+                    thread::park();
+                    continue;
                 }
+                Err(err) => panic!("unknown queue error")
             };
 
             match msg {
@@ -276,9 +266,25 @@ impl TaskThread {
     }
 }
 
+impl<'a> TaskSender<'a> {
+    pub fn send(&self, fun: impl FnOnce() -> SystemId + Send + 'static) {
+        self.thread.registry.queue.push(TaskMessage::Start(Box::new(fun))).unwrap();
+    }
+
+    pub fn flush(&self) {
+        self.thread.unpark();
+    }
+
+    pub fn read(&self) -> Option<SystemId> {
+        None
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::{thread, time::Duration};
+
+    use crate::schedule::schedule::SystemId;
 
     use super::ThreadPoolBuilder;
 
@@ -286,11 +292,13 @@ mod tests {
     fn test() {
         let mut pool = ThreadPoolBuilder::new().build();
 
-        println!("pre sleep");
-        //thread::sleep(Duration::from_millis(1000));
-        println!("post sleep");
-        pool.start(|r| println!("hello"));
+        pool.start(|sender| {
+            println!("hello");
+            sender.send(|| { println!("task"); SystemId(0) });
+            sender.flush();
+        });
         println!("pre-close");
+
         pool.close();
     }
 }

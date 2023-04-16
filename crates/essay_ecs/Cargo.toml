@@ -9,6 +9,7 @@ env_logger = { version = "0.10.0" }
 fixedbitset = "0.4"
 futures-lite = "1.12"
 crossbeam-deque = "0.8"
+concurrent-queue = "2.2"
 essay_ecs_macros = { path = "macros", version = "0.1.0" }
 
 [lib]

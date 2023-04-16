@@ -980,6 +980,7 @@ dependencies = [
 name = "essay_ecs"
 version = "0.1.0"
 dependencies = [
+ "concurrent-queue",
  "crossbeam-deque",
  "env_logger",
  "essay_ecs_macros",
