@@ -1,3 +1,4 @@
+mod thread_pool;
 mod phase;
 mod preorder;
 mod schedule;
