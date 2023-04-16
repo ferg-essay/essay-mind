@@ -1,7 +1,5 @@
 use core::fmt;
-///
-/// See Bevy schedule.rs
-/// 
+
 use std::{hash::{Hash, Hasher}, collections::HashMap};
 
 use crate::{world::World, util::DynLabel};
@@ -10,8 +8,12 @@ use super::{
     phase::{IntoPhaseConfig, IntoPhaseConfigs, PhasePreorder, PhaseId, PhaseConfig, DefaultPhase}, 
     Phase, 
     preorder::{Preorder, NodeId}, 
-    System, IntoSystem, IntoSystemConfig, SystemConfig, SystemMeta
+    System, IntoSystemConfig, SystemConfig, SystemMeta
 };
+
+///
+/// See Bevy schedule.rs
+/// 
 
 pub type BoxedSystem<Out=()> = Box<dyn System<Out=Out>>;
 pub type BoxedLabel = Box<dyn ScheduleLabel>;

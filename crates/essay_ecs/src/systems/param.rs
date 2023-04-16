@@ -1,6 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
-use crate::{world::{World, Ptr}, schedule::SystemMeta};
+use crate::{world::{World}, schedule::SystemMeta};
 
 //
 // Param
@@ -17,30 +17,11 @@ pub trait Param {
         state: &'s mut Self::State, 
     ) -> Self::Arg<'w, 's>;
 
-    fn flush(world: &mut World, state: &mut Self::State);
+    fn flush(_world: &mut World, _state: &mut Self::State) {
+    }
 }
 
 pub type Arg<'w, 's, P> = <P as Param>::Arg<'w, 's>;
-
-pub struct SystemState<P:Param + 'static> {
-    state: P::State,
-}
-
-impl<P:Param> SystemState<P> {
-    pub fn new(meta: &mut SystemMeta, world: &mut World) -> Self {
-        let state = P::init(world, meta);
-
-        Self {
-            state: state,
-        }
-    }
-
-    pub fn get<'s, 'w>(&'s mut self, world: &'w World) -> Arg<P>
-        where P: Param
-    {
-        todo!();
-    }
-}
 
 //
 // Local param

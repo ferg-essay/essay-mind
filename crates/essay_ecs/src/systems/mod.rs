@@ -5,4 +5,3 @@ mod each_system;
 mod channel_system;
 
 pub use param::{Param, Local};
-//pub use fun_system::{Fun};

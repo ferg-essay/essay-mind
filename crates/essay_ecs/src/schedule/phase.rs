@@ -1,13 +1,13 @@
-///
-/// see bevy_ecs/schedule/schedule.rs
-/// 
-
 use core::fmt;
 use std::{hash::{Hash, Hasher}, any::type_name, collections::HashMap};
 
 use crate::{util::DynLabel};
 
 use super::{preorder::{Preorder, NodeId}, schedule::{SystemId}};
+
+///
+/// See SystemSet in bevy_ecs/schedule/schedule.rs
+/// 
 
 #[derive(Copy, Clone, Debug, PartialEq, Hash, Eq)]
 pub struct PhaseId(usize);

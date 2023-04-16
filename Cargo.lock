@@ -938,6 +938,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "essay-ecs"
+version = "0.1.0"
+dependencies = [
+ "concurrent-queue",
+ "env_logger",
+ "essay-ecs-macros",
+ "fixedbitset",
+ "log",
+]
+
+[[package]]
 name = "essay-ecs-macros"
 version = "0.1.0"
 dependencies = [
@@ -958,17 +969,6 @@ dependencies = [
  "mind",
  "ui-audio",
  "ui-graphics",
-]
-
-[[package]]
-name = "essay_ecs"
-version = "0.1.0"
-dependencies = [
- "concurrent-queue",
- "env_logger",
- "essay-ecs-macros",
- "fixedbitset",
- "log",
 ]
 
 [[package]]

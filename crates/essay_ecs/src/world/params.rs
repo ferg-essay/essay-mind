@@ -79,13 +79,13 @@ impl<T:'static> Param for ResMut<'_, T> {
     type Arg<'w, 's> = ResMut<'w, T>;
     type State = ();
 
-    fn init(world: &mut World, meta: &mut SystemMeta) -> Self::State {
+    fn init(world: &mut World, _meta: &mut SystemMeta) -> Self::State {
         ()
     }
 
     fn arg<'w, 's>(
         world: &'w World,
-        state: &'s mut Self::State,
+        _state: &'s mut Self::State,
     ) -> ResMut<'w, T> {
         ResMut {
             value: world.get_resource_mut().unwrap()

@@ -1,11 +1,9 @@
-use std::cell::UnsafeCell;
-
 use crate::{
     entity::{Store, ViewIterator, View, Insert, EntityId}, 
     schedule::{System, IntoSystem, ScheduleLabel, Schedules, SystemMeta}
 };
 
-use super::{resource::Resources, unsafe_world::UnsafeWorld, cell::PtrCell, Ptr};
+use super::{resource::Resources, Ptr};
 
 pub struct World {
     ptr: Ptr,
@@ -50,33 +48,12 @@ impl World {
     }
 
     pub fn view<V:View>(&self) -> ViewIterator<'_,V> {
-        unsafe { self.deref_mut().table.iter_view::<V>() }
+        self.deref_mut().table.iter_view::<V>()
     }
 
-    pub fn eval<R, M>(&mut self, fun: impl IntoSystem<R, M>) -> R
-    {
-        let mut system = IntoSystem::into_system(fun);
-
-        system.init(&mut SystemMeta::empty(), self);
-        let value = system.run(self);
-        system.flush(self);
-
-        value
-    }
-
-    pub(crate) fn init_resource<T:FromWorld>(&mut self) {
-        if ! self.deref().resources.get::<T>().is_none() {
-            return;
-        }
-
-        let value = T::init(self);
-
-        self.insert_resource::<T>(value);
-    }
-
-    pub fn insert_resource<T:'static>(&mut self, value: T) {
-        self.deref_mut().resources.insert::<T>(value)
-    }
+    //
+    // Resources
+    //
     
     pub fn get_resource<T:'static>(&self) -> Option<&T> {
         self.deref().resources.get::<T>()
@@ -94,6 +71,39 @@ impl World {
     pub fn resource_mut<T:'static>(&mut self) -> &mut T {
         self.get_resource_mut::<T>().unwrap()
     }
+
+    pub fn init_resource<T:FromWorld>(&mut self) {
+        if ! self.deref().resources.get::<T>().is_none() {
+            return;
+        }
+
+        let value = T::init(self);
+
+        self.insert_resource::<T>(value);
+    }
+
+    pub fn insert_resource<T:'static>(&mut self, value: T) {
+        self.deref_mut().resources.insert::<T>(value)
+    }
+
+    //
+    // eval
+    //
+
+    pub fn eval<R, M>(&mut self, fun: impl IntoSystem<R, M>) -> R
+    {
+        let mut system = IntoSystem::into_system(fun);
+
+        system.init(&mut SystemMeta::empty(), self);
+        let value = system.run(self);
+        system.flush(self);
+
+        value
+    }
+
+    //
+    // Schedules
+    //
 
     pub fn run_schedule(&mut self, label: impl ScheduleLabel) {
         let mut schedule = self.resource_mut::<Schedules>().remove(&label).unwrap();
