@@ -1,6 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
-use crate::{world::prelude::{World, Ptr}, schedule::SystemMeta};
+use crate::{world::{World, Ptr}, schedule::SystemMeta};
 
 //
 // Param
@@ -137,7 +137,7 @@ impl_param_tuple!(P1, P2, P3, P4, P5, P6, P7);
 
 #[cfg(test)]
 mod tests {
-    use crate::{world::prelude::{World, ResMut}, prelude::App, schedule::Schedule};
+    use crate::{world::{World, ResMut}, prelude::App, schedule::Schedule};
 
     use super::Local;
 

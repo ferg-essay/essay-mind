@@ -1,8 +1,8 @@
 use std::{marker::PhantomData, cell::UnsafeCell};
 
-use crate::entity::prelude::{View, ViewIterator};
+use crate::entity::{View, ViewIterator};
 
-use super::prelude::World;
+use super::World;
 
 pub struct UnsafeWorld<'w>(*mut World, PhantomData<(&'w World, &'w UnsafeCell<World>)>);
 

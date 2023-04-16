@@ -6,7 +6,7 @@
 use std::marker::PhantomData;
 
 use super::{
-    prelude::{Store, ViewId}, 
+    {Store, ViewId}, 
     meta::{Table, ViewTableType, ColumnId}, 
     store::{Row, Component}
 };

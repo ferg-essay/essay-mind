@@ -5,7 +5,7 @@
 use core::fmt;
 use std::{hash::{Hash, Hasher}, any::type_name, collections::HashMap};
 
-use crate::{util::prelude::DynLabel};
+use crate::{util::DynLabel};
 
 use super::{preorder::{Preorder, NodeId}, schedule::{SystemId}};
 

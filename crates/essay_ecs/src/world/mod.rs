@@ -5,9 +5,8 @@ mod resource;
 mod world;
 mod cell;
 
-pub mod prelude {
-    pub use super::command::{Commands};
-    pub use super::world::{World};
-    pub(crate) use super::cell::{Ptr};
-    pub use super::params::{Res, ResMut};
-}
+pub use command::Commands;
+pub use world::World;
+pub use params::{Res, ResMut};
+
+pub(crate) use cell::{Ptr};

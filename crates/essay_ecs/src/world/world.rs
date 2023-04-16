@@ -1,11 +1,11 @@
 use std::cell::UnsafeCell;
 
 use crate::{
-    entity::{prelude::{Store, ViewIterator, View, Insert, EntityId}}, 
+    entity::{Store, ViewIterator, View, Insert, EntityId}, 
     schedule::{System, IntoSystem, ScheduleLabel, Schedules, SystemMeta}
 };
 
-use super::{resource::Resources, unsafe_world::UnsafeWorld, cell::PtrCell, prelude::Ptr};
+use super::{resource::Resources, unsafe_world::UnsafeWorld, cell::PtrCell, Ptr};
 
 pub struct World {
     ptr: Ptr,
@@ -121,7 +121,7 @@ mod tests {
 
     use essay_ecs_macros::Component;
 
-    use crate::world::prelude::{Res, ResMut};
+    use crate::world::{Res, ResMut};
 
     use super::World;
 

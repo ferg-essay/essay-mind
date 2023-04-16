@@ -1,7 +1,7 @@
 use core::fmt;
 use std::{borrow::Cow, any::type_name};
 
-use crate::{world::prelude::World};
+use crate::{world::World};
 
 use super::{schedule::SystemId, Phase, phase::DefaultPhase};
 

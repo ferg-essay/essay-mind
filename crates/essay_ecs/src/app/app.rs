@@ -10,8 +10,8 @@ use crate::{
         Schedule, Schedules, ScheduleLabel, 
         IntoSystem, System, IntoSystemConfig, SystemMeta
     }, 
-    world::prelude::{World}, 
-    entity::{prelude::{Insert, EntityId}}, 
+    world::World,
+    entity::{Insert, EntityId}, 
     prelude::Local,
 };
 
@@ -218,7 +218,7 @@ impl CoreTaskSet {
 mod tests {
     use std::{cell::RefCell, rc::Rc};
 
-    use crate::{prelude::*, world::prelude::Res};
+    use crate::{prelude::*};
 
     #[test]
     fn app_system() {

@@ -1,8 +1,8 @@
 use std::{collections::HashMap, any::TypeId, cell::UnsafeCell};
 
-use crate::{entity::prelude::{Store}};
+use crate::{entity::{Store}};
 
-use super::{cell::Ptr, prelude::World, world::FromWorld};
+use super::{cell::Ptr, World, world::FromWorld};
 
 struct IsResource;
 

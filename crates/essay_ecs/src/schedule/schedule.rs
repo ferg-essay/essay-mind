@@ -4,7 +4,7 @@ use core::fmt;
 /// 
 use std::{hash::{Hash, Hasher}, collections::HashMap};
 
-use crate::{world::prelude::World, util::prelude::DynLabel};
+use crate::{world::World, util::DynLabel};
 
 use super::{
     phase::{IntoPhaseConfig, IntoPhaseConfigs, PhasePreorder, PhaseId, PhaseConfig, DefaultPhase}, 
@@ -388,7 +388,7 @@ impl Hash for dyn ScheduleLabel {
 mod tests {
     use std::{rc::Rc, cell::RefCell};
 
-    use crate::{prelude::*, world::prelude::World};
+    use crate::{prelude::*, world::World};
 
     use super::Schedule;
 

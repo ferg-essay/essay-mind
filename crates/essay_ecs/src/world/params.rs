@@ -2,7 +2,7 @@ use std::{ops::{Deref, DerefMut}};
 
 use crate::{prelude::{Param}, schedule::SystemMeta};
 
-use super::prelude::World;
+use super::World;
 
 
 #[derive(Debug)]

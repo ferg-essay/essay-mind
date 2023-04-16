@@ -1,8 +1,8 @@
 use std::{collections::VecDeque, marker::PhantomData};
 
-use crate::{prelude::{Param}, entity::prelude::Component, schedule::SystemMeta};
+use crate::{prelude::{Param}, entity::Component, schedule::SystemMeta};
 
-use super::prelude::World;
+use super::World;
 
 pub trait Command: 'static {
     fn flush(self: Box<Self>, world: &mut World);
@@ -165,7 +165,7 @@ mod tests {
 
     use essay_ecs_macros::Component;
 
-    use crate::{world::prelude::{World, Res, ResMut}};
+    use crate::{world::{World, Res, ResMut}};
 
     use super::Commands;
 

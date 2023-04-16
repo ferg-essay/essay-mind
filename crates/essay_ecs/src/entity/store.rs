@@ -1,6 +1,6 @@
 use super::column::{Column, RowId};
 use super::insert::{InsertBuilder, Insert, InsertPlan};
-use super::prelude::ViewId;
+use super::ViewId;
 use super::view::{View, ViewIterator, ViewBuilder, ViewPlan};
 use super::meta::{StoreMeta, ColumnId, TableId, ViewType};
 

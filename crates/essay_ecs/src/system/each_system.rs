@@ -1,10 +1,10 @@
 use std::{marker::PhantomData};
 
-use crate::{world::prelude::World, entity::{prelude::View}, 
+use crate::{world::World, entity::{View}, 
     schedule::{System, IntoSystem, SystemMeta}
 };
 
-use super::{prelude::Param, param::Arg};
+use super::{Param, param::Arg};
 
 // IsEach prevents collisions
 pub struct IsEach;

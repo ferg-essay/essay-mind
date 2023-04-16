@@ -4,7 +4,5 @@ mod param;
 mod each_system;
 mod channel_system;
 
-pub mod prelude {
-    pub use super::param::{Param, Local};
-    pub use super::fun_system::{Fun};
-}
+pub use param::{Param, Local};
+//pub use fun_system::{Fun};

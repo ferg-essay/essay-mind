@@ -1,5 +1,3 @@
 mod label;
 
-pub mod prelude {
-    pub(crate) use super::label::DynLabel;
-}
+pub(crate) use label::DynLabel;

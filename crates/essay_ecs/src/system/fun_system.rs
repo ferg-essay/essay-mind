@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use crate::{
-    world::prelude::World, 
+    world::World, 
     schedule::{SystemMeta, IntoSystem, System}
 };
 
@@ -110,7 +110,7 @@ mod tests {
     use std::any::type_name;
     use std::marker::PhantomData;
 
-    use crate::{world::prelude::World, schedule::{IntoSystem, SystemMeta, Schedule, IntoSystemConfig}};
+    use crate::{world::World, schedule::{IntoSystem, SystemMeta, Schedule, IntoSystemConfig}};
 
     use super::Param;
 
