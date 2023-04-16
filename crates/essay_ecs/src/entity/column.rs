@@ -1,6 +1,7 @@
+use core::fmt;
 use std::mem::{self, ManuallyDrop};
 use std::ptr::NonNull;
-use std::{marker::PhantomData, cmp};
+use std::{cmp};
 use std::alloc::Layout;
 
 use super::meta::{ColumnId, ColumnType, StoreMeta};
@@ -196,6 +197,17 @@ impl Column {
             let size = n * self.meta.size_padded();
             Layout::from_size_align_unchecked(size, self.meta.layout_padded().align())
         }
+    }
+}
+
+impl fmt::Debug for Column {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Column")
+         .field("id", &self.id())
+         .field("name", &self.meta.name())
+         .field("pad_size", &self.pad_size)
+         .field("len", &self.len())
+         .finish()
     }
 }
 

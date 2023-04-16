@@ -1,3 +1,4 @@
+use core::fmt;
 use std::{
     collections::{HashMap}, 
     any::{TypeId, type_name}, 
@@ -17,7 +18,7 @@ pub struct ViewId(usize);
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct ViewTableId(usize);
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct ColumnType {
     id: ColumnId,
 
@@ -31,7 +32,7 @@ pub struct ColumnType {
     views: Vec<ViewId>,
 }
 
-pub struct Table {
+pub struct TableType {
     id: TableId,
 
     columns: Vec<ColumnId>,
@@ -58,7 +59,7 @@ pub(crate) struct StoreMeta {
     columns: Vec<ColumnType>,
 
     table_map: HashMap<Vec<ColumnId>,TableId>,
-    tables: Vec<Table>,
+    tables: Vec<TableType>,
 
     view_map: HashMap<Vec<ColumnId>,ViewId>,
     views: Vec<ViewType>,
@@ -86,6 +87,10 @@ impl ColumnType {
         self.id
     }
 
+    pub fn name(&self) -> &Cow<'static, str> {
+        &self.name
+    }
+
     #[inline]
     pub fn size(&self) -> usize {
         self.layout.size()
@@ -109,6 +114,15 @@ impl ColumnType {
     }
 }
 
+impl fmt::Debug for ColumnType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ColumnType")
+         .field("id", &self.id)
+         .field("name", &self.name)
+         .finish()
+    }
+}
+
 //
 // Table
 //
@@ -122,7 +136,7 @@ impl TableId {
     }
 }
 
-impl Table {
+impl TableType {
     pub(crate) fn id(&self) -> TableId {
         self.id
     }
@@ -154,6 +168,15 @@ impl Table {
     }
 }
 
+impl fmt::Debug for TableType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("TableType")
+         .field("id", &self.id)
+         .field("columns", &self.columns)
+         .finish()
+    }
+}
+
 //
 // View
 //
@@ -178,6 +201,15 @@ impl ViewType {
     }
 }
 
+impl fmt::Debug for ViewType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ViewType")
+         .field("id", &self.id)
+         .field("cols", &self.cols)
+         .finish()
+    }
+}
+
 //
 // ViewRow
 //
@@ -191,7 +223,7 @@ impl ViewTableId {
 impl ViewTableType {
     pub fn new(
         id: ViewTableId, 
-        table: &Table, 
+        table: &TableType, 
         view: &ViewType
     ) -> ViewTableType {
         let mut index_map = Vec::<usize>::new();
@@ -225,6 +257,16 @@ impl ViewTableType {
 
     pub fn index_map(&self) -> &Vec<usize> {
         &self.index_map
+    }
+}
+
+impl fmt::Debug for ViewTableType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("ViewTableType")
+         .field("id", &self.id)
+         .field("table_id", &self.table_id)
+         .field("view_id", &self.view_id)
+         .finish()
     }
 }
 
@@ -300,11 +342,11 @@ impl StoreMeta {
     // Table
     //
 
-    pub fn table(&self, id: TableId) -> &Table {
+    pub fn table(&self, id: TableId) -> &TableType {
         &self.tables[id.index()]
     }
 
-    pub(crate) fn table_mut(&mut self, id: TableId) -> &mut Table {
+    pub(crate) fn table_mut(&mut self, id: TableId) -> &mut TableType {
         self.tables.get_mut(id.index()).unwrap()
     }
 
@@ -321,7 +363,7 @@ impl StoreMeta {
             return table_id;
         }
 
-        self.tables.push(Table {
+        self.tables.push(TableType {
             id: table_id,
             columns,
         });

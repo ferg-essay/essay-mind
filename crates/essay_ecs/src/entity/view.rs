@@ -7,7 +7,7 @@ use std::marker::PhantomData;
 
 use super::{
     {Store, ViewId}, 
-    meta::{Table, ViewTableType, ColumnId}, 
+    meta::{TableType, ViewTableType, ColumnId}, 
     store::{Row, Component}
 };
 
@@ -21,7 +21,7 @@ pub trait View {
 
 pub struct ViewCursor<'a, 't> {
     store: &'t Store,
-    table: &'a Table,
+    table: &'a TableType,
     view_table: &'a ViewTableType,
     row: &'a Row,
     cols: &'a Vec<usize>,
@@ -42,7 +42,7 @@ impl ViewPlan {
     pub(crate) fn new_cursor<'a, 't>(
         &'a self, 
         store: &'t Store,
-        table: &'a Table,
+        table: &'a TableType,
         view_row: &'a ViewTableType,
         row: &'a Row
     ) -> ViewCursor<'a, 't> {

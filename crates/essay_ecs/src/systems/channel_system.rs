@@ -334,7 +334,7 @@ impl_each_out_params!(P1, P2, P3, P4, P5, P6, P7);
 
 #[cfg(test)]
 mod tests {
-    use crate::{prelude::App, world::World, system::channel_system::Out, app::prelude::Tick};
+    use crate::{prelude::App, world::World, systems::channel_system::Out, app::prelude::Tick};
 
     use super::{In, Channel, InChannel, InComponent, OutComponent, OutChannel};
 

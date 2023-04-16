@@ -22,81 +22,18 @@ pub trait System: 'static {
 
     fn flush(&mut self, world: &mut World);
 }
+
+#[derive(Copy, Clone, Debug, PartialOrd, PartialEq)]
 pub struct Priority(u32);
-
-impl Priority {
-    const HIGH : Priority = Priority(2000);
-    const DEFAULT : Priority = Priority(1000);
-    const LOW : Priority = Priority(500);
-
-    pub fn value(&self) -> u32 {
-        self.0
-    }
-
-    pub fn add(&self, value: u32) -> Priority {
-        Priority(self.0 + value)
-    }
-
-    pub fn sub(&self, value: u32) -> Priority {
-        Priority(self.0 - value)
-    }
-}
 
 pub struct SystemMeta {
     id: SystemId,
     name: Cow<'static, str>,
 
+    priority: Priority,
+
     is_exclusive: bool,
     is_flush: bool,
-}
-
-impl SystemMeta {
-    pub(crate) fn new(id: SystemId, name: &'static str) -> Self {
-        Self {
-            id,
-            name: name.into(),
-            is_flush: false,
-            is_exclusive: false,
-        }
-    }
-
-    pub(crate) fn empty() -> Self {
-        Self {
-            id: SystemId(0),
-            name: "empty".into(),
-            is_flush: false,
-            is_exclusive: false,
-        }
-    }
-
-    pub fn id(&self) -> SystemId {
-        self.id
-    }
-
-    pub fn set_exclusive(&mut self) {
-        self.is_exclusive = true;
-    }
-
-    pub fn is_exclusive(&self) -> bool {
-        self.is_exclusive
-    }
-
-    pub fn set_flush(&mut self) {
-        self.is_flush = true;
-    }
-
-    pub fn is_flush(&self) -> bool {
-        self.is_flush
-    }
-}
-
-impl fmt::Debug for SystemMeta {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("SystemMeta")
-         .field("id", &self.id)
-         .field("name", &self.name)
-         .finish()
-    }
 }
 
 pub trait IntoSystem<Out,M>: Sized {
@@ -128,6 +65,73 @@ pub trait IntoSystemConfig<M>: Sized {
         let mut config = self.into_config();
         config.phase = None;
         config
+    }
+}
+
+impl SystemMeta {
+    pub(crate) fn new(id: SystemId, name: &'static str) -> Self {
+        Self {
+            id,
+            name: name.into(),
+            priority: Default::default(),
+            is_flush: false,
+            is_exclusive: false,
+        }
+    }
+
+    pub(crate) fn empty() -> Self {
+        Self {
+            id: SystemId(0),
+            name: "empty".into(),
+            priority: Default::default(),
+            is_flush: false,
+            is_exclusive: false,
+        }
+    }
+
+    pub fn id(&self) -> SystemId {
+        self.id
+    }
+
+    pub fn set_exclusive(&mut self) {
+        self.is_exclusive = true;
+    }
+
+    pub fn is_exclusive(&self) -> bool {
+        self.is_exclusive
+    }
+
+    pub fn set_flush(&mut self) {
+        self.is_flush = true;
+    }
+
+    pub fn is_flush(&self) -> bool {
+        self.is_flush
+    }
+
+    pub fn priority(&self) -> Priority {
+        self.priority
+    }
+
+    pub fn set_priority(&mut self, priority: Priority) {
+        self.priority = priority;
+    }
+
+    pub fn add_priority(&mut self, delta: u32) {
+        self.priority = self.priority.add(delta);
+    }
+
+    pub fn sub_priority(&mut self, delta: u32) {
+        self.priority = self.priority.sub(delta);
+    }
+}
+
+impl fmt::Debug for SystemMeta {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("SystemMeta")
+         .field("id", &self.id)
+         .field("name", &self.name)
+         .finish()
     }
 }
 
@@ -178,3 +182,32 @@ where
     }
 }
 
+impl Priority {
+    const HIGH : Priority = Priority(2000);
+    const DEFAULT : Priority = Priority(1000);
+    const LOW : Priority = Priority(500);
+
+    pub fn value(&self) -> u32 {
+        self.0
+    }
+
+    pub fn add(&self, value: u32) -> Priority {
+        Priority(self.0 + value)
+    }
+
+    pub fn sub(&self, value: u32) -> Priority {
+        Priority(self.0 - value)
+    }
+}
+
+impl Default for Priority {
+    fn default() -> Self {
+        Priority::DEFAULT
+    }
+}
+
+impl From<u32> for Priority {
+    fn from(value: u32) -> Self {
+        Priority(value)
+    }
+}

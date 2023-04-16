@@ -34,10 +34,8 @@ pub struct ComponentId(usize);
 
 impl Store {
     pub fn new() -> Self {
-        let mut meta = StoreMeta::new();
-
         Self {
-            meta,
+            meta: StoreMeta::new(),
 
             columns: Vec::new(),
             
@@ -80,12 +78,6 @@ impl Store {
     // row (entity)
     //
 
-    pub fn spawn<T:Insert>(&mut self, value: T) -> EntityId {
-        let plan = self.insert_plan::<T>();
-
-        self.spawn_with_plan(plan, value)
-    }
-
     pub fn get<T:'static>(&mut self, entity: EntityId) -> Option<&T> {
         let column_id = self.meta().get_column::<T>()?;
         let row = self.rows.get(entity.index())?;
@@ -108,6 +100,12 @@ impl Store {
         unsafe {
             self.get_mut_by_id(column_id, row.columns[index])
         }
+    }
+
+    pub fn spawn<T:Insert>(&mut self, value: T) -> EntityId {
+        let plan = self.insert_plan::<T>();
+
+        self.spawn_with_plan(plan, value)
     }
 
     pub(crate) fn insert_plan<T:Insert>(&mut self) -> InsertPlan {
@@ -166,12 +164,12 @@ impl Store {
     //
 
     pub fn iter_view<'a,T:View>(&mut self) -> ViewIterator<'_,T> {
-        let plan = self.get_view_plan::<T>();
+        let plan = self.view_plan::<T>();
         
         unsafe { self.iter_view_with_plan(plan) }
     }
 
-    pub(crate) fn get_view_plan<T:View>(&mut self) -> ViewPlan {
+    pub(crate) fn view_plan<T:View>(&mut self) -> ViewPlan {
         let mut builder = ViewBuilder::new(self);
 
         T::build(&mut builder);
@@ -242,83 +240,83 @@ mod tests {
 
     #[test]
     fn spawn() {
-        let mut table = Store::new();
-        assert_eq!(table.len(), 0);
+        let mut store = Store::new();
+        assert_eq!(store.len(), 0);
 
-        table.spawn(TestA(1));
-        assert_eq!(table.len(), 1);
+        store.spawn(TestA(1));
+        assert_eq!(store.len(), 1);
 
-        let mut values : Vec<String> = table.iter_view::<&TestA>()
+        let mut values : Vec<String> = store.iter_view::<&TestA>()
             .map(|t| format!("{:?}", t))
             .collect();
         assert_eq!(values.join(","), "TestA(1)");
 
-        table.spawn(TestB(10000));
-        assert_eq!(table.len(), 2);
+        store.spawn(TestB(10000));
+        assert_eq!(store.len(), 2);
 
-        values = table.iter_view::<&TestB>().map(|t| format!("{:?}", t)).collect();
+        values = store.iter_view::<&TestB>().map(|t| format!("{:?}", t)).collect();
         assert_eq!(values.join(","), "TestB(10000)");
 
-        values = table.iter_view::<&TestA>().map(|t| format!("{:?}", t)).collect();
+        values = store.iter_view::<&TestA>().map(|t| format!("{:?}", t)).collect();
         assert_eq!(values.join(","), "TestA(1)");
 
-        table.spawn(TestB(100));
-        assert_eq!(table.len(), 3);
+        store.spawn(TestB(100));
+        assert_eq!(store.len(), 3);
 
-        values = table.iter_view::<&TestA>().map(|t: &TestA| format!("{:?}", t)).collect();
+        values = store.iter_view::<&TestA>().map(|t: &TestA| format!("{:?}", t)).collect();
         assert_eq!(values.join(","), "TestA(1)");
 
-        values = table.iter_view::<&TestB>().map(|t: &TestB| format!("{:?}", t)).collect();
+        values = store.iter_view::<&TestB>().map(|t: &TestB| format!("{:?}", t)).collect();
         assert_eq!(values.join(","), "TestB(10000),TestB(100)");
 
-        for entity in table.iter_view::<&mut TestB>() {
+        for entity in store.iter_view::<&mut TestB>() {
             entity.0 += 1;
         }
         
-        values = table.iter_view::<&TestB>().map(|t: &TestB| format!("{:?}", t)).collect();
+        values = store.iter_view::<&TestB>().map(|t: &TestB| format!("{:?}", t)).collect();
         assert_eq!(values.join(","), "TestB(10001),TestB(101)");
     }
 
     #[test]
     fn entity_get() {
-        let mut table = Store::new();
-        assert_eq!(table.len(), 0);
+        let mut store = Store::new();
+        assert_eq!(store.len(), 0);
 
-        let id_0 = table.spawn(TestA(1000));
-        assert_eq!(table.len(), 1);
+        let id_0 = store.spawn(TestA(1000));
+        assert_eq!(store.len(), 1);
         assert_eq!(id_0.index(), 0);
 
-        assert_eq!(table.get::<TestA>(id_0), Some(&TestA(1000)));
-        assert_eq!(table.get::<TestB>(id_0), None);
+        assert_eq!(store.get::<TestA>(id_0), Some(&TestA(1000)));
+        assert_eq!(store.get::<TestB>(id_0), None);
 
-        let id_1 = table.spawn(TestB(1001));
-        assert_eq!(table.len(), 2);
+        let id_1 = store.spawn(TestB(1001));
+        assert_eq!(store.len(), 2);
         assert_eq!(id_1.index(), 1);
 
-        assert_eq!(table.get::<TestA>(id_1), None);
-        assert_eq!(table.get::<TestB>(id_1), Some(&TestB(1001)));
+        assert_eq!(store.get::<TestA>(id_1), None);
+        assert_eq!(store.get::<TestB>(id_1), Some(&TestB(1001)));
 
-        let id_2 = table.spawn(TestA(1002));
-        assert_eq!(table.len(), 3);
+        let id_2 = store.spawn(TestA(1002));
+        assert_eq!(store.len(), 3);
         assert_eq!(id_2.index(), 2);
 
-        assert_eq!(table.get::<TestA>(id_2), Some(&TestA(1002)));
-        assert_eq!(table.get::<TestB>(id_2), None);
+        assert_eq!(store.get::<TestA>(id_2), Some(&TestA(1002)));
+        assert_eq!(store.get::<TestB>(id_2), None);
 
-        assert_eq!(table.get::<TestA>(id_0), Some(&TestA(1000)));
-        assert_eq!(table.get::<TestB>(id_0), None);
+        assert_eq!(store.get::<TestA>(id_0), Some(&TestA(1000)));
+        assert_eq!(store.get::<TestB>(id_0), None);
     }
 
     #[test]
     fn push_type() {
-        let mut table = Store::new();
-        assert_eq!(table.len(), 0);
+        let mut store = Store::new();
+        assert_eq!(store.len(), 0);
 
-        table.spawn::<TestA>(TestA(1));
+        store.spawn::<TestA>(TestA(1));
         //table.push(TestC(1));
-        assert_eq!(table.len(), 1);
+        assert_eq!(store.len(), 1);
 
-        let values : Vec<String> = table.iter_view::<&TestA>()
+        let values : Vec<String> = store.iter_view::<&TestA>()
             .map(|t| format!("{:?}", t))
             .collect();
         assert_eq!(values.join(","), "TestA(1)");
@@ -326,23 +324,23 @@ mod tests {
 
     #[test]
     fn push_tuple() {
-        let mut table = Store::new();
-        assert_eq!(table.len(), 0);
+        let mut store = Store::new();
+        assert_eq!(store.len(), 0);
 
-        table.spawn((TestA(1),TestB(2)));
-        table.spawn((TestB(3),TestA(4)));
+        store.spawn((TestA(1),TestB(2)));
+        store.spawn((TestB(3),TestA(4)));
         
-        assert_eq!(table.len(), 2);
+        assert_eq!(store.len(), 2);
 
-        let mut values : Vec<String> = table.iter_view::<&TestA>()
+        let mut values : Vec<String> = store.iter_view::<&TestA>()
             .map(|t| format!("{:?}", t))
             .collect();
         assert_eq!(values.join(","), "TestA(1),TestA(4)");
 
-        values = table.iter_view::<&TestB>().map(|t: &TestB| format!("{:?}", t)).collect();
+        values = store.iter_view::<&TestB>().map(|t: &TestB| format!("{:?}", t)).collect();
         assert_eq!(values.join(","), "TestB(2),TestB(3)");
 
-        values = table.iter_view::<(&TestA,&TestB)>().map(|v| format!("{:?}", v)).collect();
+        values = store.iter_view::<(&TestA,&TestB)>().map(|v| format!("{:?}", v)).collect();
         assert_eq!(values.join(","), "(TestA(1), TestB(2)),(TestA(4), TestB(3))");
     }
 
