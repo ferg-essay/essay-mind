@@ -5,9 +5,10 @@ use std::time::Instant;
 //use ui_audio::AudioReader;
 use audio::{self, Harmonic};
 use audio::{FftWindow};
-use ui_graphics::*;
-use egui::plot;
+//use ui_graphics::*;
+//use egui::plot;
 
+#[cfg(egui)]
 fn main() {
     //let buffer = AudioReader::read("assets/blip.ogg");
 
@@ -79,39 +80,6 @@ fn main() {
     let samples: u32 = 16000;
     // let offset = 0;
     let fft = FftWindow::new(fft_len);
-    //let mut source = spline_gram(220., Gram::from("3783_3763"), 16);
-
-    //let mut source = 0.2 * (sine(220.0) + 0.3 * sine(330.0) + 0.1 * sine(440.0) + 0.1 * sine(550.0));
-    //source.reset(Some(samples));
-
-    //let source = spline_peaks(100., &[
-    //    (0.0, 1.0),
-    //    (0.5, -1.0),
-    //]);
-
-
-    //let source = 0.2 * spline_peaks(440., &[
-    //    (0.0, 1.0),
-    //    (0.2, -0.2),
-    //    (0.7, 0.2),
-    //    (0.9, -1.0),
-    //]);
-
-/*
-    let source = 0.2 * spline_shape(1., &[
-        (0.0, 1.0),
-        (0.5, 0.5),
-        (0.25, -0.5),
-        (0.5, 0.5),
-        (0.5, 1.0),
-        (0.5, 0.5),
-        (0.75, -0.5),
-        (0.5, 0.5),
-    ]);
-    */
-    //let source = spline_gram(1., Gram::from("8708_8708_8308_8308"), 16);
-    //let source = spline_gram(1., Gram::from("8708_87a8_8308_8308_8308_8368"), 16);
-    //let source = spline_gram(480., Gram::from("0700_0540_0040_0540"), 16);
 
     let vec : Vec<f32> = source.take(2 * samples as usize).collect();
 

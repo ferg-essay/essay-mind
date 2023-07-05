@@ -9,7 +9,7 @@ env_logger = { version = "0.10.0" }
 # symphonia = { version = "0.5"}
 cpal = { version="0.15" }
 rustfft = { version="6.1" }
-fundsp = { version="0.12" }
+fundsp = { version="0.15" }
 rand = { version="0.8" }
 audio = { path = "../audio" }
 mind = { path = "../mind" }

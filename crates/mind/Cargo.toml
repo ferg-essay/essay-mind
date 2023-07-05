@@ -9,7 +9,7 @@ env_logger = { version = "0.10.0" }
 
 # workspace dependencies
 #ticker.workspace = true
-ticker = { path = "../ticker" }
+#ticker = { path = "../ticker" }
 #gram = { path = "../gram" }
 #ticker = {version = "0.1.9"}
 

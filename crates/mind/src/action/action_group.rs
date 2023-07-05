@@ -242,6 +242,7 @@ impl ActionGroupInner {
     }
 }
 
+#[cfg(ticker)]
 impl Ticker for ActionGroupInner {
     fn tick(&mut self, _: &mut ticker::Context) {
         let plateau = self.plateau;
@@ -304,7 +305,7 @@ impl<A> ActionItem<A> {
     }
 }
 
-
+#[cfg(ticker)]
 impl<A> Ticker for ActionItem<A> {
     fn tick(&mut self, ctx: &mut ticker::Context) {
         if self.is_active {
