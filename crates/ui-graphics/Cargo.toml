@@ -9,8 +9,8 @@ env_logger = { version = "0.10.0" }
 #winit = "0.28"
 #wgpu = "0.15"
 #sdl2 = "0.35"
-egui = "0.21"
-eframe = "0.21"
+egui = "0.22"
+eframe = "0.22"
 
 
 # workspace dependencies

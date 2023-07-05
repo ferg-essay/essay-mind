@@ -23,8 +23,8 @@ mind = { path = "./crates/mind", version = "0.0.0" }
 # kira = { version="0.7" }
 # symphonia = { version="0.5" }
 cpal = { version="0.15" }
-fundsp = { version="0.12" }
-egui = { version="0.21" }
+fundsp = { version="0.14" }
+egui = { version="0.22" }
 
 [workspace]
 members = [

@@ -104,7 +104,7 @@ impl AudioReader {
                     let spec = *audio_buf.spec();
                     //let duration = audio_buf.capacity() as u64;
                     
-                    assert!(spec.rate == 44100, "need encoding to be 44100");
+                    //assert!(spec.rate == 44100, "need encoding to be 44100");
 
                     // let mut sample_buf = SampleBuffer::<f32>::new(duration, spec);
 
@@ -125,7 +125,11 @@ impl AudioReader {
                             }
                         },
                         AudioBufferRef::S24(_) => todo!(),
-                        AudioBufferRef::S32(_) => todo!(),
+                        AudioBufferRef::S32(buf) => {
+                            for src in buf.chan(0) {
+                                out_buffer.push(*src as f32 / 0x8000 as f32);
+                            }
+                        },
                         AudioBufferRef::F64(_) => todo!(),
                     }
 

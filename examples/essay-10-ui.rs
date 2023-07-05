@@ -1,4 +1,5 @@
 use std::cmp;
+use std::time::Instant;
 
 //use audio::source::{spline_peaks, spline_shape};
 //use ui_audio::AudioReader;
@@ -10,6 +11,7 @@ use egui::plot;
 fn main() {
     //let buffer = AudioReader::read("assets/blip.ogg");
 
+    let source = audio::file("/Users/ferg/wsp/assets/book-24/237-134500-0007.flac").unwrap();
     // upper row of IPA (closed) (green)
     // front
     //let source = audio::file("assets/bead.ogg").unwrap();
@@ -65,13 +67,16 @@ fn main() {
     //let source = audio::file("assets/violin_b4.ogg").unwrap();
     //let source = audio::square(220.0);
     //let source = audio::white() >> audio::bandpass::<4>(1000., 1400.);
+    /*
     let mut source = 0.1 * audio::sine(8. * 220.);
     for i in 9..16 {
         source = source + 0.1 * audio::sine(i as f32 * 220.);
     }
+    */
     //let mut source = audio::white() >> audio::bandpass_16(2440., 2800.);
     let fft_len = 1024;
-    let samples: u32 = 44100;
+    //let samples: u32 = 44100;
+    let samples: u32 = 16000;
     // let offset = 0;
     let fft = FftWindow::new(fft_len);
     //let mut source = spline_gram(220., Gram::from("3783_3763"), 16);
@@ -146,9 +151,12 @@ fn main() {
                 in_buffer[i]
             }).collect();
     
+            let start = Instant::now();
             fft.process_in_place(&mut vec);
             let vec = &mut vec[0..fft_len / 2];
             fft.normalize(vec);
+            let time = start.elapsed();
+            println!("FFT {:?} len={:?}", time, fft_len);
 
             let harm = Harmonic::harmonics(vec, samples);
 

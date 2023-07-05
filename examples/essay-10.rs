@@ -31,7 +31,7 @@ fn main() {
         >> (dcblock() | dcblock())
         >> limiter_stereo((1.0, 5.0));
     */
-    c.reset(Some(audio.sample_rate() as f64));
+    //c.reset(Some(audio.sample_rate() as f64));
 
     //let mut buffer = AudioReader::read("assets/blip.ogg");
     //let mut buffer = AudioReader::read("assets/sfx_exp_short_hard6.wav");
