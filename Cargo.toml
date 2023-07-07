@@ -16,7 +16,7 @@ env_logger = { version = "0.10.0" }
 log = { version = "0.4.17" }
 cpal = { version="0.15" }
 fundsp = { version="0.15" }
-#ui-graphics = { path = "./crates/ui-graphics", version = "0.0.0" }
+ui-graphics = { path = "./crates/ui-graphics", version = "0.1.0" }
 ui-audio = { path = "./crates/ui-audio", version = "0.0.0" }
 audio = { path = "./crates/audio", version = "0.0.0" }
 mind = { path = "./crates/mind", version = "0.0.0" }
