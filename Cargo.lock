@@ -648,12 +648,55 @@ dependencies = [
 ]
 
 [[package]]
+name = "essay-ecs"
+version = "0.1.1"
+source = "git+https://github.com/ferg-essay/essay-ecs#1f021b41d6ad5104fa97214b96d3e0bc4e904d53"
+dependencies = [
+ "env_logger",
+ "essay-ecs-app",
+ "essay-ecs-core",
+ "log",
+]
+
+[[package]]
+name = "essay-ecs-app"
+version = "0.1.0"
+source = "git+https://github.com/ferg-essay/essay-ecs#1f021b41d6ad5104fa97214b96d3e0bc4e904d53"
+dependencies = [
+ "env_logger",
+ "essay-ecs-core",
+ "log",
+]
+
+[[package]]
+name = "essay-ecs-core"
+version = "0.1.0"
+source = "git+https://github.com/ferg-essay/essay-ecs#1f021b41d6ad5104fa97214b96d3e0bc4e904d53"
+dependencies = [
+ "concurrent-queue",
+ "essay-ecs-macros",
+ "fixedbitset",
+ "log",
+]
+
+[[package]]
+name = "essay-ecs-macros"
+version = "0.1.0"
+source = "git+https://github.com/ferg-essay/essay-ecs#1f021b41d6ad5104fa97214b96d3e0bc4e904d53"
+dependencies = [
+ "quote",
+ "syn 2.0.15",
+]
+
+[[package]]
 name = "essay-mind"
 version = "0.1.9"
 dependencies = [
  "audio",
  "cpal",
  "env_logger",
+ "essay-ecs",
+ "essay-ecs-core",
  "fundsp",
  "log",
  "mind",
@@ -740,6 +783,12 @@ checksum = "d329bdeac514ee06249dabc27877490f17f5d371ec693360768b838e19f3ae10"
 dependencies = [
  "simd-adler32",
 ]
+
+[[package]]
+name = "fixedbitset"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0ce7134b9999ecaf8bcd65542e436736ef32ddca1b3e06094cb6ec5755203b80"
 
 [[package]]
 name = "flate2"
