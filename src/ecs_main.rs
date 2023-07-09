@@ -1,29 +1,24 @@
 use essay_ecs_core::base_app::BaseApp;
 use essay_plot::artist::PathStyle;
 use essay_plot_base::{CanvasEvent, PathCode, Canvas, Point, Path};
-use winit::event_loop::EventLoop;
 
-use crate::backend::{ScreenApi, RendererApi, main_loop, CanvasState, WgpuCanvas};
+use ui_graphics::{backend::{ScreenApi, RendererApi, main_loop, CanvasState}, ui_graph::ui_main};
 
-pub fn ui_main(mut app: BaseApp) {
-    let events = EventLoop::new();
-    let wgpu = WgpuCanvas::new(&events);
+pub fn ecs_main() {
+    let mut app = BaseApp::new();
 
-    app.insert_resource(wgpu);
+    app.add_system(|| println!("tick"));
 
-    main_loop(app, events);
+    ui_main(app);
 }
 
 struct Screen {
-    count: usize,
+    app: BaseApp,
 }
 
 impl ScreenApi for Screen {
     fn tick(&mut self) {
-        let count = self.count;
-        self.count = count + 1;
-
-        //println!("Tick {:?}", count);
+        self.app.tick();
     }
 
     fn draw(&mut self, canvas: &mut dyn RendererApi) {

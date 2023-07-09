@@ -20,8 +20,10 @@ ui-graphics = { path = "./crates/ui-graphics", version = "0.1.0" }
 ui-audio = { path = "./crates/ui-audio", version = "0.0.0" }
 audio = { path = "./crates/audio", version = "0.0.0" }
 mind = { path = "./crates/mind", version = "0.0.0" }
-essay-ecs = { git = "https://github.com/ferg-essay/essay-ecs", version="0.1.1" }
+essay-ecs = { git = "https://github.com/ferg-essay/essay-ecs", version="0.1.1-dev" }
 essay-ecs-core = { git = "https://github.com/ferg-essay/essay-ecs", version="0.1.0" }
+essay-plot = { git = "https://github.com/ferg-essay/essay-plot", version="0.1.0" }
+essay-plot-base = { git = "https://github.com/ferg-essay/essay-plot", version="0.1.0" }
 #gram = { path = "./crates/gram", version = "0.0.0" }
 #fft = { path = "./crates/fft", version = "0.0.0" }
 # kira = { version="0.7" }

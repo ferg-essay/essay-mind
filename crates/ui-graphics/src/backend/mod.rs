@@ -7,6 +7,10 @@ pub use canvas::{
     RendererApi, CanvasState,
 };
 
+pub(crate) use wgpu_canvas::{
+    WgpuCanvas,
+};
+
 
 pub use screen::{
     ScreenApi

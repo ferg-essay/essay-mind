@@ -697,6 +697,8 @@ dependencies = [
  "env_logger",
  "essay-ecs",
  "essay-ecs-core",
+ "essay-plot",
+ "essay-plot-base",
  "fundsp",
  "log",
  "mind",
@@ -2519,6 +2521,8 @@ name = "ui-graphics"
 version = "0.1.0"
 dependencies = [
  "env_logger",
+ "essay-ecs",
+ "essay-ecs-core",
  "essay-plot",
  "essay-plot-base",
  "essay-plot-wgpu",

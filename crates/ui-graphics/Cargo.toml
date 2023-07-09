@@ -12,6 +12,8 @@ pollster = { version = "0.3" }
 essay-plot-base = { git = "https://github.com/ferg-essay/essay-plot" }
 essay-plot-wgpu = { git = "https://github.com/ferg-essay/essay-plot", version="0.1.1" }
 essay-plot = { git = "https://github.com/ferg-essay/essay-plot" }
+essay-ecs = { git = "https://github.com/ferg-essay/essay-ecs" }
+essay-ecs-core = { git = "https://github.com/ferg-essay/essay-ecs" }
 
 [lib]
 doctest = false

@@ -1,4 +1,4 @@
-use winit::window::{Window, CursorIcon};
+use winit::{window::{Window, CursorIcon}, event_loop::EventLoop};
 
 
 pub(crate) struct WgpuCanvas {
@@ -6,10 +6,25 @@ pub(crate) struct WgpuCanvas {
     pub(crate) surface: wgpu::Surface,
     pub(crate) queue: wgpu::Queue,
     pub(crate) config: wgpu::SurfaceConfiguration,
+
+    pub(crate) window: winit::window::Window,
+
+    //event_loop: Option<EventLoop<()>>,
 }
 
 impl WgpuCanvas {
-    pub(crate) fn draw(
+    pub fn new(event_loop: &EventLoop<()>) -> WgpuCanvas {
+        // let event_loop = EventLoop::new();
+        let window = winit::window::Window::new(&event_loop).unwrap();
+
+        let wgpu_canvas = pollster::block_on(init_wgpu_args(window));
+
+        // wgpu_canvas.event_loop = Some(event_loop);
+
+        wgpu_canvas
+    }
+
+    pub fn draw(
         &mut self, 
         draw: impl FnOnce(&WgpuCanvas, &wgpu::TextureView)
     ) {
@@ -24,11 +39,7 @@ impl WgpuCanvas {
         self.clear_screen(&view);
 
         draw(self, &view);
-        //let mut canvas = state.renderer(&self.device);
 
-        //figure.draw(&canvas);
-
-        //self.queue.submit(Some(encoder.finish()));
         frame.present();
     }
 
@@ -68,9 +79,13 @@ impl WgpuCanvas {
         self.config.height = height;
         self.surface.configure(&self.device, &self.config);
     }
+
+    pub(crate) fn set_stale(&self) {
+        
+    }
 }
 
-pub(crate) async fn init_wgpu_args(window: &Window) -> WgpuCanvas {
+async fn init_wgpu_args(window: Window) -> WgpuCanvas {
     window.set_title("Essay Mind");
     window.set_cursor_icon(CursorIcon::Default);
 
@@ -123,6 +138,7 @@ pub(crate) async fn init_wgpu_args(window: &Window) -> WgpuCanvas {
         device,
         surface,
         queue,
-        config
+        config,
+        window,
     }
 }

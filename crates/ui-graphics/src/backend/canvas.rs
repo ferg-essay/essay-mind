@@ -78,8 +78,16 @@ impl CanvasState {
         EssayRenderer::new(self, view)
     }
 
-    pub(crate) fn tick(&self, figure: &Box<dyn ScreenApi>) {
-        //todo!()
+    pub(crate) fn tick(&self, figure: &mut Box<dyn ScreenApi>) {
+        figure.tick();
+    }
+
+    pub(crate) fn height(&self) -> u32 {
+        self.wgpu_canvas.config.height
+    }
+
+    pub(crate) fn width(&self) -> u32 {
+        self.wgpu_canvas.config.width
     }
 }
 
