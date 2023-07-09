@@ -8,9 +8,9 @@ use winit::{
     dpi::PhysicalPosition,
 };
 
-use crate::backend::{
+use crate::{backend::{
     wgpu_canvas::{WgpuCanvas},
-};
+}, ui_canvas::UiCanvas};
 
 pub fn main_loop(mut app: BaseApp, event_loop: EventLoop<()>) {
     // env_logger::init();
@@ -45,7 +45,7 @@ pub fn main_loop(mut app: BaseApp, event_loop: EventLoop<()>) {
                 event: WindowEvent::Resized(size),
                 ..
             } => {
-                app.resource_mut::<WgpuCanvas>().window_bounds(size.width, size.height);
+                app.resource_mut::<UiCanvas>().window_bounds(size.width, size.height);
             }
             Event::WindowEvent {
                 event: WindowEvent::MouseInput { state, button, .. },
@@ -60,7 +60,7 @@ pub fn main_loop(mut app: BaseApp, event_loop: EventLoop<()>) {
                 app.resource_mut::<WinitEvents>().cursor_event(position);
             }
             Event::RedrawRequested(_) => {
-                app.resource_mut::<WgpuCanvas>().set_stale();
+                app.resource_mut::<UiCanvas>().set_stale();
             }
             Event::WindowEvent {
                 event: WindowEvent::CloseRequested,

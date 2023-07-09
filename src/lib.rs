@@ -1,3 +1,4 @@
+pub mod ui_panel;
 pub mod ecs_main;
 
 // type KeyArgs = (String,f32,f32);

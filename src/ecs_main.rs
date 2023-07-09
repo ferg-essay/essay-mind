@@ -2,7 +2,7 @@ use essay_ecs_core::base_app::BaseApp;
 use essay_plot::artist::PathStyle;
 use essay_plot_base::{CanvasEvent, PathCode, Canvas, Point, Path};
 
-use ui_graphics::{backend::{ScreenApi, RendererApi, main_loop, CanvasState}, ui_graph::ui_main};
+use ui_graphics::{backend::{ScreenApi, RendererApi, main_loop, CanvasState}, ui_canvas::ui_main};
 
 pub fn ecs_main() {
     let mut app = BaseApp::new();

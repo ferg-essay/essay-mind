@@ -36,7 +36,7 @@ impl WgpuCanvas {
             .texture
             .create_view(&wgpu::TextureViewDescriptor::default());
 
-        self.clear_screen(&view);
+        //self.clear_screen(&view);
 
         draw(self, &view);
 
