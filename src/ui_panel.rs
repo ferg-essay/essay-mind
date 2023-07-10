@@ -1,4 +1,4 @@
-use essay_ecs_core::ResMut;
+use essay_ecs::prelude::ResMut;
 use essay_plot::artist::PathStyle;
 use essay_plot_base::{Path, Canvas, PathCode, Point};
 use ui_graphics::ui_canvas::UiCanvas;

@@ -1,3 +1,4 @@
+use wgpu::{SurfaceTexture, TextureView};
 use winit::{window::{Window, CursorIcon}, event_loop::EventLoop};
 
 
@@ -43,6 +44,21 @@ impl WgpuCanvas {
         frame.present();
     }
 
+    pub fn create_view(&mut self) -> CanvasView {
+        let frame = self.surface
+            .get_current_texture()
+            .expect("Failed to get next swap chain texture");
+
+        let view = frame
+            .texture
+            .create_view(&wgpu::TextureViewDescriptor::default());
+
+        CanvasView {
+            frame,
+            view
+        }
+    }
+
     pub(crate) fn clear_screen(&self, view: &wgpu::TextureView) {
 
         let mut encoder =
@@ -82,6 +98,17 @@ impl WgpuCanvas {
 
     pub(crate) fn set_stale(&self) {
         
+    }
+}
+
+pub struct CanvasView {
+    frame: SurfaceTexture,
+    pub(crate) view: TextureView,
+}
+
+impl CanvasView {
+    pub(crate) fn flush(self) {
+        self.frame.present();
     }
 }
 

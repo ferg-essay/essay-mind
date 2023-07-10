@@ -649,8 +649,7 @@ dependencies = [
 
 [[package]]
 name = "essay-ecs"
-version = "0.1.1"
-source = "git+https://github.com/ferg-essay/essay-ecs#1f021b41d6ad5104fa97214b96d3e0bc4e904d53"
+version = "0.1.1-dev"
 dependencies = [
  "env_logger",
  "essay-ecs-app",
@@ -661,7 +660,6 @@ dependencies = [
 [[package]]
 name = "essay-ecs-app"
 version = "0.1.0"
-source = "git+https://github.com/ferg-essay/essay-ecs#1f021b41d6ad5104fa97214b96d3e0bc4e904d53"
 dependencies = [
  "env_logger",
  "essay-ecs-core",
@@ -671,7 +669,6 @@ dependencies = [
 [[package]]
 name = "essay-ecs-core"
 version = "0.1.0"
-source = "git+https://github.com/ferg-essay/essay-ecs#1f021b41d6ad5104fa97214b96d3e0bc4e904d53"
 dependencies = [
  "concurrent-queue",
  "essay-ecs-macros",
@@ -682,7 +679,6 @@ dependencies = [
 [[package]]
 name = "essay-ecs-macros"
 version = "0.1.0"
-source = "git+https://github.com/ferg-essay/essay-ecs#1f021b41d6ad5104fa97214b96d3e0bc4e904d53"
 dependencies = [
  "quote",
  "syn 2.0.15",
@@ -696,7 +692,6 @@ dependencies = [
  "cpal",
  "env_logger",
  "essay-ecs",
- "essay-ecs-core",
  "essay-plot",
  "essay-plot-base",
  "fundsp",
@@ -720,7 +715,6 @@ dependencies = [
 [[package]]
 name = "essay-plot"
 version = "0.1.0"
-source = "git+https://github.com/ferg-essay/essay-plot#34b75926c7390cb2ea4e7ffed9f29c2affc02aca"
 dependencies = [
  "env_logger",
  "essay-plot-base",
@@ -736,7 +730,6 @@ dependencies = [
 [[package]]
 name = "essay-plot-base"
 version = "0.1.0"
-source = "git+https://github.com/ferg-essay/essay-plot#34b75926c7390cb2ea4e7ffed9f29c2affc02aca"
 dependencies = [
  "essay-tensor",
  "log",
@@ -745,7 +738,6 @@ dependencies = [
 [[package]]
 name = "essay-plot-wgpu"
 version = "0.1.1"
-source = "git+https://github.com/ferg-essay/essay-plot#34b75926c7390cb2ea4e7ffed9f29c2affc02aca"
 dependencies = [
  "bytemuck",
  "env_logger",
@@ -2522,7 +2514,6 @@ version = "0.1.0"
 dependencies = [
  "env_logger",
  "essay-ecs",
- "essay-ecs-core",
  "essay-plot",
  "essay-plot-base",
  "essay-plot-wgpu",

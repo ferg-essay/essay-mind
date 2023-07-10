@@ -1,24 +1,24 @@
-use essay_ecs_core::base_app::BaseApp;
 use essay_plot::artist::PathStyle;
+use essay_ecs::prelude::*;
 use essay_plot_base::{CanvasEvent, PathCode, Canvas, Point, Path};
 
-use ui_graphics::{backend::{ScreenApi, RendererApi, main_loop, CanvasState}, ui_canvas::ui_main};
+use ui_graphics::{backend::{ScreenApi, RendererApi, CanvasState}, ui_canvas::ui_main};
 
 pub fn ecs_main() {
-    let mut app = BaseApp::new();
+    let mut app = App::new();
 
-    app.add_system(|| println!("tick"));
+    app.add_system(Update, || println!("tick2"));
 
     ui_main(app);
 }
 
 struct Screen {
-    app: BaseApp,
+    app: App,
 }
 
 impl ScreenApi for Screen {
     fn tick(&mut self) {
-        self.app.tick();
+        // self.app.tick();
     }
 
     fn draw(&mut self, canvas: &mut dyn RendererApi) {

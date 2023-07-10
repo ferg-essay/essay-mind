@@ -1,32 +1,24 @@
 use std::time::{Duration, Instant};
 
-use essay_ecs_core::base_app::BaseApp;
 use essay_plot_base::{Point};
 use winit::{
     event::{ElementState, Event, MouseButton, StartCause, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
-    dpi::PhysicalPosition,
+    dpi::PhysicalPosition, platform::run_return::EventLoopExtRunReturn,
 };
+use essay_ecs::app::App;
 
 use crate::{backend::{
-    wgpu_canvas::{WgpuCanvas},
 }, ui_canvas::UiCanvas};
 
-pub fn main_loop(mut app: BaseApp, event_loop: EventLoop<()>) {
+pub fn main_loop(mut app: App) {
     // env_logger::init();
 
-    let pan_min = 20.;
-    let zoom_min = 20.;
-
-    // TODO: is double clicking no longer recommended?
-    let dbl_click = 500; // time in millis
-
-    let mut cursor = CursorState::new();
-    let mut mouse = MouseState::new();
-    let mut last_time = Instant::now();
     let timer_length = Duration::from_millis(50);
 
-    app.insert_resource(WinitEvents::default());
+    let event_loop = app.remove_resource_non_send::<EventLoop<()>>().unwrap();
+
+    //app.insert_resource(WinitEvents::default());
 
     event_loop.run(move |event, _, control_flow| {
         app.resource_mut::<WinitEvents>().clear();
@@ -39,8 +31,11 @@ pub fn main_loop(mut app: BaseApp, event_loop: EventLoop<()>) {
             Event::NewEvents(StartCause::ResumeTimeReached { .. }) => {
                 control_flow.set_wait_until(Instant::now() + timer_length);
 
-                app.tick();
+                app.update();
             }
+            Event::MainEventsCleared => {
+                // println!("Cleared");
+            },
             Event::WindowEvent {
                 event: WindowEvent::Resized(size),
                 ..
@@ -60,7 +55,7 @@ pub fn main_loop(mut app: BaseApp, event_loop: EventLoop<()>) {
                 app.resource_mut::<WinitEvents>().cursor_event(position);
             }
             Event::RedrawRequested(_) => {
-                app.resource_mut::<UiCanvas>().set_stale();
+                //app.resource_mut::<UiCanvas>().set_stale();
             }
             Event::WindowEvent {
                 event: WindowEvent::CloseRequested,
@@ -244,12 +239,4 @@ pub trait ViewRenderer {
         view: &wgpu::TextureView,
         encoder: &wgpu::CommandEncoder,
     );
-}
-
-#[cfg(test)]
-mod test {
-    #[test]
-    fn test() {
-        println!("Hello, ui");
-    }
 }
