@@ -699,12 +699,13 @@ dependencies = [
  "mind",
  "ui-audio",
  "ui-graphics",
+ "world",
 ]
 
 [[package]]
 name = "essay-opt"
 version = "0.1.0"
-source = "git+https://github.com/ferg-essay/essay-tensor#0a07a70135ace413f33549408e373fc5046519dc"
+source = "git+https://github.com/ferg-essay/essay-tensor#5baa01790ba700ae604bca93f427db589e051c51"
 dependencies = [
  "env_logger",
  "log",
@@ -752,8 +753,8 @@ dependencies = [
 
 [[package]]
 name = "essay-tensor"
-version = "0.1.0"
-source = "git+https://github.com/ferg-essay/essay-tensor#0a07a70135ace413f33549408e373fc5046519dc"
+version = "0.1.1-dev"
+source = "git+https://github.com/ferg-essay/essay-tensor#5baa01790ba700ae604bca93f427db589e051c51"
 dependencies = [
  "concurrent-queue",
  "crossbeam",
@@ -763,6 +764,7 @@ dependencies = [
  "glob",
  "log",
  "matrixmultiply",
+ "num-complex",
  "num-traits",
  "rand",
  "rand_chacha",
@@ -1373,7 +1375,10 @@ name = "mind"
 version = "0.0.0"
 dependencies = [
  "env_logger",
+ "essay-ecs",
+ "essay-plot",
  "log",
+ "ui-graphics",
 ]
 
 [[package]]
@@ -2517,6 +2522,7 @@ dependencies = [
  "essay-plot",
  "essay-plot-base",
  "essay-plot-wgpu",
+ "essay-tensor",
  "log",
  "pollster",
  "wgpu",
@@ -3042,6 +3048,17 @@ dependencies = [
  "web-sys",
  "windows-sys 0.45.0",
  "x11-dl",
+]
+
+[[package]]
+name = "world"
+version = "0.1.0"
+dependencies = [
+ "essay-ecs",
+ "essay-plot",
+ "essay-tensor",
+ "log",
+ "ui-graphics",
 ]
 
 [[package]]

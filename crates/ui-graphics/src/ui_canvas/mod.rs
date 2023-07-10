@@ -2,7 +2,6 @@ mod canvas;
 mod screen;
 mod wgpu_canvas;
 mod ui_canvas;
-mod plugin;
 mod winit_loop;
 
 pub use canvas::{
@@ -10,10 +9,7 @@ pub use canvas::{
 };
 
 pub use ui_canvas::{
-    UiCanvas, ui_main,
-};
-
-pub use plugin::{
+    UiCanvas,
     UiCanvasPlugin,
 };
 

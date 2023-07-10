@@ -1,23 +1,19 @@
 [package]
-name = "ui-graphics"
+name = "world"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 log = { version = "0.4.17" }
-env_logger = { version = "0.10.0" }
-wgpu = { version = "0.16"}
-winit = { version = "0.28" }
-pollster = { version = "0.3" }
+
 #essay-plot-base = { git = "https://github.com/ferg-essay/essay-plot" }
 #essay-plot-wgpu = { git = "https://github.com/ferg-essay/essay-plot", version="0.1.1" }
 #essay-plot = { git = "https://github.com/ferg-essay/essay-plot" }
-essay-plot-base = { path = "../../../essay-plot/crates/essay-plot-base" }
-essay-plot-wgpu = { path = "../../../essay-plot/crates/essay-plot-wgpu" }
 #essay-plot-wgpu = { path = "../../../essay-plot" }
 essay-plot = { path = "../../../essay-plot" }
-essay-ecs = { path = "../../../essay-ecs"  }
-essay-tensor = { git = "https://github.com/ferg-essay/essay-tensor" }
+essay-ecs = { path = "../../../essay-ecs" }
+essay-tensor = { git = "https://github.com/ferg-essay/essay-tensor", version="0.1.1-dev" }
+ui-graphics = { path = "../ui-graphics" }
 #essay-ecs = { git = "https://github.com/ferg-essay/essay-ecs", version="0.1.1-dev" }
 #essay-ecs-core = { git = "https://github.com/ferg-essay/essay-ecs" }
 

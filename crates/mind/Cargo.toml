@@ -12,6 +12,9 @@ env_logger = { version = "0.10.0" }
 #ticker = { path = "../ticker" }
 #gram = { path = "../gram" }
 #ticker = {version = "0.1.9"}
+essay-ecs = { path = "../../../essay-ecs"  }
+essay-plot = { path = "../../../essay-plot" }
+ui-graphics = { path = "../ui-graphics" }
 
 [lib]
 doctest = false
