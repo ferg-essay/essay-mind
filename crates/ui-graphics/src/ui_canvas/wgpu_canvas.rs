@@ -154,7 +154,6 @@ async fn init_wgpu_args(window: Window) -> WgpuCanvas {
         width: size.width,
         height: size.height,
         present_mode: wgpu::PresentMode::Fifo,
-        //present_mode: wgpu::PresentMode::AutoVsync,
         alpha_mode: swapchain_capabilities.alpha_modes[0],
         view_formats: vec![],
     };

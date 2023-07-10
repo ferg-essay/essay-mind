@@ -1,11 +1,11 @@
 use essay_ecs::prelude::{Plugin, App};
 use winit::event_loop::EventLoop;
 
-use crate::{winit::{WinitEvents, main_loop}, backend::WgpuCanvas, ui_canvas::UiCanvas};
+use super::{winit_loop::{WinitEvents, main_loop}, WgpuCanvas, ui_canvas::UiCanvas};
 
-pub struct WinitPlugin;
+pub struct UiCanvasPlugin;
 
-impl Plugin for WinitPlugin {
+impl Plugin for UiCanvasPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<WinitEvents>();
 

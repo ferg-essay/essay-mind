@@ -1,9 +1,7 @@
 //use essaymind::my_test;
 
 use essay_ecs::prelude::App;
-use essay_mind::{ecs_main, ui_panel::ui_panel};
-use log::{info, LevelFilter};
-use ui_graphics::{ui_canvas::ui_main, plugin::WinitPlugin};
+use ui_graphics::{ui_canvas::ui_main};
 
 pub fn main() {
     let mut app = App::new();

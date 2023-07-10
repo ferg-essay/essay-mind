@@ -8,8 +8,7 @@ use winit::{
 };
 use essay_ecs::app::App;
 
-use crate::{backend::{
-}, ui_canvas::UiCanvas};
+use super::ui_canvas::UiCanvas;
 
 pub fn main_loop(mut app: App) {
     // env_logger::init();

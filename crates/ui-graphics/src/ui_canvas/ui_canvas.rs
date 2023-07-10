@@ -4,12 +4,12 @@ use essay_plot_base::{CanvasEvent, PathCode, Canvas, Point, Path, Clip, driver::
 use essay_plot_wgpu::{PlotCanvas, PlotRenderer};
 use winit::event_loop::EventLoop;
 
-use crate::backend::{ScreenApi, RendererApi, CanvasState, WgpuCanvas, CanvasView};
-use crate::plugin::WinitPlugin;
-use crate::winit::main_loop;
+use super::{ScreenApi, RendererApi, CanvasState, WgpuCanvas, CanvasView};
+use super::plugin::UiCanvasPlugin;
+use super::winit_loop::main_loop;
 
 pub fn ui_main(mut app: App) {
-    app.add_plugin(WinitPlugin);
+    app.add_plugin(UiCanvasPlugin);
 
     //let events = EventLoop::new();
     //let wgpu = WgpuCanvas::new(&events);
