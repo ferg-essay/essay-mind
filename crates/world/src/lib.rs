@@ -9,12 +9,12 @@ pub struct WorldPlugin;
 
 impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
-        if ! app.is_plugin_added::<UiCanvasPlugin>() {
-            app.add_plugin(UiCanvasPlugin);
+        if ! app.contains_plugin::<UiCanvasPlugin>() {
+            app.plugin(UiCanvasPlugin);
         }
 
-        app.add_system(Startup, spawn_world);
+        app.system(Startup, spawn_world);
 
-        app.add_system(PreUpdate, draw_world);
+        app.system(Update, draw_world);
     }
 }

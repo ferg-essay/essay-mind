@@ -6,40 +6,50 @@ use winit::{
     event_loop::{ControlFlow, EventLoop},
     dpi::PhysicalPosition, platform::run_return::EventLoopExtRunReturn,
 };
-use essay_ecs::app::App;
+use essay_ecs::prelude::*;
 
-use super::ui_canvas::UiCanvas;
+use super::ui_canvas::{UiCanvas, UiWindowEvent};
 
 pub fn main_loop(mut app: App) {
     // env_logger::init();
 
-    let timer_length = Duration::from_millis(50);
+    let timer_length = Duration::from_millis(1000);
 
     let event_loop = app.remove_resource_non_send::<EventLoop<()>>().unwrap();
 
     //app.insert_resource(WinitEvents::default());
+    let last_tick = Instant::now();
+    let mut wait_until = Instant::now();
 
     event_loop.run(move |event, _, control_flow| {
         app.resource_mut::<WinitEvents>().clear();
 
-        //*control_flow = ControlFlow::Wait;
+        *control_flow = ControlFlow::Wait;
         match event {
             Event::NewEvents(StartCause::Init) => {
-                control_flow.set_wait_until(Instant::now() + timer_length);
+                wait_until = Instant::now() + timer_length;
             }
             Event::NewEvents(StartCause::ResumeTimeReached { .. }) => {
-                control_flow.set_wait_until(Instant::now() + timer_length);
+                wait_until = Instant::now() + timer_length;
 
-                app.update();
+                let start = Instant::now();
+                app.tick();
+                let duration = start.elapsed();
             }
             Event::MainEventsCleared => {
                 // println!("Cleared");
+                //control_flow.set_wait_until(wait_until);
+                control_flow.set_wait_until(wait_until);
+            },
+            Event::RedrawEventsCleared => {
+                // println!("Cleared");
+                control_flow.set_wait_until(wait_until);
             },
             Event::WindowEvent {
                 event: WindowEvent::Resized(size),
                 ..
             } => {
-                app.resource_mut::<UiCanvas>().window_bounds(size.width, size.height);
+                app.resource_mut::<Events<UiWindowEvent>>().send(UiWindowEvent::Resized(size.width, size.height));
             }
             Event::WindowEvent {
                 event: WindowEvent::MouseInput { state, button, .. },

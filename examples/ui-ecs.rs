@@ -10,7 +10,7 @@ pub fn main() {
     // app.add_system(|| { println!("ui-ecs"); });
     //app.add_system(ui_panel);
 
-    app.add_plugin(WorldPlugin);
+    app.plugin(WorldPlugin);
 
     app.run();
     //ui_main(app);

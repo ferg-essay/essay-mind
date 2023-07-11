@@ -16,7 +16,7 @@ essay-plot-base = { path = "../../../essay-plot/crates/essay-plot-base" }
 essay-plot-wgpu = { path = "../../../essay-plot/crates/essay-plot-wgpu" }
 #essay-plot-wgpu = { path = "../../../essay-plot" }
 essay-plot = { path = "../../../essay-plot" }
-essay-ecs = { path = "../../../essay-ecs"  }
+essay-ecs = { path = "../../../essay-ecs" }
 essay-tensor = { git = "https://github.com/ferg-essay/essay-tensor" }
 #essay-ecs = { git = "https://github.com/ferg-essay/essay-ecs", version="0.1.1-dev" }
 #essay-ecs-core = { git = "https://github.com/ferg-essay/essay-ecs" }

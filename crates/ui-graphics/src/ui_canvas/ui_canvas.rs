@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use essay_ecs::prelude::*;
 use essay_plot::artist::PathStyle;
 use essay_plot_base::{TextStyle, Bounds};
@@ -35,7 +37,7 @@ impl UiCanvas {
     pub(crate) fn init_view(&mut self) {
         assert!(self.view.is_none());
 
-        if self.is_stale {
+        if self.is_stale || true {
             self.is_stale = false;
 
             let view = self.wgpu.create_view();
@@ -98,10 +100,9 @@ impl UiCanvas {
 
             //canvas.clear_screen(&view);
 
-            let style = PathStyle::new();
+            //let style = PathStyle::new();
     
             plot_renderer.draw_image(pos, &colors, &Clip::None).unwrap();
-
             plot_renderer.flush();
         }
     }
@@ -129,17 +130,21 @@ impl Plugin for UiCanvasPlugin {
         let wgpu = WgpuCanvas::new(&event_loop);
         let ui_canvas = UiCanvas::new(wgpu);
 
+        app.event::<UiWindowEvent>();
+        app.system(First, ui_canvas_window);
+
         app.insert_resource(ui_canvas);
         app.insert_resource_non_send(event_loop);
 
-        app.add_system(First, ui_canvas_first);
-        app.add_system(Last, ui_canvas_last);
+        app.system(PreUpdate, ui_canvas_first);
+        app.system(PostUpdate, ui_canvas_last);
 
-        app.set_runner(|app| {
+        app.runner(|app| {
             main_loop(app);
         });
     }
 }
+
 fn ui_canvas_first(mut ui_canvas: ResMut<UiCanvas>) {
     ui_canvas.init_view();
 }
@@ -147,6 +152,33 @@ fn ui_canvas_first(mut ui_canvas: ResMut<UiCanvas>) {
 fn ui_canvas_last(mut ui_canvas: ResMut<UiCanvas>) {
     ui_canvas.close_view();
 }
+
+fn ui_canvas_window(
+    mut ui_canvas: ResMut<UiCanvas>, 
+    mut events: InEvent<UiWindowEvent>
+) {
+    for event in events.iter() {
+        match event {
+            UiWindowEvent::Resized(width, height) => {
+                ui_canvas.window_bounds(*width, *height);
+            }
+            _ => {}
+        }
+    }
+
+}
+
+pub enum UiWindowEvent {
+    Resized(u32, u32),
+}
+
+impl Event for UiWindowEvent {}
+
+pub enum UiMouseEvent {
+}
+
+impl Event for UiMouseEvent {}
+
 
 struct Screen {
     count: usize,

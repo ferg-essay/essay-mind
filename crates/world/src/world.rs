@@ -1,4 +1,4 @@
-use std::ops::{Index, IndexMut};
+use std::{ops::{Index, IndexMut}, time::Instant};
 
 use essay_ecs::prelude::*;
 use essay_plot::{prelude::*, artist::PathStyle};
