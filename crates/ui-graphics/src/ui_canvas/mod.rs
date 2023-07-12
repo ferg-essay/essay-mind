@@ -11,6 +11,7 @@ pub use canvas::{
 pub use ui_canvas::{
     UiCanvas,
     UiCanvasPlugin,
+    UiWindowEvent,
 };
 
 pub(crate) use wgpu_canvas::{
