@@ -697,6 +697,7 @@ dependencies = [
  "fundsp",
  "log",
  "mind",
+ "test-log",
  "ui-audio",
  "ui-graphics",
 ]

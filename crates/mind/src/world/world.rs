@@ -33,6 +33,10 @@ impl World {
         self.bounds.affine_to(&self.pos)
     }
     */
+
+    pub fn extent(&self) -> [usize; 2] {
+        [self.width, self.height]
+    }
 }
 
 impl Index<(usize, usize)> for World {

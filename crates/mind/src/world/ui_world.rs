@@ -88,7 +88,7 @@ pub fn spawn_ui_world(
 
     let id = ui_layout.add_box(Bounds::from([1., 1.]));
 
-    let mut ui_world = UiWorld::new(id, 15, 10);
+    let ui_world = UiWorld::new(id, 15, 10);
 
     commands.insert_resource(ui_world);
 }

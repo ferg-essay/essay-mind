@@ -1,27 +1,37 @@
 use essay_ecs::prelude::*;
 
 pub struct TestLog {
-
+    log: Vec<String>,
 }
 
 impl TestLog {
     pub fn new() -> TestLog {
         Self {
+            log: Default::default(),
         }
     }
 
     pub fn clear(mut log: ResMut<TestLog>) {
+        log.log.drain(..);
     }
 
     pub fn log(&mut self, msg: &str) -> &mut Self {
-        println!("Msg {:?}", msg);
+        self.log.push(msg.into());
 
         self
     }
 
     pub fn take(&mut self) -> Vec<String> {
-        Vec::new()
+        let mut log = self.log.drain(..).collect::<Vec<String>>();
+
+        log.sort();
+
+        log
     }
+}
+
+pub fn log_take(app: &mut App) -> Vec<String> {
+    app.resource_mut::<TestLog>().take()
 }
 
 pub struct TestLogPlugin;
