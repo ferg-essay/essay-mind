@@ -699,7 +699,6 @@ dependencies = [
  "mind",
  "ui-audio",
  "ui-graphics",
- "world",
 ]
 
 [[package]]
@@ -1377,7 +1376,9 @@ dependencies = [
  "env_logger",
  "essay-ecs",
  "essay-plot",
+ "essay-tensor",
  "log",
+ "test-log",
  "ui-graphics",
 ]
 
@@ -2380,6 +2381,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "test-log"
+version = "0.0.0"
+dependencies = [
+ "essay-ecs",
+ "log",
+]
+
+[[package]]
 name = "thingbuf"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3048,17 +3057,6 @@ dependencies = [
  "web-sys",
  "windows-sys 0.45.0",
  "x11-dl",
-]
-
-[[package]]
-name = "world"
-version = "0.1.0"
-dependencies = [
- "essay-ecs",
- "essay-plot",
- "essay-tensor",
- "log",
- "ui-graphics",
 ]
 
 [[package]]

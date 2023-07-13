@@ -1,5 +1,3 @@
-use std::time::Instant;
-
 use essay_ecs::prelude::*;
 use essay_plot::artist::PathStyle;
 use essay_plot_base::{TextStyle, Bounds};
@@ -40,6 +38,7 @@ impl UiCanvas {
         if self.is_stale || true {
             self.is_stale = false;
 
+            self.plot_canvas.clear();
             let view = self.wgpu.create_view();
             self.wgpu.clear_screen(&view.view);
 
@@ -178,35 +177,3 @@ pub enum UiMouseEvent {
 }
 
 impl Event for UiMouseEvent {}
-
-
-struct Screen {
-    count: usize,
-}
-
-impl ScreenApi for Screen {
-    fn tick(&mut self) {
-        let count = self.count;
-        self.count = count + 1;
-
-        //println!("Tick {:?}", count);
-    }
-
-    fn draw(&mut self, canvas: &mut dyn RendererApi) {
-        let mut style = PathStyle::new();
-        style.color("azure");
-
-        let path = Path::<Canvas>::new(vec![
-            PathCode::MoveTo(Point(20., 20.)),
-            PathCode::LineTo(Point(400., 20.)),
-            PathCode::LineTo(Point(400., 40.)),
-            PathCode::ClosePoly(Point(20., 40.)),
-        ]);
-
-        canvas.draw_path(&path, &style);
-    }
-
-    fn event(&mut self, canvas: &CanvasState, event: &CanvasEvent) {
-        println!("Event {:?}", event);
-    }
-}

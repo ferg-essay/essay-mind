@@ -1,11 +1,11 @@
 use essay_ecs::prelude::*;
-use world::WorldPlugin;
+use mind::world::ApicalWorldPlugin;
 
 pub fn ecs_main() {
     let mut app = App::new();
 
     app.system(Update, || println!("tick2"));
-    app.plugin(WorldPlugin);
+    app.plugin(ApicalWorldPlugin);
 
     app.run();
 }

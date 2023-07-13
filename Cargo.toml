@@ -20,7 +20,7 @@ ui-graphics = { path = "./crates/ui-graphics", version = "0.1.0" }
 ui-audio = { path = "./crates/ui-audio", version = "0.0.0" }
 audio = { path = "./crates/audio", version = "0.0.0" }
 mind = { path = "./crates/mind", version = "0.0.0" }
-world = { path = "./crates/world", version = "0.1.0" }
+#world = { path = "./crates/world", version = "0.1.0" }
 #essay-ecs = { git = "https://github.com/ferg-essay/essay-ecs", version="0.1.1-dev" }
 #essay-ecs-core = { git = "https://github.com/ferg-essay/essay-ecs", version="0.1.0" }
 essay-ecs = { path = "../essay-ecs" }

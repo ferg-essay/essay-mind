@@ -13,7 +13,7 @@ use super::ui_canvas::{UiCanvas, UiWindowEvent};
 pub fn main_loop(mut app: App) {
     // env_logger::init();
 
-    let timer_length = Duration::from_millis(1000);
+    let timer_length = Duration::from_millis(200);
 
     let event_loop = app.remove_resource_non_send::<EventLoop<()>>().unwrap();
 

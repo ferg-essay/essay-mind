@@ -1,7 +1,8 @@
 //use essaymind::my_test;
 
 use essay_ecs::prelude::App;
-use world::WorldPlugin;
+use mind::{world::ApicalWorldPlugin, body::ApicalBodyPlugin};
+use ui_graphics::UiCanvasPlugin;
 
 pub fn main() {
     let mut app = App::new();
@@ -10,7 +11,9 @@ pub fn main() {
     // app.add_system(|| { println!("ui-ecs"); });
     //app.add_system(ui_panel);
 
-    app.plugin(WorldPlugin);
+    app.plugin(UiCanvasPlugin);
+    app.plugin(ApicalWorldPlugin);
+    app.plugin(ApicalBodyPlugin);
 
     app.run();
     //ui_main(app);
