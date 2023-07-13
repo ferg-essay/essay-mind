@@ -2,12 +2,11 @@ use essay_ecs::prelude::*;
 use essay_plot::{prelude::*, artist::{PathStyle, paths}};
 use ui_graphics::UiCanvas;
 
-use crate::world::{World, UiWorld};
+use crate::{UiWorld, World};
 
-use super::Body;
+use super::BodyPlankton;
 
-
-pub fn draw_body(body: &Body, world: Res<UiWorld>, mut ui: ResMut<UiCanvas>) {
+pub fn draw_body(body: &BodyPlankton, world: Res<UiWorld>, mut ui: ResMut<UiCanvas>) {
     let mut style = PathStyle::new();
     let transform = world.to_canvas()
         .matmul(&Affine2d::eye().translate(body.pos().x(), body.pos().y()));

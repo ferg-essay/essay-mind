@@ -700,6 +700,7 @@ dependencies = [
  "test-log",
  "ui-audio",
  "ui-graphics",
+ "world-plankton",
 ]
 
 [[package]]
@@ -3058,6 +3059,19 @@ dependencies = [
  "web-sys",
  "windows-sys 0.45.0",
  "x11-dl",
+]
+
+[[package]]
+name = "world-plankton"
+version = "0.0.0"
+dependencies = [
+ "env_logger",
+ "essay-ecs",
+ "essay-plot",
+ "essay-tensor",
+ "log",
+ "test-log",
+ "ui-graphics",
 ]
 
 [[package]]

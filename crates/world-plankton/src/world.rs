@@ -71,9 +71,9 @@ pub fn spawn_world(
     commands.insert_resource(world);
 }
 
-pub struct ApicalWorldPlugin;
+pub struct PlanktonWorldPlugin;
 
-impl Plugin for ApicalWorldPlugin {
+impl Plugin for PlanktonWorldPlugin {
     fn build(&self, app: &mut App) {
         app.system(Startup, spawn_world);
 

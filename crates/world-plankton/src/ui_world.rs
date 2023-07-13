@@ -3,7 +3,7 @@ use essay_plot::prelude::*;
 use essay_tensor::Tensor;
 use ui_graphics::{ui_layout::{UiLayout, UiLayoutEvent, BoxId, UiLayoutPlugin}, UiCanvas, UiCanvasPlugin};
 
-use crate::world::ApicalWorldPlugin;
+use crate::world::PlanktonWorldPlugin;
 
 use super::{World, world::WorldItem};
 
@@ -98,7 +98,7 @@ pub struct UiApicalWorldPlugin;
 impl Plugin for UiApicalWorldPlugin {
     fn build(&self, app: &mut App) {
         assert!(app.contains_plugin::<UiCanvasPlugin>());
-        assert!(app.contains_plugin::<ApicalWorldPlugin>());
+        assert!(app.contains_plugin::<PlanktonWorldPlugin>());
 
         if ! app.contains_plugin::<UiLayoutPlugin>() {
             app.plugin(UiLayoutPlugin);

@@ -1,8 +1,14 @@
-mod ui_world;
+mod body;
+mod ui_body;
 mod world;
+mod ui_world;
+
+pub use body::{
+    BodyPlankton, PlanktonBodyPlugin,
+};
 
 pub use self::world::{
-    World, ApicalWorldPlugin,
+    World, PlanktonWorldPlugin,
 };
 
 pub use self::ui_world::{
