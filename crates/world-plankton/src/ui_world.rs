@@ -31,6 +31,10 @@ impl UiWorld {
         }
     }
 
+    pub fn extent(&self) -> [f32; 2] {
+        [self.bounds.xmax(), self.bounds.ymax()]
+    }
+
     pub fn to_canvas(&self) -> Affine2d {
         self.bounds.affine_to(&self.pos)
     }
@@ -104,7 +108,7 @@ impl Plugin for UiApicalWorldPlugin {
             app.plugin(UiLayoutPlugin);
         }
 
-        app.phase(Update, (DrawWorld, DrawItem).chained());
+        app.phase(Update, (DrawWorld, DrawItem).chain());
         app.system(Update, draw_world.phase(DrawWorld));
         app.system(PreUpdate, world_resize);
 

@@ -1,6 +1,6 @@
 use std::time::{Duration, Instant};
 
-use essay_plot_base::{Point};
+use essay_plot::api::{Point};
 use winit::{
     event::{ElementState, Event, MouseButton, StartCause, WindowEvent},
     event_loop::{ControlFlow, EventLoop},

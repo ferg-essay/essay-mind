@@ -1,15 +1,63 @@
 use essay_ecs::prelude::*;
-use essay_plot::{prelude::*, artist::{PathStyle, paths}};
-use ui_graphics::UiCanvas;
+use essay_plot::{prelude::*, artist::{PathStyle, paths, LinesOpt}};
+use ui_graphics::{UiCanvas, ui_plot::{UiPlot, UiPlotPlugin}};
 
-use crate::{UiWorld, World};
+use crate::{UiWorld, World, UiApicalWorldPlugin, DrawItem};
 
-use super::BodyPlankton;
+use super::Body;
 
-pub fn draw_body(body: &BodyPlankton, world: Res<UiWorld>, mut ui: ResMut<UiCanvas>) {
+#[derive(Component)]
+pub struct UiBody {
+    x: Vec<f32>,
+    y: Vec<f32>,
+    plot: LinesOpt,
+    tick: usize,
+}
+
+impl UiBody {
+    pub const LIM : usize = 100;
+
+    pub fn new(plot: &UiPlot) -> Self {
+        let mut x = Vec::new();
+        let mut y = Vec::new();
+
+        x.push(0.);
+        y.push(1.);
+
+        let lines = plot.plot_xy(&x, &y);
+
+        Self {
+            x,
+            y,
+            plot: lines,
+            tick: 0,
+        }
+    }
+
+    pub fn tick(&mut self) {
+        self.tick += 1;
+        self.x.push(self.tick as f32);
+
+        while self.x.len() > Self::LIM {
+            self.x.remove(0);
+        }
+
+        while self.y.len() > Self::LIM {
+            self.y.remove(0);
+        }
+    }
+}
+
+pub fn draw_body(
+    body: Res<Body>, 
+    world: Res<UiWorld>, 
+    mut ui: ResMut<UiCanvas>
+) {
+    let [_width, height] = world.extent();
+
     let mut style = PathStyle::new();
     let transform = world.to_canvas()
-        .matmul(&Affine2d::eye().translate(body.pos().x(), body.pos().y()));
+        .matmul(&Affine2d::eye().translate(body.pos().x(), height + body.pos().y()));
 
     let body_circle = paths::circle()
         .scale::<World>(0.4, 0.4)
@@ -51,4 +99,36 @@ pub fn draw_body(body: &BodyPlankton, world: Res<UiWorld>, mut ui: ResMut<UiCanv
     style.color(Color::from("aquamarine"));
 
     ui.draw_path(&body_fringe, &style);
+}
+
+pub fn ui_body_plot(
+    ui_body: &mut UiBody,
+    body: Res<Body>
+) {
+    ui_body.y.push(body.pos().y());
+    ui_body.tick();
+
+    ui_body.plot.set_xy(&ui_body.x, &ui_body.y);
+}
+
+pub fn ui_body_spawn_plot(
+    mut c: Commands,
+    mut plot: ResMut<UiPlot>
+) {
+    c.spawn(UiBody::new(plot.get_mut()))
+}
+
+pub struct UiApicalBodyPlugin;
+
+impl Plugin for UiApicalBodyPlugin {
+    fn build(&self, app: &mut App) {
+        assert!(app.contains_plugin::<UiApicalWorldPlugin>());
+        
+        app.system(Update, draw_body.phase(DrawItem));
+
+        if app.contains_plugin::<UiPlotPlugin>() {
+            app.system(Startup, ui_body_spawn_plot);
+            app.system(Update, ui_body_plot);
+        }
+}
 }

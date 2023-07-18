@@ -1,10 +1,12 @@
+mod sense_peptide;
 mod body;
 mod ui_body;
 mod world;
 mod ui_world;
+mod cilia;
 
 pub use body::{
-    BodyPlankton, PlanktonBodyPlugin,
+    Body, PlanktonBodyPlugin,
 };
 
 pub use self::world::{

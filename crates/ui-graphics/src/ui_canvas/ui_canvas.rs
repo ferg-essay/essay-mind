@@ -1,8 +1,8 @@
 use essay_ecs::prelude::*;
 use essay_plot::artist::PathStyle;
-use essay_plot_base::{TextStyle, Bounds};
-use essay_plot_base::{CanvasEvent, PathCode, Canvas, Point, Path, Clip, driver::Renderer};
-use essay_plot_wgpu::{PlotCanvas, PlotRenderer};
+use essay_plot::api::{TextStyle, Bounds};
+use essay_plot::api::{CanvasEvent, PathCode, Canvas, Point, Path, Clip, driver::Renderer};
+use essay_plot::wgpu::{PlotCanvas, PlotRenderer};
 use essay_tensor::Tensor;
 use winit::event_loop::EventLoop;
 
@@ -106,6 +106,20 @@ impl UiCanvas {
         }
     }
 
+    pub fn plot_renderer<'a>(&'a mut self) -> Option<PlotRenderer<'a>> {
+        match &self.view {
+            Some(view) => {
+                Some(PlotRenderer::new(
+                    &mut self.plot_canvas, 
+                    &self.wgpu.device, 
+                    Some(&self.wgpu.queue), 
+                    Some(&view.view)
+                ))
+            },
+            None => None
+        }
+    }
+
     pub(crate) fn window_bounds(&mut self, width: u32, height: u32) {
         self.wgpu.window_bounds(width, height);
         self.plot_canvas.set_canvas_bounds(width, height);
@@ -167,13 +181,11 @@ fn ui_canvas_window(
 
 }
 
+#[derive(Event)]
 pub enum UiWindowEvent {
     Resized(u32, u32),
 }
 
-impl Event for UiWindowEvent {}
-
+#[derive(Event)]
 pub enum UiMouseEvent {
 }
-
-impl Event for UiMouseEvent {}

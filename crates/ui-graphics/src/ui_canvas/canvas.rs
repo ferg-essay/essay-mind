@@ -1,6 +1,6 @@
 use super::{wgpu_canvas::WgpuCanvas, screen::ScreenApi};
-use essay_plot_base::{Path, Canvas, PathOpt, Clip, driver::Renderer};
-use essay_plot_wgpu::{PlotCanvas, PlotRenderer};
+use essay_plot::api::{Path, Canvas, PathOpt, Clip, driver::Renderer};
+use essay_plot::wgpu::{PlotCanvas, PlotRenderer};
 
 pub struct CanvasState {
     wgpu_canvas: WgpuCanvas,

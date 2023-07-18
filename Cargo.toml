@@ -30,7 +30,7 @@ essay-ecs = { path = "../essay-ecs" }
 #essay-plot = { git = "https://github.com/ferg-essay/essay-plot", version="0.1.0" }
 #essay-plot-base = { git = "https://github.com/ferg-essay/essay-plot", version="0.1.0" }
 essay-plot = { path = "../essay-plot" }
-essay-plot-base = { path = "../essay-plot/crates/essay-plot-base" }
+essay-plot-api = { path = "../essay-plot/crates/essay-plot-api" }
 #gram = { path = "./crates/gram", version = "0.0.0" }
 #fft = { path = "./crates/fft", version = "0.0.0" }
 # kira = { version="0.7" }

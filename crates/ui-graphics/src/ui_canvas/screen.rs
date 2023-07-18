@@ -1,4 +1,4 @@
-use essay_plot_base::CanvasEvent;
+use essay_plot::api::CanvasEvent;
 
 use super::canvas::{CanvasState, RendererApi};
 

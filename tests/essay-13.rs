@@ -1,6 +1,6 @@
 use essay_ecs::prelude::*;
 use test_log::{TestLogPlugin, log_take};
-use world_plankton::{PlanktonWorldPlugin, PlanktonBodyPlugin, BodyPlankton};
+use world_plankton::{PlanktonWorldPlugin, PlanktonBodyPlugin, Body};
 
 ///
 /// basic validation of the physical system
@@ -34,7 +34,7 @@ fn arrest_sink() {
     app.plugin(PlanktonWorldPlugin);
     app.plugin(PlanktonBodyPlugin);
 
-    app.system(PreUpdate, |body: &mut BodyPlankton| { body.arrest(2.); });
+    app.system(PreUpdate, |body: &mut Body| { body.arrest(2.); });
 
     app.tick();
     assert_eq!(log_take(&mut app), vec![

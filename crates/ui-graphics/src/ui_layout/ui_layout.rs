@@ -1,5 +1,5 @@
 use essay_ecs::prelude::*;
-use essay_plot_base::{Bounds, Coord, Canvas, Point};
+use essay_plot::prelude::*;
 
 use crate::ui_canvas::UiWindowEvent;
 
@@ -14,7 +14,7 @@ impl UiLayout {
         }
     }
 
-    pub fn add_box(&mut self, pos: Bounds<Grid>) -> BoxId {
+    pub fn add_box(&mut self, pos: Bounds<UiLayout>) -> BoxId {
         let id = BoxId(self.boxes.len());
 
         self.boxes.push(UiBox::new(id, pos));
@@ -42,7 +42,7 @@ impl UiLayout {
         }
     }
 
-    fn grid_bounds(&self) -> Bounds<Grid> {
+    fn grid_bounds(&self) -> Bounds<UiLayout> {
         let mut x_max: f32 = 1.;
         let mut y_max: f32 = 1.;
 
@@ -58,12 +58,12 @@ impl UiLayout {
 pub struct UiBox {
     id: BoxId,
 
-    pos_grid: Bounds<Grid>,
+    pos_grid: Bounds<UiLayout>,
     pos_canvas: Bounds<Canvas>,
 }
 
 impl UiBox {
-    fn new(id: BoxId, pos: Bounds<Grid>) -> Self {
+    fn new(id: BoxId, pos: Bounds<UiLayout>) -> Self {
         Self {
             id,
             pos_grid: pos,
@@ -84,8 +84,7 @@ impl UiBox {
     }
 }
 
-pub struct Grid;
-impl Coord for Grid {}
+impl Coord for UiLayout {}
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct BoxId(usize);
@@ -127,5 +126,5 @@ impl Plugin for UiLayoutPlugin {
     }
 }
 
+#[derive(Event)]
 pub struct UiLayoutEvent;
-impl Event for UiLayoutEvent {}

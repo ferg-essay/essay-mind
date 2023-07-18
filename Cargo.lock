@@ -662,8 +662,17 @@ name = "essay-ecs-app"
 version = "0.1.0"
 dependencies = [
  "env_logger",
+ "essay-ecs-app-macros",
  "essay-ecs-core",
  "log",
+]
+
+[[package]]
+name = "essay-ecs-app-macros"
+version = "0.1.0"
+dependencies = [
+ "quote",
+ "syn 2.0.15",
 ]
 
 [[package]]
@@ -671,13 +680,13 @@ name = "essay-ecs-core"
 version = "0.1.0"
 dependencies = [
  "concurrent-queue",
- "essay-ecs-macros",
+ "essay-ecs-core-macros",
  "fixedbitset",
  "log",
 ]
 
 [[package]]
-name = "essay-ecs-macros"
+name = "essay-ecs-core-macros"
 version = "0.1.0"
 dependencies = [
  "quote",
@@ -693,7 +702,7 @@ dependencies = [
  "env_logger",
  "essay-ecs",
  "essay-plot",
- "essay-plot-base",
+ "essay-plot-api",
  "fundsp",
  "log",
  "mind",
@@ -719,7 +728,7 @@ name = "essay-plot"
 version = "0.1.0"
 dependencies = [
  "env_logger",
- "essay-plot-base",
+ "essay-plot-api",
  "essay-plot-wgpu",
  "essay-tensor",
  "futures",
@@ -730,8 +739,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "essay-plot-base"
-version = "0.1.0"
+name = "essay-plot-api"
+version = "0.1.13-dev"
 dependencies = [
  "essay-tensor",
  "log",
@@ -743,7 +752,7 @@ version = "0.1.1"
 dependencies = [
  "bytemuck",
  "env_logger",
- "essay-plot-base",
+ "essay-plot-api",
  "essay-tensor",
  "log",
  "pollster",
@@ -2531,7 +2540,6 @@ dependencies = [
  "env_logger",
  "essay-ecs",
  "essay-plot",
- "essay-plot-base",
  "essay-plot-wgpu",
  "essay-tensor",
  "log",
