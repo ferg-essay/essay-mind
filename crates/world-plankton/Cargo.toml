@@ -14,7 +14,8 @@ env_logger = { version = "0.10.0" }
 #ticker = {version = "0.1.9"}
 essay-ecs = { path = "../../../essay-ecs", version="0.1.1-dev"  }
 essay-plot = { path = "../../../essay-plot"  }
-essay-tensor = { git = "https://github.com/ferg-essay/essay-tensor" }
+essay-tensor = { git = "https://github.com/ferg-essay/essay-tensor", version="0.1.1-dev" }
+#essay-tensor = { path = "../../../essay-tensor"  }
 ui-graphics = { path = "../ui-graphics" }
 test-log = { path = "../test-log" }
 

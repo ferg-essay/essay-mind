@@ -9,8 +9,20 @@ use super::Body;
 #[derive(Component)]
 pub struct UiBody {
     x: Vec<f32>,
-    y: Vec<f32>,
-    plot: LinesOpt,
+    y_pressure: Vec<f32>,
+    pressure: LinesOpt,
+    y_light: Vec<f32>,
+    light: LinesOpt,
+
+    y_temp: Vec<f32>,
+    temp: LinesOpt,
+
+    y_swim: Vec<f32>,
+    swim: LinesOpt,
+
+    y_arrest: Vec<f32>,
+    arrest: LinesOpt,
+
     tick: usize,
 }
 
@@ -18,18 +30,40 @@ impl UiBody {
     pub const LIM : usize = 100;
 
     pub fn new(plot: &UiPlot) -> Self {
-        let mut x = Vec::new();
-        let mut y = Vec::new();
+        let x = Vec::new();
 
-        x.push(0.);
-        y.push(1.);
+        let y_pressure = Vec::new();
+        let mut pressure = plot.plot_xy(&x, &y_pressure);
+        pressure.label("pressure");
 
-        let lines = plot.plot_xy(&x, &y);
+        let y_light = Vec::new();
+        let mut light = plot.plot_xy(&x, &y_light);
+        light.label("light");
+
+        let y_temp = Vec::new();
+        let mut temp = plot.plot_xy(&x, &y_temp);
+        temp.label("temp");
+
+        let y_swim = Vec::new();
+        let mut swim = plot.plot_xy(&x, &y_swim);
+        swim.label("swim");
+
+        let y_arrest = Vec::new();
+        let mut arrest = plot.plot_xy(&x, &y_arrest);
+        arrest.label("arrest");
 
         Self {
             x,
-            y,
-            plot: lines,
+            y_pressure,
+            pressure,
+            y_light,
+            light,
+            y_temp,
+            temp,
+            y_swim,
+            swim,
+            y_arrest,
+            arrest,
             tick: 0,
         }
     }
@@ -42,8 +76,24 @@ impl UiBody {
             self.x.remove(0);
         }
 
-        while self.y.len() > Self::LIM {
-            self.y.remove(0);
+        while self.y_pressure.len() > Self::LIM {
+            self.y_pressure.remove(0);
+        }
+
+        while self.y_light.len() > Self::LIM {
+            self.y_light.remove(0);
+        }
+
+        while self.y_temp.len() > Self::LIM {
+            self.y_temp.remove(0);
+        }
+
+        while self.y_swim.len() > Self::LIM {
+            self.y_swim.remove(0);
+        }
+
+        while self.y_arrest.len() > Self::LIM {
+            self.y_arrest.remove(0);
         }
     }
 }
@@ -105,10 +155,20 @@ pub fn ui_body_plot(
     ui_body: &mut UiBody,
     body: Res<Body>
 ) {
-    ui_body.y.push(body.pos().y());
+    ui_body.y_pressure.push(body.pressure());
+    ui_body.y_light.push(body.light());
+    ui_body.y_temp.push(body.temperature());
+
+    ui_body.y_swim.push(body.get_swim_rate());
+    ui_body.y_arrest.push(body.get_arrest());
     ui_body.tick();
 
-    ui_body.plot.set_xy(&ui_body.x, &ui_body.y);
+    ui_body.pressure.set_xy(&ui_body.x, &ui_body.y_pressure);
+    ui_body.light.set_xy(&ui_body.x, &ui_body.y_light);
+    ui_body.temp.set_xy(&ui_body.x, &ui_body.y_temp);
+
+    ui_body.swim.set_xy(&ui_body.x, &ui_body.y_swim);
+    ui_body.arrest.set_xy(&ui_body.x, &ui_body.y_arrest);
 }
 
 pub fn ui_body_spawn_plot(

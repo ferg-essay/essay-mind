@@ -56,6 +56,7 @@ pub struct ArcPlot(Arc<Mutex<PlotInner>>);
 
 pub struct PlotInner {
     figure: FigureInner,
+    graph_id: Option<GraphId>,
 }
 
 impl PlotInner {
@@ -63,12 +64,20 @@ impl PlotInner {
         ArcPlot(Arc::new(Mutex::new(
             PlotInner {
                 figure,
+                graph_id: None,
             }            
         )))
     }
 
     fn plot(&mut self, x: impl Into<Tensor>, y: impl Into<Tensor>) -> LinesOpt {
-        let graph = self.figure.new_graph(());
+        let graph = match self.graph_id {
+            Some(graph_id) => self.figure.graph_mut(graph_id),
+            None => {
+                let graph = self.figure.new_graph(());
+                self.graph_id = Some(graph.id());
+                graph
+            }
+        };
         let lines = Lines2d::from_xy(x, y);
 
         graph.add_plot_artist(lines)

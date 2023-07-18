@@ -18,6 +18,7 @@ pub struct Body {
 
 impl Body {
     const DY_FALL : f32 = -0.05;
+    const ARREST_DECAY : f32 = -1.;
 
     pub fn new(pos: Point) -> Self {
         Self {
@@ -28,20 +29,58 @@ impl Body {
         }
     }
 
+    ///
+    /// Position: Y is 0 at surface and negative below the surface
+    /// 
     pub fn pos(&self) -> Point {
         self.pos
     }
 
+    ///
+    /// Model pressure as increasing with depth
+    /// 
     pub fn pressure(&self) -> f32 {
-        self.pos.y() * 0.1
+        - self.pos.y() * 0.1
+    }
+
+    ///
+    /// Model temperature as decreasing with depth
+    /// 
+    pub fn temperature(&self) -> f32 {
+        (1.0 + self.pos.y() * 0.05).clamp(0., 1.)
+    }
+
+    ///
+    /// Model light as increasing rapidly near the surface
+    /// 
+    pub fn light(&self) -> f32 {
+        (1.0 + self.pos.y() * 0.25).clamp(0., 1.)
+    }
+
+    ///
+    /// co2 not modelled currently
+    /// 
+    pub fn co2(&self) -> f32 {
+        0.
     }
 
     pub fn swim_rate(&mut self, swim: f32) {
         self.swim_rate = swim;
     }
 
+    pub fn get_swim_rate(&self) -> f32 {
+        self.swim_rate
+    }
+
+    pub fn get_arrest(&self) -> f32 {
+        self.arrest
+    }
+
+    ///
+    /// Stop the cilia beating for a period of time
+    /// 
     pub fn arrest(&mut self, time: f32) {
-        self.arrest = time;
+        self.arrest = time.max(self.arrest);
     }
 }
 
@@ -63,9 +102,8 @@ pub fn body_physics(
 
     // default movement is falling
     let mut dy = Body::DY_FALL;
-
     // if cilia aren't arrested, rise by the swim rate
-    if body.arrest <= 0. {
+    if body.arrest <= 0.2 {
         dy += body.swim_rate * Cilia::DY_SWIM;
     }
 
@@ -73,6 +111,8 @@ pub fn body_physics(
     y = (y + dy).clamp(- (height as f32) + 0.5, -0.5);
 
     body.pos = Point(x, y);
+
+    body.arrest = (body.arrest + Body::ARREST_DECAY).max(0.);
 }
 
 pub fn body_log(
