@@ -17,7 +17,7 @@ impl Cilia {
     pub const DY_SINK : f32 = -0.05;    // speed of the default swim rate
     pub const ARREST_DECAY : f32 = 1.; // linear arrest decay
 
-    pub const PEPTIDE_DECAY : f32 = 0.75;
+    pub const PEPTIDE_DECAY : f32 = 0.9;
     pub const PEPTIDE_INPUT : f32 = 0.5;
 
     pub fn new() -> Self {
@@ -76,6 +76,8 @@ fn cilia_update(
     let control = cilia.cilia_matrix.matvec(&cilia.peptides);
     let swim = control[0];
     let arrest = control[1];
+
+    body.set_peptides(&cilia.peptides);
 
     body.swim_rate(Cilia::SWIM_RATE + swim);
     body.arrest(arrest);

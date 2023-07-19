@@ -1,8 +1,8 @@
 use std::sync::{Arc, Mutex};
 
 use essay_ecs::prelude::*;
-use essay_plot::artist::{Lines2d, LinesOpt};
-use essay_plot::graph::{FigureInner, GraphId};
+use essay_plot::artist::{Lines2d, LinesOpt, ColorMesh, ColorGridOpt};
+use essay_plot::graph::{FigureInner, GraphId, PlotOpt};
 use essay_plot::prelude::driver::FigureApi;
 use essay_plot::{frame::Layout, prelude::Figure, graph::Graph};
 use essay_plot::prelude::*;
@@ -50,6 +50,10 @@ impl UiPlot {
     pub fn plot_xy(&self, x: impl Into<Tensor>, y: impl Into<Tensor>) -> LinesOpt {
         self.inner.0.lock().unwrap().plot(x, y)
     }
+
+    pub fn color_grid(&self, data: impl Into<Tensor>) -> ColorGridOpt {
+        self.inner.0.lock().unwrap().color_grid(data)
+    }
 }
 
 pub struct ArcPlot(Arc<Mutex<PlotInner>>);
@@ -73,7 +77,7 @@ impl PlotInner {
         let graph = match self.graph_id {
             Some(graph_id) => self.figure.graph_mut(graph_id),
             None => {
-                let graph = self.figure.new_graph(());
+                let graph = self.figure.new_graph([0., 0., 1.5, 1.]);
                 self.graph_id = Some(graph.id());
                 graph
             }
@@ -81,6 +85,16 @@ impl PlotInner {
         let lines = Lines2d::from_xy(x, y);
 
         graph.add_plot_artist(lines)
+    }
+
+    fn color_grid(&mut self, data: impl Into<Tensor>) -> ColorGridOpt {
+        let graph = self.figure.new_graph([1.5, 0., 2., 1.]);
+        graph.flip_y(true);
+        graph.x().visible(false);
+        graph.y().visible(false);
+        let colormesh = ColorMesh::new(data);
+
+        graph.add_plot_artist(colormesh)
     }
 }
 

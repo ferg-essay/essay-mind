@@ -1,5 +1,6 @@
 use essay_ecs::prelude::*;
-use essay_plot::{prelude::*, artist::{PathStyle, paths, LinesOpt}};
+use essay_plot::{prelude::*, artist::{PathStyle, paths, LinesOpt}, artist::{ColorGridOpt, ColorMaps}};
+use essay_tensor::tf32;
 use ui_graphics::{UiCanvas, ui_plot::{UiPlot, UiPlotPlugin}};
 
 use crate::{UiWorld, World, UiApicalWorldPlugin, DrawItem};
@@ -22,6 +23,8 @@ pub struct UiBody {
 
     y_arrest: Vec<f32>,
     arrest: LinesOpt,
+
+    peptides: ColorGridOpt,
 
     tick: usize,
 }
@@ -52,6 +55,10 @@ impl UiBody {
         let mut arrest = plot.plot_xy(&x, &y_arrest);
         arrest.label("arrest");
 
+        let z_peptides = tf32!([[0., 1.], [0., 0.], [0., 0.]]);
+        let mut peptides : ColorGridOpt = plot.color_grid(z_peptides);
+        peptides.color_map(ColorMaps::WhiteRed);
+
         Self {
             x,
             y_pressure,
@@ -64,6 +71,7 @@ impl UiBody {
             swim,
             y_arrest,
             arrest,
+            peptides,
             tick: 0,
         }
     }
@@ -169,6 +177,8 @@ pub fn ui_body_plot(
 
     ui_body.swim.set_xy(&ui_body.x, &ui_body.y_swim);
     ui_body.arrest.set_xy(&ui_body.x, &ui_body.y_arrest);
+
+    ui_body.peptides.data(body.peptides().reshape([3, 2]));
 }
 
 pub fn ui_body_spawn_plot(

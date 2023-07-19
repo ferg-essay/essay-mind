@@ -1,6 +1,7 @@
 use essay_ecs::prelude::*;
 use essay_plot::prelude::*;
 
+use essay_tensor::{Tensor, tf32};
 use test_log::{TestLog, TestLogPlugin};
 use ui_graphics::{UiCanvasPlugin, ui_plot::UiPlotPlugin};
 
@@ -11,6 +12,8 @@ pub struct Body {
     pos: Point,
 
     dy: f32,
+
+    peptides: Tensor, // TODO: cleanup and move to cilia
 
     swim_rate: f32,
     arrest: f32,
@@ -26,6 +29,8 @@ impl Body {
             dy: 0.,
             swim_rate: 0.,
             arrest: 0.,
+
+            peptides: Tensor::zeros([3, 2]),
         }
     }
 
@@ -81,6 +86,14 @@ impl Body {
     /// 
     pub fn arrest(&mut self, time: f32) {
         self.arrest = time.max(self.arrest);
+    }
+
+    pub fn set_peptides(&mut self, peptides: &Tensor) {
+        self.peptides = peptides.clone();
+    }
+
+    pub fn peptides(&self) -> &Tensor {
+        &self.peptides
     }
 }
 
