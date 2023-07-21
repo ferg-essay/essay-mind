@@ -2,11 +2,10 @@ use std::sync::{Arc, Mutex};
 
 use essay_ecs::prelude::*;
 use essay_plot::artist::{Lines2d, LinesOpt, ColorMesh, ColorGridOpt};
-use essay_plot::graph::{FigureInner, GraphId, PlotOpt};
+use essay_plot::graph::{FigureInner, GraphId};
 use essay_plot::prelude::driver::FigureApi;
-use essay_plot::{frame::Layout, prelude::Figure, graph::Graph};
 use essay_plot::prelude::*;
-use essay_plot_wgpu::PlotRenderer;
+use essay_plot::wgpu::PlotRenderer;
 use essay_tensor::Tensor;
 
 use crate::UiCanvas;
