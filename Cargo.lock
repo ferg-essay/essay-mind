@@ -716,7 +716,7 @@ dependencies = [
  "cpal",
  "env_logger",
  "essay-ecs",
- "essay-plot",
+ "essay-plot 0.1.14-dev",
  "fundsp",
  "log",
  "mind",
@@ -743,8 +743,22 @@ version = "0.1.13"
 source = "git+https://github.com/ferg-essay/essay-plot#d6be71eb98805e1ee82eba4e08e2d2472b61bd3a"
 dependencies = [
  "env_logger",
- "essay-plot-api",
- "essay-plot-wgpu",
+ "essay-plot-api 0.1.13",
+ "essay-plot-wgpu 0.1.13",
+ "essay-tensor",
+ "futures",
+ "log",
+ "wgpu 0.17.0",
+ "winit",
+]
+
+[[package]]
+name = "essay-plot"
+version = "0.1.14-dev"
+dependencies = [
+ "env_logger",
+ "essay-plot-api 0.1.14-dev",
+ "essay-plot-wgpu 0.1.14-dev",
  "essay-tensor",
  "futures",
  "log",
@@ -762,13 +776,36 @@ dependencies = [
 ]
 
 [[package]]
+name = "essay-plot-api"
+version = "0.1.14-dev"
+dependencies = [
+ "essay-tensor",
+ "log",
+]
+
+[[package]]
 name = "essay-plot-wgpu"
 version = "0.1.13"
 source = "git+https://github.com/ferg-essay/essay-plot#d6be71eb98805e1ee82eba4e08e2d2472b61bd3a"
 dependencies = [
  "bytemuck",
  "env_logger",
- "essay-plot-api",
+ "essay-plot-api 0.1.13",
+ "essay-tensor",
+ "log",
+ "pollster",
+ "wgpu 0.17.0",
+ "wgpu_glyph",
+ "winit",
+]
+
+[[package]]
+name = "essay-plot-wgpu"
+version = "0.1.14-dev"
+dependencies = [
+ "bytemuck",
+ "env_logger",
+ "essay-plot-api 0.1.14-dev",
  "essay-tensor",
  "log",
  "pollster",
@@ -1465,7 +1502,7 @@ version = "0.0.0"
 dependencies = [
  "env_logger",
  "essay-ecs",
- "essay-plot",
+ "essay-plot 0.1.13",
  "essay-tensor",
  "log",
  "test-log",
@@ -2625,7 +2662,7 @@ version = "0.1.0"
 dependencies = [
  "env_logger",
  "essay-ecs",
- "essay-plot",
+ "essay-plot 0.1.14-dev",
  "essay-tensor",
  "log",
  "pollster",
@@ -3276,7 +3313,7 @@ version = "0.1.13"
 dependencies = [
  "env_logger",
  "essay-ecs",
- "essay-plot",
+ "essay-plot 0.1.14-dev",
  "essay-tensor",
  "log",
  "test-log",

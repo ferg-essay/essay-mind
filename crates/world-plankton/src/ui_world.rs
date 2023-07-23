@@ -14,6 +14,7 @@ pub struct UiWorld {
     bounds: Bounds<World>,
     width: usize,
     height: usize,
+    image: Option<ImageId>,
 }
 
 impl UiWorld {
@@ -28,6 +29,7 @@ impl UiWorld {
             width,
             height,
             bounds: Bounds::from([width as f32, height as f32]),
+            image: None,
         }
     }
 
@@ -55,27 +57,32 @@ pub fn world_resize(
 
 pub fn draw_world(
     world: Res<World>, 
-    ui_world: Res<UiWorld>, 
+    mut ui_world: ResMut<UiWorld>, 
     mut ui: ResMut<UiCanvas>
 ) {
-    let mut vec = Vec::<[u8; 4]>::new();
+    if ui_world.image.is_none() {
+        let mut vec = Vec::<[u8; 4]>::new();
 
-    for j in 0..ui_world.height {
-        for i in 0..ui_world.width {
-            match world[(i, j)] {
-                WorldItem::Empty => vec.push(Color::from("black").to_rgba_vec()),
-                WorldItem::Wall => vec.push(Color::from("beige").to_rgba_vec()),
+        for j in 0..ui_world.height {
+            for i in 0..ui_world.width {
+                match world[(i, j)] {
+                    WorldItem::Empty => vec.push(Color::from("black").to_rgba_vec()),
+                    WorldItem::Wall => vec.push(Color::from("beige").to_rgba_vec()),
+                }
             }
-            
         }
-    }
 
-    let colors = Tensor::from(&vec);
-    let colors = colors.reshape([ui_world.height as usize, ui_world.width as usize, 4]);
+        let colors = Tensor::from(&vec);
+        let colors = colors.reshape([ui_world.height as usize, ui_world.width as usize, 4]);
+
+        ui_world.image = ui.create_image(colors);
+    }
 
     // TODO: cache texture when unmodified
 
-    ui.draw_image(&ui_world.pos, colors);
+    if let Some(image) = &ui_world.image {
+        ui.draw_image(&ui_world.pos, image.clone());
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Phase)]

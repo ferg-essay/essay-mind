@@ -30,8 +30,8 @@ world-plankton = { path = "./crates/world-plankton" }
 essay-ecs = { git = "https://github.com/ferg-essay/essay-ecs", version="0.1.13" }
 #essay-plot = { git = "https://github.com/ferg-essay/essay-plot", version="0.1.0" }
 #essay-plot-base = { git = "https://github.com/ferg-essay/essay-plot", version="0.1.0" }
-#essay-plot = { path = "../essay-plot" }
-essay-plot = { git = "https://github.com/ferg-essay/essay-plot", version="0.1.13" }
+essay-plot = { path = "../essay-plot" }
+#essay-plot = { git = "https://github.com/ferg-essay/essay-plot", version="0.1.13" }
 #essay-plot-api = { path = "../essay-plot/crates/essay-plot-api" }
 #gram = { path = "./crates/gram", version = "0.0.0" }
 #fft = { path = "./crates/fft", version = "0.0.0" }

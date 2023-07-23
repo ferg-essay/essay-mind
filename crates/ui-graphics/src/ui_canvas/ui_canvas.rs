@@ -2,6 +2,7 @@ use essay_ecs::prelude::*;
 use essay_plot::artist::PathStyle;
 use essay_plot::api::{TextStyle, Bounds};
 use essay_plot::api::{CanvasEvent, PathCode, Canvas, Point, Path, Clip, driver::Renderer};
+use essay_plot::prelude::ImageId;
 use essay_plot::wgpu::{PlotCanvas, PlotRenderer};
 use essay_tensor::Tensor;
 use winit::event_loop::EventLoop;
@@ -88,7 +89,7 @@ impl UiCanvas {
         }
     }
 
-    pub fn draw_image(&mut self, pos: &Bounds<Canvas>, colors: Tensor<u8>) {
+    pub fn create_image(&mut self, colors: Tensor<u8>) -> Option<ImageId> {
         if let Some(view) = &self.view {
             let mut plot_renderer = PlotRenderer::new(
                 &mut self.plot_canvas, 
@@ -101,7 +102,26 @@ impl UiCanvas {
 
             //let style = PathStyle::new();
     
-            plot_renderer.draw_image(pos, &colors, &Clip::None).unwrap();
+            Some(plot_renderer.create_image(&colors))
+        } else {
+            None
+        }
+    }
+
+    pub fn draw_image(&mut self, pos: &Bounds<Canvas>, image: ImageId) {
+        if let Some(view) = &self.view {
+            let mut plot_renderer = PlotRenderer::new(
+                &mut self.plot_canvas, 
+                &self.wgpu.device, 
+                Some(&self.wgpu.queue), 
+                Some(&view.view)
+            );
+
+            //canvas.clear_screen(&view);
+
+            //let style = PathStyle::new();
+    
+            plot_renderer.draw_image_ref(pos, image, &Clip::None).unwrap();
             plot_renderer.flush();
         }
     }
