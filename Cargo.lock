@@ -762,8 +762,6 @@ dependencies = [
  "essay-tensor",
  "futures",
  "log",
- "wgpu 0.17.0",
- "winit",
 ]
 
 [[package]]

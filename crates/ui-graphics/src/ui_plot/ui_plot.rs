@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use essay_ecs::prelude::*;
-use essay_plot::artist::{Lines2d, LinesOpt, ColorMesh, ColorGridOpt};
+use essay_plot::artist::{Lines2d, LinesOpt, GridColorOpt};
 use essay_plot::graph::{FigureInner, GraphId};
 use essay_plot::prelude::driver::FigureApi;
 use essay_plot::prelude::*;
@@ -50,7 +50,7 @@ impl UiPlot {
         self.inner.0.lock().unwrap().plot(x, y)
     }
 
-    pub fn color_grid(&self, data: impl Into<Tensor>) -> ColorGridOpt {
+    pub fn color_grid(&self, data: impl Into<Tensor>) -> GridColorOpt {
         self.inner.0.lock().unwrap().color_grid(data)
     }
 }
@@ -73,7 +73,7 @@ impl PlotInner {
     }
 
     fn plot(&mut self, x: impl Into<Tensor>, y: impl Into<Tensor>) -> LinesOpt {
-        let graph = match self.graph_id {
+        let mut graph = match self.graph_id {
             Some(graph_id) => self.figure.graph_mut(graph_id),
             None => {
                 let graph = self.figure.new_graph([0., 0., 1.5, 1.]);
