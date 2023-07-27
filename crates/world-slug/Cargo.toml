@@ -1,0 +1,25 @@
+[package]
+name = "world-slug"
+version = "0.1.13"
+edition = "2021"
+
+[dependencies]
+log = { version = "0.4.17" }
+env_logger = { version = "0.10.0" }
+
+# workspace dependencies
+#ticker.workspace = true
+#ticker = { path = "../ticker" }
+#gram = { path = "../gram" }
+#ticker = {version = "0.1.9"}
+#essay-ecs = { path = "../../../essay-ecs", version="0.1.1-dev"  }
+essay-ecs = { git = "https://github.com/ferg-essay/essay-ecs", version="0.1.13"  }
+essay-plot = { path = "../../../essay-plot" }
+#essay-plot = { git = "https://github.com/ferg-essay/essay-plot", version="0.1.13" }
+essay-tensor = { git = "https://github.com/ferg-essay/essay-tensor", version="0.1.13" }
+#essay-tensor = { path = "../../../essay-tensor"  }
+ui-graphics = { path = "../ui-graphics" }
+test-log = { path = "../test-log" }
+
+[lib]
+doctest = false

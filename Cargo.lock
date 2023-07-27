@@ -724,6 +724,7 @@ dependencies = [
  "ui-audio",
  "ui-graphics",
  "world-plankton",
+ "world-slug",
 ]
 
 [[package]]
@@ -3307,6 +3308,19 @@ dependencies = [
 
 [[package]]
 name = "world-plankton"
+version = "0.1.13"
+dependencies = [
+ "env_logger",
+ "essay-ecs",
+ "essay-plot 0.1.14-dev",
+ "essay-tensor",
+ "log",
+ "test-log",
+ "ui-graphics",
+]
+
+[[package]]
+name = "world-slug"
 version = "0.1.13"
 dependencies = [
  "env_logger",

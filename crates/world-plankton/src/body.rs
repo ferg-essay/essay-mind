@@ -1,11 +1,15 @@
 use essay_ecs::prelude::*;
 use essay_plot::prelude::*;
 
-use essay_tensor::{Tensor, tf32};
+use essay_tensor::Tensor;
 use test_log::{TestLog, TestLogPlugin};
-use ui_graphics::{UiCanvasPlugin, ui_plot::UiPlotPlugin};
+use ui_graphics::UiCanvasPlugin;
 
-use crate::{world::{PlanktonWorldPlugin, World}, ui_body::{draw_body, ui_body_spawn_plot, UiApicalBodyPlugin}, DrawItem, cilia::{Cilia, CiliaPlugin}};
+use crate::{
+    world::{PlanktonWorldPlugin, World}, 
+    ui_body::UiApicalBodyPlugin, 
+    cilia::{Cilia, CiliaPlugin}
+};
 
 #[derive(Component)]
 pub struct Body {

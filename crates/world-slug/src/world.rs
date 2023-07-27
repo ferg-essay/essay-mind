@@ -1,6 +1,7 @@
 use std::ops::{Index, IndexMut};
 
 use essay_ecs::prelude::*;
+use essay_plot::prelude::*;
 
 use ui_graphics::UiCanvasPlugin;
 
@@ -26,8 +27,46 @@ impl World {
         }
     }
 
+    /*
+    pub fn to_canvas(&self) -> Affine2d {
+        self.bounds.affine_to(&self.pos)
+    }
+    */
+
     pub fn extent(&self) -> [usize; 2] {
         [self.width, self.height]
+    }
+
+    pub fn is_collide(&self, pt: impl Into<Point>) -> bool {
+        let Point(x, y) = pt.into();
+        
+        if x <= 0.
+        || x >= self.width as f32
+        || y <= 0.
+        || y >= self.height as f32 {
+            return true;
+        }
+
+        match self[(x.floor() as usize, y.floor() as usize)] {
+            WorldItem::Wall => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_food(&self, pt: impl Into<Point>) -> bool {
+        let Point(x, y) = pt.into();
+        
+        if x <= 0.
+        || x >= self.width as f32
+        || y <= 0.
+        || y >= self.height as f32 {
+            return false;
+        }
+
+        match self[(x.floor() as usize, y.floor() as usize)] {
+            WorldItem::Food => true,
+            _ => false,
+        }
     }
 }
 
@@ -47,6 +86,7 @@ impl IndexMut<(usize, usize)> for World {
 
 pub enum WorldItem {
     Empty,
+    Food,
     Wall
 }
 
@@ -54,16 +94,31 @@ pub fn spawn_world(
     mut commands: Commands,
 ) {
     let mut world = World::new(15, 10);
-    world[(4, 2)] = WorldItem::Wall;
-    world[(5, 5)] = WorldItem::Wall;
-    world[(6, 6)] = WorldItem::Wall;
+    for (x, y) in vec![
+        (1, 1), (8, 1),
+        (3, 3), (6, 3),
+        (9, 5), (13, 6),
+        (6, 7), (10, 7),
+        (11, 9), (13, 9),
+    ] {
+        world[(x, y)] = WorldItem::Food;
+    }
+
+    for (x, y) in vec![
+        (4, 2), (4, 3), (4, 4), (4, 5), (4, 6),
+        (6, 0), (6, 1), (6, 2), (6, 7), (6, 8),
+        (9, 3), (10, 3), (11, 3), (13, 3), (14, 3),
+        (10, 7), (11, 7), (13, 7),
+    ] {
+        world[(x, y)] = WorldItem::Wall;
+    }
 
     commands.insert_resource(world);
 }
 
-pub struct PlanktonWorldPlugin;
+pub struct SlugWorldPlugin;
 
-impl Plugin for PlanktonWorldPlugin {
+impl Plugin for SlugWorldPlugin {
     fn build(&self, app: &mut App) {
         app.system(Startup, spawn_world);
 

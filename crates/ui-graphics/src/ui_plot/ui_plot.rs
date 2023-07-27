@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use essay_ecs::prelude::*;
-use essay_plot::artist::{Lines2d, LinesOpt, GridColorOpt};
+use essay_plot::artist::{Lines2d, LinesOpt, GridColorOpt, GridColor};
 use essay_plot::graph::{FigureInner, GraphId};
 use essay_plot::prelude::driver::FigureApi;
 use essay_plot::prelude::*;
@@ -74,7 +74,8 @@ impl PlotInner {
 
     fn plot(&mut self, x: impl Into<Tensor>, y: impl Into<Tensor>) -> LinesOpt {
         let mut graph = match self.graph_id {
-            Some(graph_id) => self.figure.graph_mut(graph_id),
+            Some(graph_id) => self.figure.get_graph(graph_id),
+
             None => {
                 let graph = self.figure.new_graph([0., 0., 1.5, 1.]);
                 self.graph_id = Some(graph.id());
@@ -86,12 +87,12 @@ impl PlotInner {
         graph.add_plot_artist(lines)
     }
 
-    fn color_grid(&mut self, data: impl Into<Tensor>) -> ColorGridOpt {
-        let graph = self.figure.new_graph([1.5, 0., 2., 1.]);
+    fn color_grid(&mut self, data: impl Into<Tensor>) -> GridColorOpt {
+        let mut graph = self.figure.new_graph([1.5, 0., 2., 1.]);
         graph.flip_y(true);
         graph.x().visible(false);
         graph.y().visible(false);
-        let colormesh = ColorMesh::new(data);
+        let colormesh = GridColor::new(data);
 
         graph.add_plot_artist(colormesh)
     }

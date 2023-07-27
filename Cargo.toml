@@ -22,6 +22,7 @@ test-log = { path = "./crates/test-log" }
 audio = { path = "./crates/audio" }
 mind = { path = "./crates/mind" }
 world-plankton = { path = "./crates/world-plankton" }
+world-slug = { path = "./crates/world-slug" }
 
 #world = { path = "./crates/world", version = "0.1.0" }
 #essay-ecs = { git = "https://github.com/ferg-essay/essay-ecs", version="0.1.1-dev" }
