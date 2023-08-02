@@ -1,6 +1,6 @@
 use essay_ecs::prelude::*;
 
-use crate::Body;
+use super::Body;
 
 fn sense_pressure(body: Res<Body>, mut peptides: OutEvent<Peptide>) {
     if body.pressure() > 0.5 {

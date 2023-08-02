@@ -5,7 +5,7 @@ use essay_tensor::Tensor;
 use test_log::{TestLog, TestLogPlugin};
 use ui_graphics::UiCanvasPlugin;
 
-use crate::{
+use super::{
     world::{PlanktonWorldPlugin, World}, 
     ui_body::UiApicalBodyPlugin, 
     cilia::{Cilia, CiliaPlugin}

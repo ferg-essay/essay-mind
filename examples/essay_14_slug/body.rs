@@ -5,7 +5,7 @@ use essay_tensor::{Tensor, tf32};
 use test_log::{TestLog, TestLogPlugin};
 use ui_graphics::UiCanvasPlugin;
 
-use crate::{
+use super::{
     world::{SlugWorldPlugin, World}, ui_body::UiApicalBodyPlugin,
     control::SlugControlPlugin
 };
@@ -23,6 +23,8 @@ pub struct Body {
     sensor_right: bool,
     sensor_food: bool,
 
+    satiety: f32,
+
     muscle_left: f32,
     muscle_right: f32,
 
@@ -32,18 +34,27 @@ pub struct Body {
 impl Body {
     const ARREST_DECAY : f32 = -0.1;
     const ARREST_THRESHOLD : f32 = 0.4;
-    const MUSCLE_DECAY : f32 = -0.1;
+
+    const MUSCLE_DECAY : f32 = -0.05;
+    const MUSCLE_THRESHOLD : f32 = 0.2;
+
+    const SATIETY_INCREATE : f32 = 0.025;
+    const SATIETY_DECAY : f32 = 0.0025;
+
+    const SPEED : f32 = 0.05;
 
     pub fn new(pos: Point) -> Self {
         Self {
             pos,
             dir: Angle::Unit(0.),
-            speed: 0.05,
+            speed: 1.,
             arrest: 0.,
 
             sensor_left: false,
             sensor_right: false,
             sensor_food: false,
+            satiety: 0.,
+
             muscle_left: 1.,
             muscle_right: 0.,
 
@@ -71,24 +82,42 @@ impl Body {
         self.sensor_food
     }
 
+    pub fn get_satiety(&self) -> f32 {
+        self.satiety
+    }
+
     pub fn muscle_left(&self) -> f32 {
         self.muscle_left
     }
 
     pub fn set_muscle_left(&mut self, muscle: f32) {
-        self.muscle_left = self.muscle_left.max(muscle).clamp(0., 1.);
+        // simulate refraction by only updating when zero.
+        if self.muscle_left <= 0. {
+            self.muscle_left = self.muscle_left.max(muscle).clamp(0., 1.);
+        }
+    }
+
+    pub fn _is_muscle_left(&self) -> bool {
+        self.muscle_left >= 0.
     }
 
     pub fn muscle_right(&self) -> f32 {
         self.muscle_right
     }
 
-    pub fn set_muscle_right(&mut self, muscle: f32) {
-        self.muscle_right = self.muscle_right.max(muscle).clamp(0., 1.);
+    pub fn _is_muscle_right(&self) -> bool {
+        self.muscle_right >= 0.
     }
 
-    pub fn speed(&mut self, swim: f32) {
-        self.speed = swim;
+    pub fn set_muscle_right(&mut self, muscle: f32) {
+        // simulate refraction by only updating when zero.
+        if self.muscle_right <= 0. {
+            self.muscle_right = self.muscle_right.max(muscle).clamp(0., 1.);
+        }
+    }
+
+    pub fn speed(&mut self, speed: f32) {
+        self.speed = speed;
     }
 
     pub fn get_speed(&self) -> f32 {
@@ -131,14 +160,18 @@ pub fn body_physics(
 
     // default movement is falling
     let (dy, dx) = body.dir.to_radians().sin_cos();
+
+    let speed = body.speed * Body::SPEED;
+    body.speed = 1.;
+
     // if cilia aren't arrested, move in the direction
     if body.arrest <= Body::ARREST_THRESHOLD {
-        x = x + dx * body.speed; // .clamp(0.5, width as f32 - 0.5);
-        y = y + dy * body.speed; // .clamp(0.5, height as f32 - 0.5);
+        x = x + dx * speed;
+        y = y + dy * speed;
 
-        if body.muscle_left > 0.1 {
+        if body.muscle_left > Body::MUSCLE_THRESHOLD {
             dir += 0.01;
-        } else if body.muscle_right > 0.1 {
+        } else if body.muscle_right > Body::MUSCLE_THRESHOLD {
             dir -= 0.01;
         }
     }
@@ -146,10 +179,11 @@ pub fn body_physics(
     // update y, clamped to the world boundaries
     let head = Point(x + dx * 0.5, y + dy * 0.5);
 
-    let sensor_left = (head.0 - dy * 0.1, head.1 + dx * 0.1);
+    // sensor ahead and to the side
+    let sensor_left = (head.0 + dx * 0.1 - dy * 0.1, head.1 + dy * 0.1 + dx * 0.1);
     body.sensor_left = world.is_collide(sensor_left);
 
-    let sensor_right = (head.0 + dy * 0.1, head.1 - dx * 0.1);
+    let sensor_right = (head.0 + dx * 0.1 + dy * 0.1, head.1 + dy * 0.1 - dx * 0.1);
     body.sensor_right = world.is_collide(sensor_right);
 
     if ! world.is_collide(head) {
@@ -160,6 +194,12 @@ pub fn body_physics(
     }
 
     body.sensor_food = world.is_food((x, y));
+
+    body.satiety = (body.satiety - Body::SATIETY_DECAY).max(0.);
+
+    if world.is_food((x, y)) {
+        body.satiety = (body.satiety + Body::SATIETY_INCREATE).clamp(0., 1.);
+    }
 
     body.dir = Angle::Unit((dir + 1.) % 1.);
 

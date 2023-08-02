@@ -50,6 +50,10 @@ impl UiPlot {
         self.inner.0.lock().unwrap().plot(x, y)
     }
 
+    pub fn x_label(&self, label: impl AsRef<str>) {
+        self.inner.0.lock().unwrap().x_label(label.as_ref())
+    }
+
     pub fn color_grid(&self, data: impl Into<Tensor>) -> GridColorOpt {
         self.inner.0.lock().unwrap().color_grid(data)
     }
@@ -84,7 +88,21 @@ impl PlotInner {
         };
         let lines = Lines2d::from_xy(x, y);
 
-        graph.add_plot_artist(lines)
+        graph.artist(lines)
+    }
+
+    fn x_label(&mut self, label: &str) {
+        let mut graph = match self.graph_id {
+            Some(graph_id) => self.figure.get_graph(graph_id),
+
+            None => {
+                let graph = self.figure.new_graph([0., 0., 1.5, 1.]);
+                self.graph_id = Some(graph.id());
+                graph
+            }
+        };
+
+        graph.x_label(label);
     }
 
     fn color_grid(&mut self, data: impl Into<Tensor>) -> GridColorOpt {
@@ -94,7 +112,7 @@ impl PlotInner {
         graph.y().visible(false);
         let colormesh = GridColor::new(data);
 
-        graph.add_plot_artist(colormesh)
+        graph.artist(colormesh)
     }
 }
 

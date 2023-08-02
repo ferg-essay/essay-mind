@@ -33,7 +33,7 @@ impl World {
     }
     */
 
-    pub fn extent(&self) -> [usize; 2] {
+    pub fn _extent(&self) -> [usize; 2] {
         [self.width, self.height]
     }
 

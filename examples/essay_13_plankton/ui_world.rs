@@ -3,7 +3,7 @@ use essay_plot::prelude::*;
 use essay_tensor::Tensor;
 use ui_graphics::{ui_layout::{UiLayout, UiLayoutEvent, BoxId, UiLayoutPlugin}, UiCanvas, UiCanvasPlugin};
 
-use crate::world::SlugWorldPlugin;
+use super::PlanktonWorldPlugin;
 
 use super::{World, world::WorldItem};
 
@@ -33,20 +33,8 @@ impl UiWorld {
         }
     }
 
-    pub fn extent(&self) -> (f32, f32) {
-        (self.bounds.xmax(), self.bounds.ymax())
-    }
-
-    pub fn set_pos(&mut self, set_pos: &Bounds<Canvas>) {
-        let aspect = self.bounds.width() / self.bounds.height();
-        let c_height = set_pos.height();
-        let c_width = c_height * aspect;
-        let pos = Bounds::<Canvas>::new(
-            Point(self.pos.xmin(), self.pos.ymin()),
-            Point(self.pos.xmin() + c_width, self.pos.ymin() + c_height),
-        );
-
-        self.pos = pos;
+    pub fn extent(&self) -> [f32; 2] {
+        [self.bounds.xmax(), self.bounds.ymax()]
     }
 
     pub fn to_canvas(&self) -> Affine2d {
@@ -63,8 +51,7 @@ pub fn world_resize(
     mut read: InEvent<UiLayoutEvent>
 ) {
     for _ in read.iter() {
-        let id = ui_world.id;
-        ui_world.set_pos(ui_layout.get_box(id));
+        ui_world.pos = ui_layout.get_box(ui_world.id).clone();
     }
 }
 
@@ -80,7 +67,6 @@ pub fn draw_world(
             for i in 0..ui_world.width {
                 match world[(i, j)] {
                     WorldItem::Empty => vec.push(Color::from("black").to_rgba_vec()),
-                    WorldItem::Food => vec.push(Color::from("dark teal").to_rgba_vec()),
                     WorldItem::Wall => vec.push(Color::from("beige").to_rgba_vec()),
                 }
             }
@@ -105,9 +91,6 @@ pub struct DrawWorld;
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Phase)]
 pub struct DrawItem;
 
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Phase)]
-pub struct DrawAgent;
-
 pub fn spawn_ui_world(
     mut commands: Commands,
     mut ui_layout: ResMut<UiLayout>,
@@ -126,13 +109,13 @@ pub struct UiApicalWorldPlugin;
 impl Plugin for UiApicalWorldPlugin {
     fn build(&self, app: &mut App) {
         assert!(app.contains_plugin::<UiCanvasPlugin>());
-        assert!(app.contains_plugin::<SlugWorldPlugin>());
+        assert!(app.contains_plugin::<PlanktonWorldPlugin>());
 
         if ! app.contains_plugin::<UiLayoutPlugin>() {
             app.plugin(UiLayoutPlugin);
         }
 
-        app.phase(Update, (DrawWorld, DrawItem, DrawAgent).chain());
+        app.phase(Update, (DrawWorld, DrawItem).chain());
         app.system(Update, draw_world.phase(DrawWorld));
         app.system(PreUpdate, world_resize);
 

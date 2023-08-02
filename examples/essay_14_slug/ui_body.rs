@@ -7,14 +7,14 @@ use essay_plot::{
 use essay_tensor::tf32;
 use ui_graphics::{UiCanvas, ui_plot::{UiPlot, UiPlotPlugin}};
 
-use crate::{UiWorld, UiApicalWorldPlugin, ui_world::DrawAgent};
+use super::{UiWorld, UiApicalWorldPlugin, ui_world::DrawAgent};
 
 use super::Body;
 
 #[derive(Component)]
 pub struct UiBody {
     x: Vec<f32>,
-    dir: Vec<f32>,
+    y_dir: Vec<f32>,
     dir_opt: LinesOpt,
 
     y_speed: Vec<f32>,
@@ -22,6 +22,9 @@ pub struct UiBody {
 
     y_arrest: Vec<f32>,
     arrest: LinesOpt,
+
+    y_satiety: Vec<f32>,
+    satiety: LinesOpt,
 
     peptides: GridColorOpt,
 
@@ -34,8 +37,10 @@ impl UiBody {
     pub fn new(plot: &UiPlot) -> Self {
         let x = Vec::new();
 
-        let dir = Vec::new();
-        let mut dir_opt = plot.plot_xy(&x, &dir);
+        plot.x_label("seconds");
+
+        let y_dir = Vec::new();
+        let mut dir_opt = plot.plot_xy(&x, &y_dir);
         dir_opt.label("dir");
 
         let y_speed = Vec::new();
@@ -46,6 +51,10 @@ impl UiBody {
         let mut arrest = plot.plot_xy(&x, &y_arrest);
         arrest.label("arrest");
 
+        let y_satiety: Vec<f32> = Vec::new();
+        let mut satiety = plot.plot_xy(&x, &y_satiety);
+        satiety.label("satiety");
+
         let z_peptides = tf32!([[0., 1.], [0., 0.], [0., 0.]]);
         let mut peptides : GridColorOpt = plot.color_grid(z_peptides);
         peptides.norm(Norms::Linear.vmin(0.).vmax(1.));
@@ -53,12 +62,19 @@ impl UiBody {
 
         Self {
             x,
-            dir,
+
+            y_dir,
             dir_opt,
+
             y_speed,
             speed,
+
             y_arrest,
             arrest,
+            
+            y_satiety,
+            satiety,
+
             peptides,
             tick: 0,
         }
@@ -66,14 +82,14 @@ impl UiBody {
 
     pub fn tick(&mut self) {
         self.tick += 1;
-        self.x.push(self.tick as f32);
+        self.x.push(self.tick as f32 * 0.1);
 
         while self.x.len() > Self::LIM {
             self.x.remove(0);
         }
 
-        while self.dir.len() > Self::LIM {
-            self.dir.remove(0);
+        while self.y_dir.len() > Self::LIM {
+            self.y_dir.remove(0);
         }
 
         while self.y_speed.len() > Self::LIM {
@@ -82,6 +98,10 @@ impl UiBody {
 
         while self.y_arrest.len() > Self::LIM {
             self.y_arrest.remove(0);
+        }
+
+        while self.y_satiety.len() > Self::LIM {
+            self.y_satiety.remove(0);
         }
     }
 }
@@ -104,9 +124,7 @@ pub fn draw_body(
     if body.muscle_left() > 0.1 {
         let turn = (0.1 * body.muscle_left()).clamp(0., 0.1);
         head_dir += Angle::Unit(turn).to_radians();
-    }
-
-    if body.muscle_right() > 0.1 {
+    } else if body.muscle_right() > 0.1 {
         let turn = - (0.1 * body.muscle_right()).clamp(0., 0.1);
         head_dir += Angle::Unit(turn).to_radians();
     }
@@ -151,16 +169,18 @@ pub fn ui_body_plot(
     ui_body: &mut UiBody,
     body: Res<Body>
 ) {
-    ui_body.dir.push(body.dir().to_unit());
-
+    ui_body.y_dir.push(body.dir().to_unit());
     ui_body.y_speed.push(body.get_speed());
     ui_body.y_arrest.push(body.get_arrest());
+    ui_body.y_satiety.push(body.get_satiety());
+
     ui_body.tick();
 
-    ui_body.dir_opt.set_xy(&ui_body.x, &ui_body.dir);
+    ui_body.dir_opt.set_xy(&ui_body.x, &ui_body.y_dir);
 
     ui_body.speed.set_xy(&ui_body.x, &ui_body.y_speed);
     ui_body.arrest.set_xy(&ui_body.x, &ui_body.y_arrest);
+    ui_body.satiety.set_xy(&ui_body.x, &ui_body.y_satiety);
 
     ui_body.peptides.data(body.state().reshape([3, 2]));
 }

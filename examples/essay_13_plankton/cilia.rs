@@ -1,7 +1,7 @@
 use essay_ecs::prelude::*;
 use essay_tensor::prelude::*;
 
-use crate::{Body, sense_peptide::{Peptide, PeptidePlugin}};
+use super::{Body, sense_peptide::{Peptide, PeptidePlugin}};
 
 #[derive(Component)]
 pub struct Cilia {

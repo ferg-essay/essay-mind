@@ -3,7 +3,7 @@ use essay_plot::{prelude::*, artist::{PathStyle, paths, LinesOpt}, artist::{Grid
 use essay_tensor::tf32;
 use ui_graphics::{UiCanvas, ui_plot::{UiPlot, UiPlotPlugin}};
 
-use crate::{UiWorld, World, UiApicalWorldPlugin, DrawItem};
+use super::{UiWorld, World, UiApicalWorldPlugin, DrawItem};
 
 use super::Body;
 
