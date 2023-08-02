@@ -741,6 +741,7 @@ dependencies = [
  "env_logger",
  "essay-ecs",
  "essay-plot 0.1.14-dev",
+ "essay-tensor 0.1.13",
  "fundsp",
  "log",
  "mind",
@@ -748,16 +749,6 @@ dependencies = [
  "ui-audio",
  "ui-graphics",
  "world-plankton",
-]
-
-[[package]]
-name = "essay-opt"
-version = "0.1.13"
-dependencies = [
- "env_logger",
- "log",
- "quote",
- "syn 2.0.26",
 ]
 
 [[package]]
@@ -1651,7 +1642,7 @@ dependencies = [
  "env_logger",
  "essay-ecs",
  "essay-plot 0.1.13",
- "essay-tensor 0.1.13 (git+https://github.com/ferg-essay/essay-tensor)",
+ "essay-tensor",
  "log",
  "test-log",
  "ui-graphics",
@@ -2860,7 +2851,7 @@ dependencies = [
  "env_logger",
  "essay-ecs",
  "essay-plot 0.1.14-dev",
- "essay-tensor 0.1.13 (git+https://github.com/ferg-essay/essay-tensor)",
+ "essay-tensor",
  "log",
  "pollster",
  "wgpu 0.17.0",
@@ -3517,13 +3508,15 @@ dependencies = [
  "env_logger",
  "essay-ecs",
  "essay-plot 0.1.14-dev",
- "essay-tensor 0.1.13 (git+https://github.com/ferg-essay/essay-tensor)",
+ "essay-tensor",
  "log",
  "test-log",
  "ui-graphics",
 ]
 
 [[package]]
+=======
+>>>>>>> work
 name = "x11-dl"
 version = "2.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"

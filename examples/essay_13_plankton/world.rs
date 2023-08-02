@@ -1,12 +1,10 @@
 use std::ops::{Index, IndexMut};
 
 use essay_ecs::prelude::*;
-use essay_plot::prelude::*;
 
-use essay_tensor::Tensor;
-use ui_graphics::{UiCanvas, ui_layout::{UiLayout, BoxId, UiLayoutEvent, UiLayoutPlugin}, UiCanvasPlugin};
+use ui_graphics::UiCanvasPlugin;
 
-use super::ui_world::{UiWorld, UiApicalWorldPlugin};
+use super::ui_world::UiApicalWorldPlugin;
 
 #[derive(Component)]
 pub struct World {
@@ -27,12 +25,6 @@ impl World {
             values,
         }
     }
-
-    /*
-    pub fn to_canvas(&self) -> Affine2d {
-        self.bounds.affine_to(&self.pos)
-    }
-    */
 
     pub fn extent(&self) -> [usize; 2] {
         [self.width, self.height]
@@ -61,8 +53,6 @@ pub enum WorldItem {
 pub fn spawn_world(
     mut commands: Commands,
 ) {
-    let id = BoxId::new(0);
-
     let mut world = World::new(15, 10);
     world[(4, 2)] = WorldItem::Wall;
     world[(5, 5)] = WorldItem::Wall;

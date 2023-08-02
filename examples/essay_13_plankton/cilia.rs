@@ -1,12 +1,10 @@
 use essay_ecs::prelude::*;
 use essay_tensor::prelude::*;
 
-use crate::{Body, sense_peptide::{Peptide, PeptidePlugin}};
+use super::{Body, sense_peptide::{Peptide, PeptidePlugin}};
 
 #[derive(Component)]
 pub struct Cilia {
-    swim_rate: f32, // how fast the cilia are beating
-    arrest: f32,    // timeout for cilia arrest
     peptides: Tensor,
     cilia_matrix: Tensor,
 }
@@ -14,16 +12,12 @@ pub struct Cilia {
 impl Cilia {
     pub const SWIM_RATE : f32 = 1.;    // default swim rate
     pub const DY_SWIM : f32 = 0.05;    // speed of the default swim rate
-    pub const DY_SINK : f32 = -0.05;    // speed of the default swim rate
-    pub const ARREST_DECAY : f32 = 1.; // linear arrest decay
 
     pub const PEPTIDE_DECAY : f32 = 0.9;
     pub const PEPTIDE_INPUT : f32 = 0.5;
 
     pub fn new() -> Self {
         Self {
-            swim_rate: 0.,
-            arrest: 0.,
             peptides: Tensor::zeros([6]),
             cilia_matrix: tf32!([
                 [0.2, 0.],   // Pressure
@@ -67,7 +61,6 @@ fn cilia_update(
                 let input = Tensor::one_hot([4], 6);
                 peptides = peptides + input * Cilia::PEPTIDE_INPUT;
             },
-            _ => {}
         }
     }
 

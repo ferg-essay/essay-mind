@@ -1,9 +1,9 @@
 use essay_ecs::prelude::*;
-use essay_plot::{prelude::*, artist::{PathStyle, paths, LinesOpt}, artist::{ColorGridOpt, ColorMaps}};
+use essay_plot::{prelude::*, artist::{PathStyle, paths, LinesOpt}, artist::{GridColorOpt, ColorMaps}};
 use essay_tensor::tf32;
 use ui_graphics::{UiCanvas, ui_plot::{UiPlot, UiPlotPlugin}};
 
-use crate::{UiWorld, World, UiApicalWorldPlugin, DrawItem};
+use super::{UiWorld, World, UiApicalWorldPlugin, DrawItem};
 
 use super::Body;
 
@@ -24,7 +24,7 @@ pub struct UiBody {
     y_arrest: Vec<f32>,
     arrest: LinesOpt,
 
-    peptides: ColorGridOpt,
+    peptides: GridColorOpt,
 
     tick: usize,
 }
@@ -56,7 +56,7 @@ impl UiBody {
         arrest.label("arrest");
 
         let z_peptides = tf32!([[0., 1.], [0., 0.], [0., 0.]]);
-        let mut peptides : ColorGridOpt = plot.color_grid(z_peptides);
+        let mut peptides : GridColorOpt = plot.color_grid(z_peptides);
         peptides.color_map(ColorMaps::WhiteRed);
 
         Self {
