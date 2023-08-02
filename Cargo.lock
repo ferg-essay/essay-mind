@@ -55,9 +55,9 @@ dependencies = [
 
 [[package]]
 name = "alsa"
-version = "0.7.0"
+version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8512c9117059663fb5606788fbca3619e2a91dac0e3fe516242eab1fa6be5e44"
+checksum = "e2562ad8dcf0f789f65c6fdaad8a8a9708ed6b488e649da28c01656ad66b8b47"
 dependencies = [
  "alsa-sys",
  "bitflags 1.3.2",
@@ -77,9 +77,9 @@ dependencies = [
 
 [[package]]
 name = "android-activity"
-version = "0.4.2"
+version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "40bc1575e653f158cbdc6ebcd917b9564e66321c5325c232c3591269c257be69"
+checksum = "64529721f27c2314ced0890ce45e469574a73e5e6fdd6e9da1860eb29285f5e0"
 dependencies = [
  "android-properties",
  "bitflags 1.3.2",
@@ -271,7 +271,7 @@ checksum = "fdde5c9cd29ebd706ce1b35600920a33550e402fc998a2e53ad3b42c3c47a192"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.26",
+ "syn 2.0.28",
 ]
 
 [[package]]
@@ -302,11 +302,12 @@ dependencies = [
 
 [[package]]
 name = "cc"
-version = "1.0.79"
+version = "1.0.81"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "50d30906286121d95be3d479533b458f87493b30a4b5f79a607db8f5d11aa91f"
+checksum = "6c6b2562119bf28c3439f7f02db99faf0aa1a8cdfe5772a2ee155d32227239f0"
 dependencies = [
  "jobserver",
+ "libc",
 ]
 
 [[package]]
@@ -628,9 +629,9 @@ checksum = "304e6508efa593091e97a9abbc10f90aa7ca635b6d2784feff3c89d41dd12272"
 
 [[package]]
 name = "either"
-version = "1.8.1"
+version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7fcaabb2fef8c910e7f4c7ce9f67a1283a1715879a7c230ca9d6d1ae31f16d91"
+checksum = "a26ae43d7bcc3b814de94796a5e736d4029efb0ee900c12e2d54c993ad1a1e07"
 
 [[package]]
 name = "encoding_rs"
@@ -662,9 +663,9 @@ checksum = "5443807d6dff69373d433ab9ef5378ad8df50ca6298caf15de6e52e24aaf54d5"
 
 [[package]]
 name = "errno"
-version = "0.3.1"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4bcfec3a70f97c962c307b2d2c56e358cf1d00b558d74262b5f929ee8cc7e73a"
+checksum = "6b30f669a7961ef1631673d2766cc92f52d64f7ef354d4fe0ddfd30ed52f0f4f"
 dependencies = [
  "errno-dragonfly",
  "libc",
@@ -709,7 +710,7 @@ version = "0.1.13"
 source = "git+https://github.com/ferg-essay/essay-ecs#3654d48509e033d12a6e3a7c2897c5754c6b3996"
 dependencies = [
  "quote",
- "syn 2.0.26",
+ "syn 2.0.28",
 ]
 
 [[package]]
@@ -729,7 +730,7 @@ version = "0.1.13"
 source = "git+https://github.com/ferg-essay/essay-ecs#3654d48509e033d12a6e3a7c2897c5754c6b3996"
 dependencies = [
  "quote",
- "syn 2.0.26",
+ "syn 2.0.28",
 ]
 
 [[package]]
@@ -740,41 +741,24 @@ dependencies = [
  "cpal",
  "env_logger",
  "essay-ecs",
- "essay-plot 0.1.14-dev",
- "essay-tensor 0.1.13",
+ "essay-plot",
+ "essay-tensor",
  "fundsp",
  "log",
  "mind",
  "test-log",
  "ui-audio",
  "ui-graphics",
- "world-plankton",
 ]
 
 [[package]]
 name = "essay-opt"
 version = "0.1.13"
-source = "git+https://github.com/ferg-essay/essay-tensor#04e2b4eadaeaddb39060921e845e6ab673d4c619"
 dependencies = [
  "env_logger",
  "log",
  "quote",
- "syn 2.0.26",
-]
-
-[[package]]
-name = "essay-plot"
-version = "0.1.13"
-source = "git+https://github.com/ferg-essay/essay-plot#d6be71eb98805e1ee82eba4e08e2d2472b61bd3a"
-dependencies = [
- "env_logger",
- "essay-plot-api 0.1.13",
- "essay-plot-wgpu 0.1.13",
- "essay-tensor 0.1.13 (git+https://github.com/ferg-essay/essay-tensor)",
- "futures",
- "log",
- "wgpu 0.17.0",
- "winit",
+ "syn 2.0.28",
 ]
 
 [[package]]
@@ -782,19 +766,10 @@ name = "essay-plot"
 version = "0.1.14-dev"
 dependencies = [
  "env_logger",
- "essay-plot-api 0.1.14-dev",
- "essay-plot-wgpu 0.1.14-dev",
- "essay-tensor 0.1.13",
+ "essay-plot-api",
+ "essay-plot-wgpu",
+ "essay-tensor",
  "futures",
- "log",
-]
-
-[[package]]
-name = "essay-plot-api"
-version = "0.1.13"
-source = "git+https://github.com/ferg-essay/essay-plot#d6be71eb98805e1ee82eba4e08e2d2472b61bd3a"
-dependencies = [
- "essay-tensor 0.1.13 (git+https://github.com/ferg-essay/essay-tensor)",
  "log",
 ]
 
@@ -802,24 +777,8 @@ dependencies = [
 name = "essay-plot-api"
 version = "0.1.14-dev"
 dependencies = [
- "essay-tensor 0.1.13",
+ "essay-tensor",
  "log",
-]
-
-[[package]]
-name = "essay-plot-wgpu"
-version = "0.1.13"
-source = "git+https://github.com/ferg-essay/essay-plot#d6be71eb98805e1ee82eba4e08e2d2472b61bd3a"
-dependencies = [
- "bytemuck",
- "env_logger",
- "essay-plot-api 0.1.13",
- "essay-tensor 0.1.13 (git+https://github.com/ferg-essay/essay-tensor)",
- "log",
- "pollster",
- "wgpu 0.17.0",
- "wgpu_glyph",
- "winit",
 ]
 
 [[package]]
@@ -828,8 +787,8 @@ version = "0.1.14-dev"
 dependencies = [
  "bytemuck",
  "env_logger",
- "essay-plot-api 0.1.14-dev",
- "essay-tensor 0.1.13",
+ "essay-plot-api",
+ "essay-tensor",
  "futures-intrusive",
  "image",
  "log",
@@ -846,27 +805,7 @@ dependencies = [
  "concurrent-queue",
  "crossbeam",
  "env_logger",
- "essay-opt 0.1.13",
- "futures",
- "glob",
- "log",
- "matrixmultiply",
- "num-complex",
- "num-traits",
- "rand",
- "rand_chacha",
- "rustfft",
-]
-
-[[package]]
-name = "essay-tensor"
-version = "0.1.13"
-source = "git+https://github.com/ferg-essay/essay-tensor#04e2b4eadaeaddb39060921e845e6ab673d4c619"
-dependencies = [
- "concurrent-queue",
- "crossbeam",
- "env_logger",
- "essay-opt 0.1.13 (git+https://github.com/ferg-essay/essay-tensor)",
+ "essay-opt",
  "futures",
  "glob",
  "log",
@@ -959,7 +898,7 @@ checksum = "1a5c6c585bc94aaf2c7b51dd4c2ba22680844aba4c687be581871a6f518c5742"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.26",
+ "syn 2.0.28",
 ]
 
 [[package]]
@@ -1071,7 +1010,7 @@ checksum = "89ca545a94061b6365f2c7355b4b32bd20df3ff95f02da9329b34ccc3bd6ee72"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.26",
+ "syn 2.0.28",
 ]
 
 [[package]]
@@ -1525,9 +1464,9 @@ checksum = "0717cef1bc8b636c6e1c1bbdefc09e6322da8a9321966e8928ef80d20f7f770f"
 
 [[package]]
 name = "linux-raw-sys"
-version = "0.4.3"
+version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "09fc20d2ca12cb9f044c93e3bd6d32d523e6e2ec3db4f7b2939cd99026ecd3f0"
+checksum = "57bcfdad1b858c2db7c38303a6d2ad4dfaf5eb53dfeb0910128b2c26d6158503"
 
 [[package]]
 name = "lock_api"
@@ -1641,7 +1580,7 @@ version = "0.0.0"
 dependencies = [
  "env_logger",
  "essay-ecs",
- "essay-plot 0.1.13",
+ "essay-plot",
  "essay-tensor",
  "log",
  "test-log",
@@ -1832,9 +1771,9 @@ dependencies = [
 
 [[package]]
 name = "num-traits"
-version = "0.2.15"
+version = "0.2.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "578ede34cf02f8924ab9447f50c28075b4d3e5b269972345e7e0372b38c6cdcd"
+checksum = "f30b0abd723be7e2ffca1272140fac1a2f084c77ec3e123c192b66af1ee9e6c2"
 dependencies = [
  "autocfg",
 ]
@@ -1888,7 +1827,7 @@ dependencies = [
  "proc-macro-crate",
  "proc-macro2",
  "quote",
- "syn 2.0.26",
+ "syn 2.0.28",
 ]
 
 [[package]]
@@ -1986,9 +1925,9 @@ checksum = "dd8b5dd2ae5ed71462c540258bedcb51965123ad7e7ccf4b9a8cafaa4a63576d"
 
 [[package]]
 name = "orbclient"
-version = "0.3.45"
+version = "0.3.46"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "221d488cd70617f1bd599ed8ceb659df2147d9393717954d82a0f5e8032a6ab1"
+checksum = "8378ac0dfbd4e7895f2d2c1f1345cab3836910baf3a300b000d04250f0c8428f"
 dependencies = [
  "redox_syscall",
 ]
@@ -2069,7 +2008,7 @@ checksum = "ec2e072ecce94ec471b13398d5402c188e76ac03cf74dd1a975161b23a3f6d9c"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.26",
+ "syn 2.0.28",
 ]
 
 [[package]]
@@ -2184,9 +2123,9 @@ dependencies = [
 
 [[package]]
 name = "quote"
-version = "1.0.31"
+version = "1.0.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5fe8a65d69dd0808184ebb5f836ab526bb259db23c657efa38711b1072ee47f0"
+checksum = "50f3b39ccfb720540debaa0164757101c08ecb8d326b15358ce76a62c7e85965"
 dependencies = [
  "proc-macro2",
 ]
@@ -2284,9 +2223,9 @@ dependencies = [
 
 [[package]]
 name = "regex-automata"
-version = "0.3.3"
+version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "39354c10dd07468c2e73926b23bb9c2caca74c5501e38a35da70406f1d923310"
+checksum = "b7b6d6190b7594385f61bd3911cd1be99dfddcfc365a4160cc2ab5bff4aed294"
 dependencies = [
  "aho-corasick",
  "memchr",
@@ -2340,9 +2279,9 @@ dependencies = [
 
 [[package]]
 name = "rustix"
-version = "0.38.4"
+version = "0.38.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0a962918ea88d644592894bc6dc55acc6c0956488adcebbfb6e273506b7fd6e5"
+checksum = "1ee020b1716f0a80e2ace9b03441a749e402e86712f15f16fe8a8f75afac732f"
 dependencies = [
  "bitflags 2.3.3",
  "errno",
@@ -2393,9 +2332,9 @@ checksum = "43b2853a4d09f215c24cc5489c992ce46052d359b5109343cbafbf26bc62f8a3"
 
 [[package]]
 name = "simd-adler32"
-version = "0.3.5"
+version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "238abfbb77c1915110ad968465608b68e869e0772622c9656714e73e5a1a522f"
+checksum = "d66dc143e6b11c1eddc06d5c423cfc97062865baf299914ab64caa38182078fe"
 
 [[package]]
 name = "slab"
@@ -2673,9 +2612,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "2.0.26"
+version = "2.0.28"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "45c3457aacde3c65315de5031ec191ce46604304d2446e803d71ade03308d970"
+checksum = "04361975b3f5e348b2189d8dc55bc942f278b2d482a6a0365de5bdd62d351567"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2711,22 +2650,22 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "1.0.43"
+version = "1.0.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a35fc5b8971143ca348fa6df4f024d4d55264f3468c71ad1c2f365b0a4d58c42"
+checksum = "611040a08a0439f8248d1990b111c95baa9c704c805fa1f62104b39655fd7f90"
 dependencies = [
  "thiserror-impl",
 ]
 
 [[package]]
 name = "thiserror-impl"
-version = "1.0.43"
+version = "1.0.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "463fe12d7993d3b327787537ce8dd4dfa058de32fc2b195ef3cde03dc4771e8f"
+checksum = "090198534930841fab3a5d1bb637cde49e339654e606195f8d9c76eeb081dc96"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.26",
+ "syn 2.0.28",
 ]
 
 [[package]]
@@ -2850,7 +2789,7 @@ version = "0.1.0"
 dependencies = [
  "env_logger",
  "essay-ecs",
- "essay-plot 0.1.14-dev",
+ "essay-plot",
  "essay-tensor",
  "log",
  "pollster",
@@ -2925,7 +2864,7 @@ dependencies = [
  "once_cell",
  "proc-macro2",
  "quote",
- "syn 2.0.26",
+ "syn 2.0.28",
  "wasm-bindgen-shared",
 ]
 
@@ -2959,7 +2898,7 @@ checksum = "54681b18a46765f095758388f2d0cf16eb8d4169b639ab575a8f5693af210c7b"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.26",
+ "syn 2.0.28",
  "wasm-bindgen-backend",
  "wasm-bindgen-shared",
 ]
@@ -3061,9 +3000,9 @@ checksum = "9193164d4de03a926d909d3bc7c30543cecb35400c02114792c2cae20d5e2dbb"
 
 [[package]]
 name = "wgpu"
-version = "0.16.2"
+version = "0.16.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8aa4361a426ff9f028520da01e8fda28ab9bdb029e2a76901f1f88317e2796e9"
+checksum = "480c965c9306872eb6255fa55e4b4953be55a8b64d57e61d7ff840d3dcc051cd"
 dependencies = [
  "arrayvec",
  "cfg-if",
@@ -3267,7 +3206,7 @@ dependencies = [
  "bytemuck",
  "glyph_brush",
  "log",
- "wgpu 0.16.2",
+ "wgpu 0.16.3",
 ]
 
 [[package]]
@@ -3494,29 +3433,14 @@ dependencies = [
 
 [[package]]
 name = "winnow"
-version = "0.5.0"
+version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "81fac9742fd1ad1bd9643b991319f72dd031016d44b77039a26977eb667141e7"
+checksum = "f46aab759304e4d7b2075a9aecba26228bb073ee8c50db796b2c72c676b5d807"
 dependencies = [
  "memchr",
 ]
 
 [[package]]
-name = "world-plankton"
-version = "0.1.13"
-dependencies = [
- "env_logger",
- "essay-ecs",
- "essay-plot 0.1.14-dev",
- "essay-tensor",
- "log",
- "test-log",
- "ui-graphics",
-]
-
-[[package]]
-=======
->>>>>>> work
 name = "x11-dl"
 version = "2.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3544,9 +3468,9 @@ checksum = "a67300977d3dc3f8034dae89778f502b6ba20b269527b3223ba59c0cf393bb8a"
 
 [[package]]
 name = "xml-rs"
-version = "0.8.15"
+version = "0.8.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5a56c84a8ccd4258aed21c92f70c0f6dea75356b6892ae27c24139da456f9336"
+checksum = "47430998a7b5d499ccee752b41567bc3afc57e1327dc855b1a2aa44ce29b5fa1"
 
 [[package]]
 name = "zune-inflate"

@@ -1,6 +1,7 @@
 ### Local changes
 
 .vscode/
+Cargo.lock
 
 ### Original
 # Byte-compiled / optimized / DLL files
