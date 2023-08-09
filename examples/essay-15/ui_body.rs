@@ -5,104 +5,43 @@ use essay_plot::{
     artist::{GridColorOpt, ColorMaps, paths::Unit, Markers, Norms}
 };
 use essay_tensor::tf32;
-use ui_graphics::{UiCanvas, ui_plot::{UiPlot, UiPlotPlugin}};
+use ui_graphics::{UiCanvas, ui_plot::{UiFigure, UiPlotPlugin, UiKey, UiPlot, UiFigure2Plugin, UiFigure2}};
 
-use crate::{ui_world::{UiApicalWorldPlugin, UiWorld}, body::Body};
+use crate::{ui_world::{UiSlugWorldPlugin, UiWorld}, body::Body};
 
 use super::ui_world::DrawAgent;
 
 #[derive(Component)]
 pub struct UiBody {
-    x: Vec<f32>,
-    y_dir: Vec<f32>,
-    dir_opt: LinesOpt,
-
-    y_speed: Vec<f32>,
-    speed: LinesOpt,
-
-    y_arrest: Vec<f32>,
-    arrest: LinesOpt,
-
-    y_satiety: Vec<f32>,
-    satiety: LinesOpt,
+    plot: UiPlot,
 
     peptides: GridColorOpt,
-
-    tick: usize,
 }
 
 impl UiBody {
-    pub const LIM : usize = 100;
-
-    pub fn new(plot: &UiPlot) -> Self {
-        let x = Vec::new();
+    fn new(figure: &UiFigure2<BodyPlot>) -> Self {
+        let mut plot = figure.plot_xy((0., 0.), (1.5, 1.));
 
         plot.x_label("seconds");
 
-        let y_dir = Vec::new();
-        let mut dir_opt = plot.plot_xy(&x, &y_dir);
-        dir_opt.label("dir");
-
-        let y_speed = Vec::new();
-        let mut speed = plot.plot_xy(&x, &y_speed);
-        speed.label("speed");
-
-        let y_arrest = Vec::new();
-        let mut arrest = plot.plot_xy(&x, &y_arrest);
-        arrest.label("arrest");
-
-        let y_satiety: Vec<f32> = Vec::new();
-        let mut satiety = plot.plot_xy(&x, &y_satiety);
-        satiety.label("satiety");
+        plot.line(Key::DIR, "dir");
+        plot.line(Key::SPEED, "speed");
+        plot.line(Key::ARREST, "arrest");
 
         let z_peptides = tf32!([[0., 1.], [0., 0.], [0., 0.]]);
-        let mut peptides : GridColorOpt = plot.color_grid(z_peptides);
+        let mut peptides : GridColorOpt = figure.color_grid(z_peptides);
         peptides.norm(Norms::Linear.vmin(0.).vmax(1.));
         peptides.color_map(ColorMaps::WhiteRed);
 
         Self {
-            x,
-
-            y_dir,
-            dir_opt,
-
-            y_speed,
-            speed,
-
-            y_arrest,
-            arrest,
-            
-            y_satiety,
-            satiety,
+            plot,
 
             peptides,
-            tick: 0,
         }
     }
 
     pub fn tick(&mut self) {
-        self.tick += 1;
-        self.x.push(self.tick as f32 * 0.1);
-
-        while self.x.len() > Self::LIM {
-            self.x.remove(0);
-        }
-
-        while self.y_dir.len() > Self::LIM {
-            self.y_dir.remove(0);
-        }
-
-        while self.y_speed.len() > Self::LIM {
-            self.y_speed.remove(0);
-        }
-
-        while self.y_arrest.len() > Self::LIM {
-            self.y_arrest.remove(0);
-        }
-
-        while self.y_satiety.len() > Self::LIM {
-            self.y_satiety.remove(0);
-        }
+        self.plot.tick();
     }
 }
 
@@ -169,40 +108,51 @@ pub fn ui_body_plot(
     ui_body: &mut UiBody,
     body: Res<Body>
 ) {
-    ui_body.y_dir.push(body.dir().to_unit());
-    ui_body.y_speed.push(body.get_speed());
-    ui_body.y_arrest.push(body.get_arrest());
-    ui_body.y_satiety.push(body.get_satiety());
+    ui_body.plot.push(&Key::DIR, body.dir().to_unit());
+    ui_body.plot.push(&Key::SPEED, body.get_speed());
+    ui_body.plot.push(&Key::ARREST, body.get_arrest());
 
     ui_body.tick();
-
-    ui_body.dir_opt.set_xy(&ui_body.x, &ui_body.y_dir);
-
-    ui_body.speed.set_xy(&ui_body.x, &ui_body.y_speed);
-    ui_body.arrest.set_xy(&ui_body.x, &ui_body.y_arrest);
-    ui_body.satiety.set_xy(&ui_body.x, &ui_body.y_satiety);
 
     ui_body.peptides.data(body.state().reshape([3, 2]));
 }
 
 pub fn ui_body_spawn_plot(
     mut c: Commands,
-    mut plot: ResMut<UiPlot>
+    mut plot: ResMut<UiFigure2<BodyPlot>>
 ) {
     c.spawn(UiBody::new(plot.get_mut()))
 }
 
-pub struct UiApicalBodyPlugin;
+pub enum Key {
+    DIR,
+    SPEED,
+    ARREST,
+}
 
-impl Plugin for UiApicalBodyPlugin {
+impl UiKey for Key {
+    fn index(&self) -> usize {
+        match self {
+            Key::DIR => 0,
+            Key::SPEED => 1,
+            Key::ARREST => 2,
+        }
+    }
+}
+
+pub struct BodyPlot;
+
+pub struct UiSlugBodyPlugin;
+
+impl Plugin for UiSlugBodyPlugin {
     fn build(&self, app: &mut App) {
-        assert!(app.contains_plugin::<UiApicalWorldPlugin>());
+        assert!(app.contains_plugin::<UiSlugWorldPlugin>());
         
         app.system(Update, draw_body.phase(DrawAgent));
 
-        if app.contains_plugin::<UiPlotPlugin>() {
-            app.system(Startup, ui_body_spawn_plot);
-            app.system(Update, ui_body_plot);
-        }
-}
+        app.plugin(UiFigure2Plugin::<BodyPlot>::new((0., 1.), (2., 1.)));
+
+        app.system(Startup, ui_body_spawn_plot);
+        app.system(Update, ui_body_plot);
+    }
 }

@@ -14,10 +14,10 @@ impl UiLayout {
         }
     }
 
-    pub fn add_box(&mut self, pos: Bounds<UiLayout>) -> BoxId {
+    pub fn add_box(&mut self, pos: impl Into<Bounds<UiLayout>>) -> BoxId {
         let id = BoxId(self.boxes.len());
 
-        self.boxes.push(UiBox::new(id, pos));
+        self.boxes.push(UiBox::new(id, pos.into()));
 
         id
     }

@@ -1,3 +1,4 @@
+use core::fmt;
 use std::ops::{Index, IndexMut};
 
 use essay_ecs::prelude::*;
@@ -5,25 +6,27 @@ use essay_plot::prelude::*;
 
 use ui_graphics::UiCanvasPlugin;
 
-use super::ui_world::UiApicalWorldPlugin;
+use super::ui_world::UiSlugWorldPlugin;
 
 #[derive(Component)]
 pub struct World {
     width: usize,
     height: usize,
-    values: Vec<WorldItem>,
+    cells: Vec<WorldCell>,
+    food: Vec<Food>,
 }
 
 impl World {
     pub fn new(width: usize, height: usize) -> Self {
         let mut values = Vec::new();
 
-        values.resize_with(width * height, || WorldItem::Empty);
+        values.resize_with(width * height, || WorldCell::Empty);
 
         Self {
             width,
             height,
-            values,
+            cells: values,
+            food: Vec::new(),
         }
     }
 
@@ -48,9 +51,15 @@ impl World {
         }
 
         match self[(x.floor() as usize, y.floor() as usize)] {
-            WorldItem::Wall => true,
+            WorldCell::Wall => true,
             _ => false,
         }
+    }
+
+    fn add_food(&mut self, x: usize, y: usize) {
+        self[(x, y)] = WorldCell::Food;
+
+        self.food.push(Food::new(x, y));
     }
 
     pub fn is_food(&self, pt: impl Into<Point>) -> bool {
@@ -64,27 +73,27 @@ impl World {
         }
 
         match self[(x.floor() as usize, y.floor() as usize)] {
-            WorldItem::Food => true,
+            WorldCell::Food => true,
             _ => false,
         }
     }
 }
 
 impl Index<(usize, usize)> for World {
-    type Output = WorldItem;
+    type Output = WorldCell;
 
     fn index(&self, index: (usize, usize)) -> &Self::Output {
-        &self.values[index.1 * self.width + index.0]
+        &self.cells[index.1 * self.width + index.0]
     }
 }
 
 impl IndexMut<(usize, usize)> for World {
     fn index_mut(&mut self, index: (usize, usize)) -> &mut Self::Output {
-        &mut self.values[index.1 * self.width + index.0]
+        &mut self.cells[index.1 * self.width + index.0]
     }
 }
 
-pub enum WorldItem {
+pub enum WorldCell {
     Empty,
     Food,
     Wall
@@ -101,7 +110,7 @@ pub fn spawn_world(
         (6, 7), (10, 7),
         (11, 9), (13, 9),
     ] {
-        world[(x, y)] = WorldItem::Food;
+        world.add_food(x, y);
     }
 
     for (x, y) in vec![
@@ -110,10 +119,30 @@ pub fn spawn_world(
         (9, 3), (10, 3), (11, 3), (13, 3), (14, 3),
         (10, 7), (11, 7), (13, 7),
     ] {
-        world[(x, y)] = WorldItem::Wall;
+        world[(x, y)] = WorldCell::Wall;
     }
 
     commands.insert_resource(world);
+}
+
+struct Food {
+    x: f32,
+    y: f32,
+}
+
+impl Food {
+    fn new(x: usize, y: usize) -> Self {
+        Self {
+            x: x as f32 + 0.5,
+            y: y as f32 + 0.5
+        }
+    }
+}
+
+impl fmt::Debug for Food {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("Food").field(&self.x).field(&self.y).finish()
+    }
 }
 
 pub struct SlugWorldPlugin;
@@ -123,7 +152,7 @@ impl Plugin for SlugWorldPlugin {
         app.system(Startup, spawn_world);
 
         if app.contains_plugin::<UiCanvasPlugin>() {
-            app.plugin(UiApicalWorldPlugin);
+            app.plugin(UiSlugWorldPlugin);
 
             /*
             if ! app.contains_plugin::<UiLayoutPlugin>() {

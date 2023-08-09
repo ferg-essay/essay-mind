@@ -5,7 +5,7 @@ use ui_graphics::{ui_layout::{UiLayout, UiLayoutEvent, BoxId, UiLayoutPlugin}, U
 
 use crate::world::World;
 
-use super::world::{SlugWorldPlugin, WorldItem};
+use super::world::{SlugWorldPlugin, WorldCell};
 
 #[derive(Component)]
 pub struct UiWorld {
@@ -21,7 +21,7 @@ impl UiWorld {
     pub fn new(id: BoxId, width: usize, height: usize) -> Self {
         let mut values = Vec::new();
 
-        values.resize_with(width * height, || WorldItem::Empty);
+        values.resize_with(width * height, || WorldCell::Empty);
 
         Self {
             id,
@@ -79,9 +79,9 @@ pub fn draw_world(
         for j in 0..ui_world.height {
             for i in 0..ui_world.width {
                 match world[(i, j)] {
-                    WorldItem::Empty => vec.push(Color::from("black").to_rgba_vec()),
-                    WorldItem::Food => vec.push(Color::from("dark teal").to_rgba_vec()),
-                    WorldItem::Wall => vec.push(Color::from("beige").to_rgba_vec()),
+                    WorldCell::Empty => vec.push(Color::from("black").to_rgba_vec()),
+                    WorldCell::Food => vec.push(Color::from("dark teal").to_rgba_vec()),
+                    WorldCell::Wall => vec.push(Color::from("beige").to_rgba_vec()),
                 }
             }
         }
@@ -114,16 +114,15 @@ pub fn spawn_ui_world(
 ) {
     // spawn_world(commands);
 
-    let id = ui_layout.add_box(Bounds::from([1., 1.]));
-
+    let id = ui_layout.add_box([0., 0., 1., 1.]);
     let ui_world = UiWorld::new(id, 15, 10);
 
     commands.insert_resource(ui_world);
 }
 
-pub struct UiApicalWorldPlugin;
+pub struct UiSlugWorldPlugin;
 
-impl Plugin for UiApicalWorldPlugin {
+impl Plugin for UiSlugWorldPlugin {
     fn build(&self, app: &mut App) {
         assert!(app.contains_plugin::<UiCanvasPlugin>());
         assert!(app.contains_plugin::<SlugWorldPlugin>());

@@ -6,7 +6,7 @@ use test_log::{TestLog, TestLogPlugin};
 use ui_graphics::UiCanvasPlugin;
 
 use super::{
-    world::{SlugWorldPlugin, World}, ui_body::UiApicalBodyPlugin,
+    world::{SlugWorldPlugin, World}, ui_body::UiSlugBodyPlugin,
     control::SlugControlPlugin
 };
 
@@ -22,8 +22,6 @@ pub struct Body {
     sensor_left: bool,
     sensor_right: bool,
     sensor_food: bool,
-
-    satiety: f32,
 
     muscle_left: f32,
     muscle_right: f32,
@@ -53,7 +51,6 @@ impl Body {
             sensor_left: false,
             sensor_right: false,
             sensor_food: false,
-            satiety: 0.,
 
             muscle_left: 1.,
             muscle_right: 0.,
@@ -80,10 +77,6 @@ impl Body {
 
     pub fn is_sensor_food(&self) -> bool {
         self.sensor_food
-    }
-
-    pub fn get_satiety(&self) -> f32 {
-        self.satiety
     }
 
     pub fn muscle_left(&self) -> f32 {
@@ -195,12 +188,6 @@ pub fn body_physics(
 
     body.sensor_food = world.is_food((x, y));
 
-    body.satiety = (body.satiety - Body::SATIETY_DECAY).max(0.);
-
-    if world.is_food((x, y)) {
-        body.satiety = (body.satiety + Body::SATIETY_INCREATE).clamp(0., 1.);
-    }
-
     body.dir = Angle::Unit((dir + 1.) % 1.);
 
     body.arrest = (body.arrest + Body::ARREST_DECAY).max(0.);
@@ -238,7 +225,7 @@ impl Plugin for SlugBodyPlugin {
         }
 
         if app.contains_plugin::<UiCanvasPlugin>() {
-            app.plugin(UiApicalBodyPlugin);
+            app.plugin(UiSlugBodyPlugin);
         }
 
         if ! app.contains_plugin::<SlugControlPlugin>() {

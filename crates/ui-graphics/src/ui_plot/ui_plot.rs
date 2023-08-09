@@ -1,165 +1,92 @@
-use std::sync::{Arc, Mutex};
+use essay_plot::{graph::Graph, artist::{Lines2d, LinesOpt}};
+use essay_tensor::prelude::*;
 
-use essay_ecs::prelude::*;
-use essay_plot::artist::{Lines2d, LinesOpt, GridColorOpt, GridColor};
-use essay_plot::graph::{FigureInner, GraphId};
-use essay_plot::prelude::driver::FigureApi;
-use essay_plot::prelude::*;
-use essay_plot::wgpu::PlotRenderer;
-use essay_tensor::Tensor;
-
-use crate::UiCanvas;
-use crate::ui_layout::UiLayoutEvent;
-use crate::{UiCanvasPlugin, ui_layout::{UiLayout, BoxId}};
-
-#[derive(Component)]
 pub struct UiPlot {
-    box_id: BoxId,
-    inner: ArcPlot,
-    bounds: Bounds::<Canvas>,
+    graph: Graph,
+    lines: Vec<UiLine>,
+    tick: usize,
+    x: Vec<f32>,
 }
 
 impl UiPlot {
-    fn new(box_id: BoxId) -> Self {
-        let figure = FigureInner::new();
-        // let graph_id = figure.new_graph([1., 1.]).id();
-        
+    pub const LIM: usize = 100;
+
+    pub(crate) fn new(graph: Graph) -> Self {
         Self {
-            box_id,
-            inner: PlotInner::new(figure),
-            bounds: Bounds::<Canvas>::zero(),
+            graph,
+            lines: Vec::new(),
+            tick: 0,
+            x: Vec::new(),
         }
     }
 
-    fn canvas_bounds(&mut self, bounds: &Bounds<Canvas>) {
-        let canvas = Canvas::new(bounds.clone(), 2.);
+    pub fn line(&mut self, key: impl UiKey, label: &str) {
+        let lines = Lines2d::from_xy([0.], [0.]);
 
-        self.bounds = bounds.clone();
+        let mut line_opt = self.graph.artist(lines);
+        line_opt.label(label);
 
-        self.inner.0.lock().unwrap().figure.update_canvas(&canvas);
+        self.lines.push(UiLine::new(key, line_opt));
     }
 
-    fn draw(&mut self, renderer: &mut PlotRenderer) {
-        let canvas = Canvas::new(self.bounds.clone(), 2.);
-        self.inner.0.lock().unwrap().figure.update_canvas(&canvas);
-
-        self.inner.0.lock().unwrap().figure.draw(renderer, &self.bounds);
-    }
-
-    pub fn plot_xy(&self, x: impl Into<Tensor>, y: impl Into<Tensor>) -> LinesOpt {
-        self.inner.0.lock().unwrap().plot(x, y)
-    }
-
-    pub fn x_label(&self, label: impl AsRef<str>) {
-        self.inner.0.lock().unwrap().x_label(label.as_ref())
-    }
-
-    pub fn color_grid(&self, data: impl Into<Tensor>) -> GridColorOpt {
-        self.inner.0.lock().unwrap().color_grid(data)
-    }
-}
-
-pub struct ArcPlot(Arc<Mutex<PlotInner>>);
-
-pub struct PlotInner {
-    figure: FigureInner,
-    graph_id: Option<GraphId>,
-}
-
-impl PlotInner {
-    fn new(figure: FigureInner) -> ArcPlot {
-        ArcPlot(Arc::new(Mutex::new(
-            PlotInner {
-                figure,
-                graph_id: None,
-            }            
-        )))
-    }
-
-    fn plot(&mut self, x: impl Into<Tensor>, y: impl Into<Tensor>) -> LinesOpt {
-        let mut graph = match self.graph_id {
-            Some(graph_id) => self.figure.get_graph(graph_id),
-
-            None => {
-                let graph = self.figure.new_graph([0., 0., 1.5, 1.]);
-                self.graph_id = Some(graph.id());
-                graph
+    pub fn push(&mut self, key: &dyn UiKey, y: f32) {
+        for line in &mut self.lines {
+            if line.key.index() == key.index() {
+                line.y.push(y);
             }
-        };
-        let lines = Lines2d::from_xy(x, y);
-
-        graph.artist(lines)
+        }
     }
 
-    fn x_label(&mut self, label: &str) {
-        let mut graph = match self.graph_id {
-            Some(graph_id) => self.figure.get_graph(graph_id),
+    pub fn tick(&mut self) {
+        self.tick += 1;
+        self.x.push(self.tick as f32);
 
-            None => {
-                let graph = self.figure.new_graph([0., 0., 1.5, 1.]);
-                self.graph_id = Some(graph.id());
-                graph
+        for y in &mut self.lines {
+            if y.y.len() < self.x.len() {
+                y.y.push(0.);
             }
-        };
-
-        graph.x_label(label);
-    }
-
-    fn color_grid(&mut self, data: impl Into<Tensor>) -> GridColorOpt {
-        let mut graph = self.figure.new_graph([1.5, 0., 2., 1.]);
-        graph.flip_y(true);
-        graph.x().visible(false);
-        graph.y().visible(false);
-        let colormesh = GridColor::new(data);
-
-        graph.artist(colormesh)
-    }
-}
-
-pub struct UiPlotPlugin;
-
-fn ui_plot_draw(mut ui_plot: ResMut<UiPlot>, mut ui_canvas: ResMut<UiCanvas>) {
-    if let Some(mut renderer)= ui_canvas.plot_renderer() {
-        ui_plot.draw(&mut renderer);
-        
-        renderer.flush();
-    }
-}
-
-pub fn ui_plot_resize(
-    mut ui_plot: ResMut<UiPlot>, 
-    ui_layout: Res<UiLayout>,
-    mut read: InEvent<UiLayoutEvent>
-) {
-    for _ in read.iter() {
-        let bounds = ui_layout.get_box(ui_plot.box_id).clone();
-
-        ui_plot.canvas_bounds(&bounds);
-    }
-}
-
-pub fn ui_plot_spawn(
-    mut commands: Commands,
-    mut ui_layout: ResMut<UiLayout>,
-) {
-    // spawn_world(commands);
-
-    let id = ui_layout.add_box(Bounds::new(Point(0., 1.), Point(1., 2.)));
-
-    let ui_plot = UiPlot::new(id);
-
-    commands.insert_resource(ui_plot);
-}
-
-impl Plugin for UiPlotPlugin {
-    fn build(&self, app: &mut App) {
-        if ! app.contains_plugin::<UiCanvasPlugin>() {
-            app.plugin(UiCanvasPlugin);
         }
 
-        app.system(PreStartup, ui_plot_spawn);
+        if self.x.len() > Self::LIM {
+            self.x.remove(0);
 
-        app.system(Update, ui_plot_resize);
-        app.system(Update, ui_plot_draw);
+            for y in &mut self.lines {
+                y.y.remove(0);
+            }
+        }
+
+        for y in &mut self.lines {
+            y.line.set_xy(&self.x, &y.y);
+        }
+    }
+
+    pub fn x_label(&mut self, label: &str) {
+        self.graph.x_label(label);
+    }
+}
+
+struct UiLine {
+    key: Box<dyn UiKey>,
+    line: LinesOpt,
+    y: Vec<f32>,
+}
+
+impl UiLine {
+    fn new(key: impl UiKey, line: LinesOpt) -> Self {
+        Self {
+            key: Box::new(key),
+            line: line,
+            y: Vec::new(),
+        }
+    }
+}
+
+pub trait UiKey : Send + Sync + 'static {
+    fn index(&self) -> usize;
+}
+
+impl UiKey for usize {
+    fn index(&self) -> usize {
+        *self
     }
 }

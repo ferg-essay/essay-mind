@@ -17,8 +17,8 @@ pollster = { version = "0.3" }
 #essay-plot-wgpu = { path = "../../../essay-plot" }
 essay-plot = { path = "../../../essay-plot"  }
 #essay-plot = { git = "https://github.com/ferg-essay/essay-plot", version="0.1.13"  }
-#essay-ecs = { path = "../../../essay-ecs" }
-essay-ecs = { git = "https://github.com/ferg-essay/essay-ecs", version="0.1.13" }
+essay-ecs = { path = "../../../essay-ecs" }
+#essay-ecs = { git = "https://github.com/ferg-essay/essay-ecs", version="0.1.13" }
 #essay-tensor = { git = "https://github.com/ferg-essay/essay-tensor", version="0.1.13" }
 essay-tensor = { path = "../../../essay-tensor" }
 #essay-ecs = { git = "https://github.com/ferg-essay/essay-ecs", version="0.1.1-dev" }

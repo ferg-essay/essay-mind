@@ -5,11 +5,11 @@ use essay_plot::{
     artist::{GridColorOpt, ColorMaps, paths::Unit, Markers, Norms}
 };
 use essay_tensor::tf32;
-use ui_graphics::{UiCanvas, ui_plot::{UiPlot, UiPlotPlugin}};
+use ui_graphics::{UiCanvas, ui_plot::{UiFigure, UiPlotPlugin}};
 
 use crate::{body::Body, ui_world::{UiWorld, UiApicalWorldPlugin}};
 
-use super::{ui_world::DrawAgent};
+use super::ui_world::DrawAgent;
 
 #[derive(Component)]
 pub struct UiBody {
@@ -34,25 +34,25 @@ pub struct UiBody {
 impl UiBody {
     pub const LIM : usize = 100;
 
-    pub fn new(plot: &UiPlot) -> Self {
+    pub fn new(plot: &UiFigure) -> Self {
         let x = Vec::new();
 
         plot.x_label("seconds");
 
         let y_dir = Vec::new();
-        let mut dir_opt = plot.plot_xy(&x, &y_dir);
+        let mut dir_opt = plot.plot_xy_old(&x, &y_dir);
         dir_opt.label("dir");
 
         let y_speed = Vec::new();
-        let mut speed = plot.plot_xy(&x, &y_speed);
+        let mut speed = plot.plot_xy_old(&x, &y_speed);
         speed.label("speed");
 
         let y_arrest = Vec::new();
-        let mut arrest = plot.plot_xy(&x, &y_arrest);
+        let mut arrest = plot.plot_xy_old(&x, &y_arrest);
         arrest.label("arrest");
 
         let y_satiety: Vec<f32> = Vec::new();
-        let mut satiety = plot.plot_xy(&x, &y_satiety);
+        let mut satiety = plot.plot_xy_old(&x, &y_satiety);
         satiety.label("satiety");
 
         let z_peptides = tf32!([[0., 1.], [0., 0.], [0., 0.]]);
@@ -187,7 +187,7 @@ pub fn ui_body_plot(
 
 pub fn ui_body_spawn_plot(
     mut c: Commands,
-    mut plot: ResMut<UiPlot>
+    mut plot: ResMut<UiFigure>
 ) {
     c.spawn(UiBody::new(plot.get_mut()))
 }

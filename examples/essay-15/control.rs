@@ -55,12 +55,6 @@ fn food_arrest_update(mut body: ResMut<Body>) {
     }
 }
 
-fn satiety_speed_update(mut body: ResMut<Body>) {
-    if body.get_satiety() >= 0.75 && ! body.is_sensor_food() {
-        body.speed(0.5);
-    }
-}
-
 pub struct SlugControlPlugin;
 
 impl Plugin for SlugControlPlugin {
@@ -78,6 +72,5 @@ impl Plugin for SlugControlPlugin {
             app.system(Update, touch_muscle_dopamine);
         }
         app.system(Update, food_arrest_update);
-        app.system(Update, satiety_speed_update);
     }
 }

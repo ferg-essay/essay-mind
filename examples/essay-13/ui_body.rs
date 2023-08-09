@@ -1,7 +1,7 @@
 use essay_ecs::prelude::*;
 use essay_plot::{prelude::*, artist::{PathStyle, paths, LinesOpt}, artist::{GridColorOpt, ColorMaps}};
 use essay_tensor::tf32;
-use ui_graphics::{UiCanvas, ui_plot::{UiPlot, UiPlotPlugin}};
+use ui_graphics::{UiCanvas, ui_plot::{UiFigure, UiPlotPlugin}};
 
 use super::{UiWorld, World, UiApicalWorldPlugin, DrawItem};
 
@@ -32,27 +32,27 @@ pub struct UiBody {
 impl UiBody {
     pub const LIM : usize = 100;
 
-    pub fn new(plot: &UiPlot) -> Self {
+    pub fn new(plot: &UiFigure) -> Self {
         let x = Vec::new();
 
         let y_pressure = Vec::new();
-        let mut pressure = plot.plot_xy(&x, &y_pressure);
+        let mut pressure = plot.plot_xy_old(&x, &y_pressure);
         pressure.label("pressure");
 
         let y_light = Vec::new();
-        let mut light = plot.plot_xy(&x, &y_light);
+        let mut light = plot.plot_xy_old(&x, &y_light);
         light.label("light");
 
         let y_temp = Vec::new();
-        let mut temp = plot.plot_xy(&x, &y_temp);
+        let mut temp = plot.plot_xy_old(&x, &y_temp);
         temp.label("temp");
 
         let y_swim = Vec::new();
-        let mut swim = plot.plot_xy(&x, &y_swim);
+        let mut swim = plot.plot_xy_old(&x, &y_swim);
         swim.label("swim");
 
         let y_arrest = Vec::new();
-        let mut arrest = plot.plot_xy(&x, &y_arrest);
+        let mut arrest = plot.plot_xy_old(&x, &y_arrest);
         arrest.label("arrest");
 
         let z_peptides = tf32!([[0., 1.], [0., 0.], [0., 0.]]);
@@ -183,7 +183,7 @@ pub fn ui_body_plot(
 
 pub fn ui_body_spawn_plot(
     mut c: Commands,
-    mut plot: ResMut<UiPlot>
+    mut plot: ResMut<UiFigure>
 ) {
     c.spawn(UiBody::new(plot.get_mut()))
 }
