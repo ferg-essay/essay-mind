@@ -1,7 +1,7 @@
 use essay_ecs::prelude::*;
 use essay_plot::{prelude::*, artist::{PathStyle, paths, LinesOpt}, artist::{GridColorOpt, ColorMaps}};
 use essay_tensor::tf32;
-use ui_graphics::{UiCanvas, ui_plot::{UiFigure, UiPlotPlugin, UiFigure2Plugin, UiFigure2}};
+use ui_graphics::{UiCanvas, ui_plot::{UiFigurePlugin, UiFigure}};
 
 use super::{UiWorld, World, UiApicalWorldPlugin, DrawItem};
 
@@ -32,7 +32,7 @@ pub struct UiBody {
 impl UiBody {
     pub const LIM : usize = 100;
 
-    pub fn new(plot: &UiFigure2<BodyPlot>) -> Self {
+    pub fn new(plot: &UiFigure<BodyPlot>) -> Self {
         let x = Vec::new();
 
         let y_pressure = Vec::new();
@@ -183,7 +183,7 @@ pub fn ui_body_plot(
 
 pub fn ui_body_spawn_plot(
     mut c: Commands,
-    mut plot: ResMut<UiFigure2<BodyPlot>>
+    mut plot: ResMut<UiFigure<BodyPlot>>
 ) {
     c.spawn(UiBody::new(plot.get_mut()))
 }
@@ -198,7 +198,7 @@ impl Plugin for UiApicalBodyPlugin {
         
         app.system(Update, draw_body.phase(DrawItem));
 
-        app.plugin(UiFigure2Plugin::<BodyPlot>::new((0., 1.), (2., 1.)));
+        app.plugin(UiFigurePlugin::<BodyPlot>::new((0., 1.), (2., 1.)));
 
         app.system(Startup, ui_body_spawn_plot);
         app.system(Update, ui_body_plot);

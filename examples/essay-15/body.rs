@@ -36,9 +36,6 @@ impl Body {
     const MUSCLE_DECAY : f32 = -0.05;
     const MUSCLE_THRESHOLD : f32 = 0.2;
 
-    const SATIETY_INCREATE : f32 = 0.025;
-    const SATIETY_DECAY : f32 = 0.0025;
-
     const SPEED : f32 = 0.05;
 
     pub fn new(pos: Point) -> Self {
@@ -109,7 +106,7 @@ impl Body {
         }
     }
 
-    pub fn speed(&mut self, speed: f32) {
+    pub fn _speed(&mut self, speed: f32) {
         self.speed = speed;
     }
 

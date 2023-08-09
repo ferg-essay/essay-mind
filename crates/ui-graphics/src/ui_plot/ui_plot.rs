@@ -1,5 +1,4 @@
 use essay_plot::{graph::Graph, artist::{Lines2d, LinesOpt}};
-use essay_tensor::prelude::*;
 
 pub struct UiPlot {
     graph: Graph,

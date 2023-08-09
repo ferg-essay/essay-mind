@@ -6,7 +6,7 @@ mod control;
 
 use body::SlugBodyPlugin;
 use essay_ecs::prelude::App;
-use ui_graphics::{UiCanvasPlugin, ui_plot::UiPlotPlugin};
+use ui_graphics::UiCanvasPlugin;
 use world::SlugWorldPlugin;
 
 pub fn main() {
@@ -14,7 +14,6 @@ pub fn main() {
 
     // UiCanvasPlugin enables graphics
     app.plugin(UiCanvasPlugin);
-    // app.plugin(UiPlotPlugin);
     app.plugin(SlugWorldPlugin);
     app.plugin(SlugBodyPlugin);
 

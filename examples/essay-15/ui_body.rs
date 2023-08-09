@@ -1,11 +1,11 @@
 use essay_ecs::prelude::*;
 use essay_plot::{
     prelude::*, 
-    artist::{PathStyle, LinesOpt}, 
+    artist::PathStyle, 
     artist::{GridColorOpt, ColorMaps, paths::Unit, Markers, Norms}
 };
 use essay_tensor::tf32;
-use ui_graphics::{UiCanvas, ui_plot::{UiFigure, UiPlotPlugin, UiKey, UiPlot, UiFigure2Plugin, UiFigure2}};
+use ui_graphics::{UiCanvas, ui_plot::{UiKey, UiPlot, UiFigurePlugin, UiFigure}};
 
 use crate::{ui_world::{UiSlugWorldPlugin, UiWorld}, body::Body};
 
@@ -19,7 +19,7 @@ pub struct UiBody {
 }
 
 impl UiBody {
-    fn new(figure: &UiFigure2<BodyPlot>) -> Self {
+    fn new(figure: &UiFigure<BodyPlot>) -> Self {
         let mut plot = figure.plot_xy((0., 0.), (1.5, 1.));
 
         plot.x_label("seconds");
@@ -119,7 +119,7 @@ pub fn ui_body_plot(
 
 pub fn ui_body_spawn_plot(
     mut c: Commands,
-    mut plot: ResMut<UiFigure2<BodyPlot>>
+    mut plot: ResMut<UiFigure<BodyPlot>>
 ) {
     c.spawn(UiBody::new(plot.get_mut()))
 }
@@ -150,7 +150,7 @@ impl Plugin for UiSlugBodyPlugin {
         
         app.system(Update, draw_body.phase(DrawAgent));
 
-        app.plugin(UiFigure2Plugin::<BodyPlot>::new((0., 1.), (2., 1.)));
+        app.plugin(UiFigurePlugin::<BodyPlot>::new((0., 1.), (2., 1.)));
 
         app.system(Startup, ui_body_spawn_plot);
         app.system(Update, ui_body_plot);

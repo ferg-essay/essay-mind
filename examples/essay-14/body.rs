@@ -38,7 +38,7 @@ impl Body {
     const MUSCLE_DECAY : f32 = -0.05;
     const MUSCLE_THRESHOLD : f32 = 0.2;
 
-    const SATIETY_INCREATE : f32 = 0.025;
+    const SATIETY_INCREASE : f32 = 0.025;
     const SATIETY_DECAY : f32 = 0.0025;
 
     const SPEED : f32 = 0.05;
@@ -198,7 +198,7 @@ pub fn body_physics(
     body.satiety = (body.satiety - Body::SATIETY_DECAY).max(0.);
 
     if world.is_food((x, y)) {
-        body.satiety = (body.satiety + Body::SATIETY_INCREATE).clamp(0., 1.);
+        body.satiety = (body.satiety + Body::SATIETY_INCREASE).clamp(0., 1.);
     }
 
     body.dir = Angle::Unit((dir + 1.) % 1.);
