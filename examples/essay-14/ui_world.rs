@@ -121,9 +121,9 @@ pub fn spawn_ui_world(
     commands.insert_resource(ui_world);
 }
 
-pub struct UiApicalWorldPlugin;
+pub struct UiSlugWorldPlugin;
 
-impl Plugin for UiApicalWorldPlugin {
+impl Plugin for UiSlugWorldPlugin {
     fn build(&self, app: &mut App) {
         assert!(app.contains_plugin::<UiCanvasPlugin>());
         assert!(app.contains_plugin::<SlugWorldPlugin>());

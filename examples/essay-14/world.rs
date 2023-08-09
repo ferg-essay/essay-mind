@@ -5,7 +5,7 @@ use essay_plot::prelude::*;
 
 use ui_graphics::UiCanvasPlugin;
 
-use super::ui_world::UiApicalWorldPlugin;
+use super::ui_world::UiSlugWorldPlugin;
 
 #[derive(Component)]
 pub struct World {
@@ -123,7 +123,7 @@ impl Plugin for SlugWorldPlugin {
         app.system(Startup, spawn_world);
 
         if app.contains_plugin::<UiCanvasPlugin>() {
-            app.plugin(UiApicalWorldPlugin);
+            app.plugin(UiSlugWorldPlugin);
 
             /*
             if ! app.contains_plugin::<UiLayoutPlugin>() {

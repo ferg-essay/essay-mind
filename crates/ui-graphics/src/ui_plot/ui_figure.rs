@@ -45,6 +45,10 @@ impl<K: Send + Sync + 'static> UiFigure2<K> {
         self.inner.0.lock().unwrap().plot_xy(Bounds::new(xy_grid, wh_grid))
     }
 
+    pub fn plot_xy_old(&self, x: impl Into<Tensor>, y: impl Into<Tensor>) -> LinesOpt {
+        self.inner.0.lock().unwrap().plot_old(x, y)
+    }
+
     pub fn x_label(&self, label: impl AsRef<str>) {
         self.inner.0.lock().unwrap().x_label(label.as_ref())
     }
@@ -53,7 +57,7 @@ impl<K: Send + Sync + 'static> UiFigure2<K> {
         self.inner.0.lock().unwrap().color_grid(data)
     }
 
-    fn draw(mut ui_plot: ResMut<UiFigure2<K>>, mut ui_canvas: ResMut<UiCanvas>) {
+    fn draw(ui_plot: ResMut<UiFigure2<K>>, mut ui_canvas: ResMut<UiCanvas>) {
         if let Some(mut renderer)= ui_canvas.plot_renderer() {
             let canvas = Canvas::new(ui_plot.bounds.clone(), 2.);
             ui_plot.inner.0.lock().unwrap().figure.update_canvas(&canvas);
@@ -89,7 +93,7 @@ impl<K> UiFigure2Plugin<K> {
     pub fn new(xy: impl Into<Point>, wh: impl Into<Point>) -> Self {
         let xy = xy.into();
         let wh = wh.into();
-        
+
         Self {
             bounds: Bounds::new(xy, (xy.0 + wh.0, xy.1 + wh.1)),
             marker: PhantomData::default(),
@@ -234,6 +238,7 @@ impl UiFigureInner {
 
 pub struct UiPlotPlugin;
 
+/*
 fn ui_plot_draw(mut ui_plot: ResMut<UiFigure>, mut ui_canvas: ResMut<UiCanvas>) {
     if let Some(mut renderer)= ui_canvas.plot_renderer() {
         ui_plot.draw(&mut renderer);
@@ -279,3 +284,4 @@ impl Plugin for UiPlotPlugin {
         app.system(Update, ui_plot_draw);
     }
 }
+*/

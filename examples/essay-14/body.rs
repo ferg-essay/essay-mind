@@ -6,7 +6,7 @@ use test_log::{TestLog, TestLogPlugin};
 use ui_graphics::UiCanvasPlugin;
 
 use super::{
-    world::{SlugWorldPlugin, World}, ui_body::UiApicalBodyPlugin,
+    world::{SlugWorldPlugin, World}, ui_body::UiSlugBodyPlugin,
     control::SlugControlPlugin
 };
 
@@ -238,7 +238,7 @@ impl Plugin for SlugBodyPlugin {
         }
 
         if app.contains_plugin::<UiCanvasPlugin>() {
-            app.plugin(UiApicalBodyPlugin);
+            app.plugin(UiSlugBodyPlugin);
         }
 
         if ! app.contains_plugin::<SlugControlPlugin>() {

@@ -28,7 +28,7 @@ pub fn main() {
 
     // UiCanvasPlugin enables graphics
     app.plugin(UiCanvasPlugin);
-    app.plugin(UiPlotPlugin);
+    // app.plugin(UiPlotPlugin);
     app.plugin(PlanktonWorldPlugin);
     app.plugin(PlanktonBodyPlugin);
 

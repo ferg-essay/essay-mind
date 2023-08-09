@@ -5,9 +5,9 @@ use essay_plot::{
     artist::{GridColorOpt, ColorMaps, paths::Unit, Markers, Norms}
 };
 use essay_tensor::tf32;
-use ui_graphics::{UiCanvas, ui_plot::{UiFigure, UiPlotPlugin}};
+use ui_graphics::{UiCanvas, ui_plot::{UiFigure, UiPlotPlugin, UiFigure2Plugin, UiFigure2}};
 
-use crate::{body::Body, ui_world::{UiWorld, UiApicalWorldPlugin}};
+use crate::{body::Body, ui_world::{UiWorld, UiSlugWorldPlugin}};
 
 use super::ui_world::DrawAgent;
 
@@ -34,7 +34,7 @@ pub struct UiBody {
 impl UiBody {
     pub const LIM : usize = 100;
 
-    pub fn new(plot: &UiFigure) -> Self {
+    pub fn new(plot: &UiFigure2<BodyPlot>) -> Self {
         let x = Vec::new();
 
         plot.x_label("seconds");
@@ -187,22 +187,24 @@ pub fn ui_body_plot(
 
 pub fn ui_body_spawn_plot(
     mut c: Commands,
-    mut plot: ResMut<UiFigure>
+    mut plot: ResMut<UiFigure2<BodyPlot>>
 ) {
     c.spawn(UiBody::new(plot.get_mut()))
 }
 
-pub struct UiApicalBodyPlugin;
+pub struct BodyPlot;
 
-impl Plugin for UiApicalBodyPlugin {
+pub struct UiSlugBodyPlugin;
+
+impl Plugin for UiSlugBodyPlugin {
     fn build(&self, app: &mut App) {
-        assert!(app.contains_plugin::<UiApicalWorldPlugin>());
+        assert!(app.contains_plugin::<UiSlugWorldPlugin>());
         
         app.system(Update, draw_body.phase(DrawAgent));
 
-        if app.contains_plugin::<UiPlotPlugin>() {
-            app.system(Startup, ui_body_spawn_plot);
-            app.system(Update, ui_body_plot);
-        }
-}
+        app.plugin(UiFigure2Plugin::<BodyPlot>::new((0., 1.), (1., 1.)));
+
+        app.system(Startup, ui_body_spawn_plot);
+        app.system(Update, ui_body_plot);
+    }
 }
