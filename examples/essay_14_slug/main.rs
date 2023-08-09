@@ -1,16 +1,15 @@
-mod sense_peptide;
 mod body;
 mod ui_body;
 mod world;
 mod ui_world;
-mod cilia;
+mod control;
 
 pub use body::{
-    Body, PlanktonBodyPlugin,
+    Body, SlugBodyPlugin,
 };
 
 pub use self::world::{
-    World, PlanktonWorldPlugin,
+    World, SlugWorldPlugin,
 };
 
 pub use self::ui_world::{
@@ -19,3 +18,7 @@ pub use self::ui_world::{
     draw_world,
     spawn_ui_world, world_resize,
 };
+
+fn main() {
+    
+}
