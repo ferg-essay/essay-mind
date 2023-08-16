@@ -13,7 +13,7 @@ pub fn main() {
     let mut app = App::new();
 
     // UiCanvasPlugin enables graphics
-    app.plugin(UiCanvasPlugin);
+    app.plugin(UiCanvasPlugin::new());
     app.plugin(SlugWorldPlugin);
     app.plugin(SlugBodyPlugin);
 

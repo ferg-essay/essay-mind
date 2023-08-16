@@ -22,14 +22,15 @@ impl UiBody {
     fn new(figure: &UiFigure<BodyPlot>) -> Self {
         let mut plot = figure.plot_xy((0., 0.), (1.5, 1.));
 
-        plot.x_label("seconds");
+        //plot.x_label("seconds");
 
-        plot.line(Key::DIR, "dir");
-        plot.line(Key::SPEED, "speed");
-        plot.line(Key::ARREST, "arrest");
+        // plot.line(Key::Dir, "dir");
+        // plot.line(Key::Speed, "speed");
+        plot.line(Key::Arrest, "arrest");
+        plot.line(Key::LeftFoodHabituate, "food-habit");
 
         let z_peptides = tf32!([[0., 1.], [0., 0.], [0., 0.]]);
-        let mut peptides : GridColorOpt = figure.color_grid(z_peptides);
+        let mut peptides : GridColorOpt = figure.color_grid((1.6, 0.), (0.5, 1.), z_peptides);
         peptides.norm(Norms::Linear.vmin(0.).vmax(1.));
         peptides.color_map(ColorMaps::WhiteRed);
 
@@ -38,10 +39,6 @@ impl UiBody {
 
             peptides,
         }
-    }
-
-    pub fn tick(&mut self) {
-        self.plot.tick();
     }
 }
 
@@ -108,11 +105,11 @@ pub fn ui_body_plot(
     ui_body: &mut UiBody,
     body: Res<Body>
 ) {
-    ui_body.plot.push(&Key::DIR, body.dir().to_unit());
-    ui_body.plot.push(&Key::SPEED, body.get_speed());
-    ui_body.plot.push(&Key::ARREST, body.get_arrest());
-
-    ui_body.tick();
+    //ui_body.plot.push(&Key::Dir, body.dir().to_unit());
+    ui_body.plot.push(&Key::Arrest, body.get_arrest());
+    ui_body.plot.push(&Key::LeftFoodHabituate, body.get_food_habituate());
+    // ui_body.plot.push(&Key::RightFoodHabituate, body.get_right_food_habituate());
+    ui_body.plot.tick();
 
     ui_body.peptides.data(body.state().reshape([3, 2]));
 }
@@ -125,34 +122,50 @@ pub fn ui_body_spawn_plot(
 }
 
 pub enum Key {
-    DIR,
-    SPEED,
-    ARREST,
+    Dir,
+    Speed,
+    Arrest,
+    LeftFoodHabituate,
+    RightFoodHabituate,
 }
 
 impl UiKey for Key {
     fn index(&self) -> usize {
         match self {
-            Key::DIR => 0,
-            Key::SPEED => 1,
-            Key::ARREST => 2,
+            Key::Dir => 0,
+            Key::Speed => 1,
+            Key::Arrest => 2,
+            Key::LeftFoodHabituate => 3,
+            Key::RightFoodHabituate => 4,
         }
     }
 }
 
 pub struct BodyPlot;
 
-pub struct UiSlugBodyPlugin;
+pub struct UiSlugBodyPlugin {
+    xy: Point,
+    wh: Point,
+}
+
+impl UiSlugBodyPlugin {
+    pub fn new(xy: impl Into<Point>, wh: impl Into<Point>) -> Self {
+        Self {
+            xy: xy.into(),
+            wh: wh.into(),
+        }
+    }
+}
 
 impl Plugin for UiSlugBodyPlugin {
     fn build(&self, app: &mut App) {
-        assert!(app.contains_plugin::<UiSlugWorldPlugin>());
-        
-        app.system(Update, draw_body.phase(DrawAgent));
+        if app.contains_plugin::<UiSlugWorldPlugin>() {
+            app.system(Update, draw_body.phase(DrawAgent));
 
-        app.plugin(UiFigurePlugin::<BodyPlot>::new((0., 1.), (2., 1.)));
+            app.plugin(UiFigurePlugin::<BodyPlot>::new(self.xy, self.wh));
 
-        app.system(Startup, ui_body_spawn_plot);
-        app.system(Update, ui_body_plot);
+            app.system(Startup, ui_body_spawn_plot);
+            app.system(Update, ui_body_plot);
+        }
     }
 }

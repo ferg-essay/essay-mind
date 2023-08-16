@@ -27,13 +27,13 @@ mind = { path = "./crates/mind" }
 #world = { path = "./crates/world", version = "0.1.0" }
 #essay-ecs = { git = "https://github.com/ferg-essay/essay-ecs", version="0.1.1-dev" }
 #essay-ecs-core = { git = "https://github.com/ferg-essay/essay-ecs", version="0.1.0" }
-essay-ecs = { path = "../essay-ecs" }
+essay-ecs = { path = "../essay-ecs"  }
 #essay-ecs = { git = "https://github.com/ferg-essay/essay-ecs", version="0.1.13" }
 #essay-plot = { git = "https://github.com/ferg-essay/essay-plot", version="0.1.0" }
 #essay-plot-base = { git = "https://github.com/ferg-essay/essay-plot", version="0.1.0" }
-essay-tensor = { path = "../essay-tensor" }
+essay-tensor = { path = "../essay-tensor"  }
 #essay-plot = { git = "https://github.com/ferg-essay/essay-tensor", version="0.1.13" }
-essay-plot = { path = "../essay-plot" }
+essay-plot = { path = "../essay-plot"  }
 #essay-plot = { git = "https://github.com/ferg-essay/essay-plot", version="0.1.13" }
 #essay-plot-api = { path = "../essay-plot/crates/essay-plot-api" }
 #gram = { path = "./crates/gram", version = "0.0.0" }

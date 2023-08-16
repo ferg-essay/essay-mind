@@ -2,7 +2,7 @@ use std::time::{Duration, Instant};
 
 use essay_plot::api::{Point};
 use winit::{
-    event::{ElementState, Event, MouseButton, StartCause, WindowEvent},
+    event::{ElementState, Event, MouseButton, StartCause, WindowEvent, VirtualKeyCode},
     event_loop::{ControlFlow, EventLoop},
     dpi::PhysicalPosition, platform::run_return::EventLoopExtRunReturn,
 };
@@ -10,16 +10,17 @@ use essay_ecs::prelude::*;
 
 use super::ui_canvas::{UiCanvas, UiWindowEvent};
 
-pub fn main_loop(mut app: App) {
+pub fn main_loop(mut app: App, tick_ms: Duration, ticks_per_cycle: usize) {
     // env_logger::init();
 
-    let timer_length = Duration::from_millis(100);
+    let timer_length = tick_ms; // Duration::from_millis(100);
 
     let event_loop = app.remove_resource_non_send::<EventLoop<()>>().unwrap();
 
     //app.insert_resource(WinitEvents::default());
     let last_tick = Instant::now();
     let mut wait_until = Instant::now();
+    let mut is_run = true;
 
     event_loop.run(move |event, _, control_flow| {
         app.resource_mut::<WinitEvents>().clear();
@@ -33,18 +34,27 @@ pub fn main_loop(mut app: App) {
                 wait_until = Instant::now() + timer_length;
 
                 let start = Instant::now();
-                app.tick();
+                if is_run {
+                    for _ in 0..ticks_per_cycle {
+                        app.tick();
+                    }
+                }
                 let duration = start.elapsed();
             }
-            Event::MainEventsCleared => {
-                // println!("Cleared");
-                //control_flow.set_wait_until(wait_until);
-                control_flow.set_wait_until(wait_until);
-            },
-            Event::RedrawEventsCleared => {
-                // println!("Cleared");
-                control_flow.set_wait_until(wait_until);
-            },
+            Event::WindowEvent {
+                event: WindowEvent::KeyboardInput { input, .. },
+                ..
+            } => {
+                if input.state == ElementState::Pressed {
+                    if let Some(key) = input.virtual_keycode {
+                        if key == VirtualKeyCode::T {
+                            is_run = ! is_run;
+                        } else if key == VirtualKeyCode::Space {
+                            app.tick();
+                        }
+                    }
+                }
+            }
             Event::WindowEvent {
                 event: WindowEvent::Resized(size),
                 ..
@@ -64,8 +74,13 @@ pub fn main_loop(mut app: App) {
                 app.resource_mut::<WinitEvents>().cursor_event(position);
             }
             Event::RedrawRequested(_) => {
-                //app.resource_mut::<UiCanvas>().set_stale();
             }
+            Event::MainEventsCleared => {
+                control_flow.set_wait_until(wait_until);
+            },
+            Event::RedrawEventsCleared => {
+                control_flow.set_wait_until(wait_until);
+            },
             Event::WindowEvent {
                 event: WindowEvent::CloseRequested,
                 ..

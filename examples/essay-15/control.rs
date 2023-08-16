@@ -1,36 +1,57 @@
 use essay_ecs::{prelude::*, core::Local};
+use essay_tensor::Tensor;
 
-use crate::body::Body;
+use crate::{body::Body, world::World};
 
-// touch controlling muscles using muscle proprioception to
-// resolve conflicts (simultanous left and right touch)
-fn touch_muscle_feedback_left(mut body: ResMut<Body>) {
-    // inhibition from opposite muscle
-    if body.is_sensor_left() && body.muscle_left() <= 0. {
-        body.set_muscle_right(1.);
+fn command_muscle_dopamine(
+    mut body: ResMut<Body>, 
+    world: Res<World>, 
+    mut da: Local<DopaminePair>
+) {
+    let left_touch = body.is_touch_left();
+    let right_touch = body.is_touch_right();
+
+    let mut left_food = body.is_food_left(world.get());
+    let mut right_food = body.is_food_right(world.get());
+
+    // update habituation
+    //left_food = habituate.update_left(left_food);
+    //right_food = habituate.update_right(right_food);
+
+    // touch priority over food
+    if left_touch || right_touch {
+        left_food = false;
+        right_food = false;
     }
-}
 
-fn touch_muscle_feedback_right(mut body: ResMut<Body>) {
-    // inhibition from opposite muscle
-    if body.is_sensor_right() && body.muscle_right() <= 0. {
-        body.set_muscle_left(1.);
-    }
-}
+    // touch crosses, food is straight
+    let left = right_touch || left_food;
+    let right = left_touch || right_food;
 
-fn touch_muscle_dopamine(mut body: ResMut<Body>, mut da: Local<DopaminePair>) {
+    // DA as short-term memory of previous direction
     da.left = (da.left - DopaminePair::DECAY).max(0.);
     da.right = (da.right - DopaminePair::DECAY).max(0.);
 
-    // inhibition from opposite da
-    if body.is_sensor_left() && da.left <= 0. {
-        body.set_muscle_right(1.);
-        da.right = if da.right <= 0. { 1. } else { da.right };
+    if left && right && da.left <= 0. && da.right <= 0. {
+        if Tensor::random_uniform([1], ())[0] < 0.5 {
+            body.set_muscle_left(1.);
+            da.left = if da.left <= 0. { 1. } else { da.left };
+        } else {
+            body.set_muscle_right(1.);
+            da.right = if da.right <= 0. { 1. } else { da.right };
+        }
     }
 
-    if body.is_sensor_right() && da.right <= 0. {
+    // inhibition from opposite da
+    if left && da.right <= 0. {
         body.set_muscle_left(1.);
         da.left = if da.left <= 0. { 1. } else { da.left };
+    }
+
+    // inhibition from opposite da
+    if right && da.left <= 0. {
+        body.set_muscle_right(1.);
+        da.right = if da.right <= 0. { 1. } else { da.right };
     }
 }
 
@@ -40,7 +61,7 @@ struct DopaminePair {
 }
 
 impl DopaminePair {
-    pub const DECAY: f32 = 0.1;
+    pub const DECAY: f32 = 0.025;
 }
 
 impl Default for DopaminePair {
@@ -59,18 +80,13 @@ pub struct SlugControlPlugin;
 
 impl Plugin for SlugControlPlugin {
     fn build(&self, app: &mut App) {
-        //app.system(Update, touch_muscle_update);
-        // muscle control with proprioceptive feedback to resolve
+        //app.event::<DirCommand>();
+
+        //app.system(Update, touch_sense);
+        // muscle control with dopamine memory to resolve
         // conflicts
-        let is_muscle = false;
-        if is_muscle {
-            app.system(Update, touch_muscle_feedback_left);
-            app.system(Update, touch_muscle_feedback_right);
-        } else { 
-            // muscle control with dopamine memory to resolve
-            // conflicts
-            app.system(Update, touch_muscle_dopamine);
-        }
+        app.system(Update, command_muscle_dopamine);
+
         app.system(Update, food_arrest_update);
     }
 }

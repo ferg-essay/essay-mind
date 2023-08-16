@@ -22,6 +22,7 @@ pub struct Body {
     sensor_left: bool,
     sensor_right: bool,
     sensor_food: bool,
+    food_habituate: Habituate,
 
     muscle_left: f32,
     muscle_right: f32,
@@ -38,6 +39,8 @@ impl Body {
 
     const SPEED : f32 = 0.05;
 
+    const FOOD_DIST : f32 = 1.5;
+
     pub fn new(pos: Point) -> Self {
         Self {
             pos,
@@ -48,6 +51,7 @@ impl Body {
             sensor_left: false,
             sensor_right: false,
             sensor_food: false,
+            food_habituate: Habituate::default(),
 
             muscle_left: 1.,
             muscle_right: 0.,
@@ -64,16 +68,52 @@ impl Body {
         self.dir
     }
 
-    pub fn is_sensor_left(&self) -> bool {
+    pub fn is_touch_left(&self) -> bool {
         self.sensor_left
     }
 
-    pub fn is_sensor_right(&self) -> bool {
+    pub fn is_touch_right(&self) -> bool {
         self.sensor_right
     }
 
     pub fn is_sensor_food(&self) -> bool {
         self.sensor_food
+    }
+
+    pub fn is_food_left(&mut self, world: &World) -> bool {
+        let is_left = self.is_food_left_sensor(world);
+
+        is_left && self.food_habituate.is_active()
+    }
+
+    pub fn is_food_left_sensor(&self, world: &World) -> bool {
+        if let Some(angle) = world.food_dir(self.pos, Self::FOOD_DIST) {
+            let turn = (2. + angle.to_unit() - self.dir.to_unit()) % 1.;
+
+            turn <= 0.5
+        } else {
+            false
+        }
+    }
+
+    pub fn is_food_right(&mut self, world: &World) -> bool {
+        let is_right = self.is_food_right_sensor(world);
+
+        is_right && self.food_habituate.is_active()
+    }
+
+    pub fn is_food_right_sensor(&self, world: &World) -> bool {
+        if let Some(angle) = world.food_dir(self.pos, Self::FOOD_DIST) {
+            let turn = (2. + angle.to_unit() - self.dir.to_unit()) % 1.;
+
+            0.5 <= turn
+        } else {
+            false
+        }
+    }
+
+    pub fn get_food_habituate(&self) -> f32 {
+        self.food_habituate.food
     }
 
     pub fn muscle_left(&self) -> f32 {
@@ -132,10 +172,40 @@ impl Body {
     }
 }
 
+struct Habituate {
+    food: f32,
+}
+
+impl Habituate {
+    pub const INCREASE: f32 = 0.002;
+    pub const DECAY: f32 = 0.002;
+    pub const THRESHOLD: f32 = 0.75;
+
+    fn update(&mut self, is_food: bool) {
+        if is_food {
+            self.food = (self.food + Self::INCREASE).clamp(0., 1.);
+        } else {
+            self.food = (self.food - Self::DECAY).clamp(0., 1.);
+        }
+    }
+
+    fn is_active(&self) -> bool {
+        self.food < Self::THRESHOLD
+    }
+}
+
+impl Default for Habituate {
+    fn default() -> Self {
+        Self { 
+            food: 1., // init to 1. to force steady state
+        }
+    }
+}
+
 pub fn spawn_body(
     mut commands: Commands,
 ) {
-    commands.insert_resource(Body::new(Point(2.5, 2.5)));
+    commands.insert_resource(Body::new(Point(0.5, 0.5)));
 }
 
 ///
@@ -159,11 +229,20 @@ pub fn body_physics(
         x = x + dx * speed;
         y = y + dy * speed;
 
-        if body.muscle_left > Body::MUSCLE_THRESHOLD {
-            dir += 0.01;
-        } else if body.muscle_right > Body::MUSCLE_THRESHOLD {
-            dir -= 0.01;
+        // random noise into direction
+        if random() < 0.2 {
+            if random() < 0.5 {
+                dir += 0.005;
+            } else {
+                dir -= 0.005;
+            }
         }
+    }
+
+    if body.muscle_left > Body::MUSCLE_THRESHOLD {
+        dir += 0.015 * (1. + 0.2 * (random() - 0.5));
+    } else if body.muscle_right > Body::MUSCLE_THRESHOLD {
+        dir -= 0.015 * (1. + 0.2 * (random() - 0.5));
     }
 
     // update y, clamped to the world boundaries
@@ -199,6 +278,19 @@ pub fn body_physics(
     ])
 }
 
+pub fn body_habit(
+    mut body: ResMut<Body>,
+    world: Res<World>,
+) {
+    let is_food = body.is_food_left_sensor(world.get())
+        || body.is_food_right_sensor(world.get());
+    body.food_habituate.update(is_food);
+}
+
+fn random() -> f32 {
+    Tensor::random_uniform([1], ())[0]
+}
+
 pub fn body_log(
     body: &Body,
     mut log: ResMut<TestLog>,
@@ -216,13 +308,10 @@ impl Plugin for SlugBodyPlugin {
         app.system(Startup, spawn_body);
 
         app.system(Update, body_physics);
+        app.system(Update, body_habit);
 
         if app.contains_plugin::<TestLogPlugin>() {
             app.system(Last, body_log);
-        }
-
-        if app.contains_plugin::<UiCanvasPlugin>() {
-            app.plugin(UiSlugBodyPlugin);
         }
 
         if ! app.contains_plugin::<SlugControlPlugin>() {

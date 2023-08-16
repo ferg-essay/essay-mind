@@ -4,10 +4,6 @@ use std::ops::{Index, IndexMut};
 use essay_ecs::prelude::*;
 use essay_plot::prelude::*;
 
-use ui_graphics::UiCanvasPlugin;
-
-use super::ui_world::UiSlugWorldPlugin;
-
 #[derive(Component)]
 pub struct World {
     width: usize,
@@ -36,8 +32,8 @@ impl World {
     }
     */
 
-    pub fn _extent(&self) -> [usize; 2] {
-        [self.width, self.height]
+    pub fn extent(&self) -> (usize, usize) {
+        (self.width, self.height)
     }
 
     pub fn is_collide(&self, pt: impl Into<Point>) -> bool {
@@ -60,6 +56,23 @@ impl World {
         self[(x, y)] = WorldCell::Food;
 
         self.food.push(Food::new(x, y));
+    }
+
+    pub(crate) fn food_dir(&self, pt: Point, dist: f32) -> Option<Angle> {
+        let Point(x, y) = pt;
+
+        for food in &self.food {
+            let dx = food.x - x;
+            let dy = food.y - y;
+
+            if dx.hypot(dy) <= dist {
+                let angle = dy.atan2(dx);
+
+                return Some(Angle::Rad(angle));
+            }
+        }
+
+        None
     }
 
     pub fn is_food(&self, pt: impl Into<Point>) -> bool {
@@ -99,30 +112,48 @@ pub enum WorldCell {
     Wall
 }
 
-pub fn spawn_world(
-    mut commands: Commands,
-) {
+fn create_world() -> World {
     let mut world = World::new(15, 10);
-    for (x, y) in vec![
-        (1, 1), (8, 1),
-        (3, 3), (6, 3),
-        (9, 5), (13, 6),
-        (6, 7), (10, 7),
-        (11, 9), (13, 9),
-    ] {
-        world.add_food(x, y);
-    }
+
+    // sparse_food(&mut world);
+    dense_food(&mut world);
 
     for (x, y) in vec![
+        //(0, 0), (10, 0), (14, 0), (0, 9), (7, 9), (14, 9),
         (4, 2), (4, 3), (4, 4), (4, 5), (4, 6),
-        (6, 0), (6, 1), (6, 2), (6, 7), (6, 8),
-        (9, 3), (10, 3), (11, 3), (13, 3), (14, 3),
+        // (6, 0), (6, 1), (6, 2), (6, 7), (6, 8),
+        (9, 3), (10, 3), (13, 3),
         (10, 7), (11, 7), (13, 7),
     ] {
         world[(x, y)] = WorldCell::Wall;
     }
 
-    commands.insert_resource(world);
+    world
+}
+
+fn dense_food(world: &mut World) {
+    for (x, y) in vec![
+        (8, 1),
+        (3, 3), (6, 3),
+        (9, 5), (13, 6),
+        (6, 7), (10, 7),
+        (2, 6),
+        (11, 9),
+    ] {
+        world.add_food(x, y);
+    }
+}
+
+fn sparse_food(world: &mut World) {
+    for (x, y) in vec![
+        (8, 1),
+        (3, 3),
+        (13, 6),
+        (6, 7),
+        (2, 6),
+    ] {
+        world.add_food(x, y);
+    }
 }
 
 struct Food {
@@ -149,22 +180,6 @@ pub struct SlugWorldPlugin;
 
 impl Plugin for SlugWorldPlugin {
     fn build(&self, app: &mut App) {
-        app.system(Startup, spawn_world);
-
-        if app.contains_plugin::<UiCanvasPlugin>() {
-            app.plugin(UiSlugWorldPlugin);
-
-            /*
-            if ! app.contains_plugin::<UiLayoutPlugin>() {
-                app.plugin(UiLayoutPlugin);
-            }
-
-            app.phase(Update, (DrawWorld, DrawItem).chained());
-            app.system(Update, draw_world.phase(DrawWorld));
-            app.system(PreUpdate, world_resize);
-
-            app.system(Startup, spawn_world_ui);
-            */
-        }
+        app.insert_resource(create_world());
     }
 }

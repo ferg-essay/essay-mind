@@ -56,7 +56,7 @@ impl UiBody {
         satiety.label("satiety");
 
         let z_peptides = tf32!([[0., 1.], [0., 0.], [0., 0.]]);
-        let mut peptides : GridColorOpt = plot.color_grid(z_peptides);
+        let mut peptides : GridColorOpt = plot.color_grid((1.5, 0.), (5., 1.), z_peptides);
         peptides.norm(Norms::Linear.vmin(0.).vmax(1.));
         peptides.color_map(ColorMaps::WhiteRed);
 

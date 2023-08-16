@@ -33,8 +33,13 @@ impl<K: Send + Sync + 'static> UiFigure<K> {
         }
     }
 
-    pub fn plot_xy(&self, xy_grid: impl Into<Point>, wh_grid: impl Into<Point>) -> UiPlot {
-        self.inner.0.lock().unwrap().plot_xy(Bounds::new(xy_grid, wh_grid))
+    pub fn plot_xy(&self, xy: impl Into<Point>, wh: impl Into<Point>) -> UiPlot {
+        let xy = xy.into();
+        let wh = wh.into();
+
+        let bounds = Bounds::new(xy, (xy.0 + wh.0, wh.1 + wh.1));
+
+        self.inner.0.lock().unwrap().plot_xy(bounds)
     }
 
     pub fn plot_xy_old(&self, x: impl Into<Tensor>, y: impl Into<Tensor>) -> LinesOpt {
@@ -45,8 +50,18 @@ impl<K: Send + Sync + 'static> UiFigure<K> {
         self.inner.0.lock().unwrap().x_label(label.as_ref())
     }
 
-    pub fn color_grid(&self, data: impl Into<Tensor>) -> GridColorOpt {
-        self.inner.0.lock().unwrap().color_grid(data)
+    pub fn color_grid(
+        &self, 
+        xy: impl Into<Point>,
+        wh: impl Into<Point>,
+        data: impl Into<Tensor>
+    ) -> GridColorOpt {
+        let xy = xy.into();
+        let wh = wh.into();
+
+        let bounds = Bounds::new(xy, (xy.x() + wh.x(), wh.y() + wh.y()));
+
+        self.inner.0.lock().unwrap().color_grid(bounds, data)
     }
 
     fn draw(ui_plot: ResMut<UiFigure<K>>, mut ui_canvas: ResMut<UiCanvas>) {
@@ -124,15 +139,7 @@ impl UiFigureInner {
     }
 
     fn plot_xy(&mut self, grid: Bounds::<Layout>) -> UiPlot {
-        let graph = match self.graph_id {
-            Some(graph_id) => self.figure.get_graph(graph_id),
-
-            None => {
-                let graph = self.figure.new_graph(grid);
-                self.graph_id = Some(graph.id());
-                graph
-            }
-        };
+        let graph = self.figure.new_graph(grid);
 
         UiPlot::new(graph)
     }
@@ -166,9 +173,14 @@ impl UiFigureInner {
         graph.x_label(label);
     }
 
-    fn color_grid(&mut self, data: impl Into<Tensor>) -> GridColorOpt {
-        let mut graph = self.figure.new_graph([1.5, 0., 2., 1.]);
+    fn color_grid(
+        &mut self, 
+        bounds: impl Into<Bounds<Layout>>, 
+        data: impl Into<Tensor>
+    ) -> GridColorOpt {
+        let mut graph = self.figure.new_graph(bounds);
         graph.flip_y(true);
+        graph.aspect(1.);
         graph.x().visible(false);
         graph.y().visible(false);
         let colormesh = GridColor::new(data);

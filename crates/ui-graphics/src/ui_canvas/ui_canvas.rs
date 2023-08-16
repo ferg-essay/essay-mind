@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use essay_ecs::prelude::*;
 use essay_plot::artist::PathStyle;
 use essay_plot::api::{TextStyle, Bounds};
@@ -152,7 +154,24 @@ impl UiCanvas {
     }
 }
 
-pub struct UiCanvasPlugin;
+pub struct UiCanvasPlugin {
+    time: Duration,
+}
+
+impl UiCanvasPlugin {
+    pub fn new() -> Self {
+        Self {
+            time: Duration::from_millis(30),
+        }
+    }
+
+    pub fn frame_ms(self, time: impl Into<Duration>) -> Self {
+        Self {
+            time: time.into(),
+            .. self
+        }
+    }
+}
 
 impl Plugin for UiCanvasPlugin {
     fn build(&self, app: &mut App) {
@@ -172,8 +191,9 @@ impl Plugin for UiCanvasPlugin {
         app.system(PreUpdate, ui_canvas_first);
         app.system(PostUpdate, ui_canvas_last);
 
-        app.runner(|app| {
-            main_loop(app);
+        let time = self.time.clone();
+        app.runner(move |app| {
+            main_loop(app, time, 4);
         });
     }
 }

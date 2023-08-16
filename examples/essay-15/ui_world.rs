@@ -39,11 +39,16 @@ impl UiWorld {
 
     pub fn set_pos(&mut self, set_pos: &Bounds<Canvas>) {
         let aspect = self.bounds.width() / self.bounds.height();
-        let c_height = set_pos.height();
-        let c_width = c_height * aspect;
+
+        let (c_width, c_height) = if aspect * set_pos.height() <= set_pos.width() {
+            (aspect * set_pos.height(), set_pos.height())
+        } else {
+            (set_pos.width(), set_pos.width() / aspect)
+        };
+
         let pos = Bounds::<Canvas>::new(
-            Point(self.pos.xmin(), self.pos.ymin()),
-            Point(self.pos.xmin() + c_width, self.pos.ymin() + c_height),
+            Point(set_pos.xmin(), set_pos.ymin()),
+            Point(set_pos.xmin() + c_width, set_pos.ymin() + c_height),
         );
 
         self.pos = pos;
@@ -108,33 +113,39 @@ pub struct DrawItem;
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Phase)]
 pub struct DrawAgent;
 
-pub fn spawn_ui_world(
-    mut commands: Commands,
-    mut ui_layout: ResMut<UiLayout>,
-) {
-    // spawn_world(commands);
-
-    let id = ui_layout.add_box([0., 0., 1., 1.]);
-    let ui_world = UiWorld::new(id, 15, 10);
-
-    commands.insert_resource(ui_world);
+pub struct UiSlugWorldPlugin {
+    bounds: Bounds::<UiLayout>,
 }
 
-pub struct UiSlugWorldPlugin;
+impl UiSlugWorldPlugin {
+    pub fn new(xy: impl Into<Point>, wh: impl Into<Point>) -> Self {
+        let xy = xy.into();
+        let wh = wh.into();
+
+        Self {
+            bounds: Bounds::new(xy, (xy.0 + wh.0, xy.1 + wh.1)),
+        }
+    }
+}
 
 impl Plugin for UiSlugWorldPlugin {
     fn build(&self, app: &mut App) {
-        assert!(app.contains_plugin::<UiCanvasPlugin>());
-        assert!(app.contains_plugin::<SlugWorldPlugin>());
+        if app.contains_plugin::<UiCanvasPlugin>() {
+            assert!(app.contains_plugin::<SlugWorldPlugin>());
 
-        if ! app.contains_plugin::<UiLayoutPlugin>() {
-            app.plugin(UiLayoutPlugin);
+            if ! app.contains_plugin::<UiLayoutPlugin>() {
+                app.plugin(UiLayoutPlugin);
+            }
+
+            let box_id = app.resource_mut::<UiLayout>().add_box(self.bounds.clone());
+            let ui_world = UiWorld::new(box_id, 15, 10);
+            app.insert_resource(ui_world);
+
+            app.phase(Update, (DrawWorld, DrawItem, DrawAgent).chain());
+            app.system(Update, draw_world.phase(DrawWorld));
+            app.system(PreUpdate, world_resize);
+
+            // app.system(Startup, spawn_ui_world);
         }
-
-        app.phase(Update, (DrawWorld, DrawItem, DrawAgent).chain());
-        app.system(Update, draw_world.phase(DrawWorld));
-        app.system(PreUpdate, world_resize);
-
-        app.system(Startup, spawn_ui_world);
     }
 }

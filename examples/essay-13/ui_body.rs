@@ -56,7 +56,7 @@ impl UiBody {
         arrest.label("arrest");
 
         let z_peptides = tf32!([[0., 1.], [0., 0.], [0., 0.]]);
-        let mut peptides : GridColorOpt = plot.color_grid(z_peptides);
+        let mut peptides : GridColorOpt = plot.color_grid((1.5, 0.), (0.5, 1.), z_peptides);
         peptides.color_map(ColorMaps::WhiteRed);
 
         Self {
