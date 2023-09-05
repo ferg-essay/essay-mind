@@ -21,6 +21,7 @@ ui-audio = { path = "./crates/ui-audio" }
 test-log = { path = "./crates/test-log" }
 audio = { path = "./crates/audio" }
 mind = { path = "./crates/mind" }
+mind-ecs = { path = "./crates/ecs" }
 #world-plankton = { path = "./crates/world-plankton" }
 #world-slug = { path = "./crates/world-slug" }
 
@@ -33,7 +34,7 @@ essay-ecs = { path = "../essay-ecs"  }
 #essay-plot-base = { git = "https://github.com/ferg-essay/essay-plot", version="0.1.0" }
 essay-tensor = { path = "../essay-tensor"  }
 #essay-plot = { git = "https://github.com/ferg-essay/essay-tensor", version="0.1.13" }
-essay-plot = { path = "../essay-plot"  }
+essay-plot = { path = "../essay-plot" }
 #essay-plot = { git = "https://github.com/ferg-essay/essay-plot", version="0.1.13" }
 #essay-plot-api = { path = "../essay-plot/crates/essay-plot-api" }
 #gram = { path = "./crates/gram", version = "0.0.0" }

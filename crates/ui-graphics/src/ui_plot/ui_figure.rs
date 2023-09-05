@@ -12,7 +12,7 @@ use essay_tensor::Tensor;
 use crate::UiCanvas;
 use crate::ui_layout::{UiLayoutEvent, UiLayout, BoxId};
 
-use super::UiPlot;
+use super::{UiPlot, UiGraph};
 
 pub struct UiFigure<Key> {
     box_id: BoxId,
@@ -62,6 +62,19 @@ impl<K: Send + Sync + 'static> UiFigure<K> {
         let bounds = Bounds::new(xy, (xy.x() + wh.x(), wh.y() + wh.y()));
 
         self.inner.0.lock().unwrap().color_grid(bounds, data)
+    }
+
+    pub fn graph(
+        &self, 
+        xy: impl Into<Point>,
+        wh: impl Into<Point>,
+    ) -> UiGraph {
+        let xy = xy.into();
+        let wh = wh.into();
+
+        let bounds = Bounds::new(xy, (xy.x() + wh.x(), wh.y() + wh.y()));
+
+        self.inner.0.lock().unwrap().graph(bounds)
     }
 
     fn draw(ui_plot: ResMut<UiFigure<K>>, mut ui_canvas: ResMut<UiCanvas>) {
@@ -171,6 +184,12 @@ impl UiFigureInner {
         };
 
         graph.x_label(label);
+    }
+
+    fn graph(&mut self, bounds: impl Into<Bounds<Layout>>) -> UiGraph {
+        let graph = self.figure.new_graph(bounds);
+
+        UiGraph::new(graph)
     }
 
     fn color_grid(

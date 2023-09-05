@@ -4,7 +4,8 @@ use essay_ecs::prelude::*;
 use essay_plot::artist::PathStyle;
 use essay_plot::api::{TextStyle, Bounds};
 use essay_plot::api::{CanvasEvent, PathCode, Canvas, Point, Path, Clip, driver::Renderer};
-use essay_plot::prelude::ImageId;
+use essay_plot::frame::Data;
+use essay_plot::prelude::{ImageId, Color};
 use essay_plot::wgpu::{PlotCanvas, PlotRenderer};
 use essay_tensor::Tensor;
 use winit::event_loop::EventLoop;
@@ -128,6 +129,36 @@ impl UiCanvas {
         }
     }
 
+    pub fn draw_markers(
+        &mut self, 
+        path: &Path<Canvas>,
+        xy: impl Into<Tensor>,
+        sizes: impl Into<Tensor>,
+        colors: &Vec<Color>,
+    ) {
+        if let Some(view) = &self.view {
+            let mut plot_renderer = PlotRenderer::new(
+                &mut self.plot_canvas, 
+                &self.wgpu.device, 
+                Some(&self.wgpu.queue), 
+                Some(&view.view)
+            );
+
+            let color: Tensor<u32> = colors.iter().map(|c| c.to_rgba()).collect();
+            let style = PathStyle::new();
+    
+            plot_renderer.draw_markers(
+                path, 
+                &xy.into(), 
+                &sizes.into(), 
+                &color,
+                &style,
+                &Clip::None,
+            ).unwrap();
+            plot_renderer.flush();
+        }
+    }
+
     pub fn plot_renderer<'a>(&'a mut self) -> Option<PlotRenderer<'a>> {
         match &self.view {
             Some(view) => {
@@ -193,7 +224,7 @@ impl Plugin for UiCanvasPlugin {
 
         let time = self.time.clone();
         app.runner(move |app| {
-            main_loop(app, time, 4);
+            main_loop(app, time, 1);
         });
     }
 }

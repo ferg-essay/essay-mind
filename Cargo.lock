@@ -792,6 +792,7 @@ dependencies = [
  "fundsp",
  "log",
  "mind",
+ "mind-ecs",
  "test-log",
  "ui-audio",
  "ui-graphics",
@@ -1631,6 +1632,15 @@ dependencies = [
  "log",
  "test-log",
  "ui-graphics",
+]
+
+[[package]]
+name = "mind-ecs"
+version = "0.1.0"
+dependencies = [
+ "env_logger",
+ "essay-ecs 0.1.13",
+ "log",
 ]
 
 [[package]]
