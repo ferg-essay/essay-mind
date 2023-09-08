@@ -1,8 +1,8 @@
 use essay_ecs::{prelude::*, core::Local};
 use essay_tensor::Tensor;
 use mind_ecs::Tick;
-
-use crate::{body::Body, world::{World, OdorType}};
+use vertebrate::world::{World, OdorType};
+use crate::body::Body;
 
 fn mbon(
     mut mbon: ResMut<Mbon>,

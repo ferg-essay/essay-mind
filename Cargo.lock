@@ -796,6 +796,7 @@ dependencies = [
  "test-log",
  "ui-audio",
  "ui-graphics",
+ "vertebrate",
 ]
 
 [[package]]
@@ -2882,6 +2883,20 @@ name = "version_check"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
+
+[[package]]
+name = "vertebrate"
+version = "0.1.17-dev"
+dependencies = [
+ "env_logger",
+ "essay-ecs 0.1.13",
+ "essay-plot",
+ "essay-tensor",
+ "log",
+ "mind-ecs",
+ "test-log",
+ "ui-graphics",
+]
 
 [[package]]
 name = "walkdir"
