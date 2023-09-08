@@ -203,7 +203,7 @@ impl Default for DopaminePair {
 
 fn food_arrest_update(mut body: ResMut<Body>) {
     if body.is_sensor_food() {
-        body.arrest(1.);
+        body.set_arrest(1.);
     }
 }
 

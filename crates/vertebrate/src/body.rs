@@ -4,26 +4,16 @@ use essay_plot::prelude::*;
 use essay_tensor::{Tensor, tf32};
 use mind_ecs::Tick;
 use test_log::{TestLog, TestLogPlugin};
-use ui_graphics::UiCanvasPlugin;
+use crate::body_locomotion::BodyLocomotion;
 
 use crate::world::{OdorType, World, SlugWorldPlugin};
 
-use super::{
-    ui_body::UiSlugBodyPlugin,
-    control::SlugControlPlugin
-};
+use super::control::SlugControlPlugin;
 
 #[derive(Component)]
 pub struct Body {
-    pos: Point,
+    locomotion: BodyLocomotion,
 
-    dir: Angle,
-
-    speed: f32,
-    arrest: f32,
-
-    sensor_left: bool,
-    sensor_right: bool,
     sensor_food: bool,
 
     tick_food: usize,
@@ -32,23 +22,10 @@ pub struct Body {
     is_single_habituate: bool,
     odor_habituate: Vec<Habituate>,
 
-    muscle_left: f32,
-    muscle_right: f32,
-
     state: Tensor, // TODO: cleanup and move to cilia
 }
 
 impl Body {
-    const ARREST_DECAY : f32 = -0.1;
-    const ARREST_THRESHOLD : f32 = 0.4;
-
-    const MUSCLE_DECAY : f32 = -0.05;
-    const MUSCLE_THRESHOLD : f32 = 0.2;
-
-    const SPEED : f32 = 0.025;
-
-    const FOOD_DIST : f32 = 1.5;
-
     pub fn new(pos: Point) -> Self {
         let mut odor_habituate = Vec::new();
 
@@ -57,13 +34,8 @@ impl Body {
         }
 
         Self {
-            pos,
-            dir: Angle::Unit(0.),
-            speed: 1.,
-            arrest: 0.,
+            locomotion: BodyLocomotion::new(pos),
 
-            sensor_left: false,
-            sensor_right: false,
             sensor_food: false,
 
             tick_food: 0,
@@ -72,27 +44,24 @@ impl Body {
             is_single_habituate: false,
             odor_habituate,
 
-            muscle_left: 1.,
-            muscle_right: 0.,
-
             state: Tensor::zeros([3, 2]),
         }
     }
 
     pub fn pos(&self) -> Point {
-        self.pos
+        self.locomotion.pos()
     }
 
     pub fn dir(&self) -> Angle {
-        self.dir
+        self.locomotion.dir()
     }
 
     pub fn is_touch_left(&self) -> bool {
-        self.sensor_left
+        self.locomotion.touch_left()
     }
 
     pub fn is_touch_right(&self) -> bool {
-        self.sensor_right
+        self.locomotion.touch_right()
     }
 
     pub fn is_sensor_food(&self) -> bool {
@@ -104,8 +73,8 @@ impl Body {
     }
 
     pub fn odor_turn(&self, world: &World) -> Option<(OdorType, Angle)> {
-        if let Some((odor, angle)) = world.odor(self.pos) {
-            let turn = (2. + angle.to_unit() - self.dir.to_unit()) % 1.;
+        if let Some((odor, angle)) = world.odor(self.pos()) {
+            let turn = (2. + angle.to_unit() - self.dir().to_unit()) % 1.;
 
             if self.is_odor_active(odor) {
                 Some((odor, Angle::Unit(turn)))
@@ -118,8 +87,8 @@ impl Body {
     }
 
     pub fn is_food_left(&mut self, world: &World) -> bool {
-        if let Some((odor, angle)) = world.odor(self.pos) {
-            let turn = (2. + angle.to_unit() - self.dir.to_unit()) % 1.;
+        if let Some((odor, angle)) = world.odor(self.pos()) {
+            let turn = (2. + angle.to_unit() - self.dir().to_unit()) % 1.;
 
             turn <= 0.5 && self.is_odor_active(odor)
         } else {
@@ -128,8 +97,8 @@ impl Body {
     }
 
     pub fn is_food_right(&mut self, world: &World) -> bool {
-        if let Some((odor, angle)) = world.odor(self.pos) {
-            let turn = (2. + angle.to_unit() - self.dir.to_unit()) % 1.;
+        if let Some((odor, angle)) = world.odor(self.pos()) {
+            let turn = (2. + angle.to_unit() - self.dir().to_unit()) % 1.;
 
             0.5 < turn && self.is_odor_active(odor)
         } else {
@@ -166,54 +135,34 @@ impl Body {
     }
 
     pub fn muscle_left(&self) -> f32 {
-        self.muscle_left
+        self.locomotion.muscle_left()
     }
 
     pub fn set_muscle_left(&mut self, muscle: f32) {
-        // simulate refraction by only updating when zero.
-        if self.muscle_left <= 0. {
-            self.muscle_left = self.muscle_left.max(muscle).clamp(0., 1.);
-        }
-    }
-
-    pub fn _is_muscle_left(&self) -> bool {
-        self.muscle_left >= 0.
+        self.locomotion.set_muscle_left(muscle);
     }
 
     pub fn muscle_right(&self) -> f32 {
-        self.muscle_right
-    }
-
-    pub fn _is_muscle_right(&self) -> bool {
-        self.muscle_right >= 0.
+        self.locomotion.muscle_right()
     }
 
     pub fn set_muscle_right(&mut self, muscle: f32) {
-        // simulate refraction by only updating when zero.
-        if self.muscle_right <= 0. {
-            self.muscle_right = self.muscle_right.max(muscle).clamp(0., 1.);
-        }
+        self.locomotion.set_muscle_right(muscle);
     }
 
-    pub fn _speed(&mut self, speed: f32) {
-        self.speed = speed;
+    pub fn speed(&self) -> f32 {
+        self.locomotion.speed()
     }
 
-    pub fn get_speed(&self) -> f32 {
-        self.speed
-    }
-
-    pub fn get_arrest(&self) -> f32 {
-        self.arrest
+    pub fn arrest(&self) -> f32 {
+        self.locomotion.arrest()
     }
 
     ///
     /// Stop the muco-cilia beating for a period of time
     /// 
-    pub fn arrest(&mut self, time: f32) {
-        if self.arrest <= 0. {
-            self.arrest = time;
-        }
+    pub fn set_arrest(&mut self, time: f32) {
+        self.locomotion.set_arrest(time);
     }
 
     pub fn state(&self) -> &Tensor {
@@ -258,13 +207,15 @@ pub fn spawn_body(
 }
 
 ///
-/// Update the plankton's position based on the cilia movement
+/// Update the slugs's position based on the cilia movement
 /// 
 pub fn body_physics(
     mut body: ResMut<Body>,
     world: Res<World>,
 ) {
-    let Point(mut x, mut y) = body.pos;
+    body.locomotion.update(world.get());
+    /*
+    let Point(mut x, mut y) = body.pos();
     let mut dir = body.dir.to_unit();
 
     // default movement is falling
@@ -310,25 +261,25 @@ pub fn body_physics(
         body.sensor_left = true;
         body.sensor_right = true;
     }
-
-    body.sensor_food = world.is_food((x, y));
+    */
+    body.sensor_food = world.is_food(body.pos());
 
     if body.sensor_food {
         body.tick_food += 1;
     }
     body.ticks += 1;
 
-    body.dir = Angle::Unit((dir + 1.) % 1.);
+    //body.dir = Angle::Unit((dir + 1.) % 1.);
 
-    body.arrest = (body.arrest + Body::ARREST_DECAY).max(0.);
-    body.muscle_left = (body.muscle_left + Body::MUSCLE_DECAY).max(0.);
-    body.muscle_right = (body.muscle_right + Body::MUSCLE_DECAY).max(0.);
+    //body.arrest = (body.arrest + Body::ARREST_DECAY).max(0.);
+    //body.muscle_left = (body.muscle_left + Body::MUSCLE_DECAY).max(0.);
+    //body.muscle_right = (body.muscle_right + Body::MUSCLE_DECAY).max(0.);
 
     body.state = tf32!([
-        [if body.sensor_left { 1. } else { 0. }, 
-        if body.sensor_right { 1. } else { 0. }],
-        [ body.muscle_left, body.muscle_right ],
-        [ if body.sensor_food { 1. } else { 0. }, body.arrest ]
+        [if body.is_touch_left() { 1. } else { 0. }, 
+        if body.is_touch_right() { 1. } else { 0. }],
+        [ body.muscle_left(), body.muscle_right() ],
+        [ if body.sensor_food { 1. } else { 0. }, body.arrest() ]
     ])
 }
 
@@ -336,7 +287,7 @@ pub fn body_habit(
     mut body: ResMut<Body>,
     world: Res<World>,
 ) {
-    let odor = match world.odor(body.pos) {
+    let odor = match world.odor(body.pos()) {
         Some((odor, _)) => Some(odor),
         None => None,
     };
@@ -346,7 +297,7 @@ pub fn body_habit(
     }
 }
 
-fn random() -> f32 {
+fn _random() -> f32 {
     Tensor::random_uniform([1], ())[0]
 }
 
@@ -355,7 +306,7 @@ pub fn body_log(
     mut log: ResMut<TestLog>,
 ) {
     log.log(&format!("body: ({:.1}, {:.1}) dy={:.1} swim={:.1} arrest={:.1}",
-        body.pos.x(), body.pos.y(), body.dir.to_unit(), body.speed, body.arrest
+        body.pos().x(), body.pos().y(), body.dir().to_unit(), body.speed(), body.arrest()
     ));
 }
 

@@ -1,10 +1,3 @@
-//mod body;
-//mod world;
-//mod control;
-//mod ui_body;
-//mod ui_body_locmap;
-//mod ui_world;
-
 use vertebrate::body::SlugBodyPlugin;
 use essay_ecs::prelude::App;
 use mind_ecs::TickSchedulePlugin;

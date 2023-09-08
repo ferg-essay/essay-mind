@@ -1,4 +1,5 @@
 pub mod body;
+pub mod body_locomotion;
 pub mod control;
 pub mod world;
 

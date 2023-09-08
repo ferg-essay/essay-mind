@@ -116,7 +116,7 @@ pub fn ui_body_plot(
 ) {
     //ui_body.plot.push(&Key::Dir, body.dir().to_unit());
     ui_body.plot.push(&Key::PFood, body.p_food());
-    ui_body.plot.push(&Key::Arrest, body.get_arrest());
+    ui_body.plot.push(&Key::Arrest, body.arrest());
     if body.is_single_habituate() {
         ui_body.plot.push(&Key::HabitFoodA, body.get_food_habituate(OdorType::FoodA));
     } else {
