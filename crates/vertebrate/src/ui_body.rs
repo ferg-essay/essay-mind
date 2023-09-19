@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 use essay_ecs::prelude::*;
 use essay_plot::{
     prelude::*, 
@@ -6,8 +8,8 @@ use essay_plot::{
 };
 use essay_tensor::tf32;
 use ui_graphics::{UiCanvas, ui_plot::{UiKey, UiPlot, UiFigurePlugin, UiFigure}};
-use crate::world::OdorType;
-use crate::{ui_world::{UiSlugWorldPlugin, UiWorld}, body::Body, control::Mbon};
+use crate::world::{OdorType, World};
+use crate::{ui_world::{UiSlugWorldPlugin, UiWorld}, body::Body};
 
 use super::ui_world::DrawAgent;
 
@@ -37,7 +39,7 @@ impl UiBody {
             plot.line(Key::IgnoreOdor, "ignore odor");
         }
 
-        let z_peptides = tf32!([[0., 1.], [0., 0.], [0., 0.]]);
+        let z_peptides = tf32!([[0., 0.], [0., 0.], [0., 0.], [0., 0.]]);
         let mut peptides : GridColorOpt = figure.color_grid((1.6, 0.), (0.5, 1.), z_peptides);
         peptides.norm(Norms::Linear.vmin(0.).vmax(1.));
         peptides.color_map(ColorMaps::WhiteRed);
@@ -112,35 +114,23 @@ pub fn draw_body(
 pub fn ui_body_plot(
     ui_body: &mut UiBody,
     body: Res<Body>,
-    mbon: Res<Mbon>,
+    world: Res<World>,
 ) {
-    //ui_body.plot.push(&Key::Dir, body.dir().to_unit());
     ui_body.plot.push(&Key::PFood, body.p_food());
     ui_body.plot.push(&Key::Arrest, body.arrest());
-    if body.is_single_habituate() {
-        ui_body.plot.push(&Key::HabitFoodA, body.get_food_habituate(OdorType::FoodA));
-    } else {
-        ui_body.plot.push(&Key::HabitFoodA, body.get_food_habituate(OdorType::FoodA));
-        ui_body.plot.push(&Key::HabitOtherA, body.get_food_habituate(OdorType::OtherA));
-    }
 
-    if mbon.is_inhibit() {
-        ui_body.plot.push(&Key::IgnoreOdor, 1.);
-    } else {
-        ui_body.plot.push(&Key::IgnoreOdor, 0.);
-    }
-
-    // ui_body.plot.push(&Key::RightFoodHabituate, body.get_right_food_habituate());
     ui_body.plot.tick();
 
-    ui_body.peptides.data(body.state().reshape([3, 2]));
-}
+    let peptides = tf32!([
+        [if body.is_touch_left() { 1. } else { 0. }, 
+        if body.is_touch_right() { 1. } else { 0. }],
+        [if body.is_food_left(world.deref()) { 1. } else { 0. }, 
+        if body.is_food_right(world.deref()) { 1. } else { 0. }],
+        [ if body.is_sensor_food() { 1. } else { 0. }, body.arrest() ],
+        [ body.muscle_left(), body.muscle_right() ],
+    ]);
 
-pub fn ui_mbon_plot(
-    ui_body: &mut UiBody,
-    mbon: Res<Mbon>
-) {
-    //ui_body.plot.push(&Key::Dir, body.dir().to_unit());
+    ui_body.peptides.data(peptides.reshape([4, 2]));
 }
 
 pub fn ui_body_spawn_plot(

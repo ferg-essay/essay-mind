@@ -25,10 +25,10 @@ impl BodyLocomotion {
     const ARREST_DECAY : f32 = -0.1;
     const ARREST_THRESHOLD : f32 = 0.4;
 
-    const MUSCLE_DECAY : f32 = -0.05;
+    const MUSCLE_DECAY : f32 = -1.0;
     const MUSCLE_THRESHOLD : f32 = 0.2;
 
-    const SPEED : f32 = 0.025;
+    const SPEED : f32 = 0.1; // speed in head-lengths
 
     pub fn new(pos: Point) -> Self {
         Self {
@@ -37,7 +37,7 @@ impl BodyLocomotion {
             speed: 1.,
             arrest: 0.,
 
-            muscle_left: 1.,
+            muscle_left: 0.,
             muscle_right: 0.,
 
             touch_left: false,
@@ -80,7 +80,7 @@ impl BodyLocomotion {
     }
 
     pub fn touch_right(&self) -> bool {
-        self.touch_left
+        self.touch_right
     }
 
     pub fn _speed(&mut self, speed: f32) {
@@ -108,29 +108,7 @@ impl BodyLocomotion {
     /// Update the slugs's position based on the cilia movement
     /// 
     pub fn update(&mut self, world: &World) {
-        let Point(mut x, mut y) = self.pos;
         let mut dir = self.dir.to_unit();
-
-        // default movement is falling
-        let (dy, dx) = self.dir.to_radians().sin_cos();
-
-        let speed = self.speed * BodyLocomotion::SPEED;
-        self.speed = 1.;
-
-        // if cilia aren't arrested, move in the direction
-        if self.arrest <= BodyLocomotion::ARREST_THRESHOLD {
-            x += dx * speed;
-            y += dy * speed;
-
-            // random noise into direction
-            if random() < 0.2 {
-                if random() < 0.5 {
-                    dir += 0.005;
-                } else {
-                    dir -= 0.005;
-                }
-            }
-        }
 
         if self.muscle_left > BodyLocomotion::MUSCLE_THRESHOLD {
             dir += 0.015 * (1. + 0.2 * (random() - 0.5));
@@ -138,7 +116,30 @@ impl BodyLocomotion {
             dir -= 0.015 * (1. + 0.2 * (random() - 0.5));
         }
 
-        // update y, clamped to the world boundaries
+        let mut speed = self.speed * BodyLocomotion::SPEED;
+        self.speed = 1.;
+
+        // if cilia aren't arrested, move in the direction
+        if BodyLocomotion::ARREST_THRESHOLD < self.arrest {
+            speed = 0.;
+        }
+
+        // random noise into direction
+        if speed > 0. && random() < 0.2 {
+            if random() < 0.5 {
+                dir += 0.005;
+            } else {
+                dir -= 0.005;
+            }
+        }
+
+        self.dir = Angle::Unit((dir + 1.) % 1.);
+
+        let Point(mut x, mut y) = self.pos;
+
+        let (dy, dx) = self.dir.to_radians().sin_cos();
+
+        // head location
         let head = Point(x + dx * 0.5, y + dy * 0.5);
 
         // sensor ahead and to the side
@@ -148,7 +149,10 @@ impl BodyLocomotion {
         let sensor_right = (head.0 + dx * 0.1 + dy * 0.1, head.1 + dy * 0.1 - dx * 0.1);
         self.touch_right = world.is_collide(sensor_right);
 
-        if ! world.is_collide(head) {
+        x = (1. - speed) * x + speed * head.0;
+        y = (1. - speed) * y + speed * head.1;
+
+        if ! world.is_collide((x, y)) {
             self.pos = Point(x, y);
         } else if ! self.touch_left && ! self.touch_right {
             self.touch_left = true;

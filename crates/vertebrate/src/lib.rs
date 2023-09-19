@@ -1,6 +1,8 @@
+pub mod habenula;
+pub mod mid_dopamine;
 pub mod body;
 pub mod body_locomotion;
-pub mod control;
+pub mod mid_locomotor;
 pub mod world;
 
 pub mod ui_body;

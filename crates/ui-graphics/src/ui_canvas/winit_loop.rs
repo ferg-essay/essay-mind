@@ -39,7 +39,6 @@ pub fn main_loop(mut app: App, tick_ms: Duration, ticks_per_cycle: usize) {
                         app.tick();
                     }
                 }
-                let duration = start.elapsed();
             }
             Event::WindowEvent {
                 event: WindowEvent::KeyboardInput { input, .. },
