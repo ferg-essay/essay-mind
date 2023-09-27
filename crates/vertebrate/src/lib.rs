@@ -1,3 +1,4 @@
+pub mod olfactory;
 pub mod habenula;
 pub mod mid_dopamine;
 pub mod body;

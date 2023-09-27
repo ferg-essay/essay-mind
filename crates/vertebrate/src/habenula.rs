@@ -12,6 +12,10 @@ impl Habenula {
     pub fn persist(&mut self) -> bool {
         self.cost = (self.cost + Habenula::COST).min(1.);
 
+        if true {
+            return true;
+        }
+        
         self.cost < Habenula::THRESHOLD
     }
 
