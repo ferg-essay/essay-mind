@@ -1,14 +1,12 @@
 use essay_ecs::prelude::*;
 use essay_plot::prelude::*;
 
-use essay_tensor::{Tensor, tf32};
+use essay_tensor::Tensor;
 use mind_ecs::Tick;
 use test_log::{TestLog, TestLogPlugin};
 use crate::body_locomotion::BodyLocomotion;
 
 use crate::world::{OdorType, World, SlugWorldPlugin};
-
-use super::mid_locomotor::MidLocomotorPlugin;
 
 #[derive(Component)]
 pub struct Body {
@@ -148,6 +146,7 @@ pub fn body_physics(
     body.ticks += 1;
 }
 
+/*
 pub fn body_habit(
     mut body: ResMut<Body>,
     world: Res<World>,
@@ -157,6 +156,7 @@ pub fn body_habit(
         None => None,
     };
 }
+*/
 
 fn _random() -> f32 {
     Tensor::random_uniform([1], ())[0]
@@ -179,7 +179,7 @@ impl Plugin for BodyPlugin {
         app.system(Startup, spawn_body);
 
         app.system(Tick, body_physics);
-        app.system(Tick, body_habit);
+        // app.system(Tick, body_habit);
 
         if app.contains_plugin::<TestLogPlugin>() {
             app.system(Last, body_log);

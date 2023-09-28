@@ -1,3 +1,4 @@
+mod striatum;
 use essay_ecs::{prelude::*, core::{Local, Store, Schedule, schedule::Executors}};
 
 #[derive(ScheduleLabel, Clone, Copy, Debug, PartialEq, Eq, Hash)]

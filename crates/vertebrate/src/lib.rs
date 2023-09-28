@@ -1,3 +1,5 @@
+pub mod tectum;
+pub mod striatum;
 pub mod olfactory;
 pub mod habenula;
 pub mod mid_dopamine;

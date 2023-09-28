@@ -2,11 +2,14 @@
 /// Olfactory bulb
 ///
 
-use essay_ecs::{prelude::{Plugin, App, ResMut, Res}, core::{store::FromStore, Store, Local}};
+use essay_ecs::prelude::{Plugin, App, ResMut, Res};
 use essay_plot::prelude::Angle;
 use mind_ecs::Tick;
 
-use crate::{mid_locomotor::{MidLocomotorPlugin, ApproachMlr}, body::Body, world::{World, OdorType}, habenula::Habenula};
+use crate::{
+    body::Body, 
+    world::{World, OdorType}
+};
 
 pub struct Olfactory {
     odor: Option<OdorType>,

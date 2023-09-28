@@ -1,7 +1,12 @@
 use essay_ecs::{prelude::{Plugin, App, ResMut, Res}, core::{store::FromStore, Store, Local}};
 use mind_ecs::Tick;
 
-use crate::{mid_locomotor::{MidLocomotorPlugin, ApproachMlr}, body::Body, world::World, habenula::Habenula, olfactory::{OlfactoryPlugin, Olfactory}};
+use crate::{
+    habenula::Habenula, 
+    mid_locomotor::MidLocomotorPlugin, 
+    olfactory::{OlfactoryPlugin, Olfactory}, 
+    tectum::{TectumLocomotion, Turn}
+};
 
 ///
 /// Midbrain dopamine region
@@ -17,7 +22,7 @@ struct DopamineState {
 }
 
 impl DopamineState {
-    fn persist(&mut self) -> bool {
+    fn persevere(&mut self) -> bool {
         self.hb.persist()
     }
 
@@ -37,14 +42,18 @@ impl FromStore for DopamineState {
 fn update_mid_dopamine(
     odor: Res<Olfactory>, 
     mut da: Local<DopamineState>,
-    mut approach: ResMut<ApproachMlr>,
+    mut tectum: ResMut<TectumLocomotion>,
 ) {
     da.decay();
     
     // "where" / "how" path
     if let Some(angle) = odor.dir() {
-        if da.persist() {
-            approach.turn(angle);
+        if da.persevere() {
+            if 0.05 <= angle.to_unit() && angle.to_unit() <= 0.5 {
+                tectum.approach().turn(Turn::Left, 1.);
+            } else if 0.5 <= angle.to_unit() && angle.to_unit() <= 0.95 {
+                tectum.approach().turn(Turn::Right, 1.);
+            }
         }
     }
 }

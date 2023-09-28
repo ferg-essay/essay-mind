@@ -1645,6 +1645,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "mind-macros"
+version = "0.1.18"
+dependencies = [
+ "quote",
+ "syn 2.0.28",
+]
+
+[[package]]
 name = "minimal-lexical"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
