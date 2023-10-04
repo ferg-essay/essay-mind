@@ -1,10 +1,10 @@
 use essay_ecs::prelude::{App, Plugin, ResMut};
 use mind_ecs::Tick;
 
-use crate::striatum_sense::{Striatum, ActionId};
+use crate::striatum_action::{StriatumAction, ActionId};
 
 pub struct TectumTurn {
-    striatum: Striatum,
+    striatum: StriatumAction,
     left: ActionId,
     right: ActionId,
 
@@ -13,7 +13,7 @@ pub struct TectumTurn {
 
 impl TectumTurn {
     fn new(_name: &str) -> Self {
-        let mut striatum = Striatum::new();
+        let mut striatum = StriatumAction::new();
         let left = striatum.add_action("turn-left");
         let right = striatum.add_action("turn-right");
 
@@ -27,13 +27,22 @@ impl TectumTurn {
 
     pub fn turn(&mut self, turn: Turn, value: f32) {
         match turn {
-            Turn::Left => { self.striatum.set_value(self.left, value); }
-            Turn::Right => { self.striatum.set_value(self.right, value); }
+            Turn::Left => { self.striatum.sense(self.left, value); }
+            Turn::Right => { self.striatum.sense(self.right, value); }
         }
     }
 
     pub fn action(&self) -> Option<Turn> {
         self.action.clone()
+    }
+
+    pub fn action_efference(&mut self, turn: Turn) {
+        let value = 1.;
+
+        match turn {
+            Turn::Left => { self.striatum.action_efference(self.left, value); }
+            Turn::Right => { self.striatum.action_efference(self.right, value); }
+        }
     }
 
     fn update(&mut self) -> Option<Turn> {

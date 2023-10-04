@@ -3,7 +3,7 @@ use essay_ecs::core::store::FromStore;
 use essay_ecs::{prelude::*, core::Local};
 use mind_ecs::Tick;
 use crate::{
-    tectum::{Turn, TectumLocomotion},
+    tectum_action::{Turn, TectumLocomotion},
     body::{Body, BodyPlugin}
 };
 
@@ -64,11 +64,15 @@ fn update_locomotor(
             Turn::Left => { state.left(body.get_mut()); }
             Turn::Right => { state.right(body.get_mut()); }
         }
+
+        tectum.repel().action_efference(turn)
     } else if let Some(turn) = tectum.approach().action() {
         match turn {
             Turn::Left => { state.left(body.get_mut()); }
             Turn::Right => { state.right(body.get_mut()); }
         }
+
+        tectum.approach().action_efference(turn)
     }
 }
 
