@@ -20,7 +20,7 @@ pub fn main() {
     app.plugin(SlugWorldPlugin);
     app.plugin(BodyPlugin);
     app.plugin(OlfactoryPlugin);
-    app.plugin(TectumPlugin::new().striatum());
+    app.plugin(TectumPlugin::new().ni());
     app.plugin(MidLocomotorPlugin);
     app.plugin(MidDopaminePlugin);
 

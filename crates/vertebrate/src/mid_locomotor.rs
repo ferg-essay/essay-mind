@@ -2,6 +2,7 @@ use essay_ecs::core::Store;
 use essay_ecs::core::store::FromStore;
 use essay_ecs::{prelude::*, core::Local};
 use mind_ecs::Tick;
+use crate::tectum_action::TectumPlugin;
 use crate::{
     tectum_action::{Turn, TectumLocomotion},
     body::{Body, BodyPlugin}
@@ -42,11 +43,11 @@ fn update_touch(
     tectum: &mut TectumLocomotion,
 ) {
     if body.is_touch_left() {
-        tectum.repel().turn(Turn::Right, 1.);
+        tectum.away().turn(Turn::Right, 1.);
     }
 
     if body.is_touch_right() {
-        tectum.repel().turn(Turn::Left, 1.);
+        tectum.away().turn(Turn::Left, 1.);
     }
 }
 
@@ -55,24 +56,25 @@ fn update_locomotor(
     mut tectum: ResMut<TectumLocomotion>,
     mut state: Local<MesState>, 
 ) {
-    update_touch(body.get(), tectum.get_mut());
+    let tectum = tectum.get_mut();
+    update_touch(body.get(), tectum);
 
     tectum.update();
-    
-    if let Some(turn) = tectum.repel().action() {
+
+    if let Some(turn) = tectum.away().action() {
         match turn {
             Turn::Left => { state.left(body.get_mut()); }
             Turn::Right => { state.right(body.get_mut()); }
         }
 
-        tectum.repel().action_efference(turn)
-    } else if let Some(turn) = tectum.approach().action() {
+        tectum.away().action_copy(turn)
+    } else if let Some(turn) = tectum.toward().action() {
         match turn {
             Turn::Left => { state.left(body.get_mut()); }
             Turn::Right => { state.right(body.get_mut()); }
         }
 
-        tectum.approach().action_efference(turn)
+        tectum.toward().action_copy(turn)
     }
 }
 
@@ -81,8 +83,7 @@ pub struct MidLocomotorPlugin;
 impl Plugin for MidLocomotorPlugin {
     fn build(&self, app: &mut App) {
         assert!(app.contains_plugin::<BodyPlugin>(), "MesLocomotorPlugin requires BodyPlugin");
-
-        app.init_resource::<TectumLocomotion>();
+        assert!(app.contains_plugin::<TectumPlugin>(), "MesLocomotorPlugin requires TectumPlugin");
 
         app.system(Tick, update_locomotor);
     }

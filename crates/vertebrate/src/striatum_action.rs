@@ -1,5 +1,7 @@
 use essay_tensor::Tensor;
 
+use crate::tectum_action::ActionId;
+
 pub struct StriatumAction {
     actions: Vec<ActionItem>,
     selected: Option<ActionId>,
@@ -8,6 +10,7 @@ pub struct StriatumAction {
 
 impl StriatumAction {
     pub const DECAY : f32 = 0.75;
+    pub const INHIBIT : f32 = 0.2;
 
     pub fn new() -> Self {
         Self {
@@ -19,28 +22,27 @@ impl StriatumAction {
 
     pub fn add_action(
         &mut self, 
+        id: ActionId,
         name: impl AsRef<str>,
-    ) -> ActionId {
-        let len = self.actions.len();
-        let id = ActionId(len);
-        self.actions.push(ActionItem::new(id, name.as_ref()));
+    ) {
+        assert_eq!(id.i(), self.actions.len());
 
-        id
+        self.actions.push(ActionItem::new(id, name.as_ref()));
     }
 
     pub fn sense(&mut self, id: ActionId, sense: f32) {
         assert!(0. <= sense && sense <= 1.);
 
-        self.actions[id.0].sense = sense;
+        self.actions[id.i()].sense = sense;
     }
 
-    pub fn action_efference(&mut self, id: ActionId, value: f32) {
+    pub fn action_copy(&mut self, id: ActionId, value: f32) {
         assert!(0. <= value && value <= 1.);
 
-        self.actions[id.0].action = value;
+        self.actions[id.i()].action = value;
     }
 
-    pub fn update(&mut self) -> Option<ActionId> {
+    pub fn update(&mut self, snr: &mut dyn StriatumSnr) {
         let mut best_sense = 0.;
         let mut second = 0.;
         let mut best = None;
@@ -61,7 +63,7 @@ impl StriatumAction {
         }
 
         // TODO: reference for this heuristic (fixed block)
-        self.selected = if self.threshold <= best_sense - second {
+        let selected = if self.threshold <= best_sense - second {
             //if let Some(id) = best {
             //    self.actions[id.0].dopamine = 1.;
             //}
@@ -71,16 +73,25 @@ impl StriatumAction {
             None
         };
 
-        self.selected
+        self.selected = selected;
+
+        for item in &self.actions {
+            if Some(item.id) == selected {
+                snr.attend(item.id, 1.);
+            } else {
+                snr.attend(item.id, Self::INHIBIT);
+            }
+        }
     }
+}
+
+pub trait StriatumSnr {
+    fn attend(&mut self, id: ActionId, value: f32);
 }
 
 fn random() -> f32 {
     Tensor::random_uniform([1], ())[0]
 }
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct ActionId(usize);
 
 pub struct ActionItem {
     id: ActionId,
