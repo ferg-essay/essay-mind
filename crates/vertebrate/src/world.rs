@@ -60,6 +60,10 @@ impl World {
         self.food.push(Food::new(x, y, odor));
     }
 
+    fn add_odor(&mut self, x: usize, y: usize, odor: OdorType) {
+        self.food.push(Food::new(x, y, odor));
+    }
+
     pub fn odor(&self, pt: Point) -> Option<(OdorType, Angle)> {
         let Point(x, y) = pt;
 
@@ -121,56 +125,6 @@ pub enum WorldCell {
     Empty,
     Food,
     Wall
-}
-
-fn create_world() -> World {
-    let mut world = World::new(30, 20);
-
-    // sparse_food(&mut world);
-    dense_food(&mut world);
-
-    for (x, y) in vec![
-        (8, 4), (8, 5), (8, 6), (8, 7), (8, 8), (8, 9), (8, 10), (8, 11), (8, 12),
-        (18, 6), (19, 6), (20, 6), (25, 6), (26, 6),
-        (20, 14), (21, 14), (22, 14), (26, 14), (27, 14)
-    ] {
-        world[(x, y)] = WorldCell::Wall;
-    }
-
-    world
-}
-
-fn dense_food(world: &mut World) {
-    for (x, y) in vec![
-        (4, 2),
-    ] {
-        world.add_food(x, y, OdorType::FoodA);
-    }
-
-    for (x, y) in vec![
-        (20, 10),
-    ] {
-        world.add_food(x, y, OdorType::FoodB);
-    }
-
-    let is_distractor = true;
-
-    if is_distractor {
-        for (x, y) in vec![
-            (2, 8),
-        ] {
-            world.add_food(x, y, OdorType::OtherA);
-        }
-
-        for (x, y) in vec![
-            (2, 8),
-            (13, 9),
-            (14, 2),
-            (22, 16),
-        ] {
-            world.add_food(x, y, OdorType::OtherB);
-        }
-    }
 }
 
 pub struct Food {
@@ -260,29 +214,24 @@ impl fmt::Debug for Food {
     }
 }
 
-pub struct SlugWorldPlugin;
-
-impl SlugWorldPlugin {
-    pub fn new() -> WorldPlugin {
-        WorldPlugin::new(30, 20)
-    } 
-    /*
-    fn build(&self, app: &mut App) {
-        app.insert_resource(create_world());
-    }
-    */
-}
-
 pub struct WorldPlugin {
     width: usize,
     height: usize,
+
+    walls: Vec<(usize, usize)>,
+    food: Vec<(usize, usize)>,
+    odors: Vec<OdorItem>,
 }
 
 impl WorldPlugin {
     pub fn new(width: usize, height: usize) -> Self {
         Self {
             width,
-            height
+            height,
+
+            walls: Vec::new(),
+            food: Vec::new(),
+            odors: Vec::new(),
         }
     }
 
@@ -294,20 +243,65 @@ impl WorldPlugin {
         self.height
     }
 
+    pub fn walls<const N: usize>(mut self, walls: [(usize, usize); N]) -> Self {
+        for wall in walls {
+            assert!(wall.0 < self.width);
+            assert!(wall.1 < self.height);
+
+            self.walls.push(wall);
+        }
+        self
+    }
+
+    pub fn wall(mut self, pos: (usize, usize), extent: (usize, usize)) -> Self {
+        assert!(pos.0 + extent.0 < self.width);
+        assert!(pos.1 + extent.1 < self.height);
+
+        for j in 0..extent.1 {
+            for i in 0..extent.0 {
+                self.walls.push((pos.0 + i, pos.1 + j));
+            }
+        }
+
+        self
+    }
+
+    pub fn food(mut self, x: usize, y: usize) -> Self {
+        assert!(x < self.width);
+        assert!(y < self.height);
+
+        self.food.push((x, y));
+        
+        self
+    }
+
+    pub fn food_odor(mut self, x: usize, y: usize, odor: OdorType) -> Self {
+        self.food(x, y).odor(x, y, odor)
+    }
+
+    pub fn odor(mut self, x: usize, y: usize, odor: OdorType) -> Self {
+        assert!(x < self.width);
+        assert!(y < self.height);
+        
+        self.odors.push(OdorItem::new(x, y, odor));
+
+        self
+    }
+
     fn create_world(&self) -> World {
         let mut world = World::new(self.width, self.height);
-        /*
-        // sparse_food(&mut world);
-        dense_food(&mut world);
-    
-        for (x, y) in vec![
-            (8, 4), (8, 5), (8, 6), (8, 7), (8, 8), (8, 9), (8, 10), (8, 11), (8, 12),
-            (18, 6), (19, 6), (20, 6), (25, 6), (26, 6),
-            (20, 14), (21, 14), (22, 14), (26, 14), (27, 14)
-        ] {
-            world[(x, y)] = WorldCell::Wall;
+
+        for food in &self.food {
+            world[*food] = WorldCell::Food;
         }
-        */
+
+        for wall in &self.walls {
+            world[*wall] = WorldCell::Wall;
+        }
+
+        for odor in &self.odors {
+            world.add_odor(odor.pos.0, odor.pos.1, odor.odor);
+        }
     
         world
     }
@@ -317,4 +311,37 @@ impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(self.create_world());
     }
+}
+
+struct OdorItem {
+    pos: (usize, usize),
+    odor: OdorType,
+}
+
+impl OdorItem {
+    fn new(x: usize, y: usize, odor: OdorType) -> Self {
+        Self {
+            pos: (x, y),
+            odor,
+        }
+    }
+}
+
+pub struct SlugWorldPlugin;
+
+impl SlugWorldPlugin {
+    pub fn new() -> WorldPlugin {
+        let mut world = WorldPlugin::new(30, 20);
+
+        world = world.walls([
+            (8, 4), (8, 5), (8, 6), (8, 7), (8, 8), (8, 9), (8, 10), (8, 11), (8, 12),
+            (18, 6), (19, 6), (20, 6), (25, 6), (26, 6),
+            (20, 14), (21, 14), (22, 14), (26, 14), (27, 14)
+        ]);
+
+        world = world.food(4, 2) // , OdorType::FoodA);
+            .food(20, 10); // , OdorType::FoodB);
+
+        world
+    } 
 }

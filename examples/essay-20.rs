@@ -11,13 +11,19 @@ use vertebrate::ui_body::UiSlugBodyPlugin;
 use vertebrate::ui_body_heatmap::UiSlugLocationPlugin;
 use ui_graphics::UiCanvasPlugin;
 use vertebrate::ui_world::UiSlugWorldPlugin;
-use vertebrate::world::WorldPlugin;
+use vertebrate::world::{WorldPlugin, OdorType};
 
 pub fn main() {
     let mut app = App::new();
 
     app.plugin(TickSchedulePlugin::new().ticks(2));
-    app.plugin(WorldPlugin::new(30, 20));
+    app.plugin(
+        WorldPlugin::new(10, 10)
+        .wall((4, 5), (4, 1))
+        .wall((4, 0), (1, 5))
+        .food_odor(1, 1, OdorType::FoodA)
+        .food_odor(8, 2, OdorType::FoodB)
+    );
     app.plugin(BodyPlugin);
     app.plugin(OlfactoryPlugin);
     app.plugin(TectumPlugin::new().ni());
