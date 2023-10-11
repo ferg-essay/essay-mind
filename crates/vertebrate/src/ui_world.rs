@@ -3,7 +3,7 @@ use essay_plot::{prelude::*, artist::paths};
 use essay_tensor::Tensor;
 use ui_graphics::{ui_layout::{UiLayout, UiLayoutEvent, BoxId, UiLayoutPlugin}, UiCanvas, UiCanvasPlugin};
 
-use crate::world::{World, OdorType};
+use crate::world::{World, OdorType, WorldPlugin};
 
 use crate::world::{SlugWorldPlugin, WorldCell};
 
@@ -113,7 +113,9 @@ pub fn draw_world(
 
     let xy = ui_world.to_canvas().transform(&Tensor::from(xy));
 
-    ui.draw_markers(&circle, xy, sizes, &colors);
+    if xy.len() > 0 {
+        ui.draw_markers(&circle, xy, sizes, &colors);
+    }
 }
 
 impl From<&WorldCell> for Color {
@@ -164,14 +166,15 @@ impl UiSlugWorldPlugin {
 impl Plugin for UiSlugWorldPlugin {
     fn build(&self, app: &mut App) {
         if app.contains_plugin::<UiCanvasPlugin>() {
-            assert!(app.contains_plugin::<SlugWorldPlugin>());
+            assert!(app.contains_plugin::<WorldPlugin>());
 
             if ! app.contains_plugin::<UiLayoutPlugin>() {
                 app.plugin(UiLayoutPlugin);
             }
 
             let box_id = app.resource_mut::<UiLayout>().add_box(self.bounds.clone());
-            let ui_world = UiWorld::new(box_id, 30, 20);
+            let world = app.get_plugin::<WorldPlugin>().unwrap();
+            let ui_world = UiWorld::new(box_id, world.width(), world.height());
             app.insert_resource(ui_world);
 
             app.phase(Update, (DrawWorld, DrawItem, DrawAgent).chain());

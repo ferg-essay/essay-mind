@@ -6,7 +6,7 @@ use mind_ecs::Tick;
 use test_log::{TestLog, TestLogPlugin};
 use crate::body_locomotion::BodyLocomotion;
 
-use crate::world::{OdorType, World, SlugWorldPlugin};
+use crate::world::{OdorType, World, SlugWorldPlugin, WorldPlugin};
 
 #[derive(Component)]
 pub struct Body {
@@ -175,7 +175,7 @@ pub struct BodyPlugin;
 
 impl Plugin for BodyPlugin {
     fn build(&self, app: &mut App) {
-        assert!(app.contains_plugin::<SlugWorldPlugin>(), "BodyPlugin requires WorldPlugin");
+        assert!(app.contains_plugin::<WorldPlugin>(), "BodyPlugin requires WorldPlugin");
         app.system(Startup, spawn_body);
 
         app.system(Tick, body_physics);

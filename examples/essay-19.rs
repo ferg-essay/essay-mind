@@ -17,7 +17,7 @@ pub fn main() {
     let mut app = App::new();
 
     app.plugin(TickSchedulePlugin::new().ticks(2));
-    app.plugin(SlugWorldPlugin);
+    app.plugin(SlugWorldPlugin::new());
     app.plugin(BodyPlugin);
     app.plugin(OlfactoryPlugin);
     app.plugin(TectumPlugin::new().ni());

@@ -262,8 +262,59 @@ impl fmt::Debug for Food {
 
 pub struct SlugWorldPlugin;
 
-impl Plugin for SlugWorldPlugin {
+impl SlugWorldPlugin {
+    pub fn new() -> WorldPlugin {
+        WorldPlugin::new(30, 20)
+    } 
+    /*
     fn build(&self, app: &mut App) {
         app.insert_resource(create_world());
+    }
+    */
+}
+
+pub struct WorldPlugin {
+    width: usize,
+    height: usize,
+}
+
+impl WorldPlugin {
+    pub fn new(width: usize, height: usize) -> Self {
+        Self {
+            width,
+            height
+        }
+    }
+
+    pub fn width(&self) -> usize {
+        self.width
+    }
+
+    pub fn height(&self) -> usize {
+        self.height
+    }
+
+    fn create_world(&self) -> World {
+        let mut world = World::new(self.width, self.height);
+        /*
+        // sparse_food(&mut world);
+        dense_food(&mut world);
+    
+        for (x, y) in vec![
+            (8, 4), (8, 5), (8, 6), (8, 7), (8, 8), (8, 9), (8, 10), (8, 11), (8, 12),
+            (18, 6), (19, 6), (20, 6), (25, 6), (26, 6),
+            (20, 14), (21, 14), (22, 14), (26, 14), (27, 14)
+        ] {
+            world[(x, y)] = WorldCell::Wall;
+        }
+        */
+    
+        world
+    }
+}
+
+impl Plugin for WorldPlugin {
+    fn build(&self, app: &mut App) {
+        app.insert_resource(self.create_world());
     }
 }
