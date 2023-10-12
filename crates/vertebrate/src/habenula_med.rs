@@ -43,9 +43,9 @@ fn update_habenula_med(
     // "where" / "how" path
     if let Some(angle) = odor.avoid_dir() {
         if hb.persevere() {
-            if 0.0 <= angle.to_unit() && angle.to_unit() <= 0.5 {
+            if 0.05 <= angle.to_unit() && angle.to_unit() <= 0.5 {
                 tectum.away_odor().turn(Turn::Right, 1.);
-            } else if 0.5 <= angle.to_unit() && angle.to_unit() <= 1. {
+            } else {
                 tectum.away_odor().turn(Turn::Left, 1.);
             }
         }

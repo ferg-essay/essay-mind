@@ -54,7 +54,7 @@ impl UiWorld {
         );
 
         self.pos = pos;
-        self.clip = Clip::from(set_pos);
+        self.clip = Clip::from(&self.pos);
     }
 
     pub fn to_canvas(&self) -> Affine2d {
