@@ -63,7 +63,7 @@ impl Body {
     }
 
     pub fn odor_turn(&self, world: &World) -> Option<(OdorType, Angle)> {
-        if let Some((odor, angle)) = world.odor(self.pos()) {
+        if let Some((odor, angle)) = world.odor(self.locomotion.pos_head()) {
             let turn = (2. + angle.to_unit() - self.dir().to_unit()) % 1.;
 
             Some((odor, Angle::Unit(turn)))

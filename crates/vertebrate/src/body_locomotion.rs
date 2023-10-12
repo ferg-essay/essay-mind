@@ -49,6 +49,18 @@ impl BodyLocomotion {
         self.pos
     }
 
+    pub fn pos_head(&self) -> Point {
+
+        let Point(x, y) = self.pos;
+
+        let (dy, dx) = self.dir.to_radians().sin_cos();
+
+        // head location
+        let head = Point(x + dx * 0.5, y + dy * 0.5);
+
+        head
+    }
+
     pub fn dir(&self) -> Angle {
         self.dir
     }

@@ -83,7 +83,7 @@ impl<K: Send + Sync + 'static> UiFigure<K> {
             ui_plot.inner.0.lock().unwrap().figure.update_canvas(&canvas);
             ui_plot.inner.0.lock().unwrap().figure.draw(&mut renderer, &ui_plot.bounds);
             
-            renderer.flush();
+            renderer.flush_inner(&Clip::None);
         }
     }
     

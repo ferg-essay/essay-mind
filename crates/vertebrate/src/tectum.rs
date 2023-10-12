@@ -3,6 +3,39 @@ use mind_ecs::Tick;
 
 use crate::striatum_sense::{Striatum, ActionId};
 
+pub struct TectumLocomotion {
+    toward: TectumTurn,
+    away: TectumTurn,
+}
+
+impl TectumLocomotion {
+    pub fn new() -> Self {
+        Self {
+            toward: TectumTurn::new("toward"),
+            away: TectumTurn::new("away"),
+        }
+    }
+
+    pub fn toward(&mut self) -> &mut TectumTurn {
+        &mut self.toward
+    }
+
+    pub fn away(&mut self) -> &mut TectumTurn {
+        &mut self.away
+    }
+
+    pub fn update(&mut self) {
+        self.toward.update();
+        self.away.update();
+    }
+}
+
+impl Default for TectumLocomotion {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 pub struct TectumTurn {
     striatum: Striatum,
     left: ActionId,
@@ -57,39 +90,6 @@ impl TectumTurn {
 pub enum Turn {
     Left,
     Right,
-}
-
-pub struct TectumLocomotion {
-    approach: TectumTurn,
-    repel: TectumTurn,
-}
-
-impl TectumLocomotion {
-    pub fn new() -> Self {
-        Self {
-            approach: TectumTurn::new("approach"),
-            repel: TectumTurn::new("repel"),
-        }
-    }
-
-    pub fn approach(&mut self) -> &mut TectumTurn {
-        &mut self.approach
-    }
-
-    pub fn repel(&mut self) -> &mut TectumTurn {
-        &mut self.repel
-    }
-
-    pub fn update(&mut self) {
-        self.approach.update();
-        self.repel.update();
-    }
-}
-
-impl Default for TectumLocomotion {
-    fn default() -> Self {
-        Self::new()
-    }
 }
 
 fn update_tectum(mut tectum: ResMut<TectumLocomotion>) {

@@ -68,6 +68,13 @@ fn update_locomotor(
         }
 
         tectum.away().action_copy(turn)
+    } else if let Some(turn) = tectum.away_odor().action() {
+        match turn {
+            Turn::Left => { state.left(body.get_mut()); }
+            Turn::Right => { state.right(body.get_mut()); }
+        }
+    
+        tectum.away().action_copy(turn)
     } else if let Some(turn) = tectum.toward().action() {
         match turn {
             Turn::Left => { state.left(body.get_mut()); }

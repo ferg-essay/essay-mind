@@ -47,7 +47,7 @@ fn update_mid_dopamine(
     da.decay();
     
     // "where" / "how" path
-    if let Some(angle) = odor.dir() {
+    if let Some(angle) = odor.food_dir() {
         if da.persevere() {
             if 0.05 <= angle.to_unit() && angle.to_unit() <= 0.5 {
                 tectum.toward().turn(Turn::Left, 1.);

@@ -7,6 +7,7 @@ use crate::{striatum_action::{StriatumAction, StriatumSnr}, ach_attention::{Nucl
 pub struct TectumLocomotion {
     toward: TectumTurn,
     away: TectumTurn,
+    away_odor: TectumTurn,
 }
 
 impl TectumLocomotion {
@@ -14,6 +15,7 @@ impl TectumLocomotion {
         Self {
             toward: TectumTurn::new(plugin, "toward"),
             away: TectumTurn::new(plugin, "away"),
+            away_odor: TectumTurn::new(plugin, "away-odor"),
         }
     }
 
@@ -25,9 +27,14 @@ impl TectumLocomotion {
         &mut self.away
     }
 
+    pub fn away_odor(&mut self) -> &mut TectumTurn {
+        &mut self.away_odor
+    }
+
     pub fn update(&mut self) {
         self.toward.update();
         self.away.update();
+        self.away_odor.update();
     }
 }
 

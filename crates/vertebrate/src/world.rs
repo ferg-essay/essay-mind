@@ -137,6 +137,8 @@ pub struct Food {
 pub enum OdorType {
     FoodA,
     FoodB,
+    AvoidA,
+    AvoidB,
     OtherA,
     OtherB,
 }
@@ -154,8 +156,10 @@ impl OdorType {
         match self {
             OdorType::FoodA => 0,
             OdorType::FoodB => 1,
-            OdorType::OtherA => 2,
-            OdorType::OtherB => 3,
+            OdorType::AvoidA => 2,
+            OdorType::AvoidB => 3,
+            OdorType::OtherA => 4,
+            OdorType::OtherB => 5,
         }
     }
 
@@ -169,8 +173,10 @@ impl From<usize> for OdorType {
         match value {
             0 => OdorType::FoodA,
             1 => OdorType::FoodB,
-            2 => OdorType::OtherA,
-            3 => OdorType::OtherB,
+            2 => OdorType::AvoidA,
+            3 => OdorType::AvoidB,
+            4 => OdorType::OtherA,
+            5 => OdorType::OtherB,
             _ => todo!(),
         }
     }
@@ -339,8 +345,8 @@ impl SlugWorldPlugin {
             (20, 14), (21, 14), (22, 14), (26, 14), (27, 14)
         ]);
 
-        world = world.food(4, 2) // , OdorType::FoodA);
-            .food(20, 10); // , OdorType::FoodB);
+        world = world.food_odor(4, 2, OdorType::FoodA)
+            .food_odor(20, 10, OdorType::FoodB);
 
         world
     } 

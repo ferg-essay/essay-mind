@@ -12,20 +12,46 @@ use crate::{
 };
 
 pub struct Olfactory {
-    odor: Option<OdorType>,
-    dir: Option<Angle>,
+    food: Option<OdorItem>,
+    avoid: Option<OdorItem>,
 }
 
 impl Olfactory {
-    pub fn dir(&self) -> Option<Angle> {
-        self.dir
+    pub fn food_dir(&self) -> Option<Angle> {
+        if let Some(food) = &self.food {
+            Some(food.dir)
+        } else {
+            None
+        }
+    }
+
+    pub fn avoid_dir(&self) -> Option<Angle> {
+        if let Some(avoid) = &self.avoid {
+            Some(avoid.dir)
+        } else {
+            None
+        }
     }
 }
 impl Default for Olfactory {
     fn default() -> Self {
         Self { 
-            odor: None,
-            dir: None,
+            food: None,
+            avoid: None,
+        }
+    }
+}
+
+struct OdorItem {
+    odor: OdorType,
+    dir: Angle,
+}
+
+impl OdorItem {
+    fn new(odor: OdorType, dir: Angle) -> Self {
+        Self {
+            odor,
+            dir,
         }
     }
 }
@@ -35,12 +61,16 @@ fn update_olfactory(
     world: Res<World>, 
     mut olfactory: ResMut<Olfactory>,
 ) {
+    olfactory.food = None;
+    olfactory.avoid = None;
+
     if let Some((odor, angle)) = body.odor_turn(world.get()) {
-        olfactory.odor = Some(odor);
-        olfactory.dir = Some(angle);
-    } else {
-        olfactory.odor = None;
-        olfactory.dir = None;
+        if odor.is_food() {
+            olfactory.food = Some(OdorItem::new(odor, angle));
+        } else {
+            olfactory.avoid = Some(OdorItem::new(odor, angle));
+
+        }
     }
 }
 pub struct OlfactoryPlugin;

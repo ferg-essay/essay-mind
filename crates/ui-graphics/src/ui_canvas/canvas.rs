@@ -149,6 +149,6 @@ impl RendererApi for EssayRenderer<'_> {
         );
 
         renderer.draw_path(path, style, &Clip::None).unwrap();
-        renderer.flush();
+        renderer.flush(&Clip::None);
     }
 }

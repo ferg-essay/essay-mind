@@ -113,7 +113,7 @@ pub fn draw_world(
 
     let xy = ui_world.to_canvas().transform(&Tensor::from(xy));
 
-    ui.draw_markers(&circle, xy, sizes, &colors);
+    ui.draw_markers(&circle, xy, sizes, &colors, &Clip::None);
 }
 
 impl From<&WorldCell> for Color {

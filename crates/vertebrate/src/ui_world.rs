@@ -5,12 +5,13 @@ use ui_graphics::{ui_layout::{UiLayout, UiLayoutEvent, BoxId, UiLayoutPlugin}, U
 
 use crate::world::{World, OdorType, WorldPlugin};
 
-use crate::world::{SlugWorldPlugin, WorldCell};
+use crate::world::WorldCell;
 
 #[derive(Component)]
 pub struct UiWorld {
     id: BoxId,
     pos: Bounds<Canvas>,
+    clip: Clip,
     bounds: Bounds<UiWorld>,
     width: usize,
     height: usize,
@@ -26,6 +27,7 @@ impl UiWorld {
         Self {
             id,
             pos: Bounds::zero(),
+            clip: Clip::None,
             width,
             height,
             bounds: Bounds::from([width as f32, height as f32]),
@@ -52,10 +54,15 @@ impl UiWorld {
         );
 
         self.pos = pos;
+        self.clip = Clip::from(set_pos);
     }
 
     pub fn to_canvas(&self) -> Affine2d {
         self.bounds.affine_to(&self.pos)
+    }
+
+    pub fn clip(&self) -> &Clip {
+        &self.clip
     }
 }
 
@@ -95,10 +102,6 @@ pub fn draw_world(
 
     // TODO: cache texture when unmodified
 
-    if let Some(image) = &ui_world.image {
-        ui.draw_image(&ui_world.pos, image.clone());
-    }
-
     let circle = paths::circle().transform(&ui_world.to_canvas());
     let mut xy : Vec<[f32; 2]> = Vec::new();
     let mut sizes : Vec<[f32; 2]> = Vec::new();
@@ -114,15 +117,19 @@ pub fn draw_world(
     let xy = ui_world.to_canvas().transform(&Tensor::from(xy));
 
     if xy.len() > 0 {
-        ui.draw_markers(&circle, xy, sizes, &colors);
+        ui.draw_markers(&circle, xy, sizes, &colors, &ui_world.clip());
+    }
+
+    if let Some(image) = &ui_world.image {
+        ui.draw_image(&ui_world.pos, image.clone());
     }
 }
 
 impl From<&WorldCell> for Color {
     fn from(value: &WorldCell) -> Self {
         match value {
-            WorldCell::Empty => Color::from("black"),
-            WorldCell::Food => Color::from("amber"),
+            WorldCell::Empty => Color(0xf8f8f800),
+            WorldCell::Food => Color::from("green"),
             WorldCell::Wall => Color(0xbfbfbfff),
         }
     }
@@ -131,8 +138,10 @@ impl From<&WorldCell> for Color {
 impl From<OdorType> for Color {
     fn from(value: OdorType) -> Self {
         match value {
-            OdorType::FoodA => Color::from("amber"),
-            OdorType::FoodB => Color::from("red"),
+            OdorType::FoodA => Color::from("green"),
+            OdorType::FoodB => Color::from("teal"),
+            OdorType::AvoidA => Color::from("red"),
+            OdorType::AvoidB => Color::from("tomato"),
             OdorType::OtherA => Color::from("azure"),
             OdorType::OtherB => Color::from("blue"),
         }

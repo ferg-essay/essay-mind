@@ -69,7 +69,7 @@ impl UiCanvas {
     
             plot_renderer.draw_path(path, style, &Clip::None).unwrap();
 
-            plot_renderer.flush();
+            plot_renderer.flush(&Clip::None);
         }
     }
 
@@ -88,7 +88,7 @@ impl UiCanvas {
     
             plot_renderer.draw_text(xy, text, 0., &style, text_style, &Clip::None).unwrap();
 
-            plot_renderer.flush();
+            plot_renderer.flush(&Clip::None);
         }
     }
 
@@ -125,7 +125,7 @@ impl UiCanvas {
             //let style = PathStyle::new();
     
             plot_renderer.draw_image_ref(pos, image, &Clip::None).unwrap();
-            plot_renderer.flush();
+            plot_renderer.flush(&Clip::None);
         }
     }
 
@@ -135,6 +135,7 @@ impl UiCanvas {
         xy: impl Into<Tensor>,
         sizes: impl Into<Tensor>,
         colors: &Vec<Color>,
+        clip: &Clip,
     ) {
         if let Some(view) = &self.view {
             let mut plot_renderer = PlotRenderer::new(
@@ -155,7 +156,8 @@ impl UiCanvas {
                 &style,
                 &Clip::None,
             ).unwrap();
-            plot_renderer.flush();
+
+            plot_renderer.flush(clip);
         }
     }
 

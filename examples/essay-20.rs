@@ -3,6 +3,7 @@ use std::time::Duration;
 use vertebrate::body::BodyPlugin;
 use essay_ecs::prelude::App;
 use mind_ecs::TickSchedulePlugin;
+use vertebrate::habenula_med::HabenulaMedPlugin;
 use vertebrate::mid_dopamine::MidDopaminePlugin;
 use vertebrate::mid_locomotor::MidLocomotorPlugin;
 use vertebrate::olfactory::OlfactoryPlugin;
@@ -23,12 +24,14 @@ pub fn main() {
         .wall((4, 0), (1, 5))
         .food_odor(1, 1, OdorType::FoodA)
         .food_odor(8, 2, OdorType::FoodB)
+        .odor(0, 9, OdorType::AvoidA)
     );
     app.plugin(BodyPlugin);
     app.plugin(OlfactoryPlugin);
     app.plugin(TectumPlugin::new().ni());
     app.plugin(MidLocomotorPlugin);
     app.plugin(MidDopaminePlugin);
+    app.plugin(HabenulaMedPlugin);
 
     // UiCanvasPlugin enables graphics
     app.plugin(UiCanvasPlugin::new().frame_ms(Duration::from_millis(50)));
