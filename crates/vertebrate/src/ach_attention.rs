@@ -1,6 +1,6 @@
 use essay_tensor::Tensor;
 
-use crate::tectum_action::ActionId;
+use crate::tectum::ActionId;
 
 ///
 /// modeling the nucleus isthmi, parabigeminal circuit with the optic tectum

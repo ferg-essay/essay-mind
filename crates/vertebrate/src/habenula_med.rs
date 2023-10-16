@@ -5,7 +5,7 @@ use crate::{
     habenula::Habenula, 
     mid_locomotor::MidLocomotorPlugin, 
     olfactory::{OlfactoryPlugin, Olfactory}, 
-    tectum_action::{TectumLocomotion, Turn}
+    tectum::{TectumLocomotion, Turn}
 };
 
 ///

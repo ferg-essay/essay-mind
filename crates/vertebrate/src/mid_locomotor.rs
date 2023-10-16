@@ -4,9 +4,9 @@ use essay_ecs::{prelude::*, core::Local};
 use essay_plot::prelude::Angle;
 use mind_ecs::Tick;
 use crate::body_locomotion::{Action, ActionFactory};
-use crate::tectum_action::TectumPlugin;
+use crate::tectum::TectumPlugin;
 use crate::{
-    tectum_action::{Turn, TectumLocomotion},
+    tectum::{Turn, TectumLocomotion},
     body::{Body, BodyPlugin}
 };
 

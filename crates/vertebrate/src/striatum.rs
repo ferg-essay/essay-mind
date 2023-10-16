@@ -1,6 +1,6 @@
 use essay_tensor::Tensor;
 
-use crate::tectum_action::ActionId;
+use crate::tectum::ActionId;
 
 pub struct StriatumAction {
     actions: Vec<ActionItem>,

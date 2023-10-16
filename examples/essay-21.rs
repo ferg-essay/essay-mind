@@ -7,7 +7,7 @@ use vertebrate::habenula_med::HabenulaMedPlugin;
 use vertebrate::mid_dopamine::MidDopaminePlugin;
 use vertebrate::mid_locomotor::MidLocomotorPlugin;
 use vertebrate::olfactory::OlfactoryPlugin;
-use vertebrate::tectum_action::TectumPlugin;
+use vertebrate::tectum::TectumPlugin;
 use vertebrate::ui_body::UiSlugBodyPlugin;
 use vertebrate::ui_body_heatmap::UiSlugLocationPlugin;
 use ui_graphics::UiCanvasPlugin;
