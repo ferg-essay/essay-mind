@@ -1,7 +1,9 @@
 use essay_ecs::core::Store;
 use essay_ecs::core::store::FromStore;
 use essay_ecs::{prelude::*, core::Local};
+use essay_plot::prelude::Angle;
 use mind_ecs::Tick;
+use crate::body_locomotion::{Action, ActionFactory};
 use crate::tectum_action::TectumPlugin;
 use crate::{
     tectum_action::{Turn, TectumLocomotion},
@@ -10,6 +12,8 @@ use crate::{
 
 pub struct MesState {
     _effort: f32,
+    left: ActionFactory,
+    right: ActionFactory,
 }
 
 impl MesState {
@@ -19,14 +23,14 @@ impl MesState {
         &mut self,
         body: &mut Body
     ) {
-        body.locomotion_mut().set_muscle_left(1.);
+        body.locomotion_mut().action(&self.left);
     }
 
     fn right(
         &mut self,
         body: &mut Body
     ) {
-        body.locomotion_mut().set_muscle_right(1.);
+        body.locomotion_mut().action(&self.right);
     }
 }
 
@@ -34,6 +38,8 @@ impl FromStore for MesState {
     fn init(_store: &mut Store) -> Self {
         MesState {
             _effort: 1.,
+            left: ActionFactory::new(1., Angle::Deg(30.)),
+            right: ActionFactory::new(1., Angle::Deg(-30.)),
         }
     }
 }
@@ -42,11 +48,11 @@ fn update_touch(
     body: &Body,
     tectum: &mut TectumLocomotion,
 ) {
-    if body.is_touch_left() {
+    if body.is_collide_left() {
         tectum.away().turn(Turn::Right, 1.);
     }
 
-    if body.is_touch_right() {
+    if body.is_collide_right() {
         tectum.away().turn(Turn::Left, 1.);
     }
 }

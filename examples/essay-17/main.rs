@@ -17,7 +17,7 @@ pub fn main() {
 
     app.plugin(TickSchedulePlugin::new().ticks(2));
     app.plugin(SlugWorldPlugin::new());
-    app.plugin(BodyPlugin);
+    app.plugin(BodyPlugin::new());
     app.plugin(OlfactoryPlugin);
     app.plugin(MidLocomotorPlugin);
     app.plugin(MidDopaminePlugin);

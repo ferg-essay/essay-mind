@@ -1,47 +1,42 @@
-use essay_ecs::prelude::*;
+//use essay_ecs::prelude::*;
 use essay_plot::prelude::*;
 
 use essay_tensor::Tensor;
 
 use crate::world::World;
 
-#[derive(Component)]
+// #[derive(Component)]
 pub struct BodyLocomotion {
     pos: Point,
 
     dir: Angle,
-
     speed: f32,
-    arrest: f32,
 
-    muscle_left: f32,
-    muscle_right: f32,
+    collide_left: bool,
+    collide_right: bool,
 
-    touch_left: bool,
-    touch_right: bool,
+    theta_ticks: usize,
+
+    action_default: Action,
+    action: Option<Action>,
+    action_ticks: usize,
 }
 
 impl BodyLocomotion {
-    const ARREST_DECAY : f32 = -0.1;
-    const ARREST_THRESHOLD : f32 = 0.4;
-
-    const MUSCLE_DECAY : f32 = -1.0;
-    const MUSCLE_THRESHOLD : f32 = 0.2;
-
-    const SPEED : f32 = 0.1; // speed in head-lengths
-
     pub fn new(pos: Point) -> Self {
         Self {
+            theta_ticks: 10,
+
             pos,
             dir: Angle::Unit(0.),
             speed: 1.,
-            arrest: 0.,
 
-            muscle_left: 0.,
-            muscle_right: 0.,
+            collide_left: false,
+            collide_right: false,
 
-            touch_left: false,
-            touch_right: false,
+            action_default: Action::arrest(),
+            action: None,
+            action_ticks: 0,
         }
     }
 
@@ -65,76 +60,76 @@ impl BodyLocomotion {
         self.dir
     }
 
-    pub fn muscle_left(&self) -> f32 {
-        self.muscle_left
+    pub fn speed(&self) -> f32 {
+        self.speed
     }
 
-    pub fn set_muscle_left(&mut self, muscle: f32) {
-        // simulate refraction by only updating when zero.
-        if self.muscle_left <= 0. {
-            self.muscle_left = self.muscle_left.max(muscle).clamp(0., 1.);
+    pub fn action_default(&mut self, action: Action) {
+        self.action_default = action;
+    }
+
+    pub fn action(&mut self, action: &ActionFactory) -> bool {
+        if self.action.is_none() {
+            let action = action.action();
+            self.action_ticks = (self.theta_ticks as f32 * action.time).max(1.) as usize;
+            self.action = Some(action);
+            true
+        } else {
+            false
         }
     }
 
-    pub fn muscle_right(&self) -> f32 {
-        self.muscle_right
-    }
-
-    pub fn set_muscle_right(&mut self, muscle: f32) {
-        // simulate refraction by only updating when zero.
-        if self.muscle_right <= 0. {
-            self.muscle_right = self.muscle_right.max(muscle).clamp(0., 1.);
+    pub fn is_theta(&self) -> bool {
+        if let Some(action) = &self.action {
+            action.speed > 0. && self.action_ticks == 1
+        } else {
+            false
         }
     }
 
-    pub fn touch_left(&self) -> bool {
-        self.touch_left
+    pub fn turn(&self) -> f32 {
+        if let Some(action) = &self.action {
+            action.turn.to_unit()
+        } else {
+            0.
+        }
     }
 
-    pub fn touch_right(&self) -> bool {
-        self.touch_right
+    pub fn is_collide_left(&self) -> bool {
+        self.collide_left
+    }
+
+    pub fn is_collide_right(&self) -> bool {
+        self.collide_right
     }
 
     pub fn _speed(&mut self, speed: f32) {
         self.speed = speed;
     }
 
-    pub fn speed(&self) -> f32 {
-        self.speed
-    }
-
-    pub fn arrest(&self) -> f32 {
-        self.arrest
-    }
-
     ///
-    /// Stop the muco-cilia beating for a period of time
-    /// 
-    pub fn set_arrest(&mut self, time: f32) {
-        if self.arrest <= 0. {
-            self.arrest = time;
-        }
-    }
-
-    ///
-    /// Update the slugs's position based on the cilia movement
+    /// Update the animal's position
     /// 
     pub fn update(&mut self, world: &World) {
+        let action = match &self.action {
+            Some(action) => action,
+            None => &self.action_default,
+        };
+
+        self.speed = action.speed;
+        let turn = action.turn;
+
+        if self.action_ticks > 0 {
+            self.action_ticks -= 1;
+        } else {
+            self.action = None;
+        }
+
+        let speed = self.speed / self.theta_ticks as f32;
+
         let mut dir = self.dir.to_unit();
-
-        if self.muscle_left > BodyLocomotion::MUSCLE_THRESHOLD {
-            dir += 0.015 * (1. + 0.2 * (random() - 0.5));
-        } else if self.muscle_right > BodyLocomotion::MUSCLE_THRESHOLD {
-            dir -= 0.015 * (1. + 0.2 * (random() - 0.5));
-        }
-
-        let mut speed = self.speed * BodyLocomotion::SPEED;
-        self.speed = 1.;
-
-        // if cilia aren't arrested, move in the direction
-        if BodyLocomotion::ARREST_THRESHOLD < self.arrest {
-            speed = 0.;
-        }
+        let turn_unit = (turn.to_unit() + 0.5) % 1.0 - 0.5;
+        dir += turn_unit / self.theta_ticks as f32;
 
         // random noise into direction
         if speed > 0. && random() < 0.2 {
@@ -152,30 +147,74 @@ impl BodyLocomotion {
         let (dy, dx) = self.dir.to_radians().sin_cos();
 
         // head location
-        let head = Point(x + dx * 0.5, y + dy * 0.5);
+        let head = self.pos_head();
 
         // sensor ahead and to the side
         let sensor_left = (head.0 + dx * 0.1 - dy * 0.1, head.1 + dy * 0.1 + dx * 0.1);
-        self.touch_left = world.is_collide(sensor_left);
+        self.collide_left = world.is_collide(sensor_left);
 
         let sensor_right = (head.0 + dx * 0.1 + dy * 0.1, head.1 + dy * 0.1 - dx * 0.1);
-        self.touch_right = world.is_collide(sensor_right);
+        self.collide_right = world.is_collide(sensor_right);
 
         x = (1. - speed) * x + speed * head.0;
         y = (1. - speed) * y + speed * head.1;
 
         if ! world.is_collide((x, y)) {
             self.pos = Point(x, y);
-        } else if ! self.touch_left && ! self.touch_right {
-            self.touch_left = true;
-            self.touch_right = true;
+        } else if ! self.collide_left && ! self.collide_right {
+            self.collide_left = true;
+            self.collide_right = true;
         }
 
         self.dir = Angle::Unit((dir + 1.) % 1.);
+    }
+}
 
-        self.arrest = (self.arrest + BodyLocomotion::ARREST_DECAY).max(0.);
-        self.muscle_left = (self.muscle_left + BodyLocomotion::MUSCLE_DECAY).max(0.);
-        self.muscle_right = (self.muscle_right + BodyLocomotion::MUSCLE_DECAY).max(0.);
+pub struct Action {
+    time: f32,
+    speed: f32,
+    turn: Angle,
+}
+
+impl Action {
+    pub fn new(time: f32, speed: f32, turn: Angle) -> Self {
+        Self {
+            time,
+            speed,
+            turn,
+        }
+    }
+
+    pub fn arrest() -> Self {
+        Self::new(1., 0., Angle::Unit(0.))
+    }
+
+    pub fn forward() -> Self {
+        Self::new(1., 1., Angle::Unit(0.))
+    }
+}
+
+pub struct ActionFactory {
+    speed_mean: f32,
+    speed_std: f32,
+
+    turn_mean: Angle,
+    turn_std: Angle,
+}
+
+impl ActionFactory {
+    pub fn new(speed: f32, turn: Angle) -> Self {
+        Self {
+            speed_mean: speed,
+            speed_std: 0.,
+
+            turn_mean: turn,
+            turn_std: Angle::Unit(0.),
+        }
+    }
+
+    pub fn action(&self) -> Action {
+        Action::new(1., self.speed_mean, self.turn_mean)
     }
 }
 

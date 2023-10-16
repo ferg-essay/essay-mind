@@ -29,7 +29,8 @@ impl UiBody {
         // plot.line(Key::Dir, "dir");
         // plot.line(Key::Speed, "speed");
         plot.line(Key::PFood, "p(food)");
-        plot.line(Key::Arrest, "arrest");
+        // plot.line(Key::Arrest, "arrest");
+        plot.line(Key::Turn, "turn");
         let is_single_habituate = false;
         if is_single_habituate {
             plot.line(Key::HabitFoodA, "habit");
@@ -67,13 +68,14 @@ pub fn draw_body(
     let head_len = 0.3;
     let mut head_dir = 0.;
 
-    if body.muscle_left() > 0.1 {
-        let turn = (0.1 * body.muscle_left()).clamp(0., 0.1);
-        head_dir += Angle::Unit(turn).to_radians();
-    } else if body.muscle_right() > 0.1 {
-        let turn = - (0.1 * body.muscle_right()).clamp(0., 0.1);
-        head_dir += Angle::Unit(turn).to_radians();
+    if body.turn() < 0.5 {
+        let turn = body.turn().clamp(0., 0.25);
+        head_dir += Angle::Unit(0.5 * turn).to_radians();
+    } else {
+        let turn = body.turn().clamp(0.75, 1.) - 1.;
+        head_dir += Angle::Unit(0.5 * turn).to_radians();
     }
+
 
     let head_pt = Point(
         0.1 + head_dir.cos() * head_len, 
@@ -117,17 +119,21 @@ pub fn ui_body_plot(
     world: Res<World>,
 ) {
     ui_body.plot.push(&Key::PFood, body.p_food());
-    ui_body.plot.push(&Key::Arrest, body.arrest());
+    ui_body.plot.push(&Key::Turn, (body.turn() + 0.5) % 1.);
 
     ui_body.plot.tick();
 
+    let turn = (body.turn() + 0.5) % 1.;
+
     let peptides = tf32!([
-        [if body.is_touch_left() { 1. } else { 0. }, 
-        if body.is_touch_right() { 1. } else { 0. }],
-        [if body.is_food_left(world.deref()) { 1. } else { 0. }, 
-        if body.is_food_right(world.deref()) { 1. } else { 0. }],
-        [ if body.is_sensor_food() { 1. } else { 0. }, body.arrest() ],
-        [ body.muscle_left(), body.muscle_right() ],
+        [if body.is_collide_left() { 1. } else { 0. }, 
+        if body.is_collide_right() { 1. } else { 0. }],
+        [0., 0.],
+        // [if body.is_food_left(world.deref()) { 1. } else { 0. }, 
+        // if body.is_food_right(world.deref()) { 1. } else { 0. }],
+        //[ if body.is_sensor_food() { 1. } else { 0. }, body.arrest() ],
+        [ body.speed().clamp(0., 1.), 0.],
+        [ turn.clamp(0., 0.5) * 2., turn.clamp(0.5, 1.) * 2. - 1. ],
     ]);
 
     ui_body.peptides.data(peptides.reshape([4, 2]));
@@ -142,7 +148,7 @@ pub fn ui_body_spawn_plot(
 
 pub enum Key {
     PFood,
-    Arrest,
+    Turn,
     HabitFoodA,
     HabitOtherA,
     IgnoreOdor,
@@ -152,7 +158,7 @@ impl UiKey for Key {
     fn index(&self) -> usize {
         match self {
             Key::PFood => 0,
-            Key::Arrest => 1,
+            Key::Turn => 1,
             Key::HabitFoodA => 2,
             Key::HabitOtherA => 3,
             Key::IgnoreOdor => 4,
