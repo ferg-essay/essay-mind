@@ -17,7 +17,9 @@ use super::ui_world::DrawAgent;
 pub struct UiBody {
     plot: UiPlot,
 
-    peptides: GridColorOpt,
+    action_map: GridColorOpt,
+
+    trail: UiTrail,
 }
 
 impl UiBody {
@@ -26,6 +28,7 @@ impl UiBody {
 
         //plot.x_label("seconds");
 
+        plot.graph_mut().ylim(-0.1, 1.1);
         // plot.line(Key::Dir, "dir");
         // plot.line(Key::Speed, "speed");
         plot.line(Key::PFood, "p(food)");
@@ -41,14 +44,15 @@ impl UiBody {
         }
 
         let z_peptides = tf32!([[0., 0.], [0., 0.], [0., 0.], [0., 0.]]);
-        let mut peptides : GridColorOpt = figure.color_grid((1.6, 0.), (0.5, 1.), z_peptides);
-        peptides.norm(Norms::Linear.vmin(0.).vmax(1.));
-        peptides.color_map(ColorMaps::WhiteRed);
+        let mut action_map : GridColorOpt = figure.color_grid((1.6, 0.), (0.5, 1.), z_peptides);
+        action_map.norm(Norms::Linear.vmin(0.).vmax(1.));
+        action_map.color_map(ColorMaps::WhiteRed);
 
         Self {
             plot,
 
-            peptides,
+            action_map,
+            trail: UiTrail::new(400),
         }
     }
 }
@@ -75,7 +79,6 @@ pub fn draw_body(
         let turn = body.turn().clamp(0.75, 1.) - 1.;
         head_dir += Angle::Unit(0.5 * turn).to_radians();
     }
-
 
     let head_pt = Point(
         0.1 + head_dir.cos() * head_len, 
@@ -117,6 +120,8 @@ pub fn ui_body_plot(
     ui_body: &mut UiBody,
     body: Res<Body>,
     world: Res<World>,
+    ui_world: Res<UiWorld>,
+    mut ui: ResMut<UiCanvas>
 ) {
     ui_body.plot.push(&Key::PFood, body.p_food());
     ui_body.plot.push(&Key::Turn, (body.turn() + 0.5) % 1.);
@@ -136,7 +141,61 @@ pub fn ui_body_plot(
         [ turn.clamp(0., 0.5) * 2., turn.clamp(0.5, 1.) * 2. - 1. ],
     ]);
 
-    ui_body.peptides.data(peptides.reshape([4, 2]));
+    ui_body.action_map.data(peptides.reshape([4, 2]));
+
+    ui_body.trail.add(body.pos());
+
+    let transform = Affine2d::eye();
+    let transform = ui_world.to_canvas().matmul(&transform);
+
+    let trail: Path<Canvas> = ui_body.trail.path(4).transform(&transform);
+
+    let mut style = PathStyle::new();
+    style.color("midnight blue");
+
+    ui.draw_path(&trail, &style);
+
+}
+
+struct UiTrail {
+    points: Vec<Point>,
+    head: usize,
+}
+
+impl UiTrail {
+    fn new(size: usize) -> Self {
+        assert!(size > 0);
+
+        let mut points = Vec::new();
+        points.resize(size, Point(0., 0.));
+
+        Self {
+            points,
+            head: 0,
+        }
+    }
+
+    fn add(&mut self, point: impl Into<Point>) -> &mut Self {
+        self.points[self.head] = point.into();
+
+        self.head = (self.head + 1) % self.points.len();
+
+        self
+    }
+
+    fn path(&self, step: usize) -> Path<Canvas> {
+        let mut path_codes = Vec::<PathCode>::new();
+
+        path_codes.push(PathCode::MoveTo(self.points[self.head]));
+
+        let len = self.points.len();
+
+        for i in (step - 1..len).step_by(step) {
+            path_codes.push(PathCode::LineTo(self.points[(self.head + i) % len]));
+        }
+
+        Path::new(path_codes)
+    }
 }
 
 pub fn ui_body_spawn_plot(

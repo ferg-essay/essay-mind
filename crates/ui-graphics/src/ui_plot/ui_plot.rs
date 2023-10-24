@@ -19,6 +19,10 @@ impl UiPlot {
         }
     }
 
+    pub fn graph_mut(&mut self) -> &mut Graph {
+        &mut self.graph
+    }
+
     pub fn line(&mut self, key: impl UiKey, label: &str) {
         let lines = Lines2d::from_xy([0.], [0.]);
 

@@ -19,7 +19,7 @@ pub fn main() {
 
     app.plugin(TickSchedulePlugin::new().ticks(2));
     app.plugin(
-        WorldPlugin::new(10, 10)
+        WorldPlugin::new(20, 10)
         .wall((4, 5), (4, 1))
         .wall((4, 0), (1, 5))
         .food_odor(1, 1, OdorType::FoodA)

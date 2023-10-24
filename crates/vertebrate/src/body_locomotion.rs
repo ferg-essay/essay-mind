@@ -68,9 +68,9 @@ impl BodyLocomotion {
         self.action_default = action;
     }
 
-    pub fn action(&mut self, action: &ActionFactory) -> bool {
+    pub fn action(&mut self, action: impl Into<Action>) -> bool {
         if self.action.is_none() {
-            let action = action.action();
+            let action = action.into();
             self.action_ticks = (self.theta_ticks as f32 * action.time).max(1.) as usize;
             self.action = Some(action);
             true
@@ -85,6 +85,10 @@ impl BodyLocomotion {
         } else {
             false
         }
+    }
+
+    pub fn is_idle(&self) -> bool {
+        self.action.is_none()
     }
 
     pub fn turn(&self) -> f32 {
@@ -215,6 +219,12 @@ impl ActionFactory {
 
     pub fn action(&self) -> Action {
         Action::new(1., self.speed_mean, self.turn_mean)
+    }
+}
+
+impl From<&ActionFactory> for Action {
+    fn from(value: &ActionFactory) -> Self {
+        value.action()
     }
 }
 
