@@ -5,6 +5,7 @@ pub mod habenula;
 pub mod habenula_med;
 pub mod mid_dopamine;
 pub mod mid_locomotor;
+pub mod mid_explore;
 pub mod olfactory;
 pub mod striatum;
 pub mod tectum;

@@ -5,6 +5,7 @@ use essay_plot::prelude::Angle;
 use essay_tensor::Tensor;
 use mind_ecs::Tick;
 use crate::body_locomotion::{Action, ActionFactory};
+use crate::mid_explore::MidExplore;
 use crate::tectum::TectumPlugin;
 use crate::{
     tectum::{Turn, TectumLocomotion},
@@ -18,6 +19,8 @@ pub struct MesState {
     right: ActionFactory,
     right60: ActionFactory,
     forward: ActionFactory,
+
+    explore: MidExplore,
 }
 
 impl MesState {
@@ -57,10 +60,14 @@ impl MesState {
     ) {
         body.locomotion_mut().action(&self.forward);
     }
+
+    fn explore_mut(&mut self) -> &mut MidExplore {
+        &mut self.explore
+    }
 }
 
 impl FromStore for MesState {
-    fn init(_store: &mut Store) -> Self {
+    fn init(store: &mut Store) -> Self {
         MesState {
             _effort: 1.,
             left: ActionFactory::new(1., Angle::Deg(30.)),
@@ -68,6 +75,8 @@ impl FromStore for MesState {
             right: ActionFactory::new(1., Angle::Deg(-30.)),
             right60: ActionFactory::new(1., Angle::Deg(-60.)),
             forward: ActionFactory::new(1., Angle::Deg(0.)),
+
+            explore: MidExplore::init(store),
         }
     }
 }
@@ -121,52 +130,8 @@ fn update_locomotor(
 
         tectum.toward().action_copy(turn)
     } else {
-        let random = random();
-        let step = 0.33;
-        let angle = 60. + (random_normal() * 15.).clamp(-30., 30.);
-
-        // bounded pareto as approximation of Levy walk
-        let low = 1.;
-        let high = 4.;
-        let alpha = 2.;
-        let len = low;
-
-        // semi-brownian
-        if 0. <= random && random <= step {
-            let action = Action::new(len, 1., Angle::Deg(angle));
-            body.locomotion_mut().action(action);
-            tectum.toward().action_copy(Turn::Left)
-        } else if step <= random && random <= 2. * step {
-            let action = Action::new(len, 1., Angle::Deg(-angle));
-            body.locomotion_mut().action(action);
-            tectum.toward().action_copy(Turn::Right)
-        } else {
-            let len = random_pareto(low, high, alpha);
-
-            let action = Action::new(len, 1., Angle::Unit(0.));
-
-                // state.forward(body.get_mut());
-
-            body.locomotion_mut().action(action);
-        }
+        state.explore_mut().update(body.get_mut());
     }
-}
-
-fn random_pareto(low: f32, high: f32, alpha: f32) -> f32 {
-    let x = random();
-
-    let h_a = high.powf(alpha);
-    let l_a = low.powf(alpha);
-
-    (- (x * h_a - x * l_a - h_a) / (h_a * l_a)).powf(- 1. / alpha)
-}
-
-fn random() -> f32 {
-    Tensor::random_uniform([1], ())[0]
-}
-
-fn random_normal() -> f32 {
-    Tensor::random_normal([1], ())[0]
 }
 
 pub struct MidLocomotorPlugin;
