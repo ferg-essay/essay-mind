@@ -50,9 +50,9 @@ fn update_mid_dopamine(
     if let Some(angle) = odor.food_dir() {
         if da.persevere() {
             if 0.05 <= angle.to_unit() && angle.to_unit() <= 0.5 {
-                tectum.toward().turn(Turn::Left, 1.);
+                tectum.seek().turn(Turn::Left, 1.);
             } else if 0.5 <= angle.to_unit() && angle.to_unit() <= 0.95 {
-                tectum.toward().turn(Turn::Right, 1.);
+                tectum.seek().turn(Turn::Right, 1.);
             }
         }
     }

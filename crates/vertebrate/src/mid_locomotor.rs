@@ -26,28 +26,28 @@ pub struct MesState {
 impl MesState {
     const _CPG_TIME : f32 = 1.;
 
-    fn left(
-        &mut self,
-        body: &mut Body
-    ) {
-        body.locomotion_mut().action(&self.left);
-    }
-
-    fn left60(
+    fn left_seek(
         &mut self,
         body: &mut Body
     ) {
         body.locomotion_mut().action(&self.left60);
     }
 
-    fn right(
+    fn left_avoid(
         &mut self,
         body: &mut Body
     ) {
-        body.locomotion_mut().action(&self.right);
+        body.locomotion_mut().action(&self.left60);
     }
 
-    fn right60(
+    fn right_seek(
+        &mut self,
+        body: &mut Body
+    ) {
+        body.locomotion_mut().action(&self.right60);
+    }
+
+    fn right_avoid(
         &mut self,
         body: &mut Body
     ) {
@@ -110,25 +110,25 @@ fn update_locomotor(
 
     if let Some(turn) = tectum.away().action() {
         match turn {
-            Turn::Left => { state.left60(body.get_mut()); }
-            Turn::Right => { state.right60(body.get_mut()); }
+            Turn::Left => { state.left_avoid(body.get_mut()); }
+            Turn::Right => { state.right_avoid(body.get_mut()); }
         }
 
         tectum.away().action_copy(turn)
     } else if let Some(turn) = tectum.away_odor().action() {
         match turn {
-            Turn::Left => { state.left60(body.get_mut()); }
-            Turn::Right => { state.right60(body.get_mut()); }
+            Turn::Left => { state.left_avoid(body.get_mut()); }
+            Turn::Right => { state.right_avoid(body.get_mut()); }
         }
     
         tectum.away().action_copy(turn)
-    } else if let Some(turn) = tectum.toward().action() {
+    } else if let Some(turn) = tectum.seek().action() {
         match turn {
-            Turn::Left => { state.left60(body.get_mut()); }
-            Turn::Right => { state.right60(body.get_mut()); }
+            Turn::Left => { state.left_seek(body.get_mut()); }
+            Turn::Right => { state.right_seek(body.get_mut()); }
         }
 
-        tectum.toward().action_copy(turn)
+        tectum.seek().action_copy(turn)
     } else {
         state.explore_mut().update(body.get_mut());
     }

@@ -1,6 +1,6 @@
 use essay_tensor::Tensor;
 
-use crate::tectum::ActionId;
+use crate::action::{ActionId, StriatumSnr};
 
 pub struct StriatumAction {
     actions: Vec<ActionItem>,
@@ -83,10 +83,6 @@ impl StriatumAction {
             }
         }
     }
-}
-
-pub trait StriatumSnr {
-    fn attend(&mut self, id: ActionId, value: f32);
 }
 
 fn random() -> f32 {
