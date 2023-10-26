@@ -9,9 +9,7 @@ pub mod mid_locomotor;
 pub mod mid_explore;
 pub mod olfactory;
 pub mod striatum;
-pub mod striatum_stn;
 pub mod tectum;
-pub mod tectum_stn;
 pub mod world;
 
 pub mod ui_body;

@@ -25,6 +25,21 @@ impl StriatumId {
     }
 }
 
+#[derive(Clone, Copy, Debug)]
+pub enum Turn {
+    Left,
+    Right,
+}
+
+impl Turn {
+    pub fn id(&self) -> ActionId {
+        match self {
+            Turn::Left => ActionId::new(0),
+            Turn::Right => ActionId::new(1),
+        }
+    }
+}
+
 pub trait StriatumSnr {
-    fn attend(&mut self, id: ActionId, value: f32);
+    fn attend(&mut self, id: StriatumId, value: f32);
 }

@@ -4,12 +4,11 @@ use essay_ecs::{prelude::*, core::Local};
 use essay_plot::prelude::Angle;
 use essay_tensor::Tensor;
 use mind_ecs::Tick;
+use crate::action::Turn;
 use crate::body_locomotion::{Action, ActionFactory};
 use crate::mid_explore::MidExplore;
-use crate::tectum::TectumPlugin;
-use crate::tectum_stn::{TectumStnPlugin, TectumLocomotionStn};
+use crate::tectum::{TectumPlugin, TectumLocomotionStn};
 use crate::{
-    tectum::Turn,
     body::{Body, BodyPlugin}
 };
 
@@ -142,7 +141,7 @@ pub struct MidLocomotorPlugin;
 impl Plugin for MidLocomotorPlugin {
     fn build(&self, app: &mut App) {
         assert!(app.contains_plugin::<BodyPlugin>(), "MesLocomotorPlugin requires BodyPlugin");
-        assert!(app.contains_plugin::<TectumStnPlugin>(), "MesLocomotorPlugin requires TectumPlugin");
+        assert!(app.contains_plugin::<TectumPlugin>(), "MesLocomotorPlugin requires TectumPlugin");
 
         app.system(Tick, update_locomotor);
     }
