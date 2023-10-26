@@ -2,7 +2,6 @@ use essay_ecs::{prelude::{Plugin, App, ResMut, Res}, core::{store::FromStore, St
 use mind_ecs::Tick;
 
 use crate::{
-    habenula::Habenula, 
     mid_locomotor::MidLocomotorPlugin, 
     olfactory::{OlfactoryPlugin, Olfactory}, 
     tectum::TectumLocomotionStn, action::Turn

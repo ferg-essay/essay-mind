@@ -200,20 +200,20 @@ impl Action {
 
 pub struct ActionFactory {
     speed_mean: f32,
-    speed_std: f32,
+    _speed_std: f32,
 
     turn_mean: Angle,
-    turn_std: Angle,
+    _turn_std: Angle,
 }
 
 impl ActionFactory {
     pub fn new(speed: f32, turn: Angle) -> Self {
         Self {
             speed_mean: speed,
-            speed_std: 0.,
+            _speed_std: 0.,
 
             turn_mean: turn,
-            turn_std: Angle::Unit(0.),
+            _turn_std: Angle::Unit(0.),
         }
     }
 

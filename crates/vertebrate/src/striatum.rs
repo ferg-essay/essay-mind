@@ -4,7 +4,7 @@ pub struct StriatumStn {
     direct: StriatumDirect,
     indirect: StriatumIndirect,
 
-    dopamine: Dopamine,
+    dopamine: StriatumDopamine,
 }
 
 impl StriatumStn {
@@ -12,7 +12,7 @@ impl StriatumStn {
         Self {
             direct: StriatumDirect::new(),
             indirect: StriatumIndirect::new(),
-            dopamine: Dopamine::None,
+            dopamine: StriatumDopamine::new(0.05, 0.05),
         }
     }
 
@@ -32,13 +32,16 @@ impl StriatumStn {
         &mut self.indirect
     }
 
+    pub fn dopamine_mut(&mut self) -> &mut StriatumDopamine {
+        &mut self.dopamine
+    }
+
     pub fn update(
         &mut self, 
-        dopamine: Dopamine,
         snr_d: &mut dyn StriatumSnr,
         snr_i: &mut dyn StriatumSnr,
     ) {
-        self.dopamine = dopamine;
+        let dopamine = self.dopamine.update();
 
         let select_d = self.direct_mut().update(dopamine);
         let select_i = self.indirect_mut().update(dopamine);
@@ -98,9 +101,11 @@ impl StriatumDirect {
 
     fn update(
         &mut self, 
-        da: Dopamine,
+        dopamine: f32,
     ) -> Option<Selected> {
-        let d1 = da.d1();
+        assert!(0. <= dopamine && dopamine <= 1.);
+
+        let d1 = dopamine;
 
         let mut best_sense = 0.;
         let mut second = 0.;
@@ -180,9 +185,11 @@ impl StriatumIndirect {
 
     fn update(
         &mut self, 
-        da: Dopamine,
+        dopamine: f32,
     ) -> Option<Selected> {
-        let d2 = da.d2();
+        assert!(0. <= dopamine && dopamine <= 1.);
+
+        let d2 = 1. - dopamine;
 
         let mut best_sense = 0.;
         let mut second = 0.;
@@ -200,7 +207,7 @@ impl StriatumIndirect {
             if best_sense < scaled_sense {
                 second = best_sense;
                 best_sense = scaled_sense;
-                best = Some(Selected::new(item.id, scaled_sense));
+                best = Some(Selected::new(item.id, scaled_sense.clamp(0., 1.)));
             }
         }
 
@@ -219,6 +226,61 @@ impl StriatumIndirect {
         self.selected = selected;
 
         self.selected.clone()
+    }
+}
+
+pub struct StriatumDopamine {
+    effort_decay: f32,
+    cost_decay: f32,
+
+    effort: f32,
+    cost: f32,
+}
+
+impl StriatumDopamine {
+    pub fn cost_decay(&mut self, decay: f32) {
+        assert!(0. <= decay && decay <= 1.);
+
+        self.cost_decay = decay;
+    }
+
+    pub fn effort_decay(&mut self, decay: f32) {
+        assert!(0. <= decay && decay <= 1.);
+
+        self.effort_decay = decay;
+    }
+
+    // cost - represents lateral habenula (Hb.l)
+    pub fn cost(&mut self, cost: f32) {
+        assert!(0. <= cost && cost <= 1.);
+
+        self.cost = (self.cost + cost).min(1.);
+    }
+
+    // effort - represents lateral hypothalamus (H.l)
+    pub fn effort(&mut self, effort: f32) {
+        assert!(0. <= effort && effort <= 1.);
+
+        self.effort = (self.effort + effort).min(1.);
+    }
+
+    fn update(&mut self) -> f32 {
+        self.effort = (self.effort - self.effort_decay).max(0.);
+        self.cost = (self.cost - self.cost_decay).max(0.);
+
+        (self.effort - self.cost).clamp(0., 1.)
+    }
+}
+
+impl StriatumDopamine {
+    fn new(effort_decay: f32, cost_decay: f32) -> Self {
+        Self { 
+            effort_decay,
+            cost_decay,
+
+            effort: 0.,
+            cost: 0.,
+        }
     }
 }
 
@@ -256,34 +318,6 @@ impl StriatumItem {
             _name: String::from(name),
             sense: Sense::None,
             attention: Sense::None.value(),
-        }
-    }
-}
-
-#[derive(Copy, Clone, Debug, PartialEq)]
-pub enum Dopamine {
-    None,
-    Low,
-    High,
-    Top
-}
-
-impl Dopamine {
-    fn d1(&self) -> f32 {
-        match self {
-            Dopamine::None => 0.,
-            Dopamine::Low => 0.25,
-            Dopamine::High => 1.,
-            Dopamine::Top => 1.5,
-        }
-    }
-
-    fn d2(&self) -> f32 {
-        match self {
-            Dopamine::None => 0.,
-            Dopamine::Low => 1.,
-            Dopamine::High => 0.25,
-            Dopamine::Top => 0.,
         }
     }
 }

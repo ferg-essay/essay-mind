@@ -43,14 +43,14 @@ impl Default for Olfactory {
 }
 
 struct OdorItem {
-    odor: OdorType,
+    _odor: OdorType,
     dir: Angle,
 }
 
 impl OdorItem {
     fn new(odor: OdorType, dir: Angle) -> Self {
         Self {
-            odor,
+            _odor: odor,
             dir,
         }
     }

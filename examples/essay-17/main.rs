@@ -3,7 +3,7 @@ use std::time::Duration;
 use vertebrate::body::BodyPlugin;
 use essay_ecs::prelude::App;
 use mind_ecs::TickSchedulePlugin;
-use vertebrate::mid_dopamine::MidDopaminePlugin;
+use vertebrate::tuberculum::TuberculumPlugin;
 use vertebrate::mid_locomotor::MidLocomotorPlugin;
 use vertebrate::olfactory::OlfactoryPlugin;
 use vertebrate::ui_body::UiSlugBodyPlugin;
@@ -20,7 +20,7 @@ pub fn main() {
     app.plugin(BodyPlugin::new());
     app.plugin(OlfactoryPlugin);
     app.plugin(MidLocomotorPlugin);
-    app.plugin(MidDopaminePlugin);
+    app.plugin(TuberculumPlugin);
 
     // UiCanvasPlugin enables graphics
     app.plugin(UiCanvasPlugin::new().frame_ms(Duration::from_millis(50)));

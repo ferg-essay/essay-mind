@@ -4,7 +4,7 @@ use essay_tensor::Tensor;
 use crate::{
     ach_attention::NucleusIsthmi,
     action::{ActionId, Turn}, 
-    striatum::{StriatumStn, Sense, Dopamine, StriatumId, StriatumSnr},
+    striatum::{StriatumStn, Sense, StriatumId, StriatumSnr},
 };
 
 pub struct TectumLocomotionStn {
@@ -56,6 +56,8 @@ pub struct TectumStnTurn {
 }
 
 impl TectumStnTurn {
+    const COST : f32 = 0.005;
+
     fn new(plugin: &TectumPlugin) -> Self {
         /*
         let striatum = if plugin.is_striatum {
@@ -71,7 +73,8 @@ impl TectumStnTurn {
             None
         };
 
-        let striatum = StriatumStn::new();
+        let mut striatum = StriatumStn::new();
+        striatum.dopamine_mut().cost_decay(Self::COST * 0.5);
 
         let mut turn = Self {
             actions_d: TectumStnActions::new(),
@@ -124,6 +127,7 @@ impl TectumStnTurn {
         let id_d = action.id_s;
 
         self.striatum.direct_mut().sense(id_d, Sense::High);
+        self.striatum.dopamine_mut().effort(1.);
     }
 
     pub fn action(&self) -> Option<Turn> {
@@ -158,7 +162,6 @@ impl TectumStnTurn {
         self.last_action = None;
 
         self.striatum.update(
-            Dopamine::High, 
             &mut self.actions_d, 
             &mut self.actions_i
         );
@@ -185,6 +188,14 @@ impl TectumStnTurn {
             self.actions_i.actions[0].value = 1.;
         }
     }
+
+    pub fn cost(&mut self) {
+        self.striatum.dopamine_mut().cost(Self::COST);
+    }
+
+    pub fn effort(&mut self) {
+        self.striatum.dopamine_mut().effort(1.);
+    }
 }
 
 pub struct TectumStnActions {
@@ -206,9 +217,11 @@ impl TectumStnActions {
         for item in &mut self.actions {
             let value = item.value;
             item.value = 0.; // sense may also be leaky-accumulative
+            let snr = item.snr;
+            item.snr = 0.;
 
             let noise = 1. + random() * 0.01;
-            let scaled_sense = value * item.ach * item.snr * noise;
+            let scaled_sense = value * item.ach * snr * noise;
 
             if best_sense < scaled_sense {
                 //second = best_sense;
@@ -278,21 +291,21 @@ impl Turn {
 //}
 
 pub struct TectumPlugin {
-    is_striatum: bool,
+    _is_striatum: bool,
     is_ni: bool,
 }
 
 impl TectumPlugin {
     pub fn new() -> Self {
         Self {
-            is_striatum: false,
+            _is_striatum: false,
             is_ni: false,
         }
     }
 
     pub fn striatum(self) -> Self {
         Self {
-            is_striatum: true,
+            _is_striatum: true,
             .. self
         }
     }

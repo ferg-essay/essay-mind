@@ -2,23 +2,17 @@ use essay_ecs::core::Store;
 use essay_ecs::core::store::FromStore;
 use essay_ecs::{prelude::*, core::Local};
 use essay_plot::prelude::Angle;
-use essay_tensor::Tensor;
 use mind_ecs::Tick;
 use crate::action::Turn;
-use crate::body_locomotion::{Action, ActionFactory};
+use crate::body_locomotion::ActionFactory;
 use crate::mid_explore::MidExplore;
 use crate::tectum::{TectumPlugin, TectumLocomotionStn};
-use crate::{
-    body::{Body, BodyPlugin}
-};
+use crate::body::{Body, BodyPlugin};
 
 pub struct MesState {
-    _effort: f32,
-    left: ActionFactory,
     left60: ActionFactory,
-    right: ActionFactory,
     right60: ActionFactory,
-    forward: ActionFactory,
+    _forward: ActionFactory,
 
     explore: MidExplore,
 }
@@ -54,11 +48,11 @@ impl MesState {
         body.locomotion_mut().action(&self.right60);
     }
 
-    fn forward(
+    fn _forward(
         &mut self,
         body: &mut Body
     ) {
-        body.locomotion_mut().action(&self.forward);
+        body.locomotion_mut().action(&self._forward);
     }
 
     fn explore_mut(&mut self) -> &mut MidExplore {
@@ -69,12 +63,9 @@ impl MesState {
 impl FromStore for MesState {
     fn init(store: &mut Store) -> Self {
         MesState {
-            _effort: 1.,
-            left: ActionFactory::new(1., Angle::Deg(30.)),
             left60: ActionFactory::new(1., Angle::Deg(60.)),
-            right: ActionFactory::new(1., Angle::Deg(-30.)),
             right60: ActionFactory::new(1., Angle::Deg(-60.)),
-            forward: ActionFactory::new(1., Angle::Deg(0.)),
+            _forward: ActionFactory::new(1., Angle::Deg(0.)),
 
             explore: MidExplore::init(store),
         }

@@ -52,7 +52,7 @@ impl World {
         }
     }
 
-    fn add_food(&mut self, x: usize, y: usize, odor: OdorType) {
+    pub fn add_food(&mut self, x: usize, y: usize, odor: OdorType) {
         if odor.is_food() {
             self[(x, y)] = WorldCell::Food;
         }
@@ -281,7 +281,7 @@ impl WorldPlugin {
         self
     }
 
-    pub fn food_odor(mut self, x: usize, y: usize, odor: OdorType) -> Self {
+    pub fn food_odor(self, x: usize, y: usize, odor: OdorType) -> Self {
         self.food(x, y).odor(x, y, odor)
     }
 

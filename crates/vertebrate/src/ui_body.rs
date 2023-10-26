@@ -1,5 +1,3 @@
-use std::ops::Deref;
-
 use essay_ecs::prelude::*;
 use essay_plot::{
     prelude::*, 
@@ -8,7 +6,7 @@ use essay_plot::{
 };
 use essay_tensor::tf32;
 use ui_graphics::{UiCanvas, ui_plot::{UiKey, UiPlot, UiFigurePlugin, UiFigure}};
-use crate::world::{OdorType, World};
+use crate::world::World;
 use crate::{ui_world::{UiSlugWorldPlugin, UiWorld}, body::Body};
 
 use super::ui_world::DrawAgent;
@@ -119,7 +117,7 @@ pub fn draw_body(
 pub fn ui_body_plot(
     ui_body: &mut UiBody,
     body: Res<Body>,
-    world: Res<World>,
+    _world: Res<World>,
     ui_world: Res<UiWorld>,
     mut ui: ResMut<UiCanvas>
 ) {

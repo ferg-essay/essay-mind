@@ -4,7 +4,7 @@ use vertebrate::body::BodyPlugin;
 use essay_ecs::prelude::App;
 use mind_ecs::TickSchedulePlugin;
 use vertebrate::habenula_med::HabenulaMedPlugin;
-use vertebrate::mid_dopamine::MidDopaminePlugin;
+use vertebrate::tuberculum::TuberculumPlugin;
 use vertebrate::mid_locomotor::MidLocomotorPlugin;
 use vertebrate::olfactory::OlfactoryPlugin;
 use vertebrate::tectum::TectumPlugin;
@@ -30,7 +30,7 @@ pub fn main() {
     app.plugin(OlfactoryPlugin);
     app.plugin(TectumPlugin::new().striatum());
     app.plugin(MidLocomotorPlugin);
-    app.plugin(MidDopaminePlugin);
+    app.plugin(TuberculumPlugin);
     app.plugin(HabenulaMedPlugin);
 
     // UiCanvasPlugin enables graphics
