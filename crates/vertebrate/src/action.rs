@@ -12,19 +12,6 @@ impl ActionId {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct StriatumId(usize);
-
-impl StriatumId {
-    pub fn new(id: usize) -> Self {
-        StriatumId(id)
-    }
-
-    pub fn i(&self) -> usize {
-        self.0
-    }
-}
-
 #[derive(Clone, Copy, Debug)]
 pub enum Turn {
     Left,
@@ -38,8 +25,4 @@ impl Turn {
             Turn::Right => ActionId::new(1),
         }
     }
-}
-
-pub trait StriatumSnr {
-    fn attend(&mut self, id: StriatumId, value: f32);
 }

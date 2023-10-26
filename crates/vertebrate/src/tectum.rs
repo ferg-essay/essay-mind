@@ -3,8 +3,8 @@ use essay_tensor::Tensor;
 
 use crate::{
     ach_attention::NucleusIsthmi,
-    action::{ActionId, StriatumSnr, StriatumId, Turn}, 
-    striatum::{StriatumStn, Sense, Dopamine},
+    action::{ActionId, Turn}, 
+    striatum::{StriatumStn, Sense, Dopamine, StriatumId, StriatumSnr},
 };
 
 pub struct TectumLocomotionStn {

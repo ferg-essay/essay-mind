@@ -1,7 +1,5 @@
 use essay_tensor::Tensor;
 
-use crate::action::{StriatumSnr, StriatumId};
-
 pub struct StriatumStn {
     direct: StriatumDirect,
     indirect: StriatumIndirect,
@@ -170,19 +168,13 @@ impl StriatumIndirect {
         id
     }
 
-    /*
-    pub fn sense(&mut self, id: IndirectId, sense: Sense) {
-        println!("SenseId {:?} {:?}", id, sense);
-        self.actions[id.i()].sense = sense;
-    }
-    */
     pub fn sense(&mut self, sense: Sense) {
         if self.actions.len() > 0 {
             self.actions[0].sense = sense;
         }
     }
 
-    pub fn attend(&mut self, id: IndirectId, value: Sense) {
+    pub fn attend(&mut self, id: StriatumId, value: Sense) {
         self.actions[id.i()].attention = value.value();
     }
 
@@ -227,6 +219,19 @@ impl StriatumIndirect {
         self.selected = selected;
 
         self.selected.clone()
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct StriatumId(usize);
+
+impl StriatumId {
+    pub fn new(id: usize) -> Self {
+        StriatumId(id)
+    }
+
+    pub fn i(&self) -> usize {
+        self.0
     }
 }
 
@@ -302,32 +307,6 @@ impl Sense {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct DirectId(usize);
-
-impl DirectId {
-    pub fn new(id: usize) -> Self {
-        DirectId(id)
-    }
-
-    pub fn i(&self) -> usize {
-        self.0
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub struct IndirectId(usize);
-
-impl IndirectId {
-    pub fn new(id: usize) -> Self {
-        IndirectId(id)
-    }
-
-    pub fn i(&self) -> usize {
-        self.0
-    }
-}
-
 #[derive(Clone, Debug)]
 struct Selected {
     id: StriatumId,
@@ -341,6 +320,10 @@ impl Selected {
             value,
         }
     }
+}
+
+pub trait StriatumSnr {
+    fn attend(&mut self, id: StriatumId, value: f32);
 }
 
 
