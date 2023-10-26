@@ -7,8 +7,9 @@ use mind_ecs::Tick;
 use crate::body_locomotion::{Action, ActionFactory};
 use crate::mid_explore::MidExplore;
 use crate::tectum::TectumPlugin;
+use crate::tectum_stn::{TectumStnPlugin, TectumLocomotionStn};
 use crate::{
-    tectum::{Turn, TectumLocomotion},
+    tectum::Turn,
     body::{Body, BodyPlugin}
 };
 
@@ -83,7 +84,7 @@ impl FromStore for MesState {
 
 fn update_touch(
     body: &Body,
-    tectum: &mut TectumLocomotion,
+    tectum: &mut TectumLocomotionStn,
 ) {
     if body.is_collide_left() {
         tectum.away().turn(Turn::Right, 1.);
@@ -96,11 +97,13 @@ fn update_touch(
 
 fn update_locomotor(
     mut body: ResMut<Body>, 
-    mut tectum: ResMut<TectumLocomotion>,
+    mut tectum: ResMut<TectumLocomotionStn>,
     mut state: Local<MesState>, 
 ) {
     let tectum = tectum.get_mut();
     update_touch(body.get(), tectum);
+
+    tectum.seek().default();
 
     tectum.update();
 
@@ -129,7 +132,7 @@ fn update_locomotor(
         }
 
         tectum.seek().action_copy(turn)
-    } else {
+    } else if tectum.seek().indirect() {
         state.explore_mut().update(body.get_mut());
     }
 }
@@ -139,7 +142,7 @@ pub struct MidLocomotorPlugin;
 impl Plugin for MidLocomotorPlugin {
     fn build(&self, app: &mut App) {
         assert!(app.contains_plugin::<BodyPlugin>(), "MesLocomotorPlugin requires BodyPlugin");
-        assert!(app.contains_plugin::<TectumPlugin>(), "MesLocomotorPlugin requires TectumPlugin");
+        assert!(app.contains_plugin::<TectumStnPlugin>(), "MesLocomotorPlugin requires TectumPlugin");
 
         app.system(Tick, update_locomotor);
     }

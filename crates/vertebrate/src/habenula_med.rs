@@ -5,7 +5,7 @@ use crate::{
     habenula::Habenula, 
     mid_locomotor::MidLocomotorPlugin, 
     olfactory::{OlfactoryPlugin, Olfactory}, 
-    tectum::{TectumLocomotion, Turn}
+    tectum::{Turn}, tectum_stn::TectumLocomotionStn
 };
 
 ///
@@ -36,7 +36,7 @@ impl FromStore for HabenulaState {
 fn update_habenula_med(
     odor: Res<Olfactory>, 
     mut hb: Local<HabenulaState>,
-    mut tectum: ResMut<TectumLocomotion>,
+    mut tectum: ResMut<TectumLocomotionStn>,
 ) {
     hb.decay();
     

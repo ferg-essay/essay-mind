@@ -5,7 +5,7 @@ use crate::{
     habenula::Habenula, 
     mid_locomotor::MidLocomotorPlugin, 
     olfactory::{OlfactoryPlugin, Olfactory}, 
-    tectum::{TectumLocomotion, Turn}
+    tectum_stn::{TectumLocomotionStn}, tectum::Turn
 };
 
 ///
@@ -42,7 +42,7 @@ impl FromStore for DopamineState {
 fn update_mid_dopamine(
     odor: Res<Olfactory>, 
     mut da: Local<DopamineState>,
-    mut tectum: ResMut<TectumLocomotion>,
+    mut tectum: ResMut<TectumLocomotionStn>,
 ) {
     da.decay();
     

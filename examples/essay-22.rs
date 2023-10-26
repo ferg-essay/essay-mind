@@ -8,6 +8,7 @@ use vertebrate::mid_dopamine::MidDopaminePlugin;
 use vertebrate::mid_locomotor::MidLocomotorPlugin;
 use vertebrate::olfactory::OlfactoryPlugin;
 use vertebrate::tectum::TectumPlugin;
+use vertebrate::tectum_stn::TectumStnPlugin;
 use vertebrate::ui_body::UiSlugBodyPlugin;
 use vertebrate::ui_body_heatmap::UiSlugLocationPlugin;
 use ui_graphics::UiCanvasPlugin;
@@ -28,7 +29,7 @@ pub fn main() {
     );
     app.plugin(BodyPlugin::new());
     app.plugin(OlfactoryPlugin);
-    app.plugin(TectumPlugin::new().ni());
+    app.plugin(TectumStnPlugin::new().striatum());
     app.plugin(MidLocomotorPlugin);
     app.plugin(MidDopaminePlugin);
     app.plugin(HabenulaMedPlugin);

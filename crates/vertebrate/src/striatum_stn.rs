@@ -121,7 +121,7 @@ impl StriatumDirect {
             if best_sense < scaled_sense {
                 second = best_sense;
                 best_sense = scaled_sense;
-                best = Some(Selected::new(item.id, scaled_sense));
+                best = Some(Selected::new(item.id, scaled_sense.clamp(0., 1.)));
             }
         }
 
@@ -156,7 +156,7 @@ impl StriatumIndirect {
         Self {
             actions: Vec::new(),
             selected: None,
-            threshold: 0.5,
+            threshold: 0.1,
         }
     }
 
@@ -172,8 +172,16 @@ impl StriatumIndirect {
         id_i
     }
 
+    /*
     pub fn sense(&mut self, id: IndirectId, sense: Sense) {
+        println!("SenseId {:?} {:?}", id, sense);
         self.actions[id.i()].sense = sense;
+    }
+    */
+    pub fn sense(&mut self, sense: Sense) {
+        if self.actions.len() > 0 {
+            self.actions[0].sense = sense;
+        }
     }
 
     pub fn attend(&mut self, id: IndirectId, value: Sense) {

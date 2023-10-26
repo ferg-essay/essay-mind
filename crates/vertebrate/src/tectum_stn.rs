@@ -4,7 +4,7 @@ use essay_tensor::Tensor;
 use crate::{
     ach_attention::NucleusIsthmi,
     action::{ActionId, StriatumSnr}, 
-    striatum_stn::{StriatumStn, Sense, Dopamine, DirectId}
+    striatum_stn::{StriatumStn, Sense, Dopamine, DirectId}, tectum::Turn
 };
 
 pub struct TectumLocomotionStn {
@@ -15,11 +15,15 @@ pub struct TectumLocomotionStn {
 
 impl TectumLocomotionStn {
     fn new(plugin: &TectumStnPlugin) -> Self {
-        Self {
+        let mut locomotion = Self {
             seek: TectumStnTurn::new(plugin),
             away: TectumStnTurn::new(plugin),
             away_odor: TectumStnTurn::new(plugin),
-        }
+        };
+
+        locomotion.seek.add_indirect(Turn::Left);
+
+        locomotion
     }
 
     pub fn seek(&mut self) -> &mut TectumStnTurn {
@@ -48,6 +52,7 @@ pub struct TectumStnTurn {
     ach_attention: Option<NucleusIsthmi>,
 
     last_action: Option<ActionId>,
+    last_default: Option<ActionId>,
 }
 
 impl TectumStnTurn {
@@ -74,6 +79,7 @@ impl TectumStnTurn {
             striatum,
             ach_attention,
             last_action: None,
+            last_default: None,
         };
 
         turn.add_action(Turn::Left, "turn-left");
@@ -96,6 +102,20 @@ impl TectumStnTurn {
         }
     }
 
+    fn add_indirect(&mut self, turn: Turn) {
+        let id = turn.id();
+        
+        assert_eq!(id.i(), self.actions_i.actions.len());
+
+        let id_i = self.striatum.indirect_mut().add_action(id, "stub");
+
+        self.actions_i.actions.push(TectumAction::new(id, DirectId::new(id_i.i()), turn));
+
+        if let Some(attention) = &mut self.ach_attention {
+            attention.add_action(id, "stub");
+        }
+    }
+
     pub fn turn(&mut self, turn: Turn, value: f32) {
         let action = &mut self.actions_d.actions[turn.id().i()];
 
@@ -111,6 +131,14 @@ impl TectumStnTurn {
             Some(self.actions_d.actions[action.i()].turn)
         } else {
             None
+        }
+    }
+
+    pub fn indirect(&self) -> bool {
+        if let Some(_) = &self.last_default {
+            true
+        } else {
+            false
         }
     }
 
@@ -148,6 +176,14 @@ impl TectumStnTurn {
 
         // TODO: softmax
         self.last_action = best_d;
+        self.last_default = best_i;
+    }
+
+    pub fn default(&mut self) {
+        self.striatum.indirect_mut().sense(Sense::Top);
+        if self.actions_i.actions.len() > 0 {
+            self.actions_i.actions[0].value = 1.;
+        }
     }
 }
 
@@ -220,7 +256,7 @@ impl TectumAction {
 }
 
 
-
+/*
 #[derive(Clone, Copy, Debug)]
 pub enum Turn {
     Left,
@@ -235,6 +271,7 @@ impl Turn {
         }
     }
 }
+*/
 
 //fn update_tectum(mut tectum: ResMut<TectumLocomotion>) {
 //    tectum.update();

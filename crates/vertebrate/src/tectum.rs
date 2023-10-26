@@ -211,7 +211,7 @@ pub enum Turn {
 }
 
 impl Turn {
-    fn id(&self) -> ActionId {
+    pub fn id(&self) -> ActionId {
         match self {
             Turn::Left => ActionId::new(0),
             Turn::Right => ActionId::new(1),
