@@ -3,7 +3,7 @@ use essay_plot::{prelude::Point, artist::{GridColorOpt, ColorMaps, TextCoords, T
 use essay_tensor::Tensor;
 use ui_graphics::ui_plot::{UiFigurePlugin, UiFigure};
 use crate::world::World;
-use crate::{ui_world::UiSlugWorldPlugin, body::Body};
+use crate::{ui_world::UiWorldPlugin, body::Body};
 
 #[derive(Component)]
 pub struct UiLocMap {
@@ -85,7 +85,7 @@ impl UiSlugLocationPlugin {
 
 impl Plugin for UiSlugLocationPlugin {
     fn build(&self, app: &mut App) {
-        if app.contains_plugin::<UiSlugWorldPlugin>() {
+        if app.contains_plugin::<UiWorldPlugin>() {
             // app.system(Update, draw_body.phase(DrawAgent));
 
             app.plugin(UiFigurePlugin::<LocMap>::new(self.xy, self.wh));

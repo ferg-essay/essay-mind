@@ -49,7 +49,9 @@ impl PeptideCanal {
     }
 
     fn update(&mut self) {
-
+        for (item, value) in self.peptides.iter().zip(&mut self.values) {
+            *value = (*value - item.decay).clamp(0., 1.);
+        }
     }
 }
 
@@ -88,7 +90,7 @@ impl PeptideItem {
         Self {
             id,
             peptide: peptide.box_clone(),
-            decay: 0.,
+            decay: 0.1,
         }
     }
 
@@ -142,9 +144,9 @@ fn update_peptide_canal(mut peptides: ResMut<PeptideCanal>) {
     peptides.update()
 }
 
-pub struct MidPeptideCanal;
+pub struct MidPeptideCanalPlugin;
 
-impl Plugin for MidPeptideCanal {
+impl Plugin for MidPeptideCanalPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<PeptideCanal>();
 

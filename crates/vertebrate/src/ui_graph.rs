@@ -7,7 +7,7 @@ use essay_plot::{
 use essay_tensor::tf32;
 use ui_graphics::{UiCanvas, ui_plot::{UiKey, UiPlot, UiFigurePlugin, UiFigure}};
 use crate::world::World;
-use crate::{ui_world::{UiWorldPlugin, UiWorld}, body::Body};
+use crate::{ui_world::{UiSlugWorldPlugin, UiWorld}, body::Body};
 
 use super::ui_world::DrawAgent;
 
@@ -140,14 +140,7 @@ pub fn ui_body_plot(
     ]);
 
     ui_body.action_map.data(peptides.reshape([4, 2]));
-}
 
-pub fn draw_trail(
-    ui_body: &mut UiBody,
-    body: Res<Body>,
-    ui_world: Res<UiWorld>,
-    mut ui: ResMut<UiCanvas>
-) {
     ui_body.trail.add(body.pos());
 
     let transform = Affine2d::eye();
@@ -232,12 +225,12 @@ impl UiKey for Key {
 
 pub struct BodyPlot;
 
-pub struct UiBodyPlugin {
+pub struct UiGraphPlugin {
     xy: Point,
     wh: Point,
 }
 
-impl UiBodyPlugin {
+impl UiGraphPlugin {
     pub fn new(xy: impl Into<Point>, wh: impl Into<Point>) -> Self {
         Self {
             xy: xy.into(),
@@ -246,25 +239,15 @@ impl UiBodyPlugin {
     }
 }
 
-impl Plugin for UiBodyPlugin {
+impl Plugin for UiGraphPlugin {
     fn build(&self, app: &mut App) {
-        if app.contains_plugin::<UiWorldPlugin>() {
+        if app.contains_plugin::<UiSlugWorldPlugin>() {
             app.system(Update, draw_body.phase(DrawAgent));
 
             app.plugin(UiFigurePlugin::<BodyPlot>::new(self.xy, self.wh));
 
             app.system(Startup, ui_body_spawn_plot);
             app.system(Update, ui_body_plot);
-        }
-    }
-}
-
-pub struct UiBodyTrailPlugin;
-
-impl Plugin for UiBodyTrailPlugin {
-    fn build(&self, app: &mut App) {
-        if app.contains_plugin::<UiWorldPlugin>() {
-            app.system(Update, draw_trail.phase(DrawAgent));
         }
     }
 }

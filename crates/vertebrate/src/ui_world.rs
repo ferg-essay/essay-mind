@@ -157,11 +157,11 @@ pub struct DrawItem;
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Phase)]
 pub struct DrawAgent;
 
-pub struct UiSlugWorldPlugin {
+pub struct UiWorldPlugin {
     bounds: Bounds::<UiLayout>,
 }
 
-impl UiSlugWorldPlugin {
+impl UiWorldPlugin {
     pub fn new(xy: impl Into<Point>, wh: impl Into<Point>) -> Self {
         let xy = xy.into();
         let wh = wh.into();
@@ -172,7 +172,7 @@ impl UiSlugWorldPlugin {
     }
 }
 
-impl Plugin for UiSlugWorldPlugin {
+impl Plugin for UiWorldPlugin {
     fn build(&self, app: &mut App) {
         if app.contains_plugin::<UiCanvasPlugin>() {
             assert!(app.contains_plugin::<WorldPlugin>());
