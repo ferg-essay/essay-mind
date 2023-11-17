@@ -15,14 +15,14 @@ use super::ui_world::DrawAgent;
 pub struct UiBody {
     plot: UiPlot,
 
-    action_map: GridColorOpt,
+    // action_map: GridColorOpt,
 
     trail: UiTrail,
 }
 
 impl UiBody {
     fn new(figure: &UiFigure<BodyPlot>) -> Self {
-        let mut plot = figure.plot_xy((0., 0.), (1.5, 1.));
+        let mut plot = figure.plot_xy((0., 0.), (1., 1.));
 
         //plot.x_label("seconds");
 
@@ -41,15 +41,15 @@ impl UiBody {
             plot.line(Key::IgnoreOdor, "ignore odor");
         }
 
-        let z_peptides = tf32!([[0., 0.], [0., 0.], [0., 0.], [0., 0.]]);
-        let mut action_map : GridColorOpt = figure.color_grid((1.6, 0.), (0.5, 1.), z_peptides);
-        action_map.norm(Norms::Linear.vmin(0.).vmax(1.));
-        action_map.color_map(ColorMaps::WhiteRed);
+        //let z_peptides = tf32!([[0., 0.], [0., 0.], [0., 0.], [0., 0.]]);
+        //let mut action_map : GridColorOpt = figure.color_grid((1.6, 0.), (0.5, 1.), z_peptides);
+        //action_map.norm(Norms::Linear.vmin(0.).vmax(1.));
+        //action_map.color_map(ColorMaps::WhiteRed);
 
         Self {
             plot,
 
-            action_map,
+            // action_map,
             trail: UiTrail::new(400),
         }
     }
@@ -118,28 +118,18 @@ pub fn ui_body_plot(
     ui_body: &mut UiBody,
     body: Res<Body>,
     _world: Res<World>,
-    ui_world: Res<UiWorld>,
-    mut ui: ResMut<UiCanvas>
 ) {
     ui_body.plot.push(&Key::PFood, body.p_food());
     ui_body.plot.push(&Key::Turn, (body.turn() + 0.5) % 1.);
 
     ui_body.plot.tick();
+}
 
-    let turn = (body.turn() + 0.5) % 1.;
-
-    let peptides = tf32!([
-        [if body.is_collide_left() { 1. } else { 0. }, 
-        if body.is_collide_right() { 1. } else { 0. }],
-        [0., 0.],
-        // [if body.is_food_left(world.deref()) { 1. } else { 0. }, 
-        // if body.is_food_right(world.deref()) { 1. } else { 0. }],
-        //[ if body.is_sensor_food() { 1. } else { 0. }, body.arrest() ],
-        [ body.speed().clamp(0., 1.), 0.],
-        [ turn.clamp(0., 0.5) * 2., turn.clamp(0.5, 1.) * 2. - 1. ],
-    ]);
-
-    ui_body.action_map.data(peptides.reshape([4, 2]));
+pub fn ui_body_spawn_plot(
+    mut c: Commands,
+    mut plot: ResMut<UiFigure<BodyPlot>>
+) {
+    c.spawn(UiBody::new(plot.get_mut()))
 }
 
 pub fn draw_trail(
@@ -159,7 +149,6 @@ pub fn draw_trail(
     style.color("midnight blue");
 
     ui.draw_path(&trail, &style);
-
 }
 
 struct UiTrail {
@@ -201,13 +190,6 @@ impl UiTrail {
 
         Path::new(path_codes)
     }
-}
-
-pub fn ui_body_spawn_plot(
-    mut c: Commands,
-    mut plot: ResMut<UiFigure<BodyPlot>>
-) {
-    c.spawn(UiBody::new(plot.get_mut()))
 }
 
 pub enum Key {

@@ -13,6 +13,7 @@ use vertebrate::tectum::TectumPlugin;
 use vertebrate::ui_body::{UiBodyPlugin, UiBodyTrailPlugin};
 use vertebrate::ui_body_heatmap::UiSlugLocationPlugin;
 use ui_graphics::UiCanvasPlugin;
+use vertebrate::ui_body_homunculus::UiHomunculusPlugin;
 use vertebrate::ui_peptide::UiPeptidePlugin;
 use vertebrate::ui_world::UiWorldPlugin;
 use vertebrate::world::{WorldPlugin, OdorType};
@@ -40,11 +41,12 @@ pub fn main() {
 
     // UiCanvasPlugin enables graphics
     app.plugin(UiCanvasPlugin::new().frame_ms(Duration::from_millis(50)));
-    app.plugin(UiWorldPlugin::new((0., 0.), (2., 1.)));
-    app.plugin(UiSlugLocationPlugin::new((2., 0.), (1., 1.)));
-    app.plugin(UiBodyPlugin::new((0., 1.), (2., 1.)));
+    app.plugin(UiWorldPlugin::new((0., 0.), (0.5, 0.5)));
+    app.plugin(UiSlugLocationPlugin::new((0.5, 0.), (0.5, 0.5)));
+    app.plugin(UiBodyPlugin::new((0., 0.5), (0.5, 0.5)));
+    app.plugin(UiHomunculusPlugin::new((0.5, 0.5), (0.25, 0.5)));
     app.plugin(UiBodyTrailPlugin);
-    app.plugin(UiPeptidePlugin::new((2., 1.), (1., 1.))
+    app.plugin(UiPeptidePlugin::new((0.75, 0.5), (0.25, 0.25))
         .peptide(ExploreFood, "X") // orexin
         .peptide(SeekFood, "S") // mch
         .peptide(EatFood, "C") // npy

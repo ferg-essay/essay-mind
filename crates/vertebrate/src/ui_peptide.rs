@@ -1,11 +1,8 @@
 use essay_ecs::prelude::*;
 use essay_plot::{prelude::*, artist::{paths::{self, Unit}, PathStyle}};
-use essay_tensor::Tensor;
 use ui_graphics::{ui_layout::{UiLayout, UiLayoutEvent, BoxId, UiLayoutPlugin}, UiCanvas, UiCanvasPlugin};
 
-use crate::{world::{World, OdorType, WorldPlugin}, mid_peptide_canal::{MidPeptideCanalPlugin, PeptideCanal, PeptideId, BoxPeptide, Peptide}};
-
-use crate::world::WorldCell;
+use crate::mid_peptide_canal::{MidPeptideCanalPlugin, PeptideCanal, PeptideId, Peptide};
 
 #[derive(Component)]
 pub struct UiPeptide {
