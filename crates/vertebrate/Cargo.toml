@@ -17,7 +17,9 @@ essay-plot = { path = "../../../essay-plot" }
 ui-graphics = { path = "../ui-graphics" }
 #essay-ecs = { git = "https://github.com/ferg-essay/essay-ecs", version="0.1.13" }
 
+mind-macros = { path = "../macros"  }
 mind-ecs = { path = "../ecs"  }
+util = { path = "../util"  }
 test-log = { path = "../test-log" }
 
 [lib]

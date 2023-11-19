@@ -210,7 +210,7 @@ impl Plugin for UiCanvasPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<WinitEvents>();
 
-        let event_loop = EventLoop::new();
+        let event_loop = EventLoop::new().unwrap();
 
         let wgpu = WgpuCanvas::new(&event_loop);
         let ui_canvas = UiCanvas::new(wgpu);

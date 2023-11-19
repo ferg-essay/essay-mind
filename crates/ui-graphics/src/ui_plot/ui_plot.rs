@@ -1,4 +1,8 @@
+use core::fmt;
+use std::hash::{Hasher, Hash};
+
 use essay_plot::{graph::Graph, artist::{Lines2d, LinesOpt}};
+use util::label::DynLabel;
 
 pub struct UiPlot {
     graph: Graph,
@@ -23,21 +27,21 @@ impl UiPlot {
         &mut self.graph
     }
 
-    pub fn line(&mut self, key: impl UiKey, label: &str) {
+    pub fn line(&mut self, label: &str) -> PlotKeyId {
         let lines = Lines2d::from_xy([0.], [0.]);
 
         let mut line_opt = self.graph.artist(lines);
         line_opt.label(label);
 
-        self.lines.push(UiLine::new(key, line_opt));
+        let id = PlotKeyId(self.lines.len());
+
+        self.lines.push(UiLine::new(line_opt));
+
+        id
     }
 
-    pub fn push(&mut self, key: &dyn UiKey, y: f32) {
-        for line in &mut self.lines {
-            if line.key.index() == key.index() {
-                line.y.push(y);
-            }
-        }
+    pub fn push(&mut self, id: PlotKeyId, y: f32) {
+        self.lines[id.i()].y.push(y);
     }
 
     pub fn tick(&mut self) {
@@ -69,27 +73,47 @@ impl UiPlot {
 }
 
 struct UiLine {
-    key: Box<dyn UiKey>,
+    //key: Box<dyn UiKey>,
     line: LinesOpt,
     y: Vec<f32>,
 }
 
 impl UiLine {
-    fn new(key: impl UiKey, line: LinesOpt) -> Self {
+    fn new(line: LinesOpt) -> Self {
         Self {
-            key: Box::new(key),
+            // key: Box::new(key),
             line: line,
             y: Vec::new(),
         }
     }
 }
+/*
+pub type BoxKey = Box<dyn UiKey>;
 
-pub trait UiKey : Send + Sync + 'static {
-    fn index(&self) -> usize;
+pub trait UiKey : Send + DynLabel + fmt::Debug {
+    fn box_clone(&self) -> Box<dyn UiKey>;
 }
 
-impl UiKey for usize {
-    fn index(&self) -> usize {
-        *self
+impl PartialEq for dyn UiKey {
+    fn eq(&self, other: &Self) -> bool {
+        self.dyn_eq(other.as_dyn_eq())
+    }
+}
+
+impl Eq for dyn UiKey {}
+
+impl Hash for dyn UiKey {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.dyn_hash(state)
+    }
+}
+*/
+
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub struct PlotKeyId(usize);
+
+impl PlotKeyId {
+    pub fn i(&self) -> usize {
+        self.0
     }
 }

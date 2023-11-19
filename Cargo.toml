@@ -11,6 +11,11 @@ publish=false
 #crate-type = ["rlib"]
 path = "src/lib.rs"
 
+[[bin]]
+name = "essay"
+test = false
+bench = false
+
 [dependencies]
 env_logger = { version = "0.10.0" }
 log = { version = "0.4.17" }

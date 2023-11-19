@@ -2,12 +2,12 @@ use essay_ecs::prelude::*;
 use essay_plot::{
     prelude::*, 
     artist::PathStyle, 
-    artist::{GridColorOpt, ColorMaps, paths::Unit, Markers, Norms}
+    artist::{paths::Unit, Markers}
 };
-use essay_tensor::tf32;
-use ui_graphics::{UiCanvas, ui_plot::{UiKey, UiPlot, UiFigurePlugin, UiFigure}};
+
+use ui_graphics::{UiCanvas, ui_plot::{UiPlot, UiFigurePlugin, UiFigure}};
 use crate::world::World;
-use crate::{ui_world::{UiSlugWorldPlugin, UiWorld}, body::Body};
+use crate::{ui_world::{UiWorldPlugin, UiWorld}, body::Body};
 
 use super::ui_world::DrawAgent;
 
@@ -15,18 +15,19 @@ use super::ui_world::DrawAgent;
 pub struct UiBody {
     plot: UiPlot,
 
-    action_map: GridColorOpt,
+    // action_map: GridColorOpt,
 
     trail: UiTrail,
 }
 
 impl UiBody {
     fn new(figure: &UiFigure<BodyPlot>) -> Self {
-        let mut plot = figure.plot_xy((0., 0.), (1.5, 1.));
+        let mut plot = figure.plot_xy((0., 0.), (1., 1.));
 
         //plot.x_label("seconds");
 
         plot.graph_mut().ylim(-0.1, 1.1);
+        /*
         // plot.line(Key::Dir, "dir");
         // plot.line(Key::Speed, "speed");
         plot.line(Key::PFood, "p(food)");
@@ -40,16 +41,17 @@ impl UiBody {
             plot.line(Key::HabitOtherA, "other-a");
             plot.line(Key::IgnoreOdor, "ignore odor");
         }
+        */
 
-        let z_peptides = tf32!([[0., 0.], [0., 0.], [0., 0.], [0., 0.]]);
-        let mut action_map : GridColorOpt = figure.color_grid((1.6, 0.), (0.5, 1.), z_peptides);
-        action_map.norm(Norms::Linear.vmin(0.).vmax(1.));
-        action_map.color_map(ColorMaps::WhiteRed);
+        //let z_peptides = tf32!([[0., 0.], [0., 0.], [0., 0.], [0., 0.]]);
+        //let mut action_map : GridColorOpt = figure.color_grid((1.6, 0.), (0.5, 1.), z_peptides);
+        //action_map.norm(Norms::Linear.vmin(0.).vmax(1.));
+        //action_map.color_map(ColorMaps::WhiteRed);
 
         Self {
             plot,
 
-            action_map,
+            // action_map,
             trail: UiTrail::new(400),
         }
     }
@@ -118,29 +120,26 @@ pub fn ui_body_plot(
     ui_body: &mut UiBody,
     body: Res<Body>,
     _world: Res<World>,
+) {
+    // ui_body.plot.push(&Key::PFood, body.p_food());
+    // ui_body.plot.push(&Key::Turn, (body.turn() + 0.5) % 1.);
+
+    ui_body.plot.tick();
+}
+
+pub fn ui_body_spawn_plot(
+    mut c: Commands,
+    mut plot: ResMut<UiFigure<BodyPlot>>
+) {
+    c.spawn(UiBody::new(plot.get_mut()))
+}
+
+pub fn draw_trail(
+    ui_body: &mut UiBody,
+    body: Res<Body>,
     ui_world: Res<UiWorld>,
     mut ui: ResMut<UiCanvas>
 ) {
-    ui_body.plot.push(&Key::PFood, body.p_food());
-    ui_body.plot.push(&Key::Turn, (body.turn() + 0.5) % 1.);
-
-    ui_body.plot.tick();
-
-    let turn = (body.turn() + 0.5) % 1.;
-
-    let peptides = tf32!([
-        [if body.is_collide_left() { 1. } else { 0. }, 
-        if body.is_collide_right() { 1. } else { 0. }],
-        [0., 0.],
-        // [if body.is_food_left(world.deref()) { 1. } else { 0. }, 
-        // if body.is_food_right(world.deref()) { 1. } else { 0. }],
-        //[ if body.is_sensor_food() { 1. } else { 0. }, body.arrest() ],
-        [ body.speed().clamp(0., 1.), 0.],
-        [ turn.clamp(0., 0.5) * 2., turn.clamp(0.5, 1.) * 2. - 1. ],
-    ]);
-
-    ui_body.action_map.data(peptides.reshape([4, 2]));
-
     ui_body.trail.add(body.pos());
 
     let transform = Affine2d::eye();
@@ -152,7 +151,6 @@ pub fn ui_body_plot(
     style.color("midnight blue");
 
     ui.draw_path(&trail, &style);
-
 }
 
 struct UiTrail {
@@ -196,13 +194,6 @@ impl UiTrail {
     }
 }
 
-pub fn ui_body_spawn_plot(
-    mut c: Commands,
-    mut plot: ResMut<UiFigure<BodyPlot>>
-) {
-    c.spawn(UiBody::new(plot.get_mut()))
-}
-
 pub enum Key {
     PFood,
     Turn,
@@ -211,6 +202,7 @@ pub enum Key {
     IgnoreOdor,
 }
 
+/*
 impl UiKey for Key {
     fn index(&self) -> usize {
         match self {
@@ -222,15 +214,16 @@ impl UiKey for Key {
         }
     }
 }
+*/
 
 pub struct BodyPlot;
 
-pub struct UiSlugBodyPlugin {
+pub struct UiBodyPlugin {
     xy: Point,
     wh: Point,
 }
 
-impl UiSlugBodyPlugin {
+impl UiBodyPlugin {
     pub fn new(xy: impl Into<Point>, wh: impl Into<Point>) -> Self {
         Self {
             xy: xy.into(),
@@ -239,15 +232,25 @@ impl UiSlugBodyPlugin {
     }
 }
 
-impl Plugin for UiSlugBodyPlugin {
+impl Plugin for UiBodyPlugin {
     fn build(&self, app: &mut App) {
-        if app.contains_plugin::<UiSlugWorldPlugin>() {
+        if app.contains_plugin::<UiWorldPlugin>() {
             app.system(Update, draw_body.phase(DrawAgent));
 
             app.plugin(UiFigurePlugin::<BodyPlot>::new(self.xy, self.wh));
 
             app.system(Startup, ui_body_spawn_plot);
             app.system(Update, ui_body_plot);
+        }
+    }
+}
+
+pub struct UiBodyTrailPlugin;
+
+impl Plugin for UiBodyTrailPlugin {
+    fn build(&self, app: &mut App) {
+        if app.contains_plugin::<UiWorldPlugin>() {
+            app.system(Update, draw_trail.phase(DrawAgent));
         }
     }
 }

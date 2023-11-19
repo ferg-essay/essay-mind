@@ -2,9 +2,9 @@ use std::time::{Duration, Instant};
 
 use essay_plot::api::{Point};
 use winit::{
-    event::{ElementState, Event, MouseButton, StartCause, WindowEvent, VirtualKeyCode},
+    event::{ElementState, Event, MouseButton, StartCause, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
-    dpi::PhysicalPosition, platform::run_return::EventLoopExtRunReturn,
+    dpi::PhysicalPosition, keyboard::{Key, NamedKey},
 };
 use essay_ecs::prelude::*;
 
@@ -22,13 +22,12 @@ pub fn main_loop(mut app: App, tick_ms: Duration, ticks_per_cycle: usize) {
     let mut wait_until = Instant::now();
     let mut is_run = true;
 
-    event_loop.run(move |event, _, control_flow| {
+    event_loop.run(move |event, window_target| {
         app.resource_mut::<WinitEvents>().clear();
 
-        *control_flow = ControlFlow::Wait;
         match event {
             Event::NewEvents(StartCause::Init) => {
-                wait_until = Instant::now() + timer_length;
+                //wait_until = Instant::now() + timer_length;
             }
             Event::NewEvents(StartCause::ResumeTimeReached { .. }) => {
                 wait_until = Instant::now() + timer_length;
@@ -40,15 +39,25 @@ pub fn main_loop(mut app: App, tick_ms: Duration, ticks_per_cycle: usize) {
                     }
                 }
             }
+            Event::AboutToWait => {
+                //wait_until = Instant::now() + timer_length;
+                /*
+                if is_run {
+                    for _ in 0..ticks_per_cycle {
+                        app.tick();
+                    }
+                }
+                */
+            }
             Event::WindowEvent {
-                event: WindowEvent::KeyboardInput { input, .. },
+                event: WindowEvent::KeyboardInput { event, .. },
                 ..
             } => {
-                if input.state == ElementState::Pressed {
-                    if let Some(key) = input.virtual_keycode {
-                        if key == VirtualKeyCode::T {
+                if event.state == ElementState::Pressed {
+                    if let Key::Character(key)= event.logical_key {
+                        if key == "t" { // VirtualKeyCode::T {
                             is_run = ! is_run;
-                        } else if key == VirtualKeyCode::Space {
+                        } else if key == " " {
                             app.tick();
                         }
                     }
@@ -72,21 +81,25 @@ pub fn main_loop(mut app: App, tick_ms: Duration, ticks_per_cycle: usize) {
             } => {
                 app.resource_mut::<WinitEvents>().cursor_event(position);
             }
-            Event::RedrawRequested(_) => {
-            }
-            Event::MainEventsCleared => {
-                control_flow.set_wait_until(wait_until);
+            /*
+            Event::WindowEvent {
+                event: WindowEvent::RedrawRequested,
+                ..
+            } => {
+
             },
             Event::RedrawEventsCleared => {
-                control_flow.set_wait_until(wait_until);
+                window_target.set_control_flow(ControlFlow::WaitUntil(wait_until));
             },
+            */
             Event::WindowEvent {
                 event: WindowEvent::CloseRequested,
                 ..
-            } => *control_flow = ControlFlow::Exit,
+            } => window_target.exit(), // window_target.set_control_flow(ControlFlow::Exit),
             _ => {}
         }
-    });
+        window_target.set_control_flow(ControlFlow::WaitUntil(wait_until));
+    }).unwrap();
 }
 
 pub struct WinitEvents {

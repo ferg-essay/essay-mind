@@ -1,10 +1,12 @@
+pub mod feeding;
 pub mod action;
 pub mod ach_attention;
 pub mod body;
 pub mod body_locomotion;
 pub mod habenula_med;
-pub mod mid_locomotor;
 pub mod mid_explore;
+pub mod mid_locomotor;
+pub mod mid_peptide_canal;
 pub mod olfactory;
 pub mod striatum;
 pub mod tectum;
@@ -13,4 +15,7 @@ pub mod world;
 
 pub mod ui_body;
 pub mod ui_body_heatmap;
+pub mod ui_body_homunculus;
+pub mod ui_body_graph;
+pub mod ui_peptide;
 pub mod ui_world;
