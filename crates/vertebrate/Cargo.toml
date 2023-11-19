@@ -19,6 +19,7 @@ ui-graphics = { path = "../ui-graphics" }
 
 mind-macros = { path = "../macros"  }
 mind-ecs = { path = "../ecs"  }
+util = { path = "../util"  }
 test-log = { path = "../test-log" }
 
 [lib]

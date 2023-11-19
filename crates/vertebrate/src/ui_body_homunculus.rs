@@ -4,7 +4,7 @@ use essay_plot::{
     artist::{GridColorOpt, ColorMaps, Norms, paths::Unit, PathStyle}
 };
 use essay_tensor::tf32;
-use ui_graphics::{ui_plot::{UiKey, UiPlot, UiFigurePlugin, UiFigure}, ui_layout::{BoxId, UiLayout, UiLayoutEvent}, UiCanvas};
+use ui_graphics::{ui_plot::{UiPlot, UiFigurePlugin, UiFigure}, ui_layout::{BoxId, UiLayout, UiLayoutEvent}, UiCanvas};
 use crate::{ui_world::{UiWorldPlugin, UiWorld}, body::Body};
 
 #[derive(Component)]

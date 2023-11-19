@@ -6,8 +6,8 @@ edition = "2021"
 [dependencies]
 log = { version = "0.4.17" }
 env_logger = { version = "0.10.0" }
-wgpu = { version = "0.17"}
-winit = { version = "0.28" }
+wgpu = { version = "0.18" }
+winit = { version = "0.29", features = ["rwh_05"] }
 pollster = { version = "0.3" }
 #essay-plot-base = { git = "https://github.com/ferg-essay/essay-plot" }
 #essay-plot-wgpu = { git = "https://github.com/ferg-essay/essay-plot", version="0.1.1" }
@@ -23,6 +23,7 @@ essay-ecs = { path = "../../../essay-ecs" }
 essay-tensor = { path = "../../../essay-tensor" }
 #essay-ecs = { git = "https://github.com/ferg-essay/essay-ecs", version="0.1.1-dev" }
 #essay-ecs-core = { git = "https://github.com/ferg-essay/essay-ecs" }
+util = { path="../util" }
 
 [lib]
 doctest = false

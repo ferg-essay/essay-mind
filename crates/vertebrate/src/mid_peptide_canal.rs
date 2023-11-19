@@ -3,8 +3,7 @@ use std::{collections::HashMap, hash::{Hash, Hasher}, ops::Index};
 
 use essay_ecs::{app::{Plugin, App}, core::{ResMut, store::FromStore, Store}};
 use mind_ecs::PostTick;
-
-use crate::label::DynLabel;
+use util::label::DynLabel;
 
 pub struct PeptideCanal {
     peptide_map: HashMap<Box<dyn Peptide>, PeptideId>,
@@ -113,7 +112,7 @@ impl PeptideItem {
 
 pub type BoxPeptide = Box<dyn Peptide>;
 
-pub trait Peptide : Send + DynLabel + fmt::Debug {
+pub trait Peptide : Send + Sync + DynLabel + fmt::Debug {
     fn box_clone(&self) -> Box<dyn Peptide>;
 }
 

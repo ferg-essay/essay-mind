@@ -2,10 +2,10 @@ use essay_ecs::prelude::*;
 use essay_plot::{
     prelude::*, 
     artist::PathStyle, 
-    artist::{GridColorOpt, ColorMaps, paths::Unit, Markers, Norms}
+    artist::{paths::Unit, Markers}
 };
-use essay_tensor::tf32;
-use ui_graphics::{UiCanvas, ui_plot::{UiKey, UiPlot, UiFigurePlugin, UiFigure}};
+
+use ui_graphics::{UiCanvas, ui_plot::{UiPlot, UiFigurePlugin, UiFigure}};
 use crate::world::World;
 use crate::{ui_world::{UiWorldPlugin, UiWorld}, body::Body};
 
@@ -27,6 +27,7 @@ impl UiBody {
         //plot.x_label("seconds");
 
         plot.graph_mut().ylim(-0.1, 1.1);
+        /*
         // plot.line(Key::Dir, "dir");
         // plot.line(Key::Speed, "speed");
         plot.line(Key::PFood, "p(food)");
@@ -40,6 +41,7 @@ impl UiBody {
             plot.line(Key::HabitOtherA, "other-a");
             plot.line(Key::IgnoreOdor, "ignore odor");
         }
+        */
 
         //let z_peptides = tf32!([[0., 0.], [0., 0.], [0., 0.], [0., 0.]]);
         //let mut action_map : GridColorOpt = figure.color_grid((1.6, 0.), (0.5, 1.), z_peptides);
@@ -119,8 +121,8 @@ pub fn ui_body_plot(
     body: Res<Body>,
     _world: Res<World>,
 ) {
-    ui_body.plot.push(&Key::PFood, body.p_food());
-    ui_body.plot.push(&Key::Turn, (body.turn() + 0.5) % 1.);
+    // ui_body.plot.push(&Key::PFood, body.p_food());
+    // ui_body.plot.push(&Key::Turn, (body.turn() + 0.5) % 1.);
 
     ui_body.plot.tick();
 }
@@ -200,6 +202,7 @@ pub enum Key {
     IgnoreOdor,
 }
 
+/*
 impl UiKey for Key {
     fn index(&self) -> usize {
         match self {
@@ -211,6 +214,7 @@ impl UiKey for Key {
         }
     }
 }
+*/
 
 pub struct BodyPlot;
 
