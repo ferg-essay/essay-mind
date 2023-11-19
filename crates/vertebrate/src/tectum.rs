@@ -59,14 +59,6 @@ impl TectumStnTurn {
     const COST : f32 = 0.005;
 
     fn new(plugin: &TectumPlugin) -> Self {
-        /*
-        let striatum = if plugin.is_striatum {
-            Some(StriatumStn::new())
-        } else {
-            None
-        };
-        */
-
         let ach_attention = if plugin.is_ni {
             Some(NucleusIsthmi::new())
         } else {
@@ -166,14 +158,6 @@ impl TectumStnTurn {
             &mut self.actions_i
         );
 
-        /*
-        if let Some(mut ach_attention) = self.ach_attention.take() {
-            ach_attention.update(self);
-
-            self.ach_attention = Some(ach_attention);
-        }
-        */
-
         let best_d = self.actions_d.best_action();
         let best_i = self.actions_i.best_action();
 
@@ -267,28 +251,6 @@ impl TectumAction {
         }
     }
 }
-
-
-/*
-#[derive(Clone, Copy, Debug)]
-pub enum Turn {
-    Left,
-    Right,
-}
-
-impl Turn {
-    fn id(&self) -> ActionId {
-        match self {
-            Turn::Left => ActionId::new(0),
-            Turn::Right => ActionId::new(1),
-        }
-    }
-}
-*/
-
-//fn update_tectum(mut tectum: ResMut<TectumLocomotion>) {
-//    tectum.update();
-//}
 
 pub struct TectumPlugin {
     _is_striatum: bool,

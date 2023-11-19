@@ -28,14 +28,14 @@ pub fn derive_peptide_label(input: TokenStream) -> TokenStream {
     let name = &ast.ident;
 
     TokenStream::from(quote! {
-        impl vertebrate::mid_peptide_canal::Peptide for #name {
-            fn box_clone(&self) -> Box<dyn vertebrate::mid_peptide_canal::Peptide> {
+        impl vertebrate::mid_peptides::Peptide for #name {
+            fn box_clone(&self) -> Box<dyn vertebrate::mid_peptides::Peptide> {
                 Box::new(Clone::clone(self))
             }
         }
 
-        impl AsRef<dyn vertebrate::mid_peptide_canal::Peptide> for #name {
-            fn as_ref(&self) -> &dyn vertebrate::mid_peptide_canal::Peptide {
+        impl AsRef<dyn vertebrate::mid_peptides::Peptide> for #name {
+            fn as_ref(&self) -> &dyn vertebrate::mid_peptides::Peptide {
                 self
             }
         }

@@ -2,7 +2,7 @@ use essay_ecs::prelude::*;
 use essay_plot::prelude::*;
 
 use ui_graphics::ui_plot::{UiPlot, UiFigurePlugin, UiFigure, PlotKeyId};
-use crate::mid_peptide_canal::{BoxPeptide, PeptideCanal, PeptideId};
+use crate::mid_peptides::{BoxPeptide, MidPeptides, PeptideId, Peptide};
 
 #[derive(Component)]
 pub struct UiBodyGraph {
@@ -47,15 +47,15 @@ pub fn ui_body_plot(
 pub fn ui_plot_peptide(
     peptide: &PeptideLine,
     mut ui_body: ResMut<UiBodyGraph>,
-    peptides: Res<PeptideCanal>,
+    peptides: Res<MidPeptides>,
 ) {
     ui_body.plot.push(peptide.plot, peptides[peptide.peptide]);
 
-    ui_body.plot.tick();
+    //ui_body.plot.tick();
 }
 
 pub fn ui_plot_update(
-    ui_body: &mut UiBodyGraph,
+    mut ui_body: ResMut<UiBodyGraph>,
 ) {
     ui_body.plot.tick();
 }
@@ -84,17 +84,24 @@ impl UiGraphPlugin {
             lines: Vec::new(),
         }
     }
+
+    pub fn line(mut self, peptide: impl Peptide, label: &str) -> Self {
+        self.lines.push((peptide.box_clone(), String::from(label)));
+        
+        self
+    }
 }
 
 impl Plugin for UiGraphPlugin {
     fn build(&self, app: &mut App) {
-        if app.contains_resource::<PeptideCanal>() {
-            app.plugin(UiFigurePlugin::<UiBodyGraph>::new(self.xy, self.wh));
+        if app.contains_resource::<MidPeptides>() {
+            let figure = UiFigurePlugin::<BodyPlot>::new(self.xy, self.wh);
+            app.plugin(figure);
 
             let mut lines : Vec<(PeptideId, String)> = Vec::new();
 
             for (key, label) in &self.lines {
-                if let Some(peptide) = app.resource::<PeptideCanal>().get_peptide(key.as_ref()) {
+                if let Some(peptide) = app.resource::<MidPeptides>().get_peptide(key.as_ref()) {
                     lines.push((peptide.id(), label.clone()));
                 }
             }
@@ -110,7 +117,7 @@ impl Plugin for UiGraphPlugin {
                 c.insert_resource(graph);
             });
             
-            app.system(Update, ui_plot_peptide);
+            app.system(PostUpdate, ui_plot_peptide);
             app.system(PreUpdate, ui_plot_update);
         }
     }

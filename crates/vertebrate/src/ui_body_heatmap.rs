@@ -69,12 +69,12 @@ pub fn ui_locmap_spawn_plot(
 
 pub struct LocMap;
 
-pub struct UiSlugLocationPlugin {
+pub struct UiLocationHeatmapPlugin {
     xy: Point,
     wh: Point,
 }
 
-impl UiSlugLocationPlugin {
+impl UiLocationHeatmapPlugin {
     pub fn new(xy: impl Into<Point>, wh: impl Into<Point>) -> Self {
         Self {
             xy: xy.into(),
@@ -83,7 +83,7 @@ impl UiSlugLocationPlugin {
     }
 }
 
-impl Plugin for UiSlugLocationPlugin {
+impl Plugin for UiLocationHeatmapPlugin {
     fn build(&self, app: &mut App) {
         if app.contains_plugin::<UiWorldPlugin>() {
             // app.system(Update, draw_body.phase(DrawAgent));

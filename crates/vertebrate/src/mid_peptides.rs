@@ -2,16 +2,16 @@ use core::fmt;
 use std::{collections::HashMap, hash::{Hash, Hasher}, ops::Index};
 
 use essay_ecs::{app::{Plugin, App}, core::{ResMut, store::FromStore, Store}};
-use mind_ecs::PostTick;
+use mind_ecs::{PostTick, PreTick};
 use util::label::DynLabel;
 
-pub struct PeptideCanal {
+pub struct MidPeptides {
     peptide_map: HashMap<Box<dyn Peptide>, PeptideId>,
     peptides: Vec<PeptideItem>,
     values: Vec<f32>,
 }
 
-impl PeptideCanal {
+impl MidPeptides {
     pub fn new() -> Self {
         Self {
             peptide_map: HashMap::new(),
@@ -44,23 +44,26 @@ impl PeptideCanal {
     pub fn add(&mut self, id: PeptideId, delta: f32) {
         assert!(0. <= delta && delta <= 1.);
 
-        self.values[id.i()] = (self.values[id.i()] + delta).clamp(0., 1.);
+        let decay = self.peptides[id.i()].decay;
+
+        self.values[id.i()] = ((1. - decay) * self.values[id.i()] + 2. * delta * decay).clamp(0., 1.);
+        //self.values[id.i()] = (self.values[id.i()] + delta).clamp(0., 1.);
     }
 
     fn update(&mut self) {
         for (item, value) in self.peptides.iter().zip(&mut self.values) {
-            *value = (*value - item.decay).clamp(0., 1.);
+            *value = (*value * (1. - item.decay)).clamp(0., 1.);
         }
     }
 }
 
-impl FromStore for PeptideCanal {
+impl FromStore for MidPeptides {
     fn init(_world: &mut Store) -> Self {
-        PeptideCanal::new()
+        MidPeptides::new()
     }
 }
 
-impl Index<PeptideId> for PeptideCanal {
+impl Index<PeptideId> for MidPeptides {
     type Output = f32;
 
     #[inline]
@@ -69,7 +72,7 @@ impl Index<PeptideId> for PeptideCanal {
     }
 }
 
-impl Index<&dyn Peptide> for PeptideCanal {
+impl Index<&dyn Peptide> for MidPeptides {
     type Output = PeptideItem;
 
     #[inline]
@@ -101,10 +104,8 @@ impl PeptideItem {
         &self.peptide
     }
 
-    pub fn decay(&mut self, decay: f32) -> &mut Self {
-        assert!(0. <= decay && decay <= 1.);
-
-        self.decay = decay;
+    pub fn half_life(&mut self, decay_s: f32) -> &mut Self {
+        self.decay = (0.1 / decay_s.max(1e-6)).clamp(0., 1.);
 
         self
     }
@@ -139,17 +140,17 @@ impl PeptideId {
     }
 }
 
-fn update_peptide_canal(mut peptides: ResMut<PeptideCanal>) {
+fn update_peptide_canal(mut peptides: ResMut<MidPeptides>) {
     peptides.update()
 }
 
-pub struct MidPeptideCanalPlugin;
+pub struct MidPeptidesPlugin;
 
-impl Plugin for MidPeptideCanalPlugin {
+impl Plugin for MidPeptidesPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<PeptideCanal>();
+        app.init_resource::<MidPeptides>();
 
-        app.system(PostTick, update_peptide_canal);
+        app.system(PreTick, update_peptide_canal);
     }
 }
 
@@ -159,15 +160,15 @@ mod test {
     use mind_macros::Peptide;
     use crate as vertebrate;
 
-    use super::PeptideCanal;
+    use super::MidPeptides;
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Peptide)]
     struct TestPeptide;
 
     #[test]
     fn test() {
-        let mut peptides = PeptideCanal::new();
-        peptides.peptide(TestPeptide).decay(0.5);
+        let mut peptides = MidPeptides::new();
+        peptides.peptide(TestPeptide).half_life(0.5);
         let id = peptides.get_peptide(&TestPeptide).unwrap().id();
         peptides.add(id, 0.1);
 

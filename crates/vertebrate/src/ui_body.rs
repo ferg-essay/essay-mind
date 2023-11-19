@@ -13,7 +13,7 @@ use super::ui_world::DrawAgent;
 
 #[derive(Component)]
 pub struct UiBody {
-    plot: UiPlot,
+    //plot: UiPlot,
 
     // action_map: GridColorOpt,
 
@@ -22,11 +22,11 @@ pub struct UiBody {
 
 impl UiBody {
     fn new(figure: &UiFigure<BodyPlot>) -> Self {
-        let mut plot = figure.plot_xy((0., 0.), (1., 1.));
+        //let mut plot = figure.plot_xy((0., 0.), (1., 1.));
 
         //plot.x_label("seconds");
 
-        plot.graph_mut().ylim(-0.1, 1.1);
+        //plot.graph_mut().ylim(-0.1, 1.1);
         /*
         // plot.line(Key::Dir, "dir");
         // plot.line(Key::Speed, "speed");
@@ -49,7 +49,7 @@ impl UiBody {
         //action_map.color_map(ColorMaps::WhiteRed);
 
         Self {
-            plot,
+            //plot,
 
             // action_map,
             trail: UiTrail::new(400),
@@ -115,7 +115,7 @@ pub fn draw_body(
     style.line_width(3.);
     ui.draw_path(&head, &style);
 }
-
+/*
 pub fn ui_body_plot(
     ui_body: &mut UiBody,
     body: Res<Body>,
@@ -133,19 +133,20 @@ pub fn ui_body_spawn_plot(
 ) {
     c.spawn(UiBody::new(plot.get_mut()))
 }
+*/
 
 pub fn draw_trail(
-    ui_body: &mut UiBody,
+    mut ui_trail: ResMut<UiTrail>,
     body: Res<Body>,
     ui_world: Res<UiWorld>,
     mut ui: ResMut<UiCanvas>
 ) {
-    ui_body.trail.add(body.pos());
+    ui_trail.add(body.pos());
 
     let transform = Affine2d::eye();
     let transform = ui_world.to_canvas().matmul(&transform);
 
-    let trail: Path<Canvas> = ui_body.trail.path(4).transform(&transform);
+    let trail: Path<Canvas> = ui_trail.path(4).transform(&transform);
 
     let mut style = PathStyle::new();
     style.color("midnight blue");
@@ -153,7 +154,7 @@ pub fn draw_trail(
     ui.draw_path(&trail, &style);
 }
 
-struct UiTrail {
+pub struct UiTrail {
     points: Vec<Point>,
     head: usize,
 }
@@ -218,11 +219,15 @@ impl UiKey for Key {
 
 pub struct BodyPlot;
 
-pub struct UiBodyPlugin {
-    xy: Point,
-    wh: Point,
+pub struct UiBodyPlugin;
+/*
+ {
+    //xy: Point,
+    //wh: Point,
 }
+*/
 
+    /*
 impl UiBodyPlugin {
     pub fn new(xy: impl Into<Point>, wh: impl Into<Point>) -> Self {
         Self {
@@ -231,16 +236,17 @@ impl UiBodyPlugin {
         }
     }
 }
+    */
 
 impl Plugin for UiBodyPlugin {
     fn build(&self, app: &mut App) {
         if app.contains_plugin::<UiWorldPlugin>() {
             app.system(Update, draw_body.phase(DrawAgent));
 
-            app.plugin(UiFigurePlugin::<BodyPlot>::new(self.xy, self.wh));
+            //app.plugin(UiFigurePlugin::<BodyPlot>::new(self.xy, self.wh));
 
-            app.system(Startup, ui_body_spawn_plot);
-            app.system(Update, ui_body_plot);
+            //app.system(Startup, ui_body_spawn_plot);
+            //app.system(Update, ui_body_plot);
         }
     }
 }
@@ -250,6 +256,7 @@ pub struct UiBodyTrailPlugin;
 impl Plugin for UiBodyTrailPlugin {
     fn build(&self, app: &mut App) {
         if app.contains_plugin::<UiWorldPlugin>() {
+            app.insert_resource(UiTrail::new(400));
             app.system(Update, draw_trail.phase(DrawAgent));
         }
     }

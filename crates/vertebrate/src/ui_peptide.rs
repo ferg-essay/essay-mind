@@ -2,7 +2,7 @@ use essay_ecs::prelude::*;
 use essay_plot::{prelude::*, artist::{paths::{self, Unit}, PathStyle}};
 use ui_graphics::{ui_layout::{UiLayout, UiLayoutEvent, BoxId, UiLayoutPlugin}, UiCanvas, UiCanvasPlugin};
 
-use crate::mid_peptide_canal::{MidPeptideCanalPlugin, PeptideCanal, PeptideId, Peptide};
+use crate::mid_peptides::{MidPeptidesPlugin, MidPeptides, PeptideId, Peptide};
 
 #[derive(Component)]
 pub struct UiPeptide {
@@ -93,7 +93,7 @@ pub fn ui_peptide_resize(
 }
 
 pub fn ui_peptide_draw(
-    peptides: Res<PeptideCanal>, 
+    peptides: Res<MidPeptides>, 
     ui_peptide: ResMut<UiPeptide>, 
     mut ui: ResMut<UiCanvas>
 ) {
@@ -164,7 +164,7 @@ impl UiPeptidePlugin {
 impl Plugin for UiPeptidePlugin {
     fn build(&self, app: &mut App) {
         if app.contains_plugin::<UiCanvasPlugin>() {
-            assert!(app.contains_plugin::<MidPeptideCanalPlugin>());
+            assert!(app.contains_plugin::<MidPeptidesPlugin>());
 
             if ! app.contains_plugin::<UiLayoutPlugin>() {
                 app.plugin(UiLayoutPlugin);
@@ -173,12 +173,14 @@ impl Plugin for UiPeptidePlugin {
             let box_id = app.resource_mut::<UiLayout>().add_box(self.bounds.clone());
 
             let colors = [
-                Color::from("beige"),
                 Color::from("sky"),
-                Color::from("green"),
+                Color::from("red"),
+                Color::from("beige"),
+                Color::from("purple"),
+                Color::from("olive"),
             ];
 
-            let peptides = app.resource_mut::<PeptideCanal>();
+            let peptides = app.resource_mut::<MidPeptides>();
 
             let mut ui_peptide = UiPeptide::new(box_id);
 

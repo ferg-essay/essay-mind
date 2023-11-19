@@ -3,15 +3,15 @@ use std::time::Duration;
 use vertebrate::body::BodyPlugin;
 use essay_ecs::prelude::App;
 use mind_ecs::TickSchedulePlugin;
-use vertebrate::feeding::{ExploreFood, SeekFood, MidFeedingPlugin, EatFood};
+use vertebrate::mid_feeding::{ExploreFood, SeekFood, MidFeedingPlugin, EatFood};
 use vertebrate::habenula_med::HabenulaMedPlugin;
-use vertebrate::mid_peptide_canal::MidPeptideCanalPlugin;
+use vertebrate::mid_peptides::MidPeptidesPlugin;
 use vertebrate::tuberculum::TuberculumPlugin;
 use vertebrate::mid_locomotor::MidLocomotorPlugin;
 use vertebrate::olfactory::OlfactoryPlugin;
 use vertebrate::tectum::TectumPlugin;
 use vertebrate::ui_body::{UiBodyPlugin, UiBodyTrailPlugin};
-use vertebrate::ui_body_heatmap::UiSlugLocationPlugin;
+use vertebrate::ui_body_heatmap::UiLocationHeatmapPlugin;
 use ui_graphics::UiCanvasPlugin;
 use vertebrate::ui_body_homunculus::UiHomunculusPlugin;
 use vertebrate::ui_peptide::UiPeptidePlugin;
@@ -36,13 +36,13 @@ pub fn main() {
     app.plugin(MidLocomotorPlugin);
     app.plugin(TuberculumPlugin);
     app.plugin(HabenulaMedPlugin);
-    app.plugin(MidPeptideCanalPlugin);
+    app.plugin(MidPeptidesPlugin);
     app.plugin(MidFeedingPlugin);
 
     // UiCanvasPlugin enables graphics
     app.plugin(UiCanvasPlugin::new().frame_ms(Duration::from_millis(50)));
     app.plugin(UiWorldPlugin::new((0., 0.), (0.5, 0.5)));
-    app.plugin(UiSlugLocationPlugin::new((0.5, 0.), (0.5, 0.5)));
+    app.plugin(UiLocationHeatmapPlugin::new((0.5, 0.), (0.5, 0.5)));
     app.plugin(UiBodyPlugin::new((0., 0.5), (0.5, 0.5)));
     app.plugin(UiHomunculusPlugin::new((0.5, 0.5), (0.25, 0.5)));
     app.plugin(UiBodyTrailPlugin);

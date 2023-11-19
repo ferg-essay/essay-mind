@@ -8,7 +8,7 @@ use mind_ecs::Tick;
 
 use crate::{
     body::Body, 
-    world::{World, OdorType}
+    world::{World, OdorType}, mid_peptides::MidPeptides, mid_feeding::CueSeekFood
 };
 
 pub struct Olfactory {
@@ -73,6 +73,7 @@ fn update_olfactory(
         }
     }
 }
+
 pub struct OlfactoryPlugin;
 
 impl Plugin for OlfactoryPlugin {
