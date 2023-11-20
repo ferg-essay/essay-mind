@@ -46,7 +46,7 @@ impl MidPeptides {
 
         let decay = self.peptides[id.i()].decay;
 
-        self.values[id.i()] = ((1. - decay) * self.values[id.i()] + 2. * delta * decay).clamp(0., 1.);
+        self.values[id.i()] = (self.values[id.i()] + delta * decay).clamp(0., 1.);
         //self.values[id.i()] = (self.values[id.i()] + delta).clamp(0., 1.);
     }
 

@@ -3,7 +3,8 @@ use essay_plot::{prelude::Point, artist::{GridColorOpt, ColorMaps, TextCoords, T
 use essay_tensor::Tensor;
 use ui_graphics::ui_plot::{UiFigurePlugin, UiFigure};
 use crate::world::World;
-use crate::{ui_world::UiWorldPlugin, body::Body};
+use crate::body::Body;
+use crate::ui::ui_world::UiWorldPlugin;
 
 #[derive(Component)]
 pub struct UiLocMap {

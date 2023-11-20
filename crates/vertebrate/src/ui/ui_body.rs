@@ -5,9 +5,9 @@ use essay_plot::{
     artist::{paths::Unit, Markers}
 };
 
-use ui_graphics::{UiCanvas, ui_plot::{UiPlot, UiFigurePlugin, UiFigure}};
-use crate::world::World;
-use crate::{ui_world::{UiWorldPlugin, UiWorld}, body::Body};
+use ui_graphics::{UiCanvas, ui_plot::UiFigure};
+use crate::body::Body;
+use crate::ui::ui_world::{UiWorldPlugin, UiWorld};
 
 use super::ui_world::DrawAgent;
 

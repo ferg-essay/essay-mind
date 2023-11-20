@@ -1,7 +1,7 @@
 use core::fmt;
 use std::hash::{Hasher, Hash};
 
-use essay_plot::{graph::Graph, artist::{Lines2d, LinesOpt}};
+use essay_plot::{graph::Graph, artist::{Lines2d, LinesOpt}, api::Color};
 use util::label::DynLabel;
 
 pub struct UiPlot {
@@ -70,6 +70,10 @@ impl UiPlot {
     pub fn x_label(&mut self, label: &str) {
         self.graph.x_label(label);
     }
+
+    pub fn color(&mut self, id: PlotKeyId, color: Color) {
+        self.lines[id.i()].color(color);
+    }
 }
 
 struct UiLine {
@@ -85,6 +89,10 @@ impl UiLine {
             line: line,
             y: Vec::new(),
         }
+    }
+
+    fn color(&mut self, color: Color) {
+        self.line.color(color);
     }
 }
 /*

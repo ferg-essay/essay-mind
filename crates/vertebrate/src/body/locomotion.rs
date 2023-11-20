@@ -79,6 +79,12 @@ impl BodyLocomotion {
         }
     }
 
+    pub fn arrest(&mut self) {
+        self.action = None;
+
+        self.action(Action::arrest());
+    }
+
     pub fn is_theta(&self) -> bool {
         if let Some(action) = &self.action {
             action.speed > 0. && self.action_ticks == 1

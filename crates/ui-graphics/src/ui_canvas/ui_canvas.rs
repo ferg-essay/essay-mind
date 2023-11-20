@@ -3,14 +3,13 @@ use std::time::Duration;
 use essay_ecs::prelude::*;
 use essay_plot::artist::PathStyle;
 use essay_plot::api::{TextStyle, Bounds};
-use essay_plot::api::{CanvasEvent, PathCode, Canvas, Point, Path, Clip, driver::Renderer};
-use essay_plot::frame::Data;
+use essay_plot::api::{Canvas, Point, Path, Clip, driver::Renderer};
 use essay_plot::prelude::{ImageId, Color};
 use essay_plot::wgpu::{PlotCanvas, PlotRenderer};
 use essay_tensor::Tensor;
 use winit::event_loop::EventLoop;
 
-use super::{ScreenApi, RendererApi, CanvasState, WgpuCanvas, CanvasView};
+use super::{WgpuCanvas, CanvasView};
 use super::winit_loop::{main_loop, WinitEvents};
 
 pub struct UiCanvas {

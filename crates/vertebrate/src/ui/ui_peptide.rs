@@ -102,7 +102,18 @@ pub fn ui_peptide_draw(
     let x_margin = 0.2;
     let width = ui_peptide.peptides.len().max(1);
 
+    let y_mid = y_min + 0.5 * (1. - y_min);
+
     let mut style = PathStyle::new();
+
+    let mid = paths::rect::<Unit>(
+        [0., y_mid], 
+        [1. * width as f32, y_mid + 0.001]
+    ).transform(&ui_peptide.to_canvas());
+    
+    let mut style = PathStyle::new();
+    style.color(0xe0e0e0);
+    ui.draw_path(&mid, &style);
 
     let mut text_style = TextStyle::new();
     text_style.valign(VertAlign::Top);
@@ -141,6 +152,7 @@ pub fn ui_peptide_draw(
 pub struct UiPeptidePlugin {
     bounds: Bounds::<UiLayout>,
     peptides: Vec<UiPeptidePluginItem>,
+    colors: Vec<Color>,
 }
 
 impl UiPeptidePlugin {
@@ -151,12 +163,19 @@ impl UiPeptidePlugin {
         Self {
             bounds: Bounds::new(xy, (xy.0 + wh.0, xy.1 + wh.1)),
             peptides: Vec::new(),
+            colors: Vec::new(),
         }
     }
 
     pub fn peptide(mut self, peptide: impl Peptide, label: &str) -> Self {
         self.peptides.push(UiPeptidePluginItem::new(peptide, label));
         
+        self
+    }
+
+    pub fn colors(mut self, colors: impl Into<Colors>) -> Self {
+        self.colors = colors.into().into();
+
         self
     }
 }
@@ -172,13 +191,17 @@ impl Plugin for UiPeptidePlugin {
 
             let box_id = app.resource_mut::<UiLayout>().add_box(self.bounds.clone());
 
-            let colors = [
-                Color::from("sky"),
-                Color::from("red"),
-                Color::from("beige"),
-                Color::from("purple"),
-                Color::from("olive"),
-            ];
+            let colors = if self.colors.len() > 0 {
+                self.colors.clone()
+            } else {
+                vec!(
+                    Color::from("sky"),
+                    Color::from("red"),
+                    Color::from("beige"),
+                    Color::from("purple"),
+                    Color::from("olive"),
+                )
+            };
 
             let peptides = app.resource_mut::<MidPeptides>();
 

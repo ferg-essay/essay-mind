@@ -115,7 +115,7 @@ impl CanvasView {
 }
 
 async fn init_wgpu_args(window: Window) -> WgpuCanvas {
-    window.set_title("Essay Mind");
+    window.set_title("Essays on Vertebrate Mind");
     window.set_cursor_icon(CursorIcon::Default);
 
     let size = window.inner_size();

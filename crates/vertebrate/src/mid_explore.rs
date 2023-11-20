@@ -2,8 +2,7 @@ use essay_ecs::core::Store;
 use essay_ecs::core::store::FromStore;
 use essay_plot::prelude::Angle;
 use essay_tensor::Tensor;
-use crate::body_locomotion::Action;
-use crate::body::Body;
+use crate::body::{Action, Body};
 
 pub struct MidExplore {
     _effort: f32,

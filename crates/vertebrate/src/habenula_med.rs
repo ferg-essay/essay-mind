@@ -7,6 +7,43 @@ use crate::{
     tectum::TectumLocomotionStn, action::Turn
 };
 
+pub struct Habenula {
+    decay: f32,
+
+    value: f32
+}
+
+impl Habenula {
+    pub fn new(half_life: f32) -> Self {
+        Self {
+            decay: 0.1 / half_life,
+            value: 0.5,
+        }
+    }
+
+    pub fn value(&self) -> f32 {
+        self.value
+    }
+
+    pub fn excite(&mut self, value: f32) -> &mut Self {
+        self.value += self.decay * 0.5 * value.clamp(0., 1.);
+
+        self
+    }
+
+    pub fn inhibit(&mut self, value: f32) -> &mut Self {
+        self.value -= self.decay * 0.5 * value.clamp(0., 1.);
+
+        self
+    }
+
+    pub fn update(&mut self) -> &mut Self {
+        self.value = self.value * (1. - self.decay) + 0.5 * self.decay;
+
+        self
+    }
+}
+
 ///
 /// Medial habenula
 /// 

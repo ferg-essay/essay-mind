@@ -28,6 +28,10 @@ impl UiBodyGraph {
     fn push(&mut self, id: PlotKeyId, value: f32) {
         self.plot.push(id, value);
     }
+
+    fn color(&mut self, id: PlotKeyId, color: Color) {
+        self.plot.color(id, color);
+    }
 }
 /*
 pub fn ui_body_plot(
@@ -74,6 +78,7 @@ pub struct UiGraphPlugin {
     wh: Point,
 
     lines: Vec<(BoxPeptide, String)>,
+    colors: Vec<Color>,
 }
 
 impl UiGraphPlugin {
@@ -82,7 +87,16 @@ impl UiGraphPlugin {
             xy: xy.into(),
             wh: wh.into(),
             lines: Vec::new(),
+            colors: Vec::new(),
         }
+    }
+
+    pub fn colors(mut self, colors: impl Into<Colors>) -> Self {
+        for color in colors.into().into() {
+            self.colors.push(color);
+        }
+
+        self
     }
 
     pub fn line(mut self, peptide: impl Peptide, label: &str) -> Self {
@@ -106,12 +120,19 @@ impl Plugin for UiGraphPlugin {
                 }
             }
 
+            let colors = self.colors.clone();
+
             app.system(Startup, move |mut c: Commands, mut plot: ResMut<UiFigure<BodyPlot>>| {
                 let mut graph = UiBodyGraph::new(plot.get_mut());
 
                 for (peptide, label) in &lines {
                     let plot_key = graph.line(&label);
-                    c.spawn(PeptideLine::new(*peptide, plot_key))
+                    c.spawn(PeptideLine::new(*peptide, plot_key));
+
+                    let len = colors.len();
+                    if len > 0 {
+                        graph.color(plot_key, colors[plot_key.i() % len]);
+                    }
                 }
 
                 c.insert_resource(graph);

@@ -5,7 +5,8 @@ use essay_plot::{
 };
 use essay_tensor::tf32;
 use ui_graphics::{ui_plot::{UiPlot, UiFigurePlugin, UiFigure}, ui_layout::{BoxId, UiLayout, UiLayoutEvent}, UiCanvas};
-use crate::{ui_world::{UiWorldPlugin, UiWorld}, body::Body};
+use crate::body::Body;
+use crate::ui::ui_world::{UiWorldPlugin, UiWorld};
 
 #[derive(Component)]
 pub struct UiHomunculus {

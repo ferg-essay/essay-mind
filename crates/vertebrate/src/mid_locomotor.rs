@@ -4,10 +4,9 @@ use essay_ecs::{prelude::*, core::Local};
 use essay_plot::prelude::Angle;
 use mind_ecs::Tick;
 use crate::action::Turn;
-use crate::body_locomotion::ActionFactory;
 use crate::mid_explore::MidExplore;
 use crate::tectum::{TectumPlugin, TectumLocomotionStn};
-use crate::body::{Body, BodyPlugin};
+use crate::body::{ActionFactory, Body, BodyPlugin};
 
 pub struct MesState {
     left60: ActionFactory,

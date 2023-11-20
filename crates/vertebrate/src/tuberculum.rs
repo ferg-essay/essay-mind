@@ -5,7 +5,7 @@ use crate::{
     mid_locomotor::MidLocomotorPlugin, 
     olfactory::{OlfactoryPlugin, Olfactory}, 
     tectum::TectumLocomotionStn,
-    action::Turn, 
+    action::Turn, mid_peptides::MidPeptides, mid_feeding::SeekFood, 
 };
 
 ///
@@ -19,17 +19,23 @@ use crate::{
 
 fn update_tuberculum(
     odor: Res<Olfactory>, 
+    peptides: Res<MidPeptides>,
     mut tectum: ResMut<TectumLocomotionStn>,
 ) {
     // "where" / "how" path
     if let Some(angle) = odor.food_dir() {
-        tectum.seek().effort();
-        tectum.seek().cost();
+        // tectum.seek().effort();
+        // tectum.seek().cost();
     
-        if 0.05 <= angle.to_unit() && angle.to_unit() <= 0.5 {
-            tectum.seek().turn(Turn::Left, 1.);
-        } else if 0.5 <= angle.to_unit() && angle.to_unit() <= 0.95 {
-            tectum.seek().turn(Turn::Right, 1.);
+        if let Some(item) = peptides.get_peptide(&SeekFood) {
+            // TODO: hysteresis
+            if peptides[item.id()] > 0.3 {
+                if 0.05 <= angle.to_unit() && angle.to_unit() <= 0.5 {
+                    tectum.seek().turn(Turn::Left, 1.);
+                } else if 0.5 <= angle.to_unit() && angle.to_unit() <= 0.95 {
+                    tectum.seek().turn(Turn::Right, 1.);
+                }
+            }
         }
     }
 }

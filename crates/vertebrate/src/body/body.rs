@@ -4,7 +4,7 @@ use essay_plot::prelude::*;
 use essay_tensor::Tensor;
 use mind_ecs::Tick;
 use test_log::{TestLog, TestLogPlugin};
-use crate::body_locomotion::{BodyLocomotion, Action};
+use crate::body::{BodyLocomotion, Action};
 
 use crate::world::{OdorType, World, WorldPlugin};
 
