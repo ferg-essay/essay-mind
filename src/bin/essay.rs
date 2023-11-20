@@ -3,7 +3,7 @@ use std::time::Duration;
 use vertebrate::body::BodyPlugin;
 use essay_ecs::prelude::App;
 use mind_ecs::TickSchedulePlugin;
-use vertebrate::mid_feeding::{ExploreFood, SeekFood, MidFeedingPlugin, EatFood, CueSeekFood, CueAvoidFood, UrgencySeekFood, GiveUpSeekFood, NearFood};
+use vertebrate::mid_feeding::{ExploreFood, SeekFood, MidFeedingPlugin, EatFood, CueSeekFood, CueAvoidFood, UrgencySeekFood, GiveUpSeekFood, NearFood, BloodSugar};
 use vertebrate::habenula_med::HabenulaMedPlugin;
 use vertebrate::mid_peptides::MidPeptidesPlugin;
 use vertebrate::tuberculum::TuberculumPlugin;
@@ -58,6 +58,7 @@ pub fn main() {
         //.line(CueAvoidFood, "nt") // neurotensin
         .line(GiveUpSeekFood, "Hb") // habenula
         .line(NearFood, "Df") // DA near food
+        .line(BloodSugar, "bs") // DA near food
     );
     app.plugin(UiPeptidePlugin::new((2.0, 1.0), (0.5, 1.))
         .colors(["amber", "sky", "olive", "red", "green", "blue"])
@@ -69,6 +70,7 @@ pub fn main() {
         .peptide(GiveUpSeekFood, "Hb")
         //.peptide(EatFood, "cc") // npy
         .peptide(NearFood, "Df") // DA near food
+        .peptide(BloodSugar, "bs") // DA near food
     );
     app.plugin(UiHomunculusPlugin::new((2.5, 1.), (0.5, 1.)));
 

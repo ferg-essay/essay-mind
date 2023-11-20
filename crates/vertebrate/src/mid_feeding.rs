@@ -15,6 +15,8 @@ struct MidFeeding {
     seek_id: PeptideId, 
 
     food_near_id: PeptideId, 
+    blood_sugar_id: PeptideId, 
+
     eat_id: PeptideId, 
 
 }
@@ -31,6 +33,8 @@ impl MidFeeding {
             seek_id: peptides.peptide(SeekFood).id(),
 
             food_near_id: peptides.peptide(NearFood).id(),
+            blood_sugar_id: peptides.peptide(BloodSugar).id(),
+
             eat_id: peptides.peptide(EatFood).id(),
 
         }
@@ -100,20 +104,27 @@ fn update_near_food(
     feeding: Res<MidFeeding>,
     mut peptides: ResMut<MidPeptides>
 ) {
-    if body._is_sensor_food() {
+    if body.eat().is_sensor_food() {
         peptides.add(feeding.food_near_id, 1.0);
-    }    
+    }
 }
 
 fn update_eat(
-    peptides: Res<MidPeptides>,
+    mut peptides: ResMut<MidPeptides>,
     mut body: ResMut<Body>,
 ) {
     if let Some(item) = peptides.get_peptide(&NearFood) {
         if peptides[item.id()] > 0.5 {
-            body.locomotion_mut().arrest();
+            if body.eat().blood_sugar() < 0.8 && body.eat().is_eating()
+                || body.eat().blood_sugar() < 0.3 {
+                body.locomotion_mut().arrest();
+                body.eat_mut().eat();
+            }
         }
     }
+
+    let id = peptides.get_peptide(&BloodSugar).unwrap().id();
+    peptides.add(id, body.eat().blood_sugar());
 }
 
 /// Orexin
@@ -147,6 +158,10 @@ pub struct NearFood;
 // Cck - probably something else
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Peptide)]
 pub struct EatFood;
+
+// MCH/Leptin
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Peptide)]
+pub struct BloodSugar;
 
 
 pub struct MidFeedingPlugin;

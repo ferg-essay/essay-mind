@@ -8,11 +8,12 @@ use crate::body::{BodyLocomotion, Action};
 
 use crate::world::{OdorType, World, WorldPlugin};
 
+use super::eat::BodyEat;
+
 // #[derive(Component)]
 pub struct Body {
     locomotion: BodyLocomotion,
-
-    sensor_food: bool,
+    eat: BodyEat,
 
     tick_food: usize,
     ticks: usize,
@@ -23,10 +24,11 @@ impl Body {
         let mut locomotion = BodyLocomotion::new(pos);
         locomotion.action_default(Action::forward());
 
+        let mut eat = BodyEat::new();
+
         Self {
             locomotion,
-
-            sensor_food: false,
+            eat,
 
             tick_food: 0,
             ticks: 0,
@@ -39,6 +41,14 @@ impl Body {
 
     pub fn locomotion_mut(&mut self) -> &mut BodyLocomotion {
         &mut self.locomotion
+    }
+
+    pub fn eat(&self) -> &BodyEat {
+        &self.eat
+    }
+
+    pub fn eat_mut(&mut self) -> &mut BodyEat {
+        &mut self.eat
     }
 
     pub fn pos(&self) -> Point {
@@ -67,10 +77,6 @@ impl Body {
 
     pub fn turn(&self) -> f32 {
         self.locomotion.turn()
-    }
-
-    pub fn _is_sensor_food(&self) -> bool {
-        self.sensor_food
     }
 
     pub fn p_food(&self) -> f32 {
@@ -102,11 +108,13 @@ pub fn body_physics(
     world: Res<World>,
 ) {
     body.locomotion.update(world.get());
-    body.sensor_food = world.is_food(body.pos());
+    let pos_head = body.pos_head();
+    body.eat_mut().update(world.get(), pos_head);
 
-    if body.sensor_food {
+    if body.eat().is_sensor_food() {
         body.tick_food += 1;
     }
+
     body.ticks += 1;
 }
 
