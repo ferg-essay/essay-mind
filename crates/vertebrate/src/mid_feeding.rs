@@ -47,12 +47,17 @@ fn update_feeding(
 
     // dopamine - trigger for seeking a food cue
     let mut seek = 0.;
-    // baseline DA from orexin
-    seek += peptides2.explore_food() * 0.4;
-    // ghrelin - food cue (ghrelin) prompts
-    seek += peptides2.cue_seek_food();
-    // nts - neurotensin suppresses food seeking
-    seek -= peptides2.cue_avoid_food();
+
+    // H.l senses glucose
+    if peptides2.glucose() < 0.3 {
+        // baseline DA from orexin
+        seek += peptides2.explore_food() * 0.4;
+        // ghrelin - food cue (ghrelin) prompts
+        seek += peptides2.cue_seek_food();
+        // nts - neurotensin suppresses food seeking
+        seek -= peptides2.cue_avoid_food();
+    }
+
     // orexin - high orexin avoids
     seek -= (peptides2.explore_food() - 0.5).max(0.);
 
@@ -60,6 +65,13 @@ fn update_feeding(
     seek -= 2. * (peptides2.give_up_seek_food() - 0.5).max(0.);
 
     peptides2.seek_food_mut().add(seek.clamp(0., 1.));
+}
+
+fn update_body_glucose(
+    body: Res<Body>,
+    mut peptides: ResMut<MidPeptides>
+) {
+    peptides.glucose_mut().set(body.eat().glucose());
 }
 
 fn update_feeding_olfactory(
@@ -102,8 +114,8 @@ impl Plugin for MidFeedingPlugin {
         let feeding = MidFeeding::new();
 
         app.insert_resource(feeding);
+        app.system(Tick, update_body_glucose);
         app.system(Tick, update_feeding);
-
         app.system(Tick, update_near_food);
         app.system(Tick, update_eat);
 

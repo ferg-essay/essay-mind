@@ -29,6 +29,7 @@ pub fn main() {
         .wall((4, 0), (1, 5))
         .food_odor(1, 1, OdorType::FoodA)
         .food_odor(8, 2, OdorType::FoodB)
+        .odor(14, 8, OdorType::FoodB)
         .odor(0, 9, OdorType::AvoidA)
     );
     app.plugin(BodyPlugin::new());
@@ -37,7 +38,7 @@ pub fn main() {
     app.plugin(MidLocomotorPlugin);
     app.plugin(TuberculumPlugin);
     app.plugin(HabenulaMedPlugin);
-        app.plugin(MidPeptidesPlugin);
+    app.plugin(MidPeptidesPlugin);
     app.plugin(MidFeedingPlugin);
 
     // UiCanvasPlugin enables graphics

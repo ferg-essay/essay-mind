@@ -9,6 +9,9 @@ use crate::util::DecayValue;
 
 pub struct MidPeptides {
     // eating - consummation
+    glucose: DecayValue,
+
+    // eating - consummation
     near_food: DecayValue,
 
     // seek/explore
@@ -26,6 +29,8 @@ impl MidPeptides {
         let half_life = Self::HALF_LIFE;
 
         Self {
+            glucose: DecayValue::new(half_life),
+
             near_food: DecayValue::new(half_life),
 
             explore_food: DecayValue::new(half_life),
@@ -35,6 +40,34 @@ impl MidPeptides {
             give_up_seek_food: DecayValue::new(half_life),
             urgency_food: DecayValue::new(half_life),
         }
+    }
+
+    //
+    // blood sensors
+    //
+
+    /// glucose - blood sugar
+    pub fn glucose(&self) -> f32 {
+        self.glucose.value()
+    }
+
+    /// glucose
+    pub fn glucose_mut(&mut self) -> &mut DecayValue {
+        &mut self.glucose
+    }
+
+    //
+    // eating group
+    //
+
+    /// AgRP
+    pub fn near_food(&self) -> f32 {
+        self.near_food.value()
+    }
+
+    /// AgRP
+    pub fn near_food_mut(&mut self) -> &mut DecayValue {
+        &mut self.near_food
     }
 
     /// orexin
@@ -91,21 +124,9 @@ impl MidPeptides {
         &mut self.cue_avoid_food
     }
 
-    //
-    // eating group
-    //
-
-    /// AgRP
-    pub fn near_food(&self) -> f32 {
-        self.near_food.value()
-    }
-
-    /// AgRP
-    pub fn near_food_mut(&mut self) -> &mut DecayValue {
-        &mut self.near_food
-    }
-
     fn update(&mut self) {
+        self.glucose.update();
+
         self.near_food.update();
 
         self.explore_food.update();
