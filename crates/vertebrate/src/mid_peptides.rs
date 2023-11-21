@@ -7,7 +7,7 @@ use util::label::DynLabel;
 
 use crate::util::DecayValue;
 
-pub struct MidPeptides2 {
+pub struct MidPeptides {
     // eating - consummation
     near_food: DecayValue,
 
@@ -20,7 +20,7 @@ pub struct MidPeptides2 {
     urgency_food: DecayValue,
 }
 
-impl MidPeptides2 {
+impl MidPeptides {
     const HALF_LIFE : usize = 10;
     pub fn new() -> Self {
         let half_life = Self::HALF_LIFE;
@@ -117,21 +117,21 @@ impl MidPeptides2 {
     }
 }
 
-impl FromStore for MidPeptides2 {
+impl FromStore for MidPeptides {
     fn init(_world: &mut Store) -> Self {
-        MidPeptides2::new()
+        MidPeptides::new()
     }
 }
 
-fn update_peptides(mut peptides: ResMut<MidPeptides2>) {
+fn update_peptides(mut peptides: ResMut<MidPeptides>) {
     peptides.update()
 }
 
-pub struct MidPeptides2Plugin;
+pub struct MidPeptidesPlugin;
 
-impl Plugin for MidPeptides2Plugin {
+impl Plugin for MidPeptidesPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<MidPeptides2>();
+        app.init_resource::<MidPeptides>();
 
         app.system(PreTick, update_peptides);
     }

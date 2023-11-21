@@ -7,7 +7,7 @@ pub mod habenula_med;
 pub mod mid_explore;
 pub mod mid_feeding;
 pub mod mid_locomotor;
-pub mod mid_peptides2;
+pub mod mid_peptides;
 pub mod olfactory;
 pub mod striatum;
 pub mod tectum;

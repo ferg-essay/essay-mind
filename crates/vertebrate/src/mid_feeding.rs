@@ -1,7 +1,7 @@
 use essay_ecs::{app::{Plugin, App}, core::{Res, ResMut}};
 use mind_ecs::Tick;
 use mind_macros::Peptide;
-use crate::{self as vertebrate, olfactory::Olfactory, habenula_med::Habenula, body::Body, world::World, tectum::TectumLocomotionStn, mid_peptides2::MidPeptides2};
+use crate::{self as vertebrate, olfactory::Olfactory, habenula_med::Habenula, body::Body, world::World, tectum::TectumLocomotionStn, mid_peptides::MidPeptides};
 
 struct MidFeeding {
     give_up_hb: Habenula,
@@ -17,7 +17,7 @@ impl MidFeeding {
 
 fn update_feeding(
     mut feeding: ResMut<MidFeeding>,
-    mut peptides2: ResMut<MidPeptides2>
+    mut peptides2: ResMut<MidPeptides>
 ) {
     // orexin - base exploratory drive
     let explore_v = 0.5;
@@ -64,7 +64,7 @@ fn update_feeding(
 
 fn update_feeding_olfactory(
     olfactory: Res<Olfactory>,
-    mut peptides: ResMut<MidPeptides2>
+    mut peptides: ResMut<MidPeptides>
 ) {
     if olfactory.food_dir().is_some() {
         peptides.cue_seek_food_mut().add(0.8);
@@ -74,7 +74,7 @@ fn update_feeding_olfactory(
 
 fn update_near_food(
     body: Res<Body>, 
-    mut peptides: ResMut<MidPeptides2>
+    mut peptides: ResMut<MidPeptides>
 ) {
     if body.eat().is_sensor_food() {
         peptides.near_food_mut().add(1.0);
@@ -82,7 +82,7 @@ fn update_near_food(
 }
 
 fn update_eat(
-    peptides: ResMut<MidPeptides2>,
+    peptides: ResMut<MidPeptides>,
     mut body: ResMut<Body>,
 ) {
     if peptides.near_food() > 0.5 {

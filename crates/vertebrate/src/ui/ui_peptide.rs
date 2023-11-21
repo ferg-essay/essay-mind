@@ -4,20 +4,20 @@ use essay_ecs::prelude::*;
 use essay_plot::{prelude::*, artist::{paths::{self, Unit}, PathStyle}};
 use ui_graphics::{ui_layout::{UiLayout, UiLayoutEvent, BoxId, UiLayoutPlugin}, UiCanvas, UiCanvasPlugin};
 
-use crate::mid_peptides2::MidPeptides2Plugin;
+use crate::mid_peptides::MidPeptidesPlugin;
 
 #[derive(Component)]
-pub struct UiPeptide2 {
+pub struct UiPeptide {
     id: BoxId,
     pos: Bounds<Canvas>,
     clip: Clip,
-    bounds: Bounds<UiPeptide2>,
+    bounds: Bounds<UiPeptide>,
     peptides: Vec<UiPeptideItem>,
 
     // peptide_update: UiPeptideUpdate<MidPeptides>,
 }
 
-impl UiPeptide2 {
+impl UiPeptide {
     pub fn new(id: BoxId) -> Self {
         Self {
             id,
@@ -54,7 +54,7 @@ impl UiPeptide2 {
     }
 }
 
-impl Coord for UiPeptide2 {}
+impl Coord for UiPeptide {}
 
 
 struct UiPeptideItem {
@@ -85,7 +85,7 @@ impl UiPeptideId {
 type UpdateBox<T> = Box<dyn Fn(&T) -> f32 + Sync + Send>;
 
 pub fn ui_peptide_resize(
-    mut ui_peptide: ResMut<UiPeptide2>, 
+    mut ui_peptide: ResMut<UiPeptide>, 
     ui_layout: Res<UiLayout>,
     mut read: InEvent<UiLayoutEvent>
 ) {
@@ -96,7 +96,7 @@ pub fn ui_peptide_resize(
 }
 
 pub fn ui_peptide_draw(
-    ui_peptide: ResMut<UiPeptide2>, 
+    ui_peptide: ResMut<UiPeptide>, 
     mut ui: ResMut<UiCanvas>
 ) {
     let to_canvas = &ui_peptide.to_canvas();
@@ -149,14 +149,14 @@ pub fn ui_peptide_draw(
     ui.draw_path(&base, &style);
 }
 
-pub struct UiPeptide2Plugin {
+pub struct UiPeptidePlugin {
     bounds: Bounds::<UiLayout>,
     colors: Vec<Color>,
 
     items: Vec<(String, Box<dyn Item>)>,
 }
 
-impl UiPeptide2Plugin {
+impl UiPeptidePlugin {
     pub fn new(xy: impl Into<Point>, wh: impl Into<Point>) -> Self {
         let xy = xy.into();
         let wh = wh.into();
@@ -188,10 +188,10 @@ impl UiPeptide2Plugin {
     }
 }
 
-impl Plugin for UiPeptide2Plugin {
+impl Plugin for UiPeptidePlugin {
     fn build(&self, app: &mut App) {
         if app.contains_plugin::<UiCanvasPlugin>() {
-            assert!(app.contains_plugin::<MidPeptides2Plugin>());
+            assert!(app.contains_plugin::<MidPeptidesPlugin>());
 
             if ! app.contains_plugin::<UiLayoutPlugin>() {
                 app.plugin(UiLayoutPlugin);
@@ -211,7 +211,7 @@ impl Plugin for UiPeptide2Plugin {
                 )
             };
 
-            let mut ui_peptide = UiPeptide2::new(box_id);
+            let mut ui_peptide = UiPeptide::new(box_id);
 
             for (i, (label, item)) in self.items.iter().enumerate() {
                 let color = colors[i % colors.len()];
@@ -260,7 +260,7 @@ impl<T: Send + Sync + 'static> Item for ItemImpl<T> {
 
             app.system(
                 Update,
-                |updates: Res<PeptideUpdates<T>>, res: Res<T>, mut ui: ResMut<UiPeptide2>| {
+                |updates: Res<PeptideUpdates<T>>, res: Res<T>, mut ui: ResMut<UiPeptide>| {
                     for (id, fun) in &updates.updates {
                         ui.peptides[id.i()].value = fun(res.get());
                     }

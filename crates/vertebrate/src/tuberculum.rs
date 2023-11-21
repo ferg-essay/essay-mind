@@ -5,7 +5,7 @@ use crate::{
     mid_locomotor::MidLocomotorPlugin, 
     olfactory::{OlfactoryPlugin, Olfactory}, 
     tectum::TectumLocomotionStn,
-    action::Turn, mid_peptides2::MidPeptides2, 
+    action::Turn, mid_peptides::MidPeptides, 
 };
 
 ///
@@ -19,7 +19,7 @@ use crate::{
 
 fn update_tuberculum(
     odor: Res<Olfactory>, 
-    peptides: Res<MidPeptides2>,
+    peptides: Res<MidPeptides>,
     mut tectum: ResMut<TectumLocomotionStn>,
 ) {
     // "where" / "how" path

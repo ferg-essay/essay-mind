@@ -6,12 +6,12 @@ use essay_plot::prelude::*;
 use ui_graphics::ui_plot::{UiPlot, UiFigurePlugin, UiFigure, PlotKeyId};
 
 #[derive(Component)]
-pub struct UiGraph2 {
+pub struct UiGraph {
     plot: UiPlot,
 
 }
 
-impl UiGraph2 {
+impl UiGraph {
     fn new(figure: &UiFigure<BodyPlot>) -> Self {
         let mut plot = figure.plot_xy((0., 0.), (1., 1.));
 
@@ -50,7 +50,7 @@ pub fn ui_body_plot(
 */
 
 pub fn ui_plot_update(
-    mut ui_body: ResMut<UiGraph2>,
+    mut ui_body: ResMut<UiGraph>,
 ) {
     ui_body.plot.tick();
 }
@@ -59,12 +59,12 @@ pub fn ui_body_spawn_plot(
     mut c: Commands,
     mut plot: ResMut<UiFigure<BodyPlot>>
 ) {
-    c.spawn(UiGraph2::new(plot.get_mut()))
+    c.spawn(UiGraph::new(plot.get_mut()))
 }
 
 pub struct BodyPlot;
 
-pub struct UiGraph2Plugin {
+pub struct UiGraphPlugin {
     xy: Point,
     wh: Point,
 
@@ -73,7 +73,7 @@ pub struct UiGraph2Plugin {
     items: Vec<(String, Box<dyn Item>)>,
 }
 
-impl UiGraph2Plugin {
+impl UiGraphPlugin {
     pub fn new(xy: impl Into<Point>, wh: impl Into<Point>) -> Self {
         Self {
             xy: xy.into(),
@@ -105,14 +105,14 @@ impl UiGraph2Plugin {
     }
 }
 
-impl Plugin for UiGraph2Plugin {
+impl Plugin for UiGraphPlugin {
     fn build(&self, app: &mut App) {
         let figure = UiFigurePlugin::<BodyPlot>::new(self.xy, self.wh);
         figure.build(app);
 
         let colors = self.colors.clone();
         
-        let mut graph = UiGraph2::new(app.resource_mut::<UiFigure<BodyPlot>>());
+        let mut graph = UiGraph::new(app.resource_mut::<UiFigure<BodyPlot>>());
 
         for (i, (label, item)) in self.items.iter().enumerate() {
             let color = colors[i % colors.len()];
@@ -164,7 +164,7 @@ impl<T: Send + Sync + 'static> Item for ItemImpl<T> {
 
             app.system(
                 Update,
-                |updates: Res<PeptideUpdates<T>>, res: Res<T>, mut ui: ResMut<UiGraph2>| {
+                |updates: Res<PeptideUpdates<T>>, res: Res<T>, mut ui: ResMut<UiGraph>| {
                     for (id, fun) in &updates.updates {
                         ui.plot.push(*id, fun(res.get()));
                     }
