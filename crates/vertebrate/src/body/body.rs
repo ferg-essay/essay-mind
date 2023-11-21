@@ -97,7 +97,7 @@ impl Body {
 pub fn spawn_body(
     mut commands: Commands,
 ) {
-    commands.insert_resource(Body::new(Point(0.5, 0.5)));
+    //commands.insert_resource(Body::new(Point(0.5, 0.5)));
 }
 
 ///
@@ -144,7 +144,8 @@ impl BodyPlugin {
 impl Plugin for BodyPlugin {
     fn build(&self, app: &mut App) {
         assert!(app.contains_plugin::<WorldPlugin>(), "BodyPlugin requires WorldPlugin");
-        app.system(Startup, spawn_body);
+
+        app.insert_resource(Body::new(Point(0.5, 0.5)));
 
         app.system(Tick, body_physics);
         // app.system(Tick, body_habit);

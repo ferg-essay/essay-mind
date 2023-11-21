@@ -47,7 +47,7 @@ impl BodyEat {
     }
 
     #[inline]
-    pub fn blood_sugar(&self) -> f32 {
+    pub fn glucose(&self) -> f32 {
         self.blood_sugar.value()
     }
 

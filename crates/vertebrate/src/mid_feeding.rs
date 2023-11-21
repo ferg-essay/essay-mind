@@ -33,7 +33,7 @@ impl MidFeeding {
             seek_id: peptides.peptide(SeekFood).id(),
 
             food_near_id: peptides.peptide(NearFood).id(),
-            blood_sugar_id: peptides.peptide(BloodSugar).id(),
+            blood_sugar_id: peptides.peptide(Glucose).id(),
 
             eat_id: peptides.peptide(EatFood).id(),
 
@@ -115,16 +115,16 @@ fn update_eat(
 ) {
     if let Some(item) = peptides.get_peptide(&NearFood) {
         if peptides[item.id()] > 0.5 {
-            if body.eat().blood_sugar() < 0.8 && body.eat().is_eating()
-                || body.eat().blood_sugar() < 0.3 {
+            if body.eat().glucose() < 0.8 && body.eat().is_eating()
+                || body.eat().glucose() < 0.3 {
                 body.locomotion_mut().arrest();
                 body.eat_mut().eat();
             }
         }
     }
 
-    let id = peptides.get_peptide(&BloodSugar).unwrap().id();
-    peptides.add(id, body.eat().blood_sugar());
+    let id = peptides.get_peptide(&Glucose).unwrap().id();
+    peptides.add(id, body.eat().glucose());
 }
 
 /// Orexin
@@ -161,7 +161,7 @@ pub struct EatFood;
 
 // MCH/Leptin
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Peptide)]
-pub struct BloodSugar;
+pub struct Glucose;
 
 
 pub struct MidFeedingPlugin;

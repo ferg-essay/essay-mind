@@ -1,11 +1,11 @@
 use std::time::Duration;
 
-use vertebrate::body::BodyPlugin;
+use vertebrate::body::{BodyPlugin, Body};
 use essay_ecs::prelude::App;
 use mind_ecs::TickSchedulePlugin;
-use vertebrate::mid_feeding::{ExploreFood, SeekFood, MidFeedingPlugin, EatFood, CueSeekFood, CueAvoidFood, UrgencySeekFood, GiveUpSeekFood, NearFood, BloodSugar};
+use vertebrate::mid_feeding::{ExploreFood, SeekFood, MidFeedingPlugin, EatFood, CueSeekFood, CueAvoidFood, UrgencySeekFood, GiveUpSeekFood, NearFood, Glucose};
 use vertebrate::habenula_med::HabenulaMedPlugin;
-use vertebrate::mid_peptides::MidPeptidesPlugin;
+use vertebrate::mid_peptides::{MidPeptidesPlugin, MidPeptides};
 use vertebrate::tuberculum::TuberculumPlugin;
 use vertebrate::mid_locomotor::MidLocomotorPlugin;
 use vertebrate::olfactory::OlfactoryPlugin;
@@ -16,6 +16,7 @@ use vertebrate::ui::ui_body_heatmap::UiLocationHeatmapPlugin;
 use ui_graphics::UiCanvasPlugin;
 use vertebrate::ui::ui_body_homunculus::UiHomunculusPlugin;
 use vertebrate::ui::ui_peptide::UiPeptidePlugin;
+use vertebrate::ui::ui_peptide2::UiPeptide2Plugin;
 use vertebrate::ui::ui_world::UiWorldPlugin;
 use vertebrate::world::{WorldPlugin, OdorType};
 
@@ -58,7 +59,7 @@ pub fn main() {
         //.line(CueAvoidFood, "nt") // neurotensin
         .line(GiveUpSeekFood, "Hb") // habenula
         .line(NearFood, "Df") // DA near food
-        .line(BloodSugar, "bs") // DA near food
+        .line(Glucose, "gl") // DA near food
     );
     app.plugin(UiPeptidePlugin::new((2.0, 1.0), (0.5, 1.))
         .colors(["amber", "sky", "olive", "red", "green", "blue"])
@@ -70,7 +71,11 @@ pub fn main() {
         .peptide(GiveUpSeekFood, "Hb")
         //.peptide(EatFood, "cc") // npy
         .peptide(NearFood, "Df") // DA near food
-        .peptide(BloodSugar, "bs") // DA near food
+        .peptide(Glucose, "gl") // DA near food
+    );
+    app.plugin(UiPeptide2Plugin::new((3.0, 1.0), (0.5, 1.))
+        .colors(["amber", "sky", "olive", "red", "green", "blue"])
+        .item("gl", |b: &Body| b.eat().glucose())
     );
     app.plugin(UiHomunculusPlugin::new((2.5, 1.), (0.5, 1.)));
 
