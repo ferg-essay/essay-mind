@@ -55,7 +55,7 @@ pub fn main() {
         .item("ox", |p: &MidPeptides| p.explore_food())
         .item("DA", |p: &MidPeptides| p.seek_food())
         .item("Hb", |p: &MidPeptides| p.give_up_seek_food())
-        .item("Df", |p: &MidPeptides| p.near_food())
+        //.item("Df", |p: &MidPeptides| p.near_food())
         .item("gl", |b: &Body| b.eat().glucose())
     );
 
@@ -64,7 +64,7 @@ pub fn main() {
         .item("ox", |p: &MidPeptides| p.explore_food())
         .item("DA", |p: &MidPeptides| p.seek_food())
         .item("Hb", |p: &MidPeptides| p.give_up_seek_food())
-        .item("Df", |p: &MidPeptides| p.near_food())
+        //.item("Df", |p: &MidPeptides| p.near_food())
         .item("gl", |b: &Body| b.eat().glucose())
     );
 
