@@ -6,6 +6,7 @@ use mind_ecs::TickSchedulePlugin;
 use vertebrate::mid_feeding::{ExploreFood, SeekFood, MidFeedingPlugin, EatFood, CueSeekFood, CueAvoidFood, UrgencySeekFood, GiveUpSeekFood, NearFood, Glucose};
 use vertebrate::habenula_med::HabenulaMedPlugin;
 use vertebrate::mid_peptides::{MidPeptidesPlugin, MidPeptides};
+use vertebrate::mid_peptides2::{MidPeptides2Plugin, MidPeptides2};
 use vertebrate::tuberculum::TuberculumPlugin;
 use vertebrate::mid_locomotor::MidLocomotorPlugin;
 use vertebrate::olfactory::OlfactoryPlugin;
@@ -15,6 +16,7 @@ use vertebrate::ui::ui_body_graph::UiGraphPlugin;
 use vertebrate::ui::ui_body_heatmap::UiLocationHeatmapPlugin;
 use ui_graphics::UiCanvasPlugin;
 use vertebrate::ui::ui_body_homunculus::UiHomunculusPlugin;
+use vertebrate::ui::ui_graph2::UiGraph2Plugin;
 use vertebrate::ui::ui_peptide::UiPeptidePlugin;
 use vertebrate::ui::ui_peptide2::UiPeptide2Plugin;
 use vertebrate::ui::ui_world::UiWorldPlugin;
@@ -39,6 +41,7 @@ pub fn main() {
     app.plugin(TuberculumPlugin);
     app.plugin(HabenulaMedPlugin);
     app.plugin(MidPeptidesPlugin);
+    app.plugin(MidPeptides2Plugin);
     app.plugin(MidFeedingPlugin);
 
     // UiCanvasPlugin enables graphics
@@ -50,6 +53,7 @@ pub fn main() {
 
     app.plugin(UiLocationHeatmapPlugin::new((2., 0.), (1., 1.)));
 
+    /*
     app.plugin(UiGraphPlugin::new((0.0, 1.0), (2., 1.))
     .colors(["amber", "sky", "olive", "red", "green", "blue"])
     .line(ExploreFood, "or") // orexin
@@ -61,7 +65,25 @@ pub fn main() {
         .line(NearFood, "Df") // DA near food
         .line(Glucose, "gl") // DA near food
     );
-    app.plugin(UiPeptidePlugin::new((2.0, 1.0), (0.5, 1.))
+    */
+    app.plugin(UiGraph2Plugin::new((0.0, 1.0), (2., 1.))
+        .colors(["amber", "sky", "olive", "red", "green", "blue"])
+        .item("ox", |p: &MidPeptides2| p.explore_food())
+        .item("DA", |p: &MidPeptides2| p.seek_food())
+        .item("Hb", |p: &MidPeptides2| p.give_up_seek_food())
+        .item("Df", |p: &MidPeptides2| p.near_food())
+        .item("gl", |b: &Body| b.eat().glucose())
+    );
+    app.plugin(UiPeptide2Plugin::new((2.0, 1.0), (0.5, 1.))
+        .colors(["amber", "sky", "olive", "red", "green", "blue"])
+        .item("ox", |p: &MidPeptides2| p.explore_food())
+        .item("DA", |p: &MidPeptides2| p.seek_food())
+        .item("Hb", |p: &MidPeptides2| p.give_up_seek_food())
+        .item("Df", |p: &MidPeptides2| p.near_food())
+        .item("gl", |b: &Body| b.eat().glucose())
+    );
+    /*
+    app.plugin(UiPeptidePlugin::new((3.0, 1.0), (0.5, 1.))
         .colors(["amber", "sky", "olive", "red", "green", "blue"])
         .peptide(ExploreFood, "or") // orexin
         //.peptide(UrgencySeekFood, "5H")
@@ -73,10 +95,7 @@ pub fn main() {
         .peptide(NearFood, "Df") // DA near food
         .peptide(Glucose, "gl") // DA near food
     );
-    app.plugin(UiPeptide2Plugin::new((3.0, 1.0), (0.5, 1.))
-        .colors(["amber", "sky", "olive", "red", "green", "blue"])
-        .item("gl", |b: &Body| b.eat().glucose())
-    );
+    */
     app.plugin(UiHomunculusPlugin::new((2.5, 1.), (0.5, 1.)));
 
     app.run();

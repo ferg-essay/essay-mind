@@ -30,7 +30,7 @@ impl UiPeptide2 {
         }
     }
 
-    pub fn add(&mut self, label: &str, color: Color) -> UiPeptideId {
+    fn add(&mut self, label: &str, color: Color) -> UiPeptideId {
         let id = UiPeptideId(self.peptides.len());
 
         self.peptides.push(UiPeptideItem::new(label, color));
@@ -40,12 +40,12 @@ impl UiPeptide2 {
         id
     }
 
-    pub fn set_pos(&mut self, set_pos: &Bounds<Canvas>) {
+    fn set_pos(&mut self, set_pos: &Bounds<Canvas>) {
         self.pos = set_pos.clone();
         self.clip = Clip::from(&self.pos);
     }
 
-    pub fn to_canvas(&self) -> Affine2d {
+    fn to_canvas(&self) -> Affine2d {
         self.bounds.affine_to(&self.pos)
     }
 
@@ -63,15 +63,6 @@ struct UiPeptideItem {
     value: f32,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct UiPeptideId(usize);
-
-impl UiPeptideId {
-    fn i(&self) -> usize {
-        self.0
-    }
-}
-
 impl UiPeptideItem {
     fn new(label: &str, color: Color) -> Self {
         Self {
@@ -82,43 +73,16 @@ impl UiPeptideItem {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct UiPeptideId(usize);
+
+impl UiPeptideId {
+    fn i(&self) -> usize {
+        self.0
+    }
+}
+
 type UpdateBox<T> = Box<dyn Fn(&T) -> f32 + Sync + Send>;
-
-trait GetValue<T> {
-    fn value(&self, data: &T) -> f32;
-}
-
-struct UpdateItem<T> {
-    id: UiPeptideId,
-
-    update: UpdateBox<T>,
-
-    marker: PhantomData<T>,
-}
-
-pub struct UiPeptideUpdate<T> {
-    items: Vec<UpdateItem<T>>,
-}
-
-impl<T> UiPeptideUpdate<T> {
-    fn new() -> Self {
-        Self {
-            items: Vec::new(),
-        }
-    }
-}
-
-pub fn ui_peptide_update(
-    mut ui: ResMut<UiPeptide2>, 
-    updaters: Res<UiPeptideUpdate<MidPeptides>>, 
-    peptides: Res<MidPeptides>,
-) {
-    for item in &updaters.items {
-        let value = (item.update)(peptides.get());
-
-        ui.peptides[item.id.i()].value = value;
-    }
-}
 
 pub fn ui_peptide_resize(
     mut ui_peptide: ResMut<UiPeptide2>, 
@@ -187,7 +151,6 @@ pub fn ui_peptide_draw(
 
 pub struct UiPeptide2Plugin {
     bounds: Bounds::<UiLayout>,
-    peptides: Vec<UiPeptidePluginItem>,
     colors: Vec<Color>,
 
     items: Vec<(String, Box<dyn Item>)>,
@@ -200,16 +163,9 @@ impl UiPeptide2Plugin {
 
         Self {
             bounds: Bounds::new(xy, (xy.0 + wh.0, xy.1 + wh.1)),
-            peptides: Vec::new(),
             colors: Vec::new(),
             items: Vec::new(),
         }
-    }
-
-    pub fn peptide(mut self, peptide: impl Peptide, label: &str) -> Self {
-        self.peptides.push(UiPeptidePluginItem::new(peptide, label));
-        
-        self
     }
 
     pub fn item<T>(
@@ -232,6 +188,47 @@ impl UiPeptide2Plugin {
     }
 }
 
+impl Plugin for UiPeptide2Plugin {
+    fn build(&self, app: &mut App) {
+        if app.contains_plugin::<UiCanvasPlugin>() {
+            assert!(app.contains_plugin::<MidPeptidesPlugin>());
+
+            if ! app.contains_plugin::<UiLayoutPlugin>() {
+                app.plugin(UiLayoutPlugin);
+            }
+
+            let box_id = app.resource_mut::<UiLayout>().add_box(self.bounds.clone());
+
+            let colors = if self.colors.len() > 0 {
+                self.colors.clone()
+            } else {
+                vec!(
+                    Color::from("sky"),
+                    Color::from("red"),
+                    Color::from("beige"),
+                    Color::from("purple"),
+                    Color::from("olive"),
+                )
+            };
+
+            let mut ui_peptide = UiPeptide2::new(box_id);
+
+            for (i, (label, item)) in self.items.iter().enumerate() {
+                let color = colors[i % colors.len()];
+
+                let id = ui_peptide.add(label, color);
+
+                item.add(id, app);
+            }
+
+            app.insert_resource(ui_peptide);
+
+            app.system(Update, ui_peptide_draw);
+            app.system(PreUpdate, ui_peptide_resize);
+        }
+    }
+}
+
 pub trait Item {
     fn add(&self, id: UiPeptideId, app: &mut App);
 }
@@ -242,11 +239,7 @@ pub struct PeptideUpdates<T> {
 
 impl<T> PeptideUpdates<T> {
     fn add(&mut self, id: UiPeptideId, fun: Option<UpdateBox<T>>) {
-        if let Some(update) = fun {
-            self.updates.push((id, update));
-        } else {
-            println!("None {:?}", id);
-        }
+        self.updates.push((id, fun.unwrap()));
     }
 }
 
@@ -290,76 +283,5 @@ where
         Box::new(ItemImpl {
             update: RefCell::new(Some(Box::new(this)))
         })
-    }
-}
-
-impl Plugin for UiPeptide2Plugin {
-    fn build(&self, app: &mut App) {
-        if app.contains_plugin::<UiCanvasPlugin>() {
-            assert!(app.contains_plugin::<MidPeptidesPlugin>());
-
-            if ! app.contains_plugin::<UiLayoutPlugin>() {
-                app.plugin(UiLayoutPlugin);
-            }
-
-            let box_id = app.resource_mut::<UiLayout>().add_box(self.bounds.clone());
-
-            let colors = if self.colors.len() > 0 {
-                self.colors.clone()
-            } else {
-                vec!(
-                    Color::from("sky"),
-                    Color::from("red"),
-                    Color::from("beige"),
-                    Color::from("purple"),
-                    Color::from("olive"),
-                )
-            };
-
-            // let peptides = app.resource_mut::<MidPeptides>();
-
-            let mut ui_peptide = UiPeptide2::new(box_id);
-
-            /*
-            for (i, peptide) in self.peptides.iter().enumerate() {
-                if let Some(item) = peptides.get_peptide(peptide.peptide.as_ref()) {
-                    let color = colors[i % colors.len()];
-                    //ui_peptide.peptide(item.id(), &peptide.label, color);
-                }
-            }
-            */
-
-            for (i, (label, item)) in self.items.iter().enumerate() {
-                let color = colors[i % colors.len()];
-
-                let id = ui_peptide.add(label, color);
-
-                item.add(id, app);
-            }
-
-            app.insert_resource(ui_peptide);
-
-            //app.phase(Update, (DrawWorld, DrawItem, DrawAgent).chain());
-            //app.system(Update, draw_world.phase(DrawWorld));
-            app.system(Update, ui_peptide_draw);
-            app.system(PreUpdate, ui_peptide_resize);
-
-            // app.system(Startup, spawn_ui_world);
-        }
-    }
-}
-
-
-struct UiPeptidePluginItem {
-    peptide: Box<dyn Peptide>,
-    label: String,
-}
-
-impl UiPeptidePluginItem {
-    fn new(peptide: impl Peptide, label: &str) -> Self {
-        Self {
-            peptide: peptide.box_clone(),
-            label: String::from(label),
-        }
     }
 }

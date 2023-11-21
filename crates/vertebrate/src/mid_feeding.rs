@@ -1,7 +1,7 @@
 use essay_ecs::{app::{Plugin, App}, core::{Res, ResMut}};
 use mind_ecs::Tick;
 use mind_macros::Peptide;
-use crate::{self as vertebrate, mid_peptides::{MidPeptides, PeptideId}, olfactory::Olfactory, habenula_med::Habenula, body::Body, world::World, tectum::TectumLocomotionStn};
+use crate::{self as vertebrate, mid_peptides::{MidPeptides, PeptideId}, olfactory::Olfactory, habenula_med::Habenula, body::Body, world::World, tectum::TectumLocomotionStn, mid_peptides2::MidPeptides2};
 
 struct MidFeeding {
     give_up_hb: Habenula,
@@ -43,88 +43,82 @@ impl MidFeeding {
 
 fn update_feeding(
     mut feeding: ResMut<MidFeeding>,
-    mut peptides: ResMut<MidPeptides>
+    mut peptides: ResMut<MidPeptides>,
+    mut peptides2: ResMut<MidPeptides2>
 ) {
     // orexin - base exploratory drive
     let explore_v = 0.5;
-    peptides.add(feeding.explore_id, explore_v);
+    //peptides.add(feeding.explore_id, explore_v);
+    peptides2.explore_food_mut().add(explore_v);
 
     // habenula - give-up timer
     feeding.give_up_hb.update();
 
     // TODO: should be action-based
-    if peptides[feeding.seek_id] > 0.25 {
+    if peptides2.seek_food() > 0.25 {
         feeding.give_up_hb.excite(1.);
     }
 
     // serotonin - high serotonin increases persistence
-    let patience_5ht = (peptides[feeding.urgency_id] - 0.7).clamp(0., 0.25);
+    let patience_5ht = (peptides2.urgency() - 0.7).clamp(0., 0.25);
     feeding.give_up_hb.inhibit(patience_5ht);
 
-    peptides.add(feeding.give_up_id, feeding.give_up_hb.value());
+    peptides2.give_up_seek_food_mut().add(feeding.give_up_hb.value());
 
     // serotonin - urgency
     let urgency_v = (
-        peptides[feeding.explore_id]
-        - (peptides[feeding.give_up_id] - 0.5)
+        peptides2.explore_food()
+        - (peptides2.give_up_seek_food() - 0.5)
     ).clamp(0., 1.);
-    peptides.add(feeding.urgency_id, urgency_v);
+    peptides2.urgency_mut().add(urgency_v);
 
     // dopamine - trigger for seeking a food cue
     let mut seek = 0.;
     // baseline DA from orexin
-    seek += peptides[feeding.explore_id] * 0.4;
+    seek += peptides2.explore_food() * 0.4;
     // ghrelin - food cue (ghrelin) prompts
-    seek += peptides[feeding.cue_seek_id];
+    seek += peptides2.cue_seek_food();
     // nts - neurotensin suppresses food seeking
-    seek -= peptides[feeding.cue_avoid_id];
+    seek -= peptides2.cue_avoid_food();
     // orexin - high orexin avoids
-    seek -= (peptides[feeding.explore_id] - 0.5).max(0.);
+    seek -= (peptides2.explore_food() - 0.5).max(0.);
 
     // habenula - give-up circuit suppresses
-    seek -= 2. * (peptides[feeding.give_up_id] - 0.5).max(0.);
+    seek -= 2. * (peptides2.give_up_seek_food() - 0.5).max(0.);
 
-    peptides.add(feeding.seek_id, seek.clamp(0., 1.));
+    peptides2.seek_food_mut().add(seek.clamp(0., 1.));
 }
 
 fn update_feeding_olfactory(
-    feeding: Res<MidFeeding>,
     olfactory: Res<Olfactory>,
-    mut peptides: ResMut<MidPeptides>
+    mut peptides: ResMut<MidPeptides2>
 ) {
     if olfactory.food_dir().is_some() {
-        peptides.add(feeding.cue_seek_id, 0.8);
+        peptides.cue_seek_food_mut().add(0.8);
     }    
 
 }
 
 fn update_near_food(
     body: Res<Body>, 
-    world: Res<World>, 
-    feeding: Res<MidFeeding>,
-    mut peptides: ResMut<MidPeptides>
+    mut peptides: ResMut<MidPeptides2>
 ) {
     if body.eat().is_sensor_food() {
-        peptides.add(feeding.food_near_id, 1.0);
+        peptides.near_food_mut().add(1.0);
     }
 }
 
 fn update_eat(
-    mut peptides: ResMut<MidPeptides>,
+    peptides: ResMut<MidPeptides2>,
     mut body: ResMut<Body>,
 ) {
-    if let Some(item) = peptides.get_peptide(&NearFood) {
-        if peptides[item.id()] > 0.5 {
-            if body.eat().glucose() < 0.8 && body.eat().is_eating()
-                || body.eat().glucose() < 0.3 {
-                body.locomotion_mut().arrest();
-                body.eat_mut().eat();
-            }
+    if peptides.near_food() > 0.5 {
+        if body.eat().glucose() < 0.8 && body.eat().is_eating()
+            || body.eat().glucose() < 0.3 {
+            body.locomotion_mut().arrest();
+            body.eat_mut().eat();
         }
     }
-
-    let id = peptides.get_peptide(&Glucose).unwrap().id();
-    peptides.add(id, body.eat().glucose());
 }
 
 /// Orexin
