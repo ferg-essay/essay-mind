@@ -5,7 +5,7 @@ use crate::{
     mid_locomotor::MidLocomotorPlugin, 
     olfactory::{OlfactoryPlugin, Olfactory}, 
     tectum::TectumLocomotionStn,
-    action::Turn, mid_peptides::MidPeptides, mid_feeding::SeekFood, mid_peptides2::MidPeptides2, 
+    action::Turn, mid_peptides2::MidPeptides2, 
 };
 
 ///

@@ -1,49 +1,22 @@
 use essay_ecs::{app::{Plugin, App}, core::{Res, ResMut}};
 use mind_ecs::Tick;
 use mind_macros::Peptide;
-use crate::{self as vertebrate, mid_peptides::{MidPeptides, PeptideId}, olfactory::Olfactory, habenula_med::Habenula, body::Body, world::World, tectum::TectumLocomotionStn, mid_peptides2::MidPeptides2};
+use crate::{self as vertebrate, olfactory::Olfactory, habenula_med::Habenula, body::Body, world::World, tectum::TectumLocomotionStn, mid_peptides2::MidPeptides2};
 
 struct MidFeeding {
     give_up_hb: Habenula,
-    
-    explore_id: PeptideId, 
-    urgency_id: PeptideId, 
-    give_up_id: PeptideId, 
-
-    cue_seek_id: PeptideId, 
-    cue_avoid_id: PeptideId, 
-    seek_id: PeptideId, 
-
-    food_near_id: PeptideId, 
-    blood_sugar_id: PeptideId, 
-
-    eat_id: PeptideId, 
-
 }
 
 impl MidFeeding {
-    fn new(peptides: &mut MidPeptides) -> Self {
+    fn new() -> Self {
         Self {
             give_up_hb: Habenula::new(40.),
-            explore_id: peptides.peptide(ExploreFood).id(),
-            urgency_id: peptides.peptide(UrgencySeekFood).id(),
-            give_up_id: peptides.peptide(GiveUpSeekFood).id(),
-            cue_seek_id: peptides.peptide(CueSeekFood).id(),
-            cue_avoid_id: peptides.peptide(CueAvoidFood).half_life(5.).id(),
-            seek_id: peptides.peptide(SeekFood).id(),
-
-            food_near_id: peptides.peptide(NearFood).id(),
-            blood_sugar_id: peptides.peptide(Glucose).id(),
-
-            eat_id: peptides.peptide(EatFood).id(),
-
         }
     }
 }
 
 fn update_feeding(
     mut feeding: ResMut<MidFeeding>,
-    mut peptides: ResMut<MidPeptides>,
     mut peptides2: ResMut<MidPeptides2>
 ) {
     // orexin - base exploratory drive
@@ -121,50 +94,12 @@ fn update_eat(
     }
 }
 
-/// Orexin
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Peptide)]
-pub struct ExploreFood;
-
-// ghrelin - possibly MCH
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Peptide)]
-pub struct CueSeekFood;
-
-// neurotensin
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Peptide)]
-pub struct CueAvoidFood;
-
-// DA - possibly MCH
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Peptide)]
-pub struct SeekFood;
-
-// Hb - habenula
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Peptide)]
-pub struct GiveUpSeekFood;
-
-// 5HT - serotonin
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Peptide)]
-pub struct UrgencySeekFood;
-
-// DA - possibly two DA?
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Peptide)]
-pub struct NearFood;
-
-// Cck - probably something else
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Peptide)]
-pub struct EatFood;
-
-// MCH/Leptin
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Peptide)]
-pub struct Glucose;
-
 
 pub struct MidFeedingPlugin;
 
 impl Plugin for MidFeedingPlugin {
     fn build(&self, app: &mut App) {
-        let peptides = app.resource_mut::<MidPeptides>();
-
-        let feeding = MidFeeding::new(peptides);
+        let feeding = MidFeeding::new();
 
         app.insert_resource(feeding);
         app.system(Tick, update_feeding);

@@ -4,7 +4,7 @@ use essay_ecs::prelude::*;
 use essay_plot::{prelude::*, artist::{paths::{self, Unit}, PathStyle}};
 use ui_graphics::{ui_layout::{UiLayout, UiLayoutEvent, BoxId, UiLayoutPlugin}, UiCanvas, UiCanvasPlugin};
 
-use crate::mid_peptides::{MidPeptidesPlugin, MidPeptides, PeptideId, Peptide};
+use crate::mid_peptides2::MidPeptides2Plugin;
 
 #[derive(Component)]
 pub struct UiPeptide2 {
@@ -191,7 +191,7 @@ impl UiPeptide2Plugin {
 impl Plugin for UiPeptide2Plugin {
     fn build(&self, app: &mut App) {
         if app.contains_plugin::<UiCanvasPlugin>() {
-            assert!(app.contains_plugin::<MidPeptidesPlugin>());
+            assert!(app.contains_plugin::<MidPeptides2Plugin>());
 
             if ! app.contains_plugin::<UiLayoutPlugin>() {
                 app.plugin(UiLayoutPlugin);

@@ -4,7 +4,6 @@ use essay_ecs::prelude::*;
 use essay_plot::prelude::*;
 
 use ui_graphics::ui_plot::{UiPlot, UiFigurePlugin, UiFigure, PlotKeyId};
-use crate::mid_peptides::{BoxPeptide, MidPeptides, PeptideId, Peptide};
 
 #[derive(Component)]
 pub struct UiGraph2 {
@@ -50,16 +49,6 @@ pub fn ui_body_plot(
 }
 */
 
-pub fn ui_plot_peptide(
-    peptide: &PeptideLine,
-    mut ui_body: ResMut<UiGraph2>,
-    peptides: Res<MidPeptides>,
-) {
-    ui_body.plot.push(peptide.plot, peptides[peptide.peptide]);
-
-    //ui_body.plot.tick();
-}
-
 pub fn ui_plot_update(
     mut ui_body: ResMut<UiGraph2>,
 ) {
@@ -79,7 +68,6 @@ pub struct UiGraph2Plugin {
     xy: Point,
     wh: Point,
 
-    lines: Vec<(BoxPeptide, String)>,
     colors: Vec<Color>,
 
     items: Vec<(String, Box<dyn Item>)>,
@@ -90,7 +78,6 @@ impl UiGraph2Plugin {
         Self {
             xy: xy.into(),
             wh: wh.into(),
-            lines: Vec::new(),
             colors: Vec::new(),
             items: Vec::new(),
         }
@@ -101,12 +88,6 @@ impl UiGraph2Plugin {
             self.colors.push(color);
         }
 
-        self
-    }
-
-    pub fn line(mut self, peptide: impl Peptide, label: &str) -> Self {
-        self.lines.push((peptide.box_clone(), String::from(label)));
-        
         self
     }
 
@@ -126,72 +107,27 @@ impl UiGraph2Plugin {
 
 impl Plugin for UiGraph2Plugin {
     fn build(&self, app: &mut App) {
-        if app.contains_resource::<MidPeptides>() {
-            let figure = UiFigurePlugin::<BodyPlot>::new(self.xy, self.wh);
-            //app.plugin(figure);
-            figure.build(app);
+        let figure = UiFigurePlugin::<BodyPlot>::new(self.xy, self.wh);
+        figure.build(app);
 
-            let mut lines : Vec<(PeptideId, String)> = Vec::new();
-
-            let colors = self.colors.clone();
-
-            for (key, label) in &self.lines {
-                if let Some(peptide) = app.resource::<MidPeptides>().get_peptide(key.as_ref()) {
-                    lines.push((peptide.id(), label.clone()));
-                }
-            }
-
-
-            /*
-            app.system(Startup, move |mut c: Commands, mut plot: ResMut<UiFigure<BodyPlot>>| {
-                let mut graph = UiGraph2::new(plot.get_mut());
-
-                for (peptide, label) in &lines {
-                    let plot_key = graph.line(&label);
-                    c.spawn(PeptideLine::new(*peptide, plot_key));
-
-                    let len = colors.len();
-                    if len > 0 {
-                        graph.color(plot_key, colors[plot_key.i() % len]);
-                    }
-                }
-
-                c.insert_resource(graph);
-            });
-            */
-
-            let mut graph = UiGraph2::new(app.resource_mut::<UiFigure<BodyPlot>>());
-
-            for (i, (label, item)) in self.items.iter().enumerate() {
-                let color = colors[i % colors.len()];
-
-                let id = graph.line(label);
-                
-                graph.color(id, color);
-
-                item.add(id, app);
-            }
-
-            app.insert_resource(graph);
+        let colors = self.colors.clone();
         
-            app.system(PostUpdate, ui_plot_peptide);
-            app.system(PreUpdate, ui_plot_update);
-        }
-    }
-}
+        let mut graph = UiGraph2::new(app.resource_mut::<UiFigure<BodyPlot>>());
 
-#[derive(Component)]
-pub struct PeptideLine {
-    peptide: PeptideId,
-    plot: PlotKeyId,
-}
+        for (i, (label, item)) in self.items.iter().enumerate() {
+            let color = colors[i % colors.len()];
 
-impl PeptideLine {
-    fn new(peptide: PeptideId, plot: PlotKeyId) -> Self {
-        Self {
-            peptide,
-            plot
+            let id = graph.line(label);
+                
+            graph.color(id, color);
+
+            item.add(id, app);
         }
+
+        app.insert_resource(graph);
+        
+        //app.system(PostUpdate, ui_plot_peptide);
+        app.system(PreUpdate, ui_plot_update);
     }
 }
 

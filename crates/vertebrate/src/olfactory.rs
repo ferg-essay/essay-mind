@@ -8,7 +8,7 @@ use mind_ecs::Tick;
 
 use crate::{
     body::Body, 
-    world::{World, OdorType}, mid_peptides::MidPeptides, mid_feeding::CueSeekFood
+    world::{World, OdorType},
 };
 
 pub struct Olfactory {
