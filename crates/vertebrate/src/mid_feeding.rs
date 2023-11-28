@@ -27,7 +27,7 @@ fn update_feeding(
     // habenula - give-up timer
     feeding.give_up_hb.update();
 
-    // TODO: should be action-based
+    // H.l stimulates habenula, here based on DA feedback
     if peptides2.seek_food() > 0.25 {
         feeding.give_up_hb.excite(1.);
     }
@@ -80,8 +80,7 @@ fn update_feeding_olfactory(
 ) {
     if olfactory.food_dir().is_some() {
         peptides.cue_seek_food_mut().add(0.8);
-    }    
-
+    }
 }
 
 fn update_near_food(
