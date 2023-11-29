@@ -247,7 +247,6 @@ fn ui_canvas_window(
             UiWindowEvent::Resized(width, height) => {
                 ui_canvas.window_bounds(*width, *height);
             }
-            _ => {}
         }
     }
 

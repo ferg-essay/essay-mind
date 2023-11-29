@@ -8,7 +8,7 @@ pub(crate) struct WgpuCanvas {
     pub(crate) queue: wgpu::Queue,
     pub(crate) config: wgpu::SurfaceConfiguration,
 
-    pub(crate) window: winit::window::Window,
+    pub(crate) _window: winit::window::Window,
 
     //event_loop: Option<EventLoop<()>>,
 }
@@ -25,7 +25,7 @@ impl WgpuCanvas {
         wgpu_canvas
     }
 
-    pub fn draw(
+    pub fn _draw(
         &mut self, 
         draw: impl FnOnce(&WgpuCanvas, &wgpu::TextureView)
     ) {
@@ -97,10 +97,6 @@ impl WgpuCanvas {
         self.config.height = height;
         self.surface.configure(&self.device, &self.config);
     }
-
-    pub(crate) fn set_stale(&self) {
-        
-    }
 }
 
 pub struct CanvasView {
@@ -167,6 +163,6 @@ async fn init_wgpu_args(window: Window) -> WgpuCanvas {
         surface,
         queue,
         config,
-        window,
+        _window: window,
     }
 }

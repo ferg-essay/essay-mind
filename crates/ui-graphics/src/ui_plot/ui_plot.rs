@@ -1,8 +1,4 @@
-use core::fmt;
-use std::hash::{Hasher, Hash};
-
 use essay_plot::{graph::Graph, artist::{Lines2d, LinesOpt}, api::Color};
-use util::label::DynLabel;
 
 pub struct UiPlot {
     graph: Graph,

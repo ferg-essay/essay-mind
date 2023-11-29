@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use essay::world_place_preference;
 use vertebrate::body::{BodyPlugin, Body};
 use essay_ecs::prelude::App;
 use mind_ecs::TickSchedulePlugin;
@@ -23,6 +24,7 @@ pub fn main() {
     let mut app = App::new();
 
     app.plugin(TickSchedulePlugin::new().ticks(2));
+    /*
     app.plugin(
         WorldPlugin::new(20, 10)
         .wall((4, 5), (4, 1))
@@ -32,6 +34,9 @@ pub fn main() {
         .odor(14, 8, OdorType::FoodB)
         .odor(0, 9, OdorType::AvoidA)
     );
+    */
+
+    world_place_preference(&mut app);
     app.plugin(BodyPlugin::new());
     app.plugin(OlfactoryPlugin);
     app.plugin(TectumPlugin::new().striatum());

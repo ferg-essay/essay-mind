@@ -1,12 +1,12 @@
 use essay_ecs::prelude::*;
 use essay_plot::{
     prelude::*, 
-    artist::{GridColorOpt, ColorMaps, Norms, paths::Unit, PathStyle}
+    artist::{paths::Unit, PathStyle}
 };
-use essay_tensor::tf32;
-use ui_graphics::{ui_plot::{UiPlot, UiFigurePlugin, UiFigure}, ui_layout::{BoxId, UiLayout, UiLayoutEvent}, UiCanvas};
+
+use ui_graphics::{ui_layout::{BoxId, UiLayout, UiLayoutEvent}, UiCanvas};
 use crate::body::Body;
-use crate::ui::ui_world::{UiWorldPlugin, UiWorld};
+use crate::ui::ui_world::UiWorldPlugin;
 
 #[derive(Component)]
 pub struct UiHomunculus {
@@ -195,20 +195,7 @@ pub fn ui_homunculus_draw(
     body: Res<Body>,
     mut ui: ResMut<UiCanvas>
 ) {
-    let to_canvas = &ui_homunculus.to_canvas();
-
     let turn = (body.turn() + 0.5) % 1.;
-
-    let peptides = tf32!([
-        [if body.is_collide_left() { 1. } else { 0. }, 
-        if body.is_collide_right() { 1. } else { 0. }],
-        [0., 0.],
-        // [if body.is_food_left(world.deref()) { 1. } else { 0. }, 
-        // if body.is_food_right(world.deref()) { 1. } else { 0. }],
-        //[ if body.is_sensor_food() { 1. } else { 0. }, body.arrest() ],
-        [ body.speed().clamp(0., 1.), 0.],
-        [ turn.clamp(0., 0.5) * 2., turn.clamp(0.5, 1.) * 2. - 1. ],
-    ]);
 
     let paths = &ui_homunculus.paths_canvas;
 
@@ -242,8 +229,6 @@ pub fn ui_homunculus_draw(
     if turn_right > 0. {
         ui.draw_path(&paths.mo_ll, &style);
     }
-
-    //ui_body.action_map.data(peptides.reshape([4, 2]));
 }
 
 pub struct UiHomunculusPlugin {

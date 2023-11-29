@@ -684,6 +684,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "essay"
+version = "0.1.0"
+dependencies = [
+ "essay-ecs 0.1.13",
+ "log",
+ "vertebrate",
+]
+
+[[package]]
 name = "essay-ecs"
 version = "0.1.13"
 dependencies = [
@@ -787,6 +796,7 @@ dependencies = [
  "audio",
  "cpal",
  "env_logger",
+ "essay",
  "essay-ecs 0.1.13",
  "essay-plot",
  "essay-tensor",

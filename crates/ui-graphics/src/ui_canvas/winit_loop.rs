@@ -1,14 +1,14 @@
 use std::time::{Duration, Instant};
 
-use essay_plot::api::{Point};
+use essay_plot::api::Point;
 use winit::{
     event::{ElementState, Event, MouseButton, StartCause, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
-    dpi::PhysicalPosition, keyboard::{Key, NamedKey},
+    dpi::PhysicalPosition, keyboard::Key,
 };
 use essay_ecs::prelude::*;
 
-use super::ui_canvas::{UiCanvas, UiWindowEvent};
+use super::ui_canvas::UiWindowEvent;
 
 pub fn main_loop(mut app: App, tick_ms: Duration, ticks_per_cycle: usize) {
     // env_logger::init();

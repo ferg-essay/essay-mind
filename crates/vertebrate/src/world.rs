@@ -121,10 +121,14 @@ impl IndexMut<(usize, usize)> for World {
     }
 }
 
+#[derive(Copy, Clone, Debug)]
 pub enum WorldCell {
     Empty,
     Food,
-    Wall
+    Wall,
+
+    FloorLight,
+    FloorDark,
 }
 
 pub struct Food {
@@ -220,6 +224,12 @@ impl fmt::Debug for Food {
     }
 }
 
+#[derive(Clone, Copy, PartialEq)]
+pub enum FloorType {
+    Light,
+    Dark,
+}
+
 pub struct WorldPlugin {
     width: usize,
     height: usize,
@@ -227,6 +237,7 @@ pub struct WorldPlugin {
     walls: Vec<(usize, usize)>,
     food: Vec<(usize, usize)>,
     odors: Vec<OdorItem>,
+    floor: Vec<FloorItem>,
 }
 
 impl WorldPlugin {
@@ -236,6 +247,7 @@ impl WorldPlugin {
             height,
 
             walls: Vec::new(),
+            floor: Vec::new(),
             food: Vec::new(),
             odors: Vec::new(),
         }
@@ -260,14 +272,28 @@ impl WorldPlugin {
     }
 
     pub fn wall(mut self, pos: (usize, usize), extent: (usize, usize)) -> Self {
-        assert!(pos.0 + extent.0 < self.width);
-        assert!(pos.1 + extent.1 < self.height);
+        assert!(pos.0 + extent.0 <= self.width);
+        assert!(pos.1 + extent.1 <= self.height);
 
         for j in 0..extent.1 {
             for i in 0..extent.0 {
                 self.walls.push((pos.0 + i, pos.1 + j));
             }
         }
+
+        self
+    }
+
+    pub fn floor(
+        mut self, 
+        pos: (usize, usize), 
+        extent: (usize, usize), 
+        floor: FloorType
+    ) -> Self {
+        assert!(pos.0 + extent.0 <= self.width);
+        assert!(pos.1 + extent.1 <= self.height);
+
+        self.floor.push(FloorItem::new(pos, extent, floor));
 
         self
     }
@@ -296,6 +322,21 @@ impl WorldPlugin {
 
     fn create_world(&self) -> World {
         let mut world = World::new(self.width, self.height);
+
+        for floor in &self.floor {
+            let (x, y) = floor.pos;
+            let (w, h) = floor.extent;
+            let cell = match floor.floor {
+                FloorType::Light => WorldCell::FloorLight,
+                FloorType::Dark => WorldCell::FloorDark,
+            };
+
+            for j in y..y + h {
+                for i in x..x + w {
+                    world[(i, j)] = cell;
+                }
+            }
+        }
 
         for food in &self.food {
             world[*food] = WorldCell::Food;
@@ -333,21 +374,18 @@ impl OdorItem {
     }
 }
 
-pub struct SlugWorldPlugin;
+struct FloorItem {
+    pos: (usize, usize),
+    extent: (usize, usize),
+    floor: FloorType,
+}
 
-impl SlugWorldPlugin {
-    pub fn new() -> WorldPlugin {
-        let mut world = WorldPlugin::new(30, 20);
-
-        world = world.walls([
-            (8, 4), (8, 5), (8, 6), (8, 7), (8, 8), (8, 9), (8, 10), (8, 11), (8, 12),
-            (18, 6), (19, 6), (20, 6), (25, 6), (26, 6),
-            (20, 14), (21, 14), (22, 14), (26, 14), (27, 14)
-        ]);
-
-        world = world.food_odor(4, 2, OdorType::FoodA)
-            .food_odor(20, 10, OdorType::FoodB);
-
-        world
-    } 
+impl FloorItem {
+    fn new(pos: (usize, usize), extent: (usize, usize), floor: FloorType) -> Self {
+        Self {
+            pos,
+            extent,
+            floor,
+        }
+    }
 }

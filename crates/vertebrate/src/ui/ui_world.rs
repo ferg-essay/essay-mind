@@ -128,9 +128,12 @@ pub fn draw_world(
 impl From<&WorldCell> for Color {
     fn from(value: &WorldCell) -> Self {
         match value {
-            WorldCell::Empty => Color(0xf8f8f800),
+            WorldCell::Empty => Color::from(0xe0e0e0),
             WorldCell::Food => Color::from("green"),
-            WorldCell::Wall => Color(0xbfbfbfff),
+            WorldCell::Wall => Color::from("dark beige"),
+
+            WorldCell::FloorLight => Color::from(0xf8f8f8),
+            WorldCell::FloorDark => Color::from(0x606060),
         }
     }
 }

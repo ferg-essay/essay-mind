@@ -27,6 +27,7 @@ test-log = { path = "./crates/test-log" }
 audio = { path = "./crates/audio" }
 mind = { path = "./crates/mind" }
 mind-ecs = { path = "./crates/ecs" }
+essay = { path = "./crates/essay" }
 vertebrate = { path = "./crates/vertebrate" }
 #world-plankton = { path = "./crates/world-plankton" }
 #world-slug = { path = "./crates/world-slug" }

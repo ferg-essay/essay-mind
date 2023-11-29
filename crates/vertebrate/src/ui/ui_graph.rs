@@ -26,7 +26,7 @@ impl UiGraph {
         self.plot.line(label)
     }
 
-    fn push(&mut self, id: PlotKeyId, value: f32) {
+    fn _push(&mut self, id: PlotKeyId, value: f32) {
         self.plot.push(id, value);
     }
 

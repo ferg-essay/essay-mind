@@ -1,7 +1,6 @@
 use essay_ecs::{app::{Plugin, App}, core::{Res, ResMut}};
 use mind_ecs::Tick;
-use mind_macros::Peptide;
-use crate::{self as vertebrate, olfactory::Olfactory, habenula_med::Habenula, body::Body, world::World, tectum::TectumLocomotionStn, mid_peptides::MidPeptides};
+use crate::{olfactory::Olfactory, habenula_med::Habenula, body::Body, mid_peptides::MidPeptides};
 
 struct MidFeeding {
     give_up_hb: Habenula,

@@ -1,0 +1,13 @@
+[package]
+name = "essay"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+log = { version = "0.4.17" }
+vertebrate = { path = "../vertebrate" }
+essay-ecs = { path = "../../../essay-ecs" }
+
+[lib]
+doctest = false
+

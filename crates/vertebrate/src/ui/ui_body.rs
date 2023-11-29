@@ -5,57 +5,11 @@ use essay_plot::{
     artist::{paths::Unit, Markers}
 };
 
-use ui_graphics::{UiCanvas, ui_plot::UiFigure};
+use ui_graphics::UiCanvas;
 use crate::body::Body;
 use crate::ui::ui_world::{UiWorldPlugin, UiWorld};
 
 use super::ui_world::DrawAgent;
-
-#[derive(Component)]
-pub struct UiBody {
-    //plot: UiPlot,
-
-    // action_map: GridColorOpt,
-
-    trail: UiTrail,
-}
-
-impl UiBody {
-    fn new(figure: &UiFigure<BodyPlot>) -> Self {
-        //let mut plot = figure.plot_xy((0., 0.), (1., 1.));
-
-        //plot.x_label("seconds");
-
-        //plot.graph_mut().ylim(-0.1, 1.1);
-        /*
-        // plot.line(Key::Dir, "dir");
-        // plot.line(Key::Speed, "speed");
-        plot.line(Key::PFood, "p(food)");
-        // plot.line(Key::Arrest, "arrest");
-        plot.line(Key::Turn, "turn");
-        let is_single_habituate = false;
-        if is_single_habituate {
-            plot.line(Key::HabitFoodA, "habit");
-        } else {
-            plot.line(Key::HabitFoodA, "food-a");
-            plot.line(Key::HabitOtherA, "other-a");
-            plot.line(Key::IgnoreOdor, "ignore odor");
-        }
-        */
-
-        //let z_peptides = tf32!([[0., 0.], [0., 0.], [0., 0.], [0., 0.]]);
-        //let mut action_map : GridColorOpt = figure.color_grid((1.6, 0.), (0.5, 1.), z_peptides);
-        //action_map.norm(Norms::Linear.vmin(0.).vmax(1.));
-        //action_map.color_map(ColorMaps::WhiteRed);
-
-        Self {
-            //plot,
-
-            // action_map,
-            trail: UiTrail::new(400),
-        }
-    }
-}
 
 pub fn draw_body(
     body: Res<Body>, 
@@ -115,25 +69,6 @@ pub fn draw_body(
     style.line_width(3.);
     ui.draw_path(&head, &style);
 }
-/*
-pub fn ui_body_plot(
-    ui_body: &mut UiBody,
-    body: Res<Body>,
-    _world: Res<World>,
-) {
-    // ui_body.plot.push(&Key::PFood, body.p_food());
-    // ui_body.plot.push(&Key::Turn, (body.turn() + 0.5) % 1.);
-
-    ui_body.plot.tick();
-}
-
-pub fn ui_body_spawn_plot(
-    mut c: Commands,
-    mut plot: ResMut<UiFigure<BodyPlot>>
-) {
-    c.spawn(UiBody::new(plot.get_mut()))
-}
-*/
 
 pub fn draw_trail(
     mut ui_trail: ResMut<UiTrail>,
@@ -203,50 +138,14 @@ pub enum Key {
     IgnoreOdor,
 }
 
-/*
-impl UiKey for Key {
-    fn index(&self) -> usize {
-        match self {
-            Key::PFood => 0,
-            Key::Turn => 1,
-            Key::HabitFoodA => 2,
-            Key::HabitOtherA => 3,
-            Key::IgnoreOdor => 4,
-        }
-    }
-}
-*/
-
 pub struct BodyPlot;
 
 pub struct UiBodyPlugin;
-/*
- {
-    //xy: Point,
-    //wh: Point,
-}
-*/
-
-    /*
-impl UiBodyPlugin {
-    pub fn new(xy: impl Into<Point>, wh: impl Into<Point>) -> Self {
-        Self {
-            xy: xy.into(),
-            wh: wh.into(),
-        }
-    }
-}
-    */
 
 impl Plugin for UiBodyPlugin {
     fn build(&self, app: &mut App) {
         if app.contains_plugin::<UiWorldPlugin>() {
             app.system(Update, draw_body.phase(DrawAgent));
-
-            //app.plugin(UiFigurePlugin::<BodyPlot>::new(self.xy, self.wh));
-
-            //app.system(Startup, ui_body_spawn_plot);
-            //app.system(Update, ui_body_plot);
         }
     }
 }
