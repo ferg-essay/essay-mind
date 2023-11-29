@@ -34,20 +34,6 @@ impl UiGraph {
         self.plot.color(id, color);
     }
 }
-/*
-pub fn ui_body_plot(
-    ui_body: &mut UiBodyGraph,
-    body: Res<Body>,
-    _world: Res<World>,
-    ui_world: Res<UiWorld>,
-    mut ui: ResMut<UiCanvas>
-) {
-    ui_body.plot.push(&Key::PFood, body.p_food());
-    ui_body.plot.push(&Key::Turn, (body.turn() + 0.5) % 1.);
-
-    ui_body.plot.tick();
-}
-*/
 
 pub fn ui_plot_update(
     mut ui_body: ResMut<UiGraph>,

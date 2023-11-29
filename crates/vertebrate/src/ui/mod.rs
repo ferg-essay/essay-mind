@@ -1,3 +1,4 @@
+pub mod ui_table;
 pub mod ui_body_heatmap;
 pub mod ui_body_homunculus;
 pub mod ui_body;

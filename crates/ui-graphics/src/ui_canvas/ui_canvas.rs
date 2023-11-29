@@ -72,7 +72,12 @@ impl UiCanvas {
         }
     }
 
-    pub fn draw_text(&mut self, xy: Point, text: &str, text_style: &TextStyle) {
+    pub fn draw_text(
+        &mut self, 
+        xy: impl Into<Point>, 
+        text: &str, 
+        text_style: &TextStyle
+    ) {
         if let Some(view) = &self.view {
             let mut plot_renderer = PlotRenderer::new(
                 &mut self.plot_canvas, 
@@ -85,7 +90,7 @@ impl UiCanvas {
 
             let style = PathStyle::new();
     
-            plot_renderer.draw_text(xy, text, 0., &style, text_style, &Clip::None).unwrap();
+            plot_renderer.draw_text(xy.into(), text, 0., &style, text_style, &Clip::None).unwrap();
 
             plot_renderer.flush(&Clip::None);
         }

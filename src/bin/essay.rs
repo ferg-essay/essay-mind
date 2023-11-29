@@ -7,6 +7,7 @@ use mind_ecs::TickSchedulePlugin;
 use vertebrate::habenula_med::HabenulaMedPlugin;
 use vertebrate::mid_feeding::MidFeedingPlugin;
 use vertebrate::mid_peptides::{MidPeptidesPlugin, MidPeptides};
+use vertebrate::phototaxis::PhototaxisPlugin;
 use vertebrate::tuberculum::TuberculumPlugin;
 use vertebrate::mid_locomotor::MidLocomotorPlugin;
 use vertebrate::olfactory::OlfactoryPlugin;
@@ -17,24 +18,14 @@ use ui_graphics::UiCanvasPlugin;
 use vertebrate::ui::ui_body_homunculus::UiHomunculusPlugin;
 use vertebrate::ui::ui_graph::UiGraphPlugin;
 use vertebrate::ui::ui_peptide::UiPeptidePlugin;
+use vertebrate::ui::ui_table::UiTablePlugin;
 use vertebrate::ui::ui_world::UiWorldPlugin;
-use vertebrate::world::{WorldPlugin, OdorType};
+use vertebrate::world::World;
 
 pub fn main() {
     let mut app = App::new();
 
     app.plugin(TickSchedulePlugin::new().ticks(2));
-    /*
-    app.plugin(
-        WorldPlugin::new(20, 10)
-        .wall((4, 5), (4, 1))
-        .wall((4, 0), (1, 5))
-        .food_odor(1, 1, OdorType::FoodA)
-        .food_odor(8, 2, OdorType::FoodB)
-        .odor(14, 8, OdorType::FoodB)
-        .odor(0, 9, OdorType::AvoidA)
-    );
-    */
 
     world_place_preference(&mut app);
     app.plugin(BodyPlugin::new());
@@ -45,6 +36,7 @@ pub fn main() {
     app.plugin(HabenulaMedPlugin);
     app.plugin(MidPeptidesPlugin);
     app.plugin(MidFeedingPlugin);
+    app.plugin(PhototaxisPlugin);
 
     // UiCanvasPlugin enables graphics
     app.plugin(UiCanvasPlugin::new().frame_ms(Duration::from_millis(50)));
@@ -53,7 +45,11 @@ pub fn main() {
     app.plugin(UiBodyPlugin); // ::new((0., 0.5), (0.25, 0.5)));
     app.plugin(UiBodyTrailPlugin);
 
-    app.plugin(UiLocationHeatmapPlugin::new((2., 0.), (1., 1.)));
+    app.plugin(UiTablePlugin::new((2., 0.7), (1., 0.3))
+        .p_item("p(light)", |w: &World, b: &Body| w.light(b.pos()))
+    );
+
+    app.plugin(UiLocationHeatmapPlugin::new((2., 0.), (1., 0.7)));
 
     app.plugin(UiGraphPlugin::new((0.0, 1.0), (2., 1.))
         .colors(["amber", "sky", "olive", "red", "green", "blue"])

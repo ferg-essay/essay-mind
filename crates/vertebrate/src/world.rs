@@ -26,29 +26,35 @@ impl World {
         }
     }
 
-    /*
-    pub fn to_canvas(&self) -> Affine2d {
-        self.bounds.affine_to(&self.pos)
-    }
-    */
-
     pub fn extent(&self) -> (usize, usize) {
         (self.width, self.height)
     }
 
     pub fn is_collide(&self, pt: impl Into<Point>) -> bool {
         let Point(x, y) = pt.into();
-        
-        if x <= 0.
-        || x >= self.width as f32
-        || y <= 0.
-        || y >= self.height as f32 {
+
+        if x <= 0. || x >= self.width as f32 || y <= 0. || y >= self.height as f32 {
             return true;
         }
 
         match self[(x.floor() as usize, y.floor() as usize)] {
             WorldCell::Wall => true,
             _ => false,
+        }
+    }
+
+    pub fn light(&self, pt: impl Into<Point>) -> f32 {
+        let Point(x, y) = pt.into();
+
+        let x = (x.floor() as usize).clamp(0, self.width - 1);
+        let y = (y.floor() as usize).clamp(0, self.height - 1);
+
+        match self[(x, y)] {
+            WorldCell::Empty => 0.9,
+            WorldCell::Food => 0.9,
+            WorldCell::Wall => 0.,
+            WorldCell::FloorLight => 1.,
+            WorldCell::FloorDark => 0.,
         }
     }
 
@@ -67,7 +73,7 @@ impl World {
     pub fn odor(&self, pt: Point) -> Option<(OdorType, Angle)> {
         let Point(x, y) = pt;
 
-        let mut best_odor : Option<(OdorType, Angle)> = None;
+        let mut best_odor: Option<(OdorType, Angle)> = None;
         let mut best_dist = f32::MAX;
 
         for food in &self.food {
@@ -83,16 +89,13 @@ impl World {
             }
         }
 
-       best_odor
+        best_odor
     }
 
     pub fn is_food(&self, pt: impl Into<Point>) -> bool {
         let Point(x, y) = pt.into();
-        
-        if x <= 0.
-        || x >= self.width as f32
-        || y <= 0.
-        || y >= self.height as f32 {
+
+        if x <= 0. || x >= self.width as f32 || y <= 0. || y >= self.height as f32 {
             return false;
         }
 
@@ -187,7 +190,7 @@ impl From<usize> for OdorType {
 }
 
 impl Food {
-    pub const RADIUS : f32 = 3.;
+    pub const RADIUS: f32 = 3.;
 
     fn new(x: usize, y: usize, odor: OdorType) -> Self {
         Self {
@@ -284,12 +287,7 @@ impl WorldPlugin {
         self
     }
 
-    pub fn floor(
-        mut self, 
-        pos: (usize, usize), 
-        extent: (usize, usize), 
-        floor: FloorType
-    ) -> Self {
+    pub fn floor(mut self, pos: (usize, usize), extent: (usize, usize), floor: FloorType) -> Self {
         assert!(pos.0 + extent.0 <= self.width);
         assert!(pos.1 + extent.1 <= self.height);
 
@@ -303,7 +301,7 @@ impl WorldPlugin {
         assert!(y < self.height);
 
         self.food.push((x, y));
-        
+
         self
     }
 
@@ -314,7 +312,7 @@ impl WorldPlugin {
     pub fn odor(mut self, x: usize, y: usize, odor: OdorType) -> Self {
         assert!(x < self.width);
         assert!(y < self.height);
-        
+
         self.odors.push(OdorItem::new(x, y, odor));
 
         self
@@ -349,7 +347,7 @@ impl WorldPlugin {
         for odor in &self.odors {
             world.add_odor(odor.pos.0, odor.pos.1, odor.odor);
         }
-    
+
         world
     }
 }
@@ -367,10 +365,7 @@ struct OdorItem {
 
 impl OdorItem {
     fn new(x: usize, y: usize, odor: OdorType) -> Self {
-        Self {
-            pos: (x, y),
-            odor,
-        }
+        Self { pos: (x, y), odor }
     }
 }
 
@@ -382,10 +377,6 @@ struct FloorItem {
 
 impl FloorItem {
     fn new(pos: (usize, usize), extent: (usize, usize), floor: FloorType) -> Self {
-        Self {
-            pos,
-            extent,
-            floor,
-        }
+        Self { pos, extent, floor }
     }
 }

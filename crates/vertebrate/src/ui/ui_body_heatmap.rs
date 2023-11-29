@@ -13,7 +13,7 @@ pub struct UiLocMap {
     height: usize,
     data: Vec<f32>,
     grid_plot: GridColorOpt,
-    p_food_text: TextOpt,
+    // p_food_text: TextOpt,
 }
 
 impl UiLocMap {
@@ -30,8 +30,8 @@ impl UiLocMap {
         let mut grid_plot = graph.color_grid(grid);
         grid_plot.color_map(ColorMaps::RedYellow);
 
-        let mut text = graph.graph().text((0., 0.95), "hello");
-        text.coord(TextCoords::FrameFraction).color("k");
+        // let mut text = graph.graph().text((0., 0.95), "hello");
+        // text.coord(TextCoords::FrameFraction).color("k");
 
         Self {
             factor: 1,
@@ -39,7 +39,7 @@ impl UiLocMap {
             height: extent.1 * factor,
             data,
             grid_plot,
-            p_food_text: text,
+            // p_food_text: text,
         }
     }
 }
@@ -57,7 +57,7 @@ pub fn ui_locmap_update(
     ui_locmap.grid_plot.data(Tensor::from(&ui_locmap.data).reshape([ui_locmap.height, ui_locmap.width]));
     // ui_locmap.peptides.data(body.state().reshape([3, 2]));
 
-    ui_locmap.p_food_text.text(format!("p(food) = {:.3}", body.p_food()));
+    // ui_locmap.p_food_text.text(format!("p(food) = {:.3}", body.p_food()));
 }
 
 pub fn ui_locmap_spawn_plot(
