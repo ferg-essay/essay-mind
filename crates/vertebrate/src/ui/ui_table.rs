@@ -1,7 +1,8 @@
 use std::cell::RefCell;
 
 use essay_ecs::{core::{Component, ResMut, Res}, app::{event::InEvent, Plugin, App, Update, PreUpdate}};
-use essay_plot::{api::{Bounds, Canvas, Color, Affine2d, Clip, TextStyle, VertAlign, Point, Coord, HorizAlign}, artist::{paths::{Unit, self}, PathStyle}};
+use essay_plot::api::{Bounds, Canvas, Clip, TextStyle, VertAlign, Point, Coord, HorizAlign};
+use mind_ecs::PostTick;
 use ui_graphics::{ui_layout::{BoxId, UiLayout, UiLayoutEvent, UiLayoutPlugin}, UiCanvas, UiCanvasPlugin};
 
 use crate::{mid_peptides::MidPeptidesPlugin, body::Body, world::World};
@@ -37,10 +38,6 @@ impl UiTable {
 
     fn set_pos(&mut self, set_pos: &Bounds<Canvas>) {
         self.pos = set_pos.clone();
-    }
-
-    fn to_canvas(&self) -> Affine2d {
-        self.bounds.affine_to(&self.pos)
     }
 
     pub fn clip(&self) -> &Clip {
@@ -153,7 +150,7 @@ impl Plugin for UiTablePlugin {
 
             let mut ui_peptide = UiTable::new(box_id);
 
-            for (i, (label, item)) in self.items.iter().enumerate() {
+            for (label, item) in self.items.iter() {
                 let id = ui_peptide.add(label);
 
                 item.add(id, app);
@@ -195,16 +192,20 @@ impl Item for ItemImpl {
             app.insert_resource(updates);
 
             app.system(
-                Update,
+                PostTick,
                 |updates: Res<PeptideUpdates>, 
                 world: Res<World>,
                 body: Res<Body>,
                 mut ui: ResMut<UiTable>| {
                     for (id, fun) in &updates.updates {
-                        let is_hit = fun(world.get(), body.get()) > 0.5;
+                        let value = fun(world.get(), body.get());
 
-                        ui.data[id.0].hit += if is_hit { 1 } else { 0 };
-                        ui.data[id.0].total += 1;
+                        if value >= 0. {
+                            let is_hit = value > 0.5;
+
+                            ui.data[id.0].hit += if is_hit { 1 } else { 0 };
+                            ui.data[id.0].total += 1;
+                        }
                     }
             });
         }

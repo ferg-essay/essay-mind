@@ -10,6 +10,16 @@ pub struct Tick;
 #[derive(ScheduleLabel, Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct PostTick;
 
+pub struct TickConfig {
+    n_ticks: usize,
+}
+
+impl TickConfig {
+    pub fn set_n_ticks(&mut self, n_ticks: usize) {
+        self.n_ticks = n_ticks;
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, ScheduleLabel)]
 pub struct TickSchedulePlugin {
     ticks_per_update: usize,
@@ -31,26 +41,10 @@ impl TickSchedulePlugin {
 }
 
 impl TickSchedulePlugin {
-    fn tick_system(world: &mut Store, mut is_init: Local<bool>, n_ticks: usize) {
-        if ! *is_init {
-            *is_init = true;
-            let _ = world.try_run_schedule(PreStartup);
-            let _ = world.try_run_schedule(Startup);
-            let _ = world.try_run_schedule(PostStartup);
+    fn config(&self) -> TickConfig {
+        TickConfig {
+            n_ticks: self.ticks_per_update,
         }
-
-        let _ = world.try_run_schedule(First);
-        let _ = world.try_run_schedule(PreUpdate);
-
-        for _ in 0..n_ticks {
-            let _ = world.try_run_schedule(PreTick);
-            let _ = world.try_run_schedule(Tick);
-            let _ = world.try_run_schedule(PostTick);
-        }
-
-        let _ = world.try_run_schedule(Update);
-        let _ = world.try_run_schedule(PostUpdate);
-        let _ = world.try_run_schedule(Last);
     }
 }
 
@@ -60,11 +54,41 @@ impl Plugin for TickSchedulePlugin {
         main_schedule.set_executor(Executors::Single);
         
         app.schedule(Main, main_schedule);
-        let n_ticks = self.ticks_per_update;
+
+        let tick_cfg = self.config();
+        app.insert_resource(tick_cfg);
+
         app.system(Main, 
             move |w: &mut Store, is_init: Local<bool>| {
-                Self::tick_system(w, is_init, n_ticks);
+                tick_system(w, is_init);
             }
         );
     }
 }
+
+fn tick_system(
+    store: &mut Store, 
+    mut is_init: Local<bool>, 
+) {
+    if ! *is_init {
+        *is_init = true;
+        let _ = store.try_run_schedule(PreStartup);
+        let _ = store.try_run_schedule(Startup);
+        let _ = store.try_run_schedule(PostStartup);
+    }
+
+    let _ = store.try_run_schedule(First);
+    let _ = store.try_run_schedule(PreUpdate);
+
+    let n_ticks = store.resource::<TickConfig>().n_ticks;
+    for _ in 0..n_ticks {
+        let _ = store.try_run_schedule(PreTick);
+        let _ = store.try_run_schedule(Tick);
+        let _ = store.try_run_schedule(PostTick);
+    }
+
+    let _ = store.try_run_schedule(Update);
+    let _ = store.try_run_schedule(PostUpdate);
+    let _ = store.try_run_schedule(Last);
+}
+

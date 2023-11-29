@@ -1,6 +1,7 @@
 use std::time::{Duration, Instant};
 
 use essay_plot::api::Point;
+use mind_ecs::TickConfig;
 use winit::{
     event::{ElementState, Event, MouseButton, StartCause, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
@@ -55,10 +56,21 @@ pub fn main_loop(mut app: App, tick_ms: Duration, ticks_per_cycle: usize) {
             } => {
                 if event.state == ElementState::Pressed {
                     if let Key::Character(key)= event.logical_key {
-                        if key == "t" { // VirtualKeyCode::T {
-                            is_run = ! is_run;
-                        } else if key == " " {
-                            app.tick();
+                        match key.as_str() {
+                            "1" => { app.resource_mut::<TickConfig>().set_n_ticks(1); },
+                            "2" => { app.resource_mut::<TickConfig>().set_n_ticks(2); },
+                            "3" => { app.resource_mut::<TickConfig>().set_n_ticks(4); },
+                            "4" => { app.resource_mut::<TickConfig>().set_n_ticks(8); },
+                            "5" => { app.resource_mut::<TickConfig>().set_n_ticks(16); },
+                            "6" => { app.resource_mut::<TickConfig>().set_n_ticks(32); },
+                            "7" => { app.resource_mut::<TickConfig>().set_n_ticks(64); },
+                            "8" => { app.resource_mut::<TickConfig>().set_n_ticks(128); },
+                            "9" => { app.resource_mut::<TickConfig>().set_n_ticks(1024); },
+                            "0" => { app.resource_mut::<TickConfig>().set_n_ticks(0); },
+
+                            "t" => { is_run = ! is_run; },
+                            " " => { app.tick(); },
+                            _ => {},
                         }
                     }
                 }

@@ -46,13 +46,22 @@ impl World {
     pub fn light(&self, pt: impl Into<Point>) -> f32 {
         let Point(x, y) = pt.into();
 
-        let x = (x.floor() as usize).clamp(0, self.width - 1);
-        let y = (y.floor() as usize).clamp(0, self.height - 1);
+        let (x, y) = (x.floor(), y.floor());
+
+        if x < 0. || x > self.width as f32 {
+            return -1.;
+        }
+        if y < 0. || y > self.height as f32 {
+            return -1.;
+        }
+
+        let x = (x as usize).clamp(0, self.width - 1);
+        let y = (y as usize).clamp(0, self.height - 1);
 
         match self[(x, y)] {
-            WorldCell::Empty => 0.9,
-            WorldCell::Food => 0.9,
-            WorldCell::Wall => 0.,
+            WorldCell::Empty => 1.,
+            WorldCell::Food => 1.,
+            WorldCell::Wall => -1.,
             WorldCell::FloorLight => 1.,
             WorldCell::FloorDark => 0.,
         }

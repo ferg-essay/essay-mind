@@ -1,6 +1,7 @@
 use essay_ecs::prelude::*;
-use essay_plot::{prelude::Point, artist::{GridColorOpt, ColorMaps, TextCoords, TextOpt}};
+use essay_plot::{prelude::Point, artist::{GridColorOpt, ColorMaps}};
 use essay_tensor::Tensor;
+use mind_ecs::PostTick;
 use ui_graphics::ui_plot::{UiFigurePlugin, UiFigure};
 use crate::world::World;
 use crate::body::Body;
@@ -92,7 +93,7 @@ impl Plugin for UiLocationHeatmapPlugin {
             app.plugin(UiFigurePlugin::<LocMap>::new(self.xy, self.wh));
 
             app.system(Startup, ui_locmap_spawn_plot);
-            app.system(Update, ui_locmap_update);
+            app.system(PostTick, ui_locmap_update);
         }
     }
 }

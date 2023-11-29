@@ -2904,6 +2904,7 @@ dependencies = [
  "essay-plot",
  "essay-tensor",
  "log",
+ "mind-ecs",
  "pollster",
  "util",
  "wgpu",

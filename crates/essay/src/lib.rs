@@ -15,16 +15,18 @@ pub fn world_block(app: &mut App) {
 
 
 pub fn world_place_preference(app: &mut App) {
-    let w = 12;
-    let h = 7;
+    let w = 10;
+    let h = 5;
+
+    let h1 = h / 2 - 1;
 
     let w1 = w / 2;
     let w2 = w1;
 
     app.plugin(
         WorldPlugin::new(w, h)
-        .wall(((w - 1) / 2, 0), (2, 2))
-        .wall(((w - 1) / 2, 5), (2, 2))
+        .wall(((w - 1) / 2, 0), (2, h1))
+        .wall(((w - 1) / 2, h - h1), (2, h1))
         .floor((0, 0), (w1, h), FloorType::Light)
         .floor((w2, 0), (w - w2, h), FloorType::Dark)
     );

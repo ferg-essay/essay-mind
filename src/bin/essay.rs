@@ -43,7 +43,7 @@ pub fn main() {
 
     app.plugin(UiWorldPlugin::new((0., 0.), (2., 1.0)));
     app.plugin(UiBodyPlugin); // ::new((0., 0.5), (0.25, 0.5)));
-    app.plugin(UiBodyTrailPlugin);
+    // app.plugin(UiBodyTrailPlugin);
 
     app.plugin(UiTablePlugin::new((2., 0.7), (1., 0.3))
         .p_item("p(light)", |w: &World, b: &Body| w.light(b.pos()))
