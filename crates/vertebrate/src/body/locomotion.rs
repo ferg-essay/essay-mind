@@ -11,6 +11,7 @@ pub struct BodyLocomotion {
 
     dir: Angle,
     speed: f32,
+    body_len: f32,
 
     collide_left: bool,
     collide_right: bool,
@@ -20,6 +21,7 @@ pub struct BodyLocomotion {
     action_default: Action,
     action: Option<Action>,
     action_ticks: usize,
+    is_avoid: bool,
 }
 
 impl BodyLocomotion {
@@ -29,6 +31,7 @@ impl BodyLocomotion {
 
             pos,
             dir: Angle::Unit(0.),
+            body_len: 1.,
             speed: 1.,
 
             collide_left: false,
@@ -37,6 +40,7 @@ impl BodyLocomotion {
             action_default: Action::arrest(),
             action: None,
             action_ticks: 0,
+            is_avoid: false,
         }
     }
 
@@ -50,8 +54,9 @@ impl BodyLocomotion {
 
         let (dy, dx) = self.dir.to_radians().sin_cos();
 
+        let len = self.body_len;
         // head location
-        let head = Point(x + dx * 0.5, y + dy * 0.5);
+        let head = Point(x + dx * 0.5 * len, y + dy * 0.5 * len);
 
         head
     }
@@ -70,6 +75,19 @@ impl BodyLocomotion {
 
     pub fn action(&mut self, action: impl Into<Action>) -> bool {
         if self.action.is_none() {
+            let action = action.into();
+            self.action_ticks = (self.theta_ticks as f32 * action.time).max(1.) as usize;
+            self.action = Some(action);
+            self.is_avoid = false;
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn avoid(&mut self, action: impl Into<Action>) -> bool {
+        if self.action.is_none() || ! self.is_avoid {
+            self.is_avoid = true;
             let action = action.into();
             self.action_ticks = (self.theta_ticks as f32 * action.time).max(1.) as usize;
             self.action = Some(action);

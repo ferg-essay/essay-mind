@@ -36,8 +36,13 @@ impl UiTable {
         id
     }
 
-    fn set_pos(&mut self, set_pos: &Bounds<Canvas>) {
-        self.pos = set_pos.clone();
+    fn set_pos(&mut self, pos: &Bounds<Canvas>) {
+        let margin = 10.;
+
+        self.pos = Bounds::new(
+            (pos.xmin() + margin, pos.ymin() + margin),
+            (pos.xmax() - margin, pos.ymax() - margin),
+        );
     }
 
     pub fn clip(&self) -> &Clip {

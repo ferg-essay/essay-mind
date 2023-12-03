@@ -36,8 +36,14 @@ impl UiHomunculus {
         }
     }
 
-    pub fn set_pos(&mut self, set_pos: &Bounds<Canvas>) {
-        self.pos = set_pos.clone();
+    pub fn set_pos(&mut self, pos: &Bounds<Canvas>) {
+        self.pos = Bounds::from([
+            pos.xmin() + 0.05 * pos.width(),
+            pos.ymin() + 0.05 * pos.height(),
+            pos.xmax() - 0.05 * pos.width(),
+            pos.ymax() - 0.05 * pos.height()
+        ]);
+
         self.clip = Clip::from(&self.pos);
 
         self.paths_canvas = self.paths_unit.transform(&self.to_canvas());

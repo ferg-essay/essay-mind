@@ -39,18 +39,29 @@ impl UiWorld {
         (self.bounds.xmax(), self.bounds.ymax())
     }
 
-    pub fn set_pos(&mut self, set_pos: &Bounds<Canvas>) {
+    pub fn set_pos(&mut self, pos: &Bounds<Canvas>) {
         let aspect = self.bounds.width() / self.bounds.height();
 
-        let (c_width, c_height) = if aspect * set_pos.height() <= set_pos.width() {
-            (aspect * set_pos.height(), set_pos.height())
+        // force bounds to match aspect ratio
+        let (c_width, c_height) = if aspect * pos.height() <= pos.width() {
+            (aspect * pos.height(), pos.height())
         } else {
-            (set_pos.width(), set_pos.width() / aspect)
+            (pos.width(), pos.width() / aspect)
         };
 
+        // center the box
+        let xmin = pos.xmin() + 0.5 * (pos.width() - c_width);
+        let ymin = pos.ymin() + 0.5 * (pos.height() - c_height);
+
+        let xmin = xmin.max(10.);
+        let ymin = ymin.max(10.);
+
+        let c_width = c_width - xmin - pos.xmin();
+        let c_height = c_height - xmin - pos.xmin();
+
         let pos = Bounds::<Canvas>::new(
-            Point(set_pos.xmin(), set_pos.ymin()),
-            Point(set_pos.xmin() + c_width, set_pos.ymin() + c_height),
+            Point(xmin, ymin),
+            Point(xmin + c_width, ymin + c_height),
         );
 
         self.pos = pos;

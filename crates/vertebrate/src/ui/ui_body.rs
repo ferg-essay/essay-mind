@@ -5,6 +5,7 @@ use essay_plot::{
     artist::{paths::Unit, Markers}
 };
 
+use mind_ecs::PostTick;
 use ui_graphics::UiCanvas;
 use crate::body::Body;
 use crate::ui::ui_world::{UiWorldPlugin, UiWorld};
@@ -70,13 +71,20 @@ pub fn draw_body(
     ui.draw_path(&head, &style);
 }
 
+pub fn update_trail(
+    mut ui_trail: ResMut<UiTrail>,
+    body: Res<Body>,
+) {
+    ui_trail.add(body.pos());
+}
+
 pub fn draw_trail(
     mut ui_trail: ResMut<UiTrail>,
     body: Res<Body>,
     ui_world: Res<UiWorld>,
     mut ui: ResMut<UiCanvas>
 ) {
-    ui_trail.add(body.pos());
+    // ui_trail.add(body.pos());
 
     let transform = Affine2d::eye();
     let transform = ui_world.to_canvas().matmul(&transform);
@@ -156,6 +164,7 @@ impl Plugin for UiBodyTrailPlugin {
     fn build(&self, app: &mut App) {
         if app.contains_plugin::<UiWorldPlugin>() {
             app.insert_resource(UiTrail::new(400));
+            app.system(PostTick, update_trail);
             app.system(Update, draw_trail.phase(DrawAgent));
         }
     }

@@ -41,7 +41,11 @@ impl UiPeptide {
     }
 
     fn set_pos(&mut self, set_pos: &Bounds<Canvas>) {
-        self.pos = set_pos.clone();
+        self.pos = Bounds::new(
+            (set_pos.xmin(), set_pos.ymin()), 
+            (set_pos.xmin() + set_pos.width() * 0.95,  
+            set_pos.ymin() + set_pos.height() * 0.95),  
+        );
         self.clip = Clip::from(&self.pos);
     }
 

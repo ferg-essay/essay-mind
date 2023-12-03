@@ -13,7 +13,7 @@ pub struct MesState {
     right60: ActionFactory,
     _forward: ActionFactory,
 
-    explore: MidExplore,
+    // explore: MidExplore,
 }
 
 impl MesState {
@@ -30,7 +30,7 @@ impl MesState {
         &mut self,
         body: &mut Body
     ) {
-        body.locomotion_mut().action(&self.left60);
+        body.locomotion_mut().avoid(&self.left60);
     }
 
     fn right_seek(
@@ -44,7 +44,7 @@ impl MesState {
         &mut self,
         body: &mut Body
     ) {
-        body.locomotion_mut().action(&self.right60);
+        body.locomotion_mut().avoid(&self.right60);
     }
 
     fn _forward(
@@ -54,9 +54,9 @@ impl MesState {
         body.locomotion_mut().action(&self._forward);
     }
 
-    fn explore_mut(&mut self) -> &mut MidExplore {
-        &mut self.explore
-    }
+    // fn explore_mut(&mut self) -> &mut MidExplore {
+    //    &mut self.explore
+    // }
 }
 
 impl FromStore for MesState {
@@ -66,7 +66,7 @@ impl FromStore for MesState {
             right60: ActionFactory::new(1., Angle::Deg(-60.)),
             _forward: ActionFactory::new(1., Angle::Deg(0.)),
 
-            explore: MidExplore::init(store),
+            // explore: MidExplore::init(store),
         }
     }
 }
@@ -87,6 +87,7 @@ fn update_touch(
 fn update_locomotor(
     mut body: ResMut<Body>, 
     mut tectum: ResMut<TectumLocomotionStn>,
+    mut explore: ResMut<MidExplore>,
     mut state: Local<MesState>, 
 ) {
     let tectum = tectum.get_mut();
@@ -122,7 +123,7 @@ fn update_locomotor(
 
         tectum.seek().action_copy(turn)
     } else if tectum.seek().indirect() {
-        state.explore_mut().update(body.get_mut());
+        explore.update(body.get_mut());
     }
 }
 
@@ -132,6 +133,8 @@ impl Plugin for MidLocomotorPlugin {
     fn build(&self, app: &mut App) {
         assert!(app.contains_plugin::<BodyPlugin>(), "MesLocomotorPlugin requires BodyPlugin");
         assert!(app.contains_plugin::<TectumPlugin>(), "MesLocomotorPlugin requires TectumPlugin");
+
+        app.init_resource::<MidExplore>();
 
         app.system(Tick, update_locomotor);
     }
