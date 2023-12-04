@@ -4,6 +4,7 @@ pub struct UiPlot {
     graph: Graph,
     lines: Vec<UiLine>,
     tick: usize,
+    lim: usize,
     x: Vec<f32>,
 }
 
@@ -15,12 +16,17 @@ impl UiPlot {
             graph,
             lines: Vec::new(),
             tick: 0,
+            lim: Self::LIM,
             x: Vec::new(),
         }
     }
 
     pub fn graph_mut(&mut self) -> &mut Graph {
         &mut self.graph
+    }
+
+    pub fn lim(&mut self, lim: usize) {
+        self.lim = lim.max(1);
     }
 
     pub fn line(&mut self, label: &str) -> PlotKeyId {
@@ -50,7 +56,7 @@ impl UiPlot {
             }
         }
 
-        if self.x.len() > Self::LIM {
+        if self.x.len() > self.lim {
             self.x.remove(0);
 
             for y in &mut self.lines {

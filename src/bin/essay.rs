@@ -55,7 +55,7 @@ pub fn main() {
 
     app.plugin(UiGraphPlugin::new((0.0, 1.0), (2., 1.))
         .colors(["amber", "sky", "olive", "red", "green", "blue"])
-        .item("v", |p: &Phototaxis| p.value())
+        .item("light", |p: &Phototaxis| p.value())
         .item("avg", |p: &Phototaxis| p.average())
         .item("grad", |p: &Phototaxis| p.gradient() / 2. + 0.5)
     );

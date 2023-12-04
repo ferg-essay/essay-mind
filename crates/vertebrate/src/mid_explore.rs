@@ -61,8 +61,8 @@ impl MidExplore {
         self.high = 2. * Self::HIGH;
         self.alpha = Self::ALPHA;
 
-        self.turn_mean = Self::TURN_MEAN;
-        self.turn_std = Self::TURN_STD;
+        self.turn_mean = 0.5 * Self::TURN_MEAN;
+        self.turn_std = 0.5 * Self::TURN_STD;
     }
 
     pub fn avoid_turn(&mut self) {

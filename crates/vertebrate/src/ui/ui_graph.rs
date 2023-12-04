@@ -3,6 +3,7 @@ use std::cell::RefCell;
 use essay_ecs::prelude::*;
 use essay_plot::prelude::*;
 
+use mind_ecs::{PostTick, PreTick};
 use ui_graphics::ui_plot::{UiPlot, UiFigurePlugin, UiFigure, PlotKeyId};
 
 #[derive(Component)]
@@ -14,6 +15,7 @@ pub struct UiGraph {
 impl UiGraph {
     fn new(figure: &UiFigure<BodyPlot>) -> Self {
         let mut plot = figure.plot_xy((0., 0.), (1., 1.));
+        plot.lim(256);
 
         plot.graph_mut().ylim(-0.1, 1.1);
 
@@ -113,7 +115,7 @@ impl Plugin for UiGraphPlugin {
         app.insert_resource(graph);
         
         //app.system(PostUpdate, ui_plot_peptide);
-        app.system(PreUpdate, ui_plot_update);
+        app.system(PreTick, ui_plot_update);
     }
 }
 
@@ -149,7 +151,7 @@ impl<T: Send + Sync + 'static> Item for ItemImpl<T> {
             app.insert_resource(updates);
 
             app.system(
-                Update,
+                PostTick,
                 |updates: Res<PeptideUpdates<T>>, res: Res<T>, mut ui: ResMut<UiGraph>| {
                     for (id, fun) in &updates.updates {
                         ui.plot.push(*id, fun(res.get()));

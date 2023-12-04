@@ -39,7 +39,8 @@ impl Phototaxis {
 impl Default for Phototaxis {
     fn default() -> Self {
         Self { 
-            average: DecayValue::new(20),
+            // start with 20
+            average: DecayValue::new(40),
             value: 0.,
         }
     }

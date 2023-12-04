@@ -79,8 +79,7 @@ pub fn update_trail(
 }
 
 pub fn draw_trail(
-    mut ui_trail: ResMut<UiTrail>,
-    body: Res<Body>,
+    ui_trail: Res<UiTrail>,
     ui_world: Res<UiWorld>,
     mut ui: ResMut<UiCanvas>
 ) {
