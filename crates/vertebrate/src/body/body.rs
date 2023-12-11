@@ -6,6 +6,7 @@ use mind_ecs::Tick;
 use test_log::{TestLog, TestLogPlugin};
 use crate::body::{BodyLocomotion, Action};
 
+use crate::util::DirVector;
 use crate::world::{OdorType, World, WorldPlugin};
 
 use super::eat::BodyEat;
@@ -14,6 +15,8 @@ use super::eat::BodyEat;
 pub struct Body {
     locomotion: BodyLocomotion,
     eat: BodyEat,
+
+    goal_dir: DirVector,
 
     tick_food: usize,
     ticks: usize,
@@ -32,6 +35,8 @@ impl Body {
 
             tick_food: 0,
             ticks: 0,
+
+            goal_dir: DirVector::new(Angle::Unit(0.), 0.),
         }
     }
 
@@ -41,6 +46,14 @@ impl Body {
 
     pub fn locomotion_mut(&mut self) -> &mut BodyLocomotion {
         &mut self.locomotion
+    }
+
+    pub fn goal_dir(&self) -> DirVector {
+        self.goal_dir.clone()
+    }
+
+    pub fn set_goal_dir(&mut self, dir: DirVector) {
+        self.goal_dir = dir;
     }
 
     pub fn eat(&self) -> &BodyEat {
@@ -60,6 +73,10 @@ impl Body {
     }
 
     pub fn dir(&self) -> Angle {
+        self.locomotion.dir()
+    }
+
+    pub fn head_dir(&self) -> Angle {
         self.locomotion.dir()
     }
 

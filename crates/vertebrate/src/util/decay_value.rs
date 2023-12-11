@@ -57,10 +57,18 @@ impl DecayValue {
         self.value = self.value.clamp(0., 1.);
     }
 
+    #[inline]
     pub fn set(&mut self, value: f32) {
         assert!(0. <= value && value <= 1.);
 
         self.value = value;
+    }
+
+    #[inline]
+    pub fn set_max(&mut self, value: f32) {
+        assert!(0. <= value && value <= 1.);
+
+        self.value = self.value.max(value);
     }
 
     #[inline]

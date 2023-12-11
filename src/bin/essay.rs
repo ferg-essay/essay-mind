@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use essay::{world_place_preference, food_graph};
+use essay_plot::api::Colors;
 use vertebrate::body::{BodyPlugin, Body};
 use essay_ecs::prelude::App;
 use mind_ecs::TickSchedulePlugin;
@@ -52,21 +53,26 @@ pub fn main() {
     app.plugin(UiLocationHeatmapPlugin::new((2., 0.), (1., 0.7)));
 
     // food_graph(&mut app, (0.0, 1.0), (2., 1.));
+    let colors = Colors::from(["amber", "sky", "olive", "red", "purple", "blue"]);
 
     app.plugin(UiGraphPlugin::new((0.0, 1.0), (2., 1.))
-        .colors(["amber", "sky", "olive", "red", "green", "blue"])
-        .item("light", |p: &Phototaxis| p.value())
+        .colors(colors.clone())
+        .item("v", |p: &Phototaxis| p.value())
         .item("avg", |p: &Phototaxis| p.average())
         .item("grad", |p: &Phototaxis| p.gradient() / 2. + 0.5)
+        .item("s-av", |p: &Phototaxis| p.short_average())
+        .item("s-gr", |p: &Phototaxis| p.short_gradient() / 2. + 0.5)
     );
 
     // food_peptides(&mut app, (2.0, 1.0), (0.5, 1.));
 
     app.plugin(UiPeptidePlugin::new((2.0, 1.0), (0.5, 1.))
-        .colors(["amber", "sky", "olive", "red", "green", "blue"])
-        .item("light", |p: &Phototaxis| p.value())
-        .item("avg", |p: &Phototaxis| p.average())
-        .item("grad", |p: &Phototaxis| p.gradient() / 2. + 0.5)
+        .colors(colors)
+        .item("v", |p: &Phototaxis| p.value())
+        .item("av", |p: &Phototaxis| p.average())
+        .item("gr", |p: &Phototaxis| p.gradient() / 2. + 0.5)
+        .item("sa", |p: &Phototaxis| p.short_average())
+        .item("sg", |p: &Phototaxis| p.short_gradient() / 2. + 0.5)
     );
 
     app.plugin(UiHomunculusPlugin::new((2.5, 1.), (0.5, 1.)));

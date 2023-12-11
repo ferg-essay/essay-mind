@@ -5,7 +5,7 @@ use mind_ecs::TickConfig;
 use winit::{
     event::{ElementState, Event, MouseButton, StartCause, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
-    dpi::PhysicalPosition, keyboard::Key,
+    dpi::PhysicalPosition, keyboard::{Key, NamedKey},
 };
 use essay_ecs::prelude::*;
 
@@ -55,21 +55,70 @@ pub fn main_loop(mut app: App, tick_ms: Duration, ticks_per_cycle: usize) {
                 ..
             } => {
                 if event.state == ElementState::Pressed {
-                    if let Key::Character(key)= event.logical_key {
-                        match key.as_str() {
-                            "1" => { app.resource_mut::<TickConfig>().set_n_ticks(1); },
-                            "2" => { app.resource_mut::<TickConfig>().set_n_ticks(2); },
-                            "3" => { app.resource_mut::<TickConfig>().set_n_ticks(4); },
-                            "4" => { app.resource_mut::<TickConfig>().set_n_ticks(8); },
-                            "5" => { app.resource_mut::<TickConfig>().set_n_ticks(16); },
-                            "6" => { app.resource_mut::<TickConfig>().set_n_ticks(32); },
-                            "7" => { app.resource_mut::<TickConfig>().set_n_ticks(64); },
-                            "8" => { app.resource_mut::<TickConfig>().set_n_ticks(128); },
-                            "9" => { app.resource_mut::<TickConfig>().set_n_ticks(1024); },
-                            "0" => { app.resource_mut::<TickConfig>().set_n_ticks(0); },
+                    if let Key::Named(key)= event.logical_key {
+                        match key {
+                            NamedKey::Space => {
+                                is_run = ! is_run;
+                            },
+                            _ => {
+                            }
+                        }
+                    } else if let Key::Character(key)= event.logical_key {
+                            match key.as_str() {
+                            "1" => { 
+                                app.resource_mut::<TickConfig>().set_n_ticks(1);
+                                is_run = true;
+                            },
+                            "2" => { 
+                                app.resource_mut::<TickConfig>().set_n_ticks(2);
+                                is_run = true;
+                            },
+                            "3" => { 
+                                app.resource_mut::<TickConfig>().set_n_ticks(4); 
+                                is_run = true;
+                            },
+                            "4" => { 
+                                app.resource_mut::<TickConfig>().set_n_ticks(8); 
+                                is_run = true;
+                            },
+                            "5" => { 
+                                app.resource_mut::<TickConfig>().set_n_ticks(16); 
+                                is_run = true;
+                            },
+                            "6" => { 
+                                app.resource_mut::<TickConfig>().set_n_ticks(32); 
+                                is_run = true;
+                            },
+                            "7" => { 
+                                app.resource_mut::<TickConfig>().set_n_ticks(64); 
+                                is_run = true;
+                            },
+                            "8" => { 
+                                app.resource_mut::<TickConfig>().set_n_ticks(128); 
+                                is_run = true;
+                            },
+                            "9" => { 
+                                app.resource_mut::<TickConfig>().set_n_ticks(1024); 
+                                is_run = true;
+                            },
+                            "0" => { 
+                                app.resource_mut::<TickConfig>().set_n_ticks(0); 
+                                is_run = false;
+                            },
 
-                            "t" => { is_run = ! is_run; },
-                            " " => { app.tick(); },
+                            " " => { 
+                                if ! is_run {
+                                    app.tick(); 
+                                }
+                                is_run = false;
+                            },
+
+                            "t" => { 
+                                if ! is_run {
+                                    app.tick(); 
+                                }
+                                is_run = false;
+                            },
                             _ => {},
                         }
                     }

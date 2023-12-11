@@ -2,7 +2,7 @@ use essay_ecs::core::Store;
 use essay_ecs::core::store::FromStore;
 use essay_plot::prelude::Angle;
 use util::random::{random_pareto, random, random_normal};
-use crate::body::{Action, Body};
+use crate::{body::{Action, Body}, util::DirVector};
 
 pub struct MidExplore {
     alpha: f32,
@@ -11,6 +11,10 @@ pub struct MidExplore {
 
     turn_mean: f32,
     turn_std: f32,
+
+    avoid_left: f32,
+    avoid_right: f32,
+    avoid_forward: f32,
 
     is_turn: bool,
 }
@@ -32,6 +36,32 @@ impl MidExplore {
 
         self.turn_mean = Self::TURN_MEAN;
         self.turn_std = Self::TURN_STD;
+    }
+
+    pub fn add_avoid(&mut self, avoid_dir: DirVector) {
+        if avoid_dir.value() > 0.05 {
+            let offset = 2. * avoid_dir.sin(); //  * avoid_dir.value();
+
+            self.avoid_left = offset.clamp(0., 1.);
+            self.avoid_right = (- offset).clamp(0., 1.);
+            self.avoid_forward = avoid_dir.cos().clamp(0., 1.);
+        } else {
+            self.avoid_left = 0.;
+            self.avoid_right = 0.;
+            self.avoid_forward = 0.;
+        }
+    }
+
+    pub fn avoid_forward(&self) -> f32 {
+        self.avoid_forward
+    }
+
+    pub fn avoid_left(&self) -> f32 {
+        self.avoid_left
+    }
+
+    pub fn avoid_right(&self) -> f32 {
+        self.avoid_right
     }
 
     pub fn avoid(&mut self) {
@@ -93,8 +123,13 @@ impl MidExplore {
         }
 
         let random = random();
-        let mean = self.turn_mean;
-        let std = self.turn_std;
+        let mut mean = self.turn_mean;
+        let mut std = self.turn_std;
+
+        if self.avoid_forward > 0. && random_normal().abs() < self.avoid_forward {
+            mean = 2. * Self::TURN_MEAN;
+            std = 3. * Self::TURN_STD;
+        }
 
         let angle = mean + (random_normal() * std).clamp(-2. * std, 2. * std);
 
@@ -102,6 +137,8 @@ impl MidExplore {
         let low = self.low;
         let high = self.high; // 4.;
         let alpha = self.alpha;
+
+        let p_left = (1. - self.avoid_left) / (2. - self.avoid_left - self.avoid_right);
 
         // semi-brownian
         if self.is_turn {
@@ -112,7 +149,7 @@ impl MidExplore {
             let action = Action::new(len, 1., Angle::Unit(0.));
 
             body.locomotion_mut().action(action);
-        } else if random <= 0.5 {
+        } else if random <= p_left {
             self.is_turn = true;
 
             let action = Action::new(1., 1., Angle::Deg(angle));
@@ -137,6 +174,10 @@ impl FromStore for MidExplore {
 
             turn_mean: Self::TURN_MEAN,
             turn_std: Self::TURN_STD,
+
+            avoid_left: 0.,
+            avoid_right: 0.,
+            avoid_forward: 0.,
 
             is_turn: false,
         }
