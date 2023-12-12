@@ -21,6 +21,8 @@ pub struct Phototaxis {
 }
 
 impl Phototaxis {
+    pub const N_DIR : usize = 12;
+    
     pub fn average(&self) -> f32 {
         self.average.value()
     }
@@ -89,7 +91,7 @@ impl Phototaxis {
 
 impl Default for Phototaxis {
     fn default() -> Self {
-        let n = 16;
+        let n = Self::N_DIR;
         let mut vec = Vec::new();
 
         let half_life = 40;
