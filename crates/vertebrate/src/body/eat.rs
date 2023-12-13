@@ -4,9 +4,9 @@ pub struct BodyEat {
     is_sensor_food: bool,
 
     is_sweet: DecayValue,
-    is_umami: f32,
-    is_bitter: f32,
-    is_sour: f32,
+    _is_umami: f32,
+    _is_bitter: f32,
+    _is_sour: f32,
 
     blood_sugar: DecayValue,
 
@@ -19,9 +19,9 @@ impl BodyEat {
             is_sensor_food: false,
 
             is_sweet: DecayValue::new(10),
-            is_umami: 0.,
-            is_bitter: 0.,
-            is_sour: 0.,
+            _is_umami: 0.,
+            _is_bitter: 0.,
+            _is_sour: 0.,
 
             blood_sugar: DecayValue::new(200).fill_time(20),
 

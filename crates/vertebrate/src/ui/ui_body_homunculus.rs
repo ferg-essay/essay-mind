@@ -9,6 +9,7 @@ use essay_plot::{
 use ui_graphics::{ui_layout::{BoxId, UiLayout, UiLayoutEvent}, UiCanvas, ui_canvas::UiRender};
 use crate::{body::Body, mid_explore::MidExplore};
 use crate::ui::ui_world::UiWorldPlugin;
+use crate::util::Angle;
 
 #[derive(Component)]
 pub struct UiHomunculus {
@@ -233,12 +234,11 @@ pub fn ui_homunculus_draw(
             ui.draw_path(&paths.ss_lr, &style);
         }
 
-        let dir = body.head_dir().to_unit() - 0.25;
         let value = 0.75;
-        ui_homunculus.head_dir.draw(&mut ui, dir, value);
+        ui_homunculus.head_dir.draw(&mut ui, body.head_dir(), value);
 
         let goal_dir = body.goal_dir();
-        ui_homunculus.goal_dir.draw(&mut ui, goal_dir.to_unit() - 0.25, goal_dir.value());
+        ui_homunculus.goal_dir.draw(&mut ui, goal_dir.dir(), goal_dir.value());
     }
 }
 
@@ -366,15 +366,16 @@ impl HeadDir {
 
         let to_pos = unit.affine_to(&pos);
 
-        let a_2 = TAU / n as f32;
+        //let a_2 = TAU / n as f32;
+        let a_2 = 1. / n as f32;
         let h1 = radius;
         let h2 = radius - Self::WIDTH;
 
         let mut unit_paths = Vec::new();
 
         for i in 0..n {
-            let a0 = i as f32 * a_2; // - a_2 / 2.;
-            let a1 = a0 + a_2;
+            let a0 = Angle::Unit(i as f32 * a_2); // - a_2 / 2.;
+            let a1 = Angle::Unit((i as f32 + 1.) * a_2);
 
             let (x0, y0) = a0.sin_cos();
             let (x1, y1) = a1.sin_cos();
@@ -421,17 +422,18 @@ impl HeadDir {
         self.paths = paths;
     }
 
-    fn draw<'a>(&self, ui: &mut UiRender<'a>, dir: f32, value: f32) {
+    fn draw<'a>(&self, ui: &mut UiRender<'a>, dir: Angle, value: f32) {
         let mut style = PathStyle::new();
         // style.edge_color("midnight blue");
         //style.face_color("white");
 
-        let da = TAU / self.paths.len() as f32;
+        // let da = TAU / self.paths.len() as f32;
+        let da = 1. / self.paths.len() as f32;
 
-        let dir = TAU * dir;
+        // let dir = TAU * dir;
 
         for (i, path) in self.paths.iter().enumerate() {
-            let angle = (i as f32 + 0.5) * da + dir;
+            let angle = Angle::Unit((i as f32 + 0.5) * da + dir.to_unit());
 
             if self.is_head {
                 let cos = angle.cos().max(0.);

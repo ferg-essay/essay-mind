@@ -26,7 +26,7 @@ impl Body {
         let mut locomotion = BodyLocomotion::new(pos);
         locomotion.action_default(Action::forward());
 
-        let mut eat = BodyEat::new();
+        let eat = BodyEat::new();
 
         Self {
             locomotion,
@@ -108,12 +108,6 @@ impl Body {
             None
         }
     }
-}
-
-pub fn spawn_body(
-    mut commands: Commands,
-) {
-    //commands.insert_resource(Body::new(Point(0.5, 0.5)));
 }
 
 ///

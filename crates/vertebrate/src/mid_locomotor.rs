@@ -60,7 +60,7 @@ impl MesState {
 }
 
 impl FromStore for MesState {
-    fn init(store: &mut Store) -> Self {
+    fn init(_store: &mut Store) -> Self {
         MesState {
             left60: ActionFactory::new(1., Angle::Deg(-60.)),
             right60: ActionFactory::new(1., Angle::Deg(60.)),

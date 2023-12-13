@@ -1,3 +1,5 @@
+use std::f32::consts::TAU;
+
 use essay_ecs::prelude::*;
 use essay_plot::artist::{PathStyle, Markers};
 use essay_plot::artist::paths::Unit;
@@ -54,7 +56,7 @@ pub fn draw_body(
         ui.draw_path(&body, &style);
 
         let head = Markers::TriLeft.get_path()
-            .rotate::<Canvas>(turn.to_radians())
+            .rotate::<Canvas>(turn.to_radians() + TAU * 0.75)
             .scale::<Canvas>(0.10, 0.10)
             .translate::<Canvas>(head_pt.0, head_pt.1)
             .transform(&transform);

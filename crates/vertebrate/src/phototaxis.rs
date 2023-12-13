@@ -19,7 +19,8 @@ pub struct Phototaxis {
 
     short_average: DecayValue,
 
-    dir_gradients: Vec<DirGradient>,
+    //dir_gradients: Vec<DirGradient>,
+    goal_vector: GoalVector,
 }
 
 impl Phototaxis {
@@ -45,6 +46,7 @@ impl Phototaxis {
         self.value() - self.short_average()
     }
 
+    /*
     fn dir_gradient(&mut self, dir: Angle) -> &mut DirGradient {
         let len = self.dir_gradients.len();
 
@@ -52,8 +54,11 @@ impl Phototaxis {
 
         &mut self.dir_gradients[i]
     }
+    */
 
     fn goal_vector(&self) -> DirVector {
+        self.goal_vector.to_vector()
+        /*
         let mut best_dir = self.dir_gradients[0].to_vector();
 
         for i in 1..self.dir_gradients.len() {
@@ -65,6 +70,7 @@ impl Phototaxis {
         }
 
         best_dir
+        */
     }
 
     pub fn update(&mut self, value: f32, head_dir: Angle) {
@@ -76,38 +82,43 @@ impl Phototaxis {
         self.short_average.update();
         self.short_average.add(value);
 
-        for dir_gradients in &mut self.dir_gradients {
-            dir_gradients.update();
-        }
+        //for dir_gradients in &mut self.dir_gradients {
+        //    dir_gradients.update();
+        //}
 
         let gradient = self.short_gradient();
+        self.goal_vector.avoid(head_dir, gradient);
+        /*
         if gradient > 0. {
             let reverse_dir = Angle::Unit(head_dir.to_unit() + 0.5);
 
-            self.dir_gradient(reverse_dir).set_max(gradient);
+            //self.dir_gradient(reverse_dir).set_max(gradient);
+            self.goal_vector.avoid(reverse_dir, gradient);
         } else if gradient < 0. {
-            self.dir_gradient(head_dir).set_max(- gradient);
+            //self.dir_gradient(head_dir).set_max(- gradient);
+            self.goal_vector.avoid(head_dir, - gradient);
         }
+        */
     }
 }
 
 impl Default for Phototaxis {
     fn default() -> Self {
         let n = Self::N_DIR;
-        let mut vec = Vec::new();
+        // let mut vec = Vec::new();
 
         let half_life = 40;
-        for i in 0..n {
-            let dir = Angle::Unit(i as f32 / n as f32);
-            vec.push(DirGradient::new(dir, half_life));
-        }
+        // for i in 0..n {
+        //     let dir = Angle::Unit(i as f32 / n as f32);
+        //    vec.push(DirGradient::new(dir, half_life));
+        //}
 
         Self { 
             // start with 20
             average: DecayValue::new(40),
             short_average: DecayValue::new(5),
             value: 0.,
-            dir_gradients: vec,
+            goal_vector: GoalVector::new(half_life),
         }
     }
 }
@@ -150,6 +161,47 @@ fn update_phototaxis(
 
     let goal_vector = phototaxis.goal_vector();
     body.set_goal_dir(goal_vector);
+}
+
+pub struct GoalVector {
+    dir: Angle,
+    value: DecayValue,
+}
+
+impl GoalVector {
+    fn new(half_life: usize) -> Self {
+        Self {
+            dir: Angle::Unit(0.),
+            value: DecayValue::new(half_life),
+        }
+    }
+
+    fn avoid(&mut self, dir: Angle, gradient: f32) {
+        self.value.update();
+
+        if gradient > 0. {
+            let reverse_dir = Angle::Unit(dir.to_unit() + 0.5);
+
+            self.add_vector(reverse_dir, gradient);
+            //self.dir_gradient(reverse_dir).set_max(gradient);
+            // self.goal_vector.update(reverse_dir, gradient);
+        } else if gradient < 0. {
+            //self.dir_gradient(head_dir).set_max(- gradient);
+            // self.goal_vector.update(head_dir, - gradient);
+            self.add_vector(dir, - gradient);
+        }
+    }
+
+    fn add_vector(&mut self, dir: Angle, value: f32) {
+        if self.value.value() < value {
+            self.dir = dir;
+            self.value.set(value);
+        }
+    }
+
+    fn to_vector(&self) -> DirVector {
+        DirVector::new(self.dir, self.value.value())
+    }
 }
 
 pub struct PhototaxisPlugin;
