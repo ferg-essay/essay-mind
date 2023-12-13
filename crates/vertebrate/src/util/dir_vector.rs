@@ -1,4 +1,4 @@
-use essay_plot::api::Angle;
+use super::Angle;
 
 #[derive(Clone, Debug)]
 pub struct DirVector {

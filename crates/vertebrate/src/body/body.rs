@@ -1,12 +1,11 @@
 use essay_ecs::prelude::*;
-use essay_plot::prelude::*;
 
 use essay_tensor::Tensor;
 use mind_ecs::Tick;
 use test_log::{TestLog, TestLogPlugin};
 use crate::body::{BodyLocomotion, Action};
 
-use crate::util::DirVector;
+use crate::util::{DirVector, Point, Angle};
 use crate::world::{OdorType, World, WorldPlugin};
 
 use super::eat::BodyEat;
@@ -92,7 +91,7 @@ impl Body {
         self.locomotion.speed()
     }
 
-    pub fn turn(&self) -> f32 {
+    pub fn turn(&self) -> Angle {
         self.locomotion.turn()
     }
 
@@ -144,7 +143,7 @@ pub fn body_log(
     mut log: ResMut<TestLog>,
 ) {
     log.log(&format!("body: ({:.1}, {:.1}) dy={:.1} swim={:.1} turn={:.1}",
-        body.pos().x(), body.pos().y(), body.dir().to_unit(), body.speed(), body.turn()
+        body.pos().x(), body.pos().y(), body.dir().to_unit(), body.speed(), body.turn().to_unit()
     ));
 }
 

@@ -1,8 +1,4 @@
-use essay_plot::api::Point;
-
-use crate::{world::World, util::DecayValue};
-
-use super::Body;
+use crate::{world::World, util::{DecayValue, Point}};
 
 pub struct BodyEat {
     is_sensor_food: bool,

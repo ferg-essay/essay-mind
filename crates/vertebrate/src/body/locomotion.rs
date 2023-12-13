@@ -1,9 +1,9 @@
 //use essay_ecs::prelude::*;
-use essay_plot::prelude::*;
+//use essay_plot::prelude::*;
 
 use essay_tensor::Tensor;
 
-use crate::world::World;
+use crate::{world::World, util::{Point, Angle}};
 
 // #[derive(Component)]
 pub struct BodyLocomotion {
@@ -52,7 +52,7 @@ impl BodyLocomotion {
 
         let Point(x, y) = self.pos;
 
-        let (dy, dx) = self.dir.to_radians().sin_cos();
+        let (dy, dx) = self.dir.sin_cos();
 
         let len = self.body_len;
         // head location
@@ -115,11 +115,11 @@ impl BodyLocomotion {
         self.action.is_none()
     }
 
-    pub fn turn(&self) -> f32 {
+    pub fn turn(&self) -> Angle {
         if let Some(action) = &self.action {
-            action.turn.to_unit()
+            action.turn
         } else {
-            0.
+            Angle::Unit(0.)
         }
     }
 
@@ -172,7 +172,7 @@ impl BodyLocomotion {
 
         let Point(mut x, mut y) = self.pos;
 
-        let (dy, dx) = self.dir.to_radians().sin_cos();
+        let (dy, dx) = self.dir.sin_cos();
 
         // head location
         let head = self.pos_head();

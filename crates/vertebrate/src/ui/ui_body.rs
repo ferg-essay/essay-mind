@@ -1,13 +1,15 @@
 use essay_ecs::prelude::*;
+use essay_plot::artist::{PathStyle, Markers};
+use essay_plot::artist::paths::Unit;
 use essay_plot::{
-    prelude::*, 
-    artist::PathStyle, 
-    artist::{paths::Unit, Markers}
+    prelude::*,
 };
+
+use crate::util as util;
 
 use mind_ecs::PostTick;
 use ui_graphics::UiCanvas;
-use crate::body::Body;
+use crate::{body::Body, util::Angle};
 use crate::ui::ui_world::{UiWorldPlugin, UiWorld};
 
 use super::ui_world::DrawAgent;
@@ -25,29 +27,21 @@ pub fn draw_body(
     let transform = world.to_canvas().matmul(&transform);
 
     let head_len = 0.3;
-    let mut head_dir = 0.;
-
-    if body.turn() < 0.5 {
-        let turn = body.turn().clamp(0., 0.25);
-        head_dir += Angle::Unit(0.5 * turn).to_radians();
-    } else {
-        let turn = body.turn().clamp(0.75, 1.) - 1.;
-        head_dir += Angle::Unit(0.5 * turn).to_radians();
-    }
-
-    let head_pt = Point(
-        0.1 + head_dir.cos() * head_len, 
-        head_dir.sin() * head_len
-    );
+    let turn = util::Angle::Unit(body.turn().to_unit_zero() * 0.5);
 
     let tail_pt = Point(
-        - 0.1 - head_dir.cos() * head_len, 
-        head_dir.sin() * head_len
+        - 0.1 - turn.sin() * head_len, 
+        - turn.cos() * head_len,
+    );
+
+    let head_pt = Point(
+        0.1 + turn.sin() * head_len, 
+        - turn.cos() * head_len,
     );
 
     let body = Path::<Unit>::move_to(tail_pt.0, tail_pt.1)
-        .line_to(-0.1, 0.0)
-        .line_to(0.1, 0.0)
+        .line_to(-0.1, 0.)
+        .line_to(0.1, 0.)
         .line_to(head_pt.0, head_pt.1)
         .to_path()
         .transform(&transform);
@@ -61,7 +55,7 @@ pub fn draw_body(
     ui.draw_path(&body, &style);
 
     let head = Markers::TriLeft.get_path()
-        .rotate::<Canvas>(head_dir)
+        .rotate::<Canvas>(turn.to_radians())
         .scale::<Canvas>(0.10, 0.10)
         .translate::<Canvas>(head_pt.0, head_pt.1)
         .transform(&transform);
@@ -75,7 +69,7 @@ pub fn update_trail(
     mut ui_trail: ResMut<UiTrail>,
     body: Res<Body>,
 ) {
-    ui_trail.add(body.pos());
+    ui_trail.add(Point(body.pos().0, body.pos().1));
 }
 
 pub fn draw_trail(

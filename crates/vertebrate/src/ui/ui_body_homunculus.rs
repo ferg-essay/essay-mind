@@ -174,7 +174,7 @@ pub fn ui_homunculus_draw(
     explore: Res<MidExplore>,
     mut ui: ResMut<UiCanvas>
 ) {
-    let turn = (body.turn() + 0.5) % 1.;
+    let turn = body.turn().to_unit(); // (body.turn().to_unit() + 0.5) % 1.;
 
     let paths = &ui_homunculus.paths_canvas;
 

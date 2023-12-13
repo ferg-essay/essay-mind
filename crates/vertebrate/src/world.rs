@@ -2,7 +2,8 @@ use core::fmt;
 use std::ops::{Index, IndexMut};
 
 use essay_ecs::prelude::*;
-use essay_plot::prelude::*;
+
+use crate::util::{Point, Angle};
 
 #[derive(Component)]
 pub struct World {

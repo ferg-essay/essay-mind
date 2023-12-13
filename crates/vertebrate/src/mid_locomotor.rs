@@ -1,12 +1,12 @@
 use essay_ecs::core::Store;
 use essay_ecs::core::store::FromStore;
 use essay_ecs::{prelude::*, core::Local};
-use essay_plot::prelude::Angle;
 use mind_ecs::Tick;
 use crate::action::Turn;
 use crate::mid_explore::MidExplore;
 use crate::tectum::{TectumPlugin, TectumLocomotionStn};
 use crate::body::{ActionFactory, Body, BodyPlugin};
+use crate::util::Angle;
 
 pub struct MesState {
     left60: ActionFactory,
@@ -62,8 +62,8 @@ impl MesState {
 impl FromStore for MesState {
     fn init(store: &mut Store) -> Self {
         MesState {
-            left60: ActionFactory::new(1., Angle::Deg(60.)),
-            right60: ActionFactory::new(1., Angle::Deg(-60.)),
+            left60: ActionFactory::new(1., Angle::Deg(-60.)),
+            right60: ActionFactory::new(1., Angle::Deg(60.)),
             _forward: ActionFactory::new(1., Angle::Deg(0.)),
 
             // explore: MidExplore::init(store),

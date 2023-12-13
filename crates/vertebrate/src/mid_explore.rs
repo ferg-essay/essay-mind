@@ -1,8 +1,7 @@
 use essay_ecs::core::Store;
 use essay_ecs::core::store::FromStore;
-use essay_plot::prelude::Angle;
 use util::random::{random_pareto, random, random_normal};
-use crate::{body::{Action, Body}, util::DirVector};
+use crate::{body::{Action, Body}, util::{DirVector, Angle}};
 
 pub struct MidExplore {
     alpha: f32,

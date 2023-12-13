@@ -3,12 +3,14 @@
 ///
 
 use essay_ecs::prelude::{Plugin, App, ResMut, Res};
-use essay_plot::prelude::Angle;
 use mind_ecs::Tick;
 
 use crate::{
     body::Body, 
-    world::{World, OdorType}, mid_explore::MidExplore, mid_locomotor::MidLocomotorPlugin, util::{DecayValue, DirVector},
+    world::World, 
+    mid_explore::MidExplore, 
+    mid_locomotor::MidLocomotorPlugin, 
+    util::{DecayValue, DirVector, DirGradient, Angle},
 };
 
 pub struct Phototaxis {
@@ -107,32 +109,6 @@ impl Default for Phototaxis {
             value: 0.,
             dir_gradients: vec,
         }
-    }
-}
-
-struct DirGradient {
-    dir: Angle,
-    gradient: DecayValue,
-}
-
-impl DirGradient {
-    fn new(dir: Angle, half_life: usize) -> Self {
-        Self {
-            dir,
-            gradient: DecayValue::new(half_life),
-        }        
-    }
-
-    fn set_max(&mut self, value: f32) {
-        self.gradient.set_max(value);
-    }
-
-    fn update(&mut self) {
-        self.gradient.update();
-    }
-
-    fn to_vector(&self) -> DirVector {
-        DirVector::new(self.dir, self.gradient.value())
     }
 }
 
