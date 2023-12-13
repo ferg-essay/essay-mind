@@ -127,7 +127,7 @@ fn update_phototaxis(
     }
 
     // the 5HT cells average the past light
-    let average = phototaxis.average.value();
+    // let average = phototaxis.average.value();
 
     let diff = phototaxis.gradient();
 

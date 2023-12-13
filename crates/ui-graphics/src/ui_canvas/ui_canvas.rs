@@ -55,6 +55,21 @@ impl UiCanvas {
         }
     }
 
+    pub fn renderer<'a>(&'a mut self, clip: Clip) -> Option<UiRender<'a>> {
+        match &self.view {
+            Some(view) => {
+                Some(UiRender::new(PlotRenderer::new(
+                    &mut self.plot_canvas, 
+                    &self.wgpu.device, 
+                    Some(&self.wgpu.queue), 
+                    Some(&view.view)),
+                    clip
+                ))
+            },
+            None => None
+        }
+    }
+
     pub fn draw_path(&mut self, path: &Path<Canvas>, style: &PathStyle) {
         if let Some(view) = &self.view {
             let mut plot_renderer = PlotRenderer::new(
@@ -188,6 +203,75 @@ impl UiCanvas {
 
     pub(crate) fn set_stale(&mut self) {
         self.is_stale = true;
+    }
+}
+
+pub struct UiRender<'a> {
+    renderer: PlotRenderer<'a>,
+    clip: Clip,
+}
+
+impl<'a> UiRender<'a> {
+    fn new(renderer: PlotRenderer<'a>, clip: Clip) -> Self {
+        Self {
+            renderer,
+            clip
+        }
+    }
+
+    pub fn draw_path(&mut self, path: &Path<Canvas>, style: &PathStyle) {
+        self.renderer.draw_path(path, style, &Clip::None).unwrap();
+
+        // self.renderer.flush(&seClip::None);
+    }
+
+    pub fn draw_markers(
+        &mut self, 
+        path: &Path<Canvas>,
+        xy: impl Into<Tensor>,
+        sizes: impl Into<Tensor>,
+        colors: &Vec<Color>,
+    ) {
+        let color: Tensor<u32> = colors.iter().map(|c| c.to_rgba()).collect();
+        let style = PathStyle::new();
+    
+        self.renderer.draw_markers(
+            path, 
+            &xy.into(), 
+            &sizes.into(), 
+            &color,
+            &style,
+            &Clip::None,
+        ).unwrap();
+
+        // plot_renderer.flush(clip);
+    }
+
+    pub fn draw_text(
+        &mut self, 
+        xy: impl Into<Point>, 
+        text: &str, 
+        text_style: &TextStyle
+    ) {
+        //canvas.clear_screen(&view);
+
+        let style = PathStyle::new();
+    
+        self.renderer.draw_text(xy.into(), text, 0., &style, text_style, &Clip::None).unwrap();
+    }
+
+    pub fn draw_image(&mut self, pos: &Bounds<Canvas>, image: ImageId) {
+        self.renderer.draw_image_ref(pos, image, &Clip::None).unwrap();
+    }
+
+    pub fn flush(&mut self) {
+        self.renderer.flush(&self.clip);
+    }
+}
+
+impl<'a> Drop for UiRender<'a> {
+    fn drop(&mut self) {
+        self.flush();
     }
 }
 

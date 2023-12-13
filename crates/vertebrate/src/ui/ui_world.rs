@@ -94,7 +94,7 @@ pub fn world_resize(
 pub fn draw_world(
     world: Res<World>, 
     mut ui_world: ResMut<UiWorld>, 
-    mut ui: ResMut<UiCanvas>
+    mut ui_canvas: ResMut<UiCanvas>
 ) {
     if ui_world.image.is_none() {
         let mut vec = Vec::<[u8; 4]>::new();
@@ -108,31 +108,33 @@ pub fn draw_world(
         let colors = Tensor::from(&vec);
         let colors = colors.reshape([ui_world.height as usize, ui_world.width as usize, 4]);
 
-        ui_world.image = ui.create_image(colors);
+        ui_world.image = ui_canvas.create_image(colors);
     }
 
     // TODO: cache texture when unmodified
 
-    let circle = paths::circle().transform(&ui_world.to_canvas());
-    let mut xy : Vec<[f32; 2]> = Vec::new();
-    let mut sizes : Vec<[f32; 2]> = Vec::new();
-    let mut colors : Vec<Color> = Vec::new();
+    if let Some(mut ui) = ui_canvas.renderer(ui_world.clip().clone()) {
+        let circle = paths::circle().transform(&ui_world.to_canvas());
+        let mut xy : Vec<[f32; 2]> = Vec::new();
+        let mut sizes : Vec<[f32; 2]> = Vec::new();
+        let mut colors : Vec<Color> = Vec::new();
 
-    for odor in world.odors() {
-        xy.push([odor.x(), odor.y()]);
-        sizes.push([odor.r(), odor.r()]);
+        for odor in world.odors() {
+            xy.push([odor.x(), odor.y()]);
+            sizes.push([odor.r(), odor.r()]);
 
-        colors.push(Color::from(odor.odor()).set_alpha(0.2));
-    }
+            colors.push(Color::from(odor.odor()).set_alpha(0.2));
+        }
 
-    let xy = ui_world.to_canvas().transform(&Tensor::from(xy));
+        let xy = ui_world.to_canvas().transform(&Tensor::from(xy));
 
-    if xy.len() > 0 {
-        ui.draw_markers(&circle, xy, sizes, &colors, &ui_world.clip());
-    }
+        if xy.len() > 0 {
+            ui.draw_markers(&circle, xy, sizes, &colors); // , &ui_world.clip());
+        }
 
-    if let Some(image) = &ui_world.image {
-        ui.draw_image(&ui_world.pos, image.clone());
+        if let Some(image) = &ui_world.image {
+            ui.draw_image(&ui_world.pos, image.clone());
+        }
     }
 }
 

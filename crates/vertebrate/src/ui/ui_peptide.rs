@@ -103,54 +103,56 @@ pub fn ui_peptide_draw(
     ui_peptide: ResMut<UiPeptide>, 
     mut ui: ResMut<UiCanvas>
 ) {
-    let to_canvas = &ui_peptide.to_canvas();
-    let y_min = 0.1;
-    let x_margin = 0.2;
-    let width = ui_peptide.peptides.len().max(1);
+    if let Some(mut ui_render) = ui.renderer(Clip::None) {
+        let to_canvas = &ui_peptide.to_canvas();
+        let y_min = 0.1;
+        let x_margin = 0.2;
+        let width = ui_peptide.peptides.len().max(1);
 
-    let y_mid = y_min + 0.5 * (1. - y_min);
+        let y_mid = y_min + 0.5 * (1. - y_min);
 
-    let mid = paths::rect::<Unit>(
-        [0., y_mid], 
-        [1. * width as f32, y_mid + 0.001]
-    ).transform(&ui_peptide.to_canvas());
+        let mid = paths::rect::<Unit>(
+            [0., y_mid], 
+            [1. * width as f32, y_mid + 0.001]
+        ).transform(&ui_peptide.to_canvas());
     
-    let mut style = PathStyle::new();
-    style.color(0xe0e0e0);
-    ui.draw_path(&mid, &style);
+        let mut style = PathStyle::new();
+        style.color(0xe0e0e0);
+        ui_render.draw_path(&mid, &style);
 
-    let mut text_style = TextStyle::new();
-    text_style.valign(VertAlign::Top);
+        let mut text_style = TextStyle::new();
+        text_style.valign(VertAlign::Top);
 
-    for (i, item) in ui_peptide.peptides.iter().enumerate() {
-        let value = item.value;
-        let y = (1. - y_min) * value + y_min;
-        let x = i as f32;
+        for (i, item) in ui_peptide.peptides.iter().enumerate() {
+            let value = item.value;
+            let y = (1. - y_min) * value + y_min;
+            let x = i as f32;
 
-        let line = paths::rect::<Unit>(
-            [x + x_margin, y_min], 
-            [x + 1.0 - x_margin, y]
-        ).transform(to_canvas);
+            let line = paths::rect::<Unit>(
+                [x + x_margin, y_min], 
+                [x + 1.0 - x_margin, y]
+            ).transform(to_canvas);
 
-        style.color(item.color);
+            style.color(item.color);
 
-        ui.draw_path(&line, &style);
+            ui_render.draw_path(&line, &style);
 
-        ui.draw_text(
-            to_canvas.transform_point(Point(x + 0.5, y_min)), 
-            &item.label,
-            &text_style
-        );
+            ui_render.draw_text(
+                to_canvas.transform_point(Point(x + 0.5, y_min)), 
+                &item.label,
+                &text_style
+            );
+        }
+
+        let base = paths::rect::<Unit>(
+            [0., y_min], 
+            [1. * width as f32, y_min + 0.001]
+        ).transform(&ui_peptide.to_canvas());
+    
+        let mut style = PathStyle::new();
+        style.color("black");
+        ui_render.draw_path(&base, &style);
     }
-
-    let base = paths::rect::<Unit>(
-        [0., y_min], 
-        [1. * width as f32, y_min + 0.001]
-    ).transform(&ui_peptide.to_canvas());
-    
-    let mut style = PathStyle::new();
-    style.color("black");
-    ui.draw_path(&base, &style);
 }
 
 pub struct UiPeptidePlugin {

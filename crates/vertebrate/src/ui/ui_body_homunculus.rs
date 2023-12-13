@@ -6,7 +6,7 @@ use essay_plot::{
     artist::{paths::Unit, PathStyle, ColorMaps, ColorMap}
 };
 
-use ui_graphics::{ui_layout::{BoxId, UiLayout, UiLayoutEvent}, UiCanvas};
+use ui_graphics::{ui_layout::{BoxId, UiLayout, UiLayoutEvent}, UiCanvas, ui_canvas::UiRender};
 use crate::{body::Body, mid_explore::MidExplore};
 use crate::ui::ui_world::UiWorldPlugin;
 
@@ -24,7 +24,7 @@ pub struct UiHomunculus {
     goal_dir: HeadDir,
 
     colors: ColorMap,
-    head_dir_colors: ColorMap,
+    _head_dir_colors: ColorMap,
     avoid_colors: ColorMap,
 }
 
@@ -52,7 +52,7 @@ impl UiHomunculus {
             goal_dir: goal_dir,
 
             colors: sensorimotor_colormap(),
-            head_dir_colors: head_colormap(),
+            _head_dir_colors: head_colormap(),
             avoid_colors: avoid_colormap(),
         }
     }
@@ -172,72 +172,74 @@ pub fn ui_homunculus_draw(
     ui_homunculus: ResMut<UiHomunculus>,
     body: Res<Body>,
     explore: Res<MidExplore>,
-    mut ui: ResMut<UiCanvas>
+    mut ui_canvas: ResMut<UiCanvas>
 ) {
-    let turn = body.turn().to_unit(); // (body.turn().to_unit() + 0.5) % 1.;
+    if let Some(mut ui) = ui_canvas.renderer(Clip::None) {
+        let turn = body.turn().to_unit(); // (body.turn().to_unit() + 0.5) % 1.;
 
-    let paths = &ui_homunculus.paths_canvas;
+        let paths = &ui_homunculus.paths_canvas;
 
-    let mut style = PathStyle::new();
-    style.edge_color("black");
-    style.face_color(ui_homunculus.colors.map(0.5));
+        let mut style = PathStyle::new();
+        style.edge_color("black");
+        style.face_color(ui_homunculus.colors.map(0.5));
 
-    ui.draw_path(&paths.outline, &style);
+        ui.draw_path(&paths.outline, &style);
 
-    style.edge_color(ui_homunculus.colors.map(1.));
-    style.face_color(ui_homunculus.colors.map(1.));
+        style.edge_color(ui_homunculus.colors.map(1.));
+        style.face_color(ui_homunculus.colors.map(1.));
 
-    if body.is_collide_left() { 
-        ui.draw_path(&paths.ss_ul, &style);
+        if body.is_collide_left() { 
+            ui.draw_path(&paths.ss_ul, &style);
+        }
+
+        if body.is_collide_right() { 
+            ui.draw_path(&paths.ss_ur, &style);
+        }
+
+        style.edge_color(ui_homunculus.colors.map(0.2));
+        style.face_color(ui_homunculus.colors.map(0.2));
+
+        let turn_left = turn.clamp(0., 0.5) * 2.;
+        let turn_right = turn.clamp(0.5, 1.) * 2. - 1.;
+
+        if turn_left < 1. {
+            ui.draw_path(&paths.mo_lr, &style);
+        }
+
+        if turn_right > 0. {
+            ui.draw_path(&paths.mo_ll, &style);
+        }
+
+        if explore.avoid_forward() > 0. {
+            let color = ui_homunculus.avoid_colors.map(explore.avoid_forward());
+            style.edge_color(color);
+            style.face_color(color);
+            ui.draw_path(&paths.u_turn, &style);
+        }
+
+        if explore.avoid_left() > 0. {
+            let color = ui_homunculus.avoid_colors.map(explore.avoid_left());
+
+            style.edge_color(color);
+            style.face_color(color);
+            ui.draw_path(&paths.ss_ll, &style);
+        }
+
+        if explore.avoid_right() > 0. {
+            let color = ui_homunculus.avoid_colors.map(explore.avoid_right());
+
+            style.edge_color(color);
+            style.face_color(color);
+            ui.draw_path(&paths.ss_lr, &style);
+        }
+
+        let dir = body.head_dir().to_unit() - 0.25;
+        let value = 0.75;
+        ui_homunculus.head_dir.draw(&mut ui, dir, value);
+
+        let goal_dir = body.goal_dir();
+        ui_homunculus.goal_dir.draw(&mut ui, goal_dir.to_unit() - 0.25, goal_dir.value());
     }
-
-    if body.is_collide_right() { 
-        ui.draw_path(&paths.ss_ur, &style);
-    }
-
-    style.edge_color(ui_homunculus.colors.map(0.2));
-    style.face_color(ui_homunculus.colors.map(0.2));
-
-    let turn_left = turn.clamp(0., 0.5) * 2.;
-    let turn_right = turn.clamp(0.5, 1.) * 2. - 1.;
-
-    if turn_left < 1. {
-        ui.draw_path(&paths.mo_lr, &style);
-    }
-
-    if turn_right > 0. {
-        ui.draw_path(&paths.mo_ll, &style);
-    }
-
-    if explore.avoid_forward() > 0. {
-        let color = ui_homunculus.avoid_colors.map(explore.avoid_forward());
-        style.edge_color(color);
-        style.face_color(color);
-        ui.draw_path(&paths.u_turn, &style);
-    }
-
-    if explore.avoid_left() > 0. {
-        let color = ui_homunculus.avoid_colors.map(explore.avoid_left());
-
-        style.edge_color(color);
-        style.face_color(color);
-        ui.draw_path(&paths.ss_ll, &style);
-    }
-
-    if explore.avoid_right() > 0. {
-        let color = ui_homunculus.avoid_colors.map(explore.avoid_right());
-
-        style.edge_color(color);
-        style.face_color(color);
-        ui.draw_path(&paths.ss_lr, &style);
-    }
-
-    let dir = body.head_dir().to_unit() - 0.25;
-    let value = 0.75;
-    ui_homunculus.head_dir.draw(ui.get_mut(), dir, value);
-
-    let goal_dir = body.goal_dir();
-    ui_homunculus.goal_dir.draw(ui.get_mut(), goal_dir.to_unit() - 0.25, goal_dir.value());
 }
 
 fn corner_ul(i: usize) -> Path::<Unit> {
@@ -337,7 +339,7 @@ fn u_turn(i: usize) -> Path::<Unit> {
 
 struct HeadDir {
     unit: Bounds<Unit>,
-    pos: Bounds<Unit>,
+    _pos: Bounds<Unit>,
     to_pos: Affine2d,
 
     unit_paths: Vec<Path<Unit>>,
@@ -390,7 +392,7 @@ impl HeadDir {
 
         Self {
             unit,
-            pos,
+            _pos: pos,
             to_pos,
             unit_paths,
             is_head: true,
@@ -419,7 +421,7 @@ impl HeadDir {
         self.paths = paths;
     }
 
-    fn draw(&self, ui: &mut UiCanvas, dir: f32, value: f32) {
+    fn draw<'a>(&self, ui: &mut UiRender<'a>, dir: f32, value: f32) {
         let mut style = PathStyle::new();
         // style.edge_color("midnight blue");
         //style.face_color("white");

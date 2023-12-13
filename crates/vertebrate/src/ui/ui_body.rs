@@ -1,15 +1,13 @@
 use essay_ecs::prelude::*;
 use essay_plot::artist::{PathStyle, Markers};
 use essay_plot::artist::paths::Unit;
-use essay_plot::{
-    prelude::*,
-};
+use essay_plot::prelude::*;
 
 use crate::util as util;
 
 use mind_ecs::PostTick;
 use ui_graphics::UiCanvas;
-use crate::{body::Body, util::Angle};
+use crate::body::Body;
 use crate::ui::ui_world::{UiWorldPlugin, UiWorld};
 
 use super::ui_world::DrawAgent;
@@ -17,52 +15,54 @@ use super::ui_world::DrawAgent;
 pub fn draw_body(
     body: Res<Body>, 
     world: Res<UiWorld>, 
-    mut ui: ResMut<UiCanvas>
+    mut ui_canvas: ResMut<UiCanvas>
 ) {
-    let mut style = PathStyle::new();
-    let transform = Affine2d::eye()
-        .rotate(body.dir().to_radians())
-        .translate(body.pos().x(), body.pos().y());
+    if let Some(mut ui) = ui_canvas.renderer(Clip::None) {
+        let mut style = PathStyle::new();
+        let transform = Affine2d::eye()
+            .rotate(body.dir().to_radians())
+            .translate(body.pos().x(), body.pos().y());
 
-    let transform = world.to_canvas().matmul(&transform);
+        let transform = world.to_canvas().matmul(&transform);
 
-    let head_len = 0.3;
-    let turn = util::Angle::Unit(body.turn().to_unit_zero() * 0.5);
+        let head_len = 0.3;
+        let turn = util::Angle::Unit(body.turn().to_unit_zero() * 0.5);
 
-    let tail_pt = Point(
-        - 0.1 - turn.sin() * head_len, 
-        - turn.cos() * head_len,
-    );
+        let tail_pt = Point(
+            - 0.1 - turn.sin() * head_len, 
+            - turn.cos() * head_len,
+        );
 
-    let head_pt = Point(
-        0.1 + turn.sin() * head_len, 
-        - turn.cos() * head_len,
-    );
+        let head_pt = Point(
+            0.1 + turn.sin() * head_len, 
+            - turn.cos() * head_len,
+        );
 
-    let body = Path::<Unit>::move_to(tail_pt.0, tail_pt.1)
-        .line_to(-0.1, 0.)
-        .line_to(0.1, 0.)
-        .line_to(head_pt.0, head_pt.1)
-        .to_path()
-        .transform(&transform);
+        let body = Path::<Unit>::move_to(tail_pt.0, tail_pt.1)
+            .line_to(-0.1, 0.)
+            .line_to(0.1, 0.)
+            .line_to(head_pt.0, head_pt.1)
+            .to_path()
+            .transform(&transform);
 
-    let color = Color::from("azure");
-    style.line_width(3.);
-    style.join_style(JoinStyle::Round);
-    style.cap_style(CapStyle::Round);
-    style.color(color);
+        let color = Color::from("azure");
+        style.line_width(3.);
+        style.join_style(JoinStyle::Round);
+        style.cap_style(CapStyle::Round);
+        style.color(color);
 
-    ui.draw_path(&body, &style);
+        ui.draw_path(&body, &style);
 
-    let head = Markers::TriLeft.get_path()
-        .rotate::<Canvas>(turn.to_radians())
-        .scale::<Canvas>(0.10, 0.10)
-        .translate::<Canvas>(head_pt.0, head_pt.1)
-        .transform(&transform);
+        let head = Markers::TriLeft.get_path()
+            .rotate::<Canvas>(turn.to_radians())
+            .scale::<Canvas>(0.10, 0.10)
+            .translate::<Canvas>(head_pt.0, head_pt.1)
+            .transform(&transform);
 
-    style.color("red");
-    style.line_width(3.);
-    ui.draw_path(&head, &style);
+        style.color("red");
+        style.line_width(3.);
+        ui.draw_path(&head, &style);
+    }
 }
 
 pub fn update_trail(
