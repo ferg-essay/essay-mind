@@ -1,9 +1,12 @@
-use essay_ecs::prelude::{Plugin, App};
+use essay_ecs::{prelude::{Plugin, App}, core::ResMut};
+use mind_ecs::Tick;
 
 use crate::{
-    mid_locomotor::MidLocomotorPlugin, 
+    locomotor::{
+        mid_locomotor::MidLocomotorPlugin, 
+        phototaxis::GoalVector
+    },
     util::DecayValue, 
-    phototaxis::GoalVector
 };
 
 pub struct Habenula {
@@ -77,20 +80,6 @@ impl HabenulaGiveUp {
         self.give_up.update();
 
         self
-    }
-}
-
-pub struct HabenulaSeek {
-    toward: Vec::<HabenulaItem>,
-    away: Vec::<HabenulaItem>,
-}
-
-impl HabenulaSeek {
-    pub fn new() -> Self {
-        Self {
-            toward: Vec::new(),
-            away: Vec::new(),
-        }
     }
 }
 

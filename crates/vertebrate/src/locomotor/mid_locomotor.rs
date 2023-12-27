@@ -3,7 +3,7 @@ use essay_ecs::core::store::FromStore;
 use essay_ecs::{prelude::*, core::Local};
 use mind_ecs::Tick;
 use crate::action::Turn;
-use crate::mid_explore::MidExplore;
+use crate::locomotor::mid_explore::MidExplore;
 use crate::tectum::{TectumPlugin, TectumLocomotionStn};
 use crate::body::{ActionFactory, Body, BodyPlugin};
 use crate::util::Angle;
@@ -125,6 +125,11 @@ fn update_locomotor(
     } else if tectum.seek().indirect() {
         explore.update(body.get_mut());
     }
+}
+
+#[derive(Clone, Copy, Debug, Event)]
+pub struct LocomotorEvent {
+
 }
 
 pub struct MidLocomotorPlugin;

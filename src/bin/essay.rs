@@ -7,10 +7,12 @@ use essay_ecs::prelude::App;
 use mind_ecs::TickSchedulePlugin;
 use ui_graphics::UiCanvasPlugin;
 use vertebrate::{
-    habenula_med::HabenulaMedPlugin,
+    habenula_giveup::HabenulaMedPlugin,
     mid_peptides::MidPeptidesPlugin,
-    phototaxis::Phototaxis,
-    mid_locomotor::MidLocomotorPlugin,
+    locomotor::{
+        phototaxis::Phototaxis,
+        mid_locomotor::MidLocomotorPlugin,
+    },
     olfactory_bulb::OlfactoryPlugin,
     tectum::TectumPlugin,
     ui::{

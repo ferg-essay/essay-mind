@@ -1,13 +1,11 @@
-pub mod phototaxis;
+pub mod locomotor;
 pub mod util;
 pub mod ui;
 pub mod action;
 pub mod ach_attention;
 pub mod body;
-pub mod habenula_med;
-pub mod mid_explore;
+pub mod habenula_giveup;
 pub mod mid_feeding;
-pub mod mid_locomotor;
 pub mod mid_peptides;
 pub mod olfactory_bulb;
 pub mod striatum;

@@ -13,7 +13,7 @@ use crate::{
     util::{Angle, DirVector},
 };
 
-pub struct Olfactory {
+pub struct OlfactoryBulb {
     food: Option<OdorItem>,
     avoid: Option<OdorItem>,
 
@@ -21,7 +21,7 @@ pub struct Olfactory {
     odor_map: HashMap<OdorType, usize>,
 }
 
-impl Olfactory {
+impl OlfactoryBulb {
     fn odor(&mut self, odor: OdorType) {
         let index = self.glomerules.len();
 
@@ -51,7 +51,7 @@ impl Olfactory {
         }
     }
 }
-impl Default for Olfactory {
+impl Default for OlfactoryBulb {
     fn default() -> Self {
         Self { 
             food: None,
@@ -65,7 +65,7 @@ impl Default for Olfactory {
 fn update_olfactory(
     body: Res<Body>, 
     world: Res<World>, 
-    mut olf_bulb: ResMut<Olfactory>,
+    mut olf_bulb: ResMut<OlfactoryBulb>,
 ) {
     olf_bulb.food = None;
     olf_bulb.avoid = None;
@@ -142,7 +142,7 @@ impl OlfactoryPlugin {
 
 impl Plugin for OlfactoryPlugin {
     fn build(&self, app: &mut App) {
-        let mut bulb = Olfactory::default();
+        let mut bulb = OlfactoryBulb::default();
 
         for odor in &self.odors {
             bulb.odor(*odor);

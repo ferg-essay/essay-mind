@@ -1,15 +1,15 @@
 use essay_ecs::{app::{Plugin, App}, core::{Res, ResMut}};
 use mind_ecs::Tick;
-use crate::{olfactory_bulb::Olfactory, habenula_med::Habenula, body::Body, mid_peptides::MidPeptides};
+use crate::{olfactory_bulb::OlfactoryBulb, habenula_giveup::HabenulaGiveUp, body::Body, mid_peptides::MidPeptides};
 
 struct MidFeeding {
-    give_up_hb: Habenula,
+    give_up_hb: HabenulaGiveUp,
 }
 
 impl MidFeeding {
     fn new() -> Self {
         Self {
-            give_up_hb: Habenula::new(40),
+            give_up_hb: HabenulaGiveUp::new(40),
         }
     }
 }
@@ -74,7 +74,7 @@ fn update_body_glucose(
 }
 
 fn update_feeding_olfactory(
-    olfactory: Res<Olfactory>,
+    olfactory: Res<OlfactoryBulb>,
     mut peptides: ResMut<MidPeptides>
 ) {
     if olfactory.food_dir().is_some() {
@@ -117,7 +117,7 @@ impl Plugin for MidFeedingPlugin {
         app.system(Tick, update_near_food);
         app.system(Tick, update_eat);
 
-        if app.contains_resource::<Olfactory>() {
+        if app.contains_resource::<OlfactoryBulb>() {
             app.system(Tick, update_feeding_olfactory);
         }
     }

@@ -8,9 +8,11 @@ use mind_ecs::Tick;
 use crate::{
     body::Body, 
     world::World, 
-    mid_explore::MidExplore, 
-    mid_locomotor::MidLocomotorPlugin, 
-    util::{DecayValue, DirVector, DirGradient, Angle},
+    locomotor::{
+        mid_explore::MidExplore, 
+        mid_locomotor::MidLocomotorPlugin, 
+    },
+    util::{DecayValue, DirVector, Angle},
 };
 
 pub struct Phototaxis {
@@ -46,31 +48,8 @@ impl Phototaxis {
         self.value() - self.short_average()
     }
 
-    /*
-    fn dir_gradient(&mut self, dir: Angle) -> &mut DirGradient {
-        let len = self.dir_gradients.len();
-
-        let i = ((dir.to_unit() * len as f32) as usize).clamp(0, len - 1);
-
-        &mut self.dir_gradients[i]
-    }
-    */
-
     fn goal_vector(&self) -> DirVector {
         self.goal_vector.to_vector()
-        /*
-        let mut best_dir = self.dir_gradients[0].to_vector();
-
-        for i in 1..self.dir_gradients.len() {
-            let dir_vector = self.dir_gradients[i].to_vector();
-
-            if best_dir.value() < dir_vector.value() {
-                best_dir = dir_vector;
-            }
-        }
-
-        best_dir
-        */
     }
 
     pub fn update(&mut self, value: f32, head_dir: Angle) {
@@ -88,30 +67,12 @@ impl Phototaxis {
 
         let gradient = self.short_gradient();
         self.goal_vector.avoid(head_dir, gradient);
-        /*
-        if gradient > 0. {
-            let reverse_dir = Angle::Unit(head_dir.to_unit() + 0.5);
-
-            //self.dir_gradient(reverse_dir).set_max(gradient);
-            self.goal_vector.avoid(reverse_dir, gradient);
-        } else if gradient < 0. {
-            //self.dir_gradient(head_dir).set_max(- gradient);
-            self.goal_vector.avoid(head_dir, - gradient);
-        }
-        */
     }
 }
 
 impl Default for Phototaxis {
     fn default() -> Self {
-        let n = Self::N_DIR;
-        // let mut vec = Vec::new();
-
         let half_life = 40;
-        // for i in 0..n {
-        //     let dir = Angle::Unit(i as f32 / n as f32);
-        //    vec.push(DirGradient::new(dir, half_life));
-        //}
 
         Self { 
             // start with 20

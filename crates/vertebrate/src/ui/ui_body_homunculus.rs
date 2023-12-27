@@ -5,7 +5,7 @@ use essay_plot::{
 };
 
 use ui_graphics::{ui_layout::{BoxId, UiLayout, UiLayoutEvent}, UiCanvas, ui_canvas::UiRender};
-use crate::{body::Body, mid_explore::MidExplore};
+use crate::{body::Body, locomotor::mid_explore::MidExplore};
 use crate::ui::ui_world::UiWorldPlugin;
 use crate::util::Angle;
 
