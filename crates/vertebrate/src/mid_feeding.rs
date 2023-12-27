@@ -1,6 +1,6 @@
 use essay_ecs::{app::{Plugin, App}, core::{Res, ResMut}};
 use mind_ecs::Tick;
-use crate::{olfactory::Olfactory, habenula_med::Habenula, body::Body, mid_peptides::MidPeptides};
+use crate::{olfactory_bulb::Olfactory, habenula_med::Habenula, body::Body, mid_peptides::MidPeptides};
 
 struct MidFeeding {
     give_up_hb: Habenula,

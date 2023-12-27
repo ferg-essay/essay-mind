@@ -1,27 +1,29 @@
 use std::time::Duration;
 
-use essay::{world_place_preference, food_graph, food_peptides};
+use essay::{food_graph, food_peptides};
 use essay_plot::api::Colors;
 use vertebrate::body::{BodyPlugin, Body};
 use essay_ecs::prelude::App;
 use mind_ecs::TickSchedulePlugin;
-use vertebrate::habenula_med::HabenulaMedPlugin;
-use vertebrate::mid_feeding::MidFeedingPlugin;
-use vertebrate::mid_peptides::{MidPeptidesPlugin, MidPeptides};
-use vertebrate::phototaxis::{PhototaxisPlugin, Phototaxis};
-use vertebrate::tuberculum::TuberculumPlugin;
-use vertebrate::mid_locomotor::MidLocomotorPlugin;
-use vertebrate::olfactory::OlfactoryPlugin;
-use vertebrate::tectum::TectumPlugin;
-use vertebrate::ui::ui_body::{UiBodyPlugin, UiBodyTrailPlugin};
-use vertebrate::ui::ui_body_heatmap::UiLocationHeatmapPlugin;
 use ui_graphics::UiCanvasPlugin;
-use vertebrate::ui::ui_body_homunculus::UiHomunculusPlugin;
-use vertebrate::ui::ui_graph::UiGraphPlugin;
-use vertebrate::ui::ui_peptide::UiPeptidePlugin;
-use vertebrate::ui::ui_table::UiTablePlugin;
-use vertebrate::ui::ui_world::UiWorldPlugin;
-use vertebrate::world::{World, WorldPlugin, OdorType};
+use vertebrate::{
+    habenula_med::HabenulaMedPlugin,
+    mid_peptides::MidPeptidesPlugin,
+    phototaxis::Phototaxis,
+    mid_locomotor::MidLocomotorPlugin,
+    olfactory_bulb::OlfactoryPlugin,
+    tectum::TectumPlugin,
+    ui::{
+        ui_body::{UiBodyPlugin, UiBodyTrailPlugin},
+        ui_body_heatmap::UiLocationHeatmapPlugin,
+        ui_body_homunculus::UiHomunculusPlugin,
+        ui_graph::UiGraphPlugin,
+        ui_peptide::UiPeptidePlugin,
+        ui_table::UiTablePlugin,
+        ui_world::UiWorldPlugin,
+    },
+    world::{World, WorldPlugin, OdorType}
+};
 
 pub fn main() {
     let mut app = App::new();
@@ -31,7 +33,10 @@ pub fn main() {
     //world_place_preference(&mut app);
     world_odor(&mut app);
     app.plugin(BodyPlugin::new());
-    app.plugin(OlfactoryPlugin);
+    app.plugin(OlfactoryPlugin::new()
+        .odor(OdorType::FoodA)
+        .odor(OdorType::FoodB)
+    );
     app.plugin(TectumPlugin::new().striatum());
     app.plugin(MidLocomotorPlugin);
     // app.plugin(TuberculumPlugin);

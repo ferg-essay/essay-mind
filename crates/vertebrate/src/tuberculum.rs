@@ -1,9 +1,9 @@
-use essay_ecs::{prelude::{Plugin, App, ResMut, Res}};
+use essay_ecs::prelude::{Plugin, App, ResMut, Res};
 use mind_ecs::Tick;
 
 use crate::{
     mid_locomotor::MidLocomotorPlugin, 
-    olfactory::{OlfactoryPlugin, Olfactory}, 
+    olfactory_bulb::{OlfactoryPlugin, Olfactory}, 
     tectum::TectumLocomotionStn,
     action::Turn, mid_peptides::MidPeptides, 
 };

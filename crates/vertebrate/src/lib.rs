@@ -9,7 +9,7 @@ pub mod mid_explore;
 pub mod mid_feeding;
 pub mod mid_locomotor;
 pub mod mid_peptides;
-pub mod olfactory;
+pub mod olfactory_bulb;
 pub mod striatum;
 pub mod tectum;
 pub mod tuberculum;

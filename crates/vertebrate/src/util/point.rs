@@ -39,6 +39,10 @@ impl Point {
 
         dx.hypot(dy)
     }
+
+    pub fn angle_to(&self, pos: Point) -> Angle {
+        Angle::Rad((pos.x() - self.x()).atan2(pos.y() - self.y()))
+    }
 }
 
 impl From<[f32; 2]> for Point {

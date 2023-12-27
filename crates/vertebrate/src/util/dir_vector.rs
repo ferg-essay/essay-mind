@@ -14,6 +14,13 @@ impl DirVector {
         }
     }
 
+    pub fn zero() -> Self {
+        Self {
+            dir: Angle::Unit(0.),
+            value: 0.,
+        }
+    }
+
     #[inline]
     pub fn value(&self) -> f32 {
         self.value

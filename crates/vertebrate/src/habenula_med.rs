@@ -1,10 +1,9 @@
-use essay_ecs::{prelude::{Plugin, App, ResMut, Res}, core::{store::FromStore, Store, Local}};
-use mind_ecs::Tick;
+use essay_ecs::prelude::{Plugin, App};
 
 use crate::{
     mid_locomotor::MidLocomotorPlugin, 
-    olfactory::{OlfactoryPlugin, Olfactory}, 
-    tectum::TectumLocomotionStn, action::Turn, util::DecayValue, phototaxis::GoalVector
+    util::DecayValue, 
+    phototaxis::GoalVector
 };
 
 pub struct Habenula {
@@ -44,6 +43,54 @@ impl Habenula {
         self.give_up.update();
 
         self
+    }
+}
+
+pub struct HabenulaGiveUp {
+    give_up: DecayValue,
+}
+
+impl HabenulaGiveUp {
+    pub fn new(half_life: usize) -> Self {
+        Self {
+            give_up: DecayValue::new(half_life),
+        }
+    }
+
+    pub fn value(&self) -> f32 {
+        self.give_up.value()
+    }
+
+    pub fn excite(&mut self, value: f32) -> &mut Self {
+        self.give_up.add(value);
+
+        self
+    }
+
+    pub fn inhibit(&mut self, value: f32) -> &mut Self {
+        self.give_up.subtract(value);
+
+        self
+    }
+
+    pub fn update(&mut self) -> &mut Self {
+        self.give_up.update();
+
+        self
+    }
+}
+
+pub struct HabenulaSeek {
+    toward: Vec::<HabenulaItem>,
+    away: Vec::<HabenulaItem>,
+}
+
+impl HabenulaSeek {
+    pub fn new() -> Self {
+        Self {
+            toward: Vec::new(),
+            away: Vec::new(),
+        }
     }
 }
 

@@ -3,7 +3,7 @@ use std::ops::{Index, IndexMut};
 
 use essay_ecs::prelude::*;
 
-use crate::util::{Point, Angle};
+use crate::util::{Point, Angle, DirVector};
 
 #[derive(Component)]
 pub struct World {
@@ -118,6 +118,23 @@ impl World {
     pub fn odors(&self) -> &Vec<Odor> {
         &self.odors
     }
+
+    pub fn odors_by_head(&self, point: Point) -> Vec<(OdorType, DirVector)> {
+        let mut odors = Vec::new();
+
+        for odor in &self.odors {
+            let dist = point.dist(&odor.pos());
+
+            if dist < odor.r() {
+                let angle = point.angle_to(odor.pos());
+                let value = 1. / dist.max(1.);
+
+                odors.push((odor.odor(), DirVector::new(angle, value)));
+            }
+        }
+        
+        odors
+    }
 }
 
 impl Index<(usize, usize)> for World {
@@ -150,7 +167,7 @@ pub struct Odor {
     odor: OdorType,
 }
 
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Debug, Copy, PartialEq, Eq, Hash)]
 pub enum OdorType {
     FoodA,
     FoodB,
@@ -216,6 +233,10 @@ impl Odor {
 
     pub fn y(&self) -> f32 {
         self.y
+    }
+
+    pub fn pos(&self) -> Point {
+        Point(self.x, self.y)
     }
 
     pub fn r(&self) -> f32 {
