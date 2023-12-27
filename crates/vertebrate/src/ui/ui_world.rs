@@ -12,6 +12,7 @@ pub struct UiWorld {
     id: BoxId,
     pos: Bounds<Canvas>,
     clip: Clip,
+    to_canvas: Affine2d,
     bounds: Bounds<UiWorld>,
     width: usize,
     height: usize,
@@ -28,6 +29,7 @@ impl UiWorld {
             id,
             pos: Bounds::zero(),
             clip: Clip::None,
+            to_canvas: Affine2d::eye(),
             width,
             height,
             bounds: Bounds::from([width as f32, height as f32]),
@@ -56,6 +58,9 @@ impl UiWorld {
         let xmin = xmin.max(10.);
         let ymin = ymin.max(10.);
 
+        //let xmin = pos.xmin();
+        //let ymin = pos.ymin();
+
         let c_width = c_width - xmin - pos.xmin();
         let c_height = c_height - xmin - pos.xmin();
 
@@ -66,10 +71,18 @@ impl UiWorld {
 
         self.pos = pos;
         self.clip = Clip::from(&self.pos);
+        self.to_canvas = self.bounds.affine_to(&self.pos);
     }
 
     pub fn to_canvas(&self) -> Affine2d {
-        self.bounds.affine_to(&self.pos)
+        self.to_canvas.clone()
+    }
+
+    pub fn to_canvas_scale(&self) -> Affine2d {
+        Affine2d::eye().scale(
+            self.pos.width() / self.bounds.width(), 
+            self.pos.height() / self.bounds.height(),
+        )
     }
 
     pub fn clip(&self) -> &Clip {
@@ -114,7 +127,7 @@ pub fn draw_world(
     // TODO: cache texture when unmodified
 
     if let Some(mut ui) = ui_canvas.renderer(ui_world.clip().clone()) {
-        let circle = paths::circle().transform(&ui_world.to_canvas());
+        let circle = paths::circle().transform(&ui_world.to_canvas_scale());
         let mut xy : Vec<[f32; 2]> = Vec::new();
         let mut sizes : Vec<[f32; 2]> = Vec::new();
         let mut colors : Vec<Color> = Vec::new();

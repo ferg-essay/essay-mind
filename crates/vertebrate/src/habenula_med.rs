@@ -4,96 +4,89 @@ use mind_ecs::Tick;
 use crate::{
     mid_locomotor::MidLocomotorPlugin, 
     olfactory::{OlfactoryPlugin, Olfactory}, 
-    tectum::TectumLocomotionStn, action::Turn
+    tectum::TectumLocomotionStn, action::Turn, util::DecayValue, phototaxis::GoalVector
 };
 
 pub struct Habenula {
-    decay: f32,
+    give_up: DecayValue,
 
-    value: f32
+    toward: Vec::<HabenulaItem>,
+    away: Vec::<HabenulaItem>,
 }
 
 impl Habenula {
-    pub fn new(half_life: f32) -> Self {
+    pub fn new(half_life: usize) -> Self {
         Self {
-            decay: 0.1 / half_life,
-            value: 0.5,
+            give_up: DecayValue::new(half_life),
+
+            toward: Vec::new(),
+            away: Vec::new(),
         }
     }
 
     pub fn value(&self) -> f32 {
-        self.value
+        self.give_up.value()
     }
 
     pub fn excite(&mut self, value: f32) -> &mut Self {
-        self.value += self.decay * 0.5 * value.clamp(0., 1.);
+        self.give_up.add(value);
 
         self
     }
 
     pub fn inhibit(&mut self, value: f32) -> &mut Self {
-        self.value -= self.decay * 0.5 * value.clamp(0., 1.);
+        self.give_up.subtract(value);
 
         self
     }
 
     pub fn update(&mut self) -> &mut Self {
-        self.value = self.value * (1. - self.decay) + 0.5 * self.decay;
+        self.give_up.update();
 
         self
     }
 }
 
-///
-/// Medial habenula
-/// 
-/// For this essay, used for motivated (odor-seeking) locomotion
-///
+struct HabenulaItem {
+    value: f32,
 
-struct HabenulaState {
+    average: DecayValue,
+    goal_vector: GoalVector,
 }
-
-impl HabenulaState {
-    fn persevere(&mut self) -> bool {
-        true
-    }
-
-    fn decay(&mut self) {
+impl HabenulaItem {
+    fn update(&mut self, value: f32) {
+        self.average.update();
+        self.average.add(value);
     }
 }
 
-impl FromStore for HabenulaState {
-    fn init(_store: &mut Store) -> Self {
-        HabenulaState {
+pub struct HabenulaSetter {
+    avoid: AvoidType,
+    index: usize,
+}
+
+impl HabenulaSetter {
+    pub fn update(&self, value: f32, mut hb: impl AsMut<Habenula>) {
+        let hb = hb.as_mut();
+
+        match self.avoid {
+            AvoidType::TOWARD => { hb.toward[self.index].update(value) },
+            AvoidType::AWAY => { hb.away[self.index].update(value) },
         }
     }
 }
 
-fn update_habenula_med(
-    odor: Res<Olfactory>, 
-    mut hb: Local<HabenulaState>,
-    mut tectum: ResMut<TectumLocomotionStn>,
-) {
-    hb.decay();
-    
-    // "where" / "how" path
-    if let Some(angle) = odor.avoid_dir() {
-        if hb.persevere() {
-            if 0.05 <= angle.to_unit() && angle.to_unit() <= 0.5 {
-                tectum.away_odor().turn(Turn::Right, 1.);
-            } else {
-                tectum.away_odor().turn(Turn::Left, 1.);
-            }
-        }
-    }
+enum AvoidType {
+    TOWARD,
+    AWAY,
 }
+
 pub struct HabenulaMedPlugin;
 
 impl Plugin for HabenulaMedPlugin {
     fn build(&self, app: &mut App) {
         assert!(app.contains_plugin::<MidLocomotorPlugin>(), "HabenulaMedPlugin requires MidLocomotorPlugin");
-        assert!(app.contains_plugin::<OlfactoryPlugin>(), "HabenulaMedPlugin requires OlfactoryPlugin");
 
-        app.system(Tick, update_habenula_med);
+        // app.system(Tick, update_habenula_med);
     }
 }

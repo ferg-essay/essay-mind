@@ -1,4 +1,4 @@
-use std::cell::RefCell;
+use std::{cell::RefCell, any::type_name};
 
 use essay_ecs::prelude::*;
 use essay_plot::prelude::*;
@@ -141,7 +141,8 @@ struct ItemImpl<T> {
 
 impl<T: Send + Sync + 'static> Item for ItemImpl<T> {
     fn add(&self, id: PlotKeyId, app: &mut App) {
-        assert!(app.contains_resource::<T>());
+        assert!(app.contains_resource::<T>(),
+            "{:?} is an unregistered resource", type_name::<T>());
 
         if ! app.contains_resource::<PeptideUpdates<T>>() {
             let updates: PeptideUpdates<T> = PeptideUpdates {

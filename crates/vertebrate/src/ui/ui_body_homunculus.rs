@@ -1,5 +1,3 @@
-use std::f32::consts::TAU;
-
 use essay_ecs::prelude::*;
 use essay_plot::{
     prelude::*, 

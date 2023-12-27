@@ -9,7 +9,7 @@ struct MidFeeding {
 impl MidFeeding {
     fn new() -> Self {
         Self {
-            give_up_hb: Habenula::new(40.),
+            give_up_hb: Habenula::new(40),
         }
     }
 }

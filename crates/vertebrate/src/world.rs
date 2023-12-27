@@ -10,7 +10,7 @@ pub struct World {
     width: usize,
     height: usize,
     cells: Vec<WorldCell>,
-    food: Vec<Food>,
+    odors: Vec<Odor>,
 }
 
 impl World {
@@ -23,7 +23,7 @@ impl World {
             width,
             height,
             cells: values,
-            food: Vec::new(),
+            odors: Vec::new(),
         }
     }
 
@@ -73,11 +73,11 @@ impl World {
             self[(x, y)] = WorldCell::Food;
         }
 
-        self.food.push(Food::new(x, y, odor));
+        self.odors.push(Odor::new(x, y, odor));
     }
 
     fn add_odor(&mut self, x: usize, y: usize, odor: OdorType) {
-        self.food.push(Food::new(x, y, odor));
+        self.odors.push(Odor::new(x, y, odor));
     }
 
     pub fn odor(&self, pt: Point) -> Option<(OdorType, Angle)> {
@@ -86,7 +86,7 @@ impl World {
         let mut best_odor: Option<(OdorType, Angle)> = None;
         let mut best_dist = f32::MAX;
 
-        for food in &self.food {
+        for food in &self.odors {
             let dx = food.x - x;
             let dy = food.y - y;
             let dist = dx.hypot(dy);
@@ -115,8 +115,8 @@ impl World {
         }
     }
 
-    pub fn odors(&self) -> &Vec<Food> {
-        &self.food
+    pub fn odors(&self) -> &Vec<Odor> {
+        &self.odors
     }
 }
 
@@ -144,7 +144,7 @@ pub enum WorldCell {
     FloorDark,
 }
 
-pub struct Food {
+pub struct Odor {
     x: f32,
     y: f32,
     odor: OdorType,
@@ -199,7 +199,7 @@ impl From<usize> for OdorType {
     }
 }
 
-impl Food {
+impl Odor {
     pub const RADIUS: f32 = 3.;
 
     fn new(x: usize, y: usize, odor: OdorType) -> Self {
@@ -231,7 +231,7 @@ impl Food {
     }
 }
 
-impl fmt::Debug for Food {
+impl fmt::Debug for Odor {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_tuple("Food").field(&self.x).field(&self.y).finish()
     }
