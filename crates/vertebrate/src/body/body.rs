@@ -123,7 +123,9 @@ pub fn body_physics(
 
     if body.locomotion.is_collide_left() {
         touch_event.send(Touch::CollideLeft);
-    } else if body.locomotion.is_collide_right() {
+    } 
+    
+    if body.locomotion.is_collide_right() {
         touch_event.send(Touch::CollideRight);
     }
 

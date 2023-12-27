@@ -9,7 +9,7 @@ use crate::{
     body::Body, 
     world::World, 
     locomotor::{
-        mid_explore::MidExplore, 
+        //mid_explore::MidExplore, 
         mid_locomotor::MidLocomotorPlugin, 
         habenula_seek::HabenulaSeek,
     },

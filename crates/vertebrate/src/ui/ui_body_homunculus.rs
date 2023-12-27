@@ -5,7 +5,7 @@ use essay_plot::{
 };
 
 use ui_graphics::{ui_layout::{BoxId, UiLayout, UiLayoutEvent}, UiCanvas, ui_canvas::UiRender};
-use crate::{body::Body, locomotor::mid_explore::MidExplore};
+use crate::{body::Body, locomotor::taxis_pons::TaxisPons};
 use crate::ui::ui_world::UiWorldPlugin;
 use crate::util::Angle;
 
@@ -170,7 +170,7 @@ pub fn ui_homunculus_resize(
 pub fn ui_homunculus_draw(
     ui_homunculus: ResMut<UiHomunculus>,
     body: Res<Body>,
-    explore: Res<MidExplore>,
+    explore: Res<TaxisPons>,
     mut ui_canvas: ResMut<UiCanvas>
 ) {
     if let Some(mut ui) = ui_canvas.renderer(Clip::None) {

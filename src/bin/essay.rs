@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use essay::{food_graph, food_peptides};
 use essay_plot::api::Colors;
-use vertebrate::body::{BodyPlugin, Body};
+use vertebrate::{body::{BodyPlugin, Body}, locomotor::taxis_pons::TaxisPonsPlugin};
 use essay_ecs::prelude::App;
 use mind_ecs::TickSchedulePlugin;
 use ui_graphics::UiCanvasPlugin;
@@ -35,14 +35,16 @@ pub fn main() {
     //world_place_preference(&mut app);
     world_odor(&mut app);
     app.plugin(BodyPlugin::new());
+    app.plugin(TaxisPonsPlugin);
+
     app.plugin(OlfactoryPlugin::new()
         .odor(OdorType::FoodA)
         .odor(OdorType::FoodB)
     );
     app.plugin(TectumPlugin::new().striatum());
-    app.plugin(MidLocomotorPlugin);
+    // app.plugin(MidLocomotorPlugin);
     // app.plugin(TuberculumPlugin);
-    app.plugin(HabenulaMedPlugin);
+    // app.plugin(HabenulaMedPlugin);
     app.plugin(MidPeptidesPlugin);
     //app.plugin(MidFeedingPlugin);
     //app.plugin(PhototaxisPlugin);

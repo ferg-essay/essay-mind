@@ -3,7 +3,7 @@ use essay_ecs::core::store::FromStore;
 use essay_ecs::{prelude::*, core::Local};
 use mind_ecs::Tick;
 use crate::action::Turn;
-use crate::locomotor::mid_explore::MidExplore;
+//use crate::locomotor::mid_explore::MidExplore;
 use crate::tectum::{TectumPlugin, TectumLocomotionStn};
 use crate::body::{ActionFactory, Body, BodyPlugin};
 use crate::util::Angle;
@@ -87,7 +87,7 @@ fn update_touch(
 fn update_locomotor(
     mut body: ResMut<Body>, 
     mut tectum: ResMut<TectumLocomotionStn>,
-    mut explore: ResMut<MidExplore>,
+    // mut explore: ResMut<MidExplore>,
     mut state: Local<MesState>, 
 ) {
     let tectum = tectum.get_mut();
@@ -123,7 +123,8 @@ fn update_locomotor(
 
         tectum.seek().action_copy(turn)
     } else if tectum.seek().indirect() {
-        explore.update(body.get_mut());
+        todo!();
+        // explore.update(body.get_mut());
     }
 }
 
@@ -136,11 +137,12 @@ pub struct MidLocomotorPlugin;
 
 impl Plugin for MidLocomotorPlugin {
     fn build(&self, app: &mut App) {
+        todo!();
         assert!(app.contains_plugin::<BodyPlugin>(), "MesLocomotorPlugin requires BodyPlugin");
         assert!(app.contains_plugin::<TectumPlugin>(), "MesLocomotorPlugin requires TectumPlugin");
 
-        app.init_resource::<MidExplore>();
+        //app.init_resource::<MidExplore>();
 
-        app.system(Tick, update_locomotor);
+        // app.system(Tick, update_locomotor);
     }
 }

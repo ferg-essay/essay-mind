@@ -4,7 +4,7 @@ use essay_ecs::{prelude::*, core::Local};
 use mind_ecs::Tick;
 use crate::action::Turn;
 use crate::body::touch::Touch;
-use crate::locomotor::mid_explore::MidExplore;
+//use crate::locomotor::mid_explore::MidExplore;
 use crate::tectum::{TectumPlugin, TectumLocomotionStn};
 use crate::body::{ActionFactory, Body, BodyPlugin, Action};
 use crate::util::{Angle, DirVector};
@@ -23,6 +23,33 @@ pub struct TaxisPons {
 
 impl TaxisPons {
     const _CPG_TIME : f32 = 1.;
+
+    pub fn avoid_left(&self) -> f32 {
+        match self.action {
+            TaxisAction::None => self.explore.avoid_left(),
+            TaxisAction::StrongAvoidLeft => 1.,
+            TaxisAction::StrongAvoidRight => 0.,
+            TaxisAction::StrongAvoidBoth => 1.,
+        }
+    }
+
+    pub fn avoid_right(&self) -> f32 {
+        match self.action {
+            TaxisAction::None => self.explore.avoid_right(),
+            TaxisAction::StrongAvoidLeft => 0.,
+            TaxisAction::StrongAvoidRight => 1.,
+            TaxisAction::StrongAvoidBoth => 1.,
+        }
+    }
+
+    pub fn avoid_forward(&self) -> f32 {
+        match self.action {
+            TaxisAction::None => self.explore.avoid_forward(),
+            TaxisAction::StrongAvoidLeft => 0.,
+            TaxisAction::StrongAvoidRight => 0.,
+            TaxisAction::StrongAvoidBoth => 1.,
+        }
+    }
 
     fn pre_update(&mut self) {
         self.action = TaxisAction::None;
@@ -82,29 +109,6 @@ impl FromStore for TaxisPons {
             action: TaxisAction::None,
         }
     }
-}
-
-fn update_touch(
-    mut locomotor: ResMut<TaxisPons>,
-    mut touch: InEvent<Touch>,
-) {
-    for touch in touch.iter() {
-        match touch {
-            Touch::CollideLeft => {
-            },
-            Touch::CollideRight => {
-            },
-        }
-    }
-    /*
-    if body.is_collide_left() {
-        tectum.away().turn(Turn::Right, 1.);
-    }
-
-    if body.is_collide_right() {
-        tectum.away().turn(Turn::Left, 1.);
-    }
-    */
 }
 
 fn update_taxis_pons(
@@ -375,14 +379,15 @@ impl TaxisTurn {
     }
 }
 
-pub struct LocomotorPonsPlugin;
+pub struct TaxisPonsPlugin;
 
-impl Plugin for LocomotorPonsPlugin {
+impl Plugin for TaxisPonsPlugin {
     fn build(&self, app: &mut App) {
         assert!(app.contains_plugin::<BodyPlugin>(), "MesLocomotorPlugin requires BodyPlugin");
         // assert!(app.contains_plugin::<TectumPlugin>(), "MesLocomotorPlugin requires TectumPlugin");
 
         // app.init_resource::<Explore>();
+        app.event::<TaxisEvent>();
         app.init_resource::<TaxisPons>();
 
         app.system(Tick, update_taxis_pons);
