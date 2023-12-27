@@ -113,6 +113,10 @@ impl MidExplore {
         self.is_turn
     }
 
+    pub fn pre_update(&mut self) {
+        self.normal();
+    }
+
     pub fn update(
         &mut self,
         body: &mut Body

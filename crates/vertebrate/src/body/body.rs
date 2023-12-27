@@ -3,6 +3,7 @@ use essay_ecs::prelude::*;
 use essay_tensor::Tensor;
 use mind_ecs::Tick;
 use test_log::{TestLog, TestLogPlugin};
+use crate::body::touch::Touch;
 use crate::body::{BodyLocomotion, Action};
 
 use crate::util::{DirVector, Point, Angle};
@@ -115,9 +116,17 @@ impl Body {
 /// 
 pub fn body_physics(
     mut body: ResMut<Body>,
+    mut touch_event: OutEvent<Touch>,
     world: Res<World>,
 ) {
     body.locomotion.update(world.get());
+
+    if body.locomotion.is_collide_left() {
+        touch_event.send(Touch::CollideLeft);
+    } else if body.locomotion.is_collide_right() {
+        touch_event.send(Touch::CollideRight);
+    }
+
     let pos_head = body.pos_head();
     body.eat_mut().update(world.get(), pos_head);
 
@@ -156,6 +165,8 @@ impl Plugin for BodyPlugin {
         assert!(app.contains_plugin::<WorldPlugin>(), "BodyPlugin requires WorldPlugin");
 
         app.insert_resource(Body::new(Point(0.5, 0.5)));
+
+        app.event::<Touch>();
 
         app.system(Tick, body_physics);
         // app.system(Tick, body_habit);

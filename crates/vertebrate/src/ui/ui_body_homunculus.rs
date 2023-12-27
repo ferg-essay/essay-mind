@@ -201,7 +201,7 @@ pub fn ui_homunculus_draw(
         let turn_left = turn.clamp(0., 0.5) * 2.;
         let turn_right = turn.clamp(0.5, 1.) * 2. - 1.;
 
-        if turn_left < 1. {
+        if 0. < turn_left && turn_left < 1. {
             ui.draw_path(&paths.mo_lr, &style);
         }
 

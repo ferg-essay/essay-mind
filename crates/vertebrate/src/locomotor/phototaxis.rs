@@ -2,18 +2,17 @@
 /// phototaxis
 ///
 
-use essay_ecs::prelude::{Plugin, App, ResMut, Res};
+use essay_ecs::{prelude::{Plugin, App, ResMut, Res}, app::event::OutEvent};
 use mind_ecs::Tick;
 
 use crate::{
     body::Body, 
     world::World, 
-    locomotor::{
-        mid_explore::MidExplore, 
-        mid_locomotor::MidLocomotorPlugin, 
-    },
+    locomotor::mid_locomotor::MidLocomotorPlugin, 
     util::{DecayValue, DirVector, Angle},
 };
+
+use super::taxis_pons::TaxisEvent;
 
 pub struct Phototaxis {
     average: DecayValue,
@@ -87,7 +86,8 @@ impl Default for Phototaxis {
 fn update_phototaxis(
     mut body: ResMut<Body>, 
     world: Res<World>, 
-    mut explore: ResMut<MidExplore>,
+    //mut explore: ResMut<MidExplore>,
+    mut explore: OutEvent<TaxisEvent>,
     mut phototaxis: ResMut<Phototaxis>,
 ) {
     let light = world.light(body.pos_head());
@@ -106,6 +106,23 @@ fn update_phototaxis(
     let avoid_vector = phototaxis.goal_vector();
     let avoid_ego = avoid_vector.to_ego(body.head_dir());
 
+    let avoid_ego = avoid_ego.scale((-diff).clamp(0., 1.));
+
+    explore.send(TaxisEvent::AvoidVector(avoid_ego));
+
+    if diff >= 0.2 {
+        // positive gradient, move forward, avoiding the current area
+        explore.send(TaxisEvent::Avoid);
+    } else if diff <= -0.2 {
+        // negative gradient, turn avound
+        explore.send(TaxisEvent::AvoidUTurn);
+    } else if light > 0.5 {
+        explore.send(TaxisEvent::Normal);
+    } else {
+        explore.send(TaxisEvent::Avoid);
+    }
+
+    /*
     explore.add_avoid(avoid_ego.scale((-diff).clamp(0., 1.)));
 
     if diff >= 0.2 {
@@ -119,6 +136,7 @@ fn update_phototaxis(
     } else {
         explore.avoid();
     }
+    */
 
     let goal_vector = phototaxis.goal_vector();
     body.set_goal_dir(goal_vector);

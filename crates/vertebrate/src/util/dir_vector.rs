@@ -1,6 +1,6 @@
 use super::Angle;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct DirVector {
     dir: Angle,
     value: f32,
