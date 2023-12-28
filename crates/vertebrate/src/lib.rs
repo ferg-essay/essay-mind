@@ -1,4 +1,3 @@
-pub mod locomotor;
 pub mod util;
 pub mod ui;
 pub mod action;
@@ -9,6 +8,7 @@ pub mod mid_feeding;
 pub mod mid_peptides;
 pub mod olfactory_bulb;
 pub mod striatum;
+pub mod taxis;
 pub mod tectum;
 pub mod tuberculum;
 pub mod world;

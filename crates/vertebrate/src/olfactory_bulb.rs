@@ -4,7 +4,7 @@ use std::collections::HashMap;
 /// Olfactory bulb
 ///
 
-use essay_ecs::prelude::{Plugin, App, ResMut, Res};
+use essay_ecs::{prelude::{Plugin, App, ResMut, Res, Event}, app::event::OutEvent};
 use mind_ecs::Tick;
 
 use crate::{
@@ -22,17 +22,25 @@ pub struct OlfactoryBulb {
 }
 
 impl OlfactoryBulb {
-    fn odor(&mut self, odor: OdorType) {
+    fn odor(&mut self, odor: OdorType) -> OdorId {
         let index = self.glomerules.len();
 
         self.glomerules.push(Glomerule::new(odor));
         self.odor_map.insert(odor, index);
+
+        OdorId(index)
     }
 
     fn update(&mut self) {
         for glom in &mut self.glomerules {
             glom.update();
         }
+    }
+
+    pub fn value(&self, odor: OdorType) -> f32 {
+        let index = self.odor_map.get(&odor).unwrap();
+
+        self.glomerules[*index].vector.value()
     }
 
     pub fn food_dir(&self) -> Option<Angle> {
@@ -66,6 +74,7 @@ fn update_olfactory(
     body: Res<Body>, 
     world: Res<World>, 
     mut olf_bulb: ResMut<OlfactoryBulb>,
+    mut ob_events: OutEvent<ObEvent>,
 ) {
     olf_bulb.food = None;
     olf_bulb.avoid = None;
@@ -84,7 +93,24 @@ fn update_olfactory(
         }
         */
     }
+
+    for glomerule in &olf_bulb.glomerules {
+        if glomerule.vector.value() > Glomerule::MIN {
+            ob_events.send(ObEvent::Odor(glomerule.odor, glomerule.vector));
+        }
+    }
 }
+
+#[derive(Clone, Copy, Debug)]
+pub struct OdorId(usize);
+
+impl OdorId {
+    #[inline]
+    pub fn i(&self) -> usize {
+        self.0
+    }
+}
+
 
 struct OdorItem {
     _odor: OdorType,
@@ -101,14 +127,16 @@ impl OdorItem {
 }
 
 struct Glomerule {
-    _odor: OdorType,
+    odor: OdorType,
     vector: DirVector,
 }
 
 impl Glomerule {
+    const MIN : f32 = 0.;
+
     fn new(odor: OdorType) -> Self {
         Self {
-            _odor: odor,
+            odor,
             vector: DirVector::zero(),
         }
     }
@@ -120,6 +148,11 @@ impl Glomerule {
     fn odor(&mut self, vector: DirVector) {
         self.vector = vector;
     }
+}
+
+#[derive(Clone, Copy, Debug, Event)]
+pub enum ObEvent {
+    Odor(OdorType, DirVector),
 }
 
 pub struct OlfactoryPlugin {
@@ -149,6 +182,8 @@ impl Plugin for OlfactoryPlugin {
         }
 
         app.insert_resource(bulb);
+
+        app.event::<ObEvent>();
 
         app.system(Tick, update_olfactory);
     }

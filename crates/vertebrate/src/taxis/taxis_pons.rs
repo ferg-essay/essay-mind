@@ -1,24 +1,23 @@
 use essay_ecs::core::Store;
 use essay_ecs::core::store::FromStore;
-use essay_ecs::{prelude::*, core::Local};
+use essay_ecs::prelude::*;
 use mind_ecs::Tick;
-use crate::action::Turn;
 use crate::body::touch::Touch;
-//use crate::locomotor::mid_explore::MidExplore;
-use crate::tectum::{TectumPlugin, TectumLocomotionStn};
-use crate::body::{ActionFactory, Body, BodyPlugin, Action};
+use crate::body::{Body, BodyPlugin, Action};
 use crate::util::{Angle, DirVector};
 use util::random::{random_pareto, random, random_normal};
-// use crate::{body::{Action, Body}, util::{DirVector, Angle}};
 
 
 pub struct TaxisPons {
     left60: TaxisTurn,
     right60: TaxisTurn,
-    u_turn: TaxisTurn,
+    left120: TaxisTurn,
+    right120: TaxisTurn,
 
     action: TaxisAction,
     explore: Explore,
+
+    is_first: bool,
 }
 
 impl TaxisPons {
@@ -51,14 +50,47 @@ impl TaxisPons {
         }
     }
 
+    pub fn forward_delta(&self) -> f32 {
+        match self.action {
+            TaxisAction::None => self.explore.forward_delta(),
+            TaxisAction::StrongAvoidLeft => 0.5,
+            TaxisAction::StrongAvoidRight => 0.5,
+            TaxisAction::StrongAvoidBoth => 1.,
+        }
+    }
+
+    pub fn left_delta(&self) -> f32 {
+        match self.action {
+            TaxisAction::None => self.explore.left_delta(),
+            TaxisAction::StrongAvoidLeft => 1.,
+            TaxisAction::StrongAvoidRight => 0.5,
+            TaxisAction::StrongAvoidBoth => 1.,
+        }
+    }
+
+    pub fn right_delta(&self) -> f32 {
+        match self.action {
+            TaxisAction::None => self.explore.right_delta(),
+            TaxisAction::StrongAvoidLeft => 0.5,
+            TaxisAction::StrongAvoidRight => 1.,
+            TaxisAction::StrongAvoidBoth => 1.,
+        }
+    }
+
     fn pre_update(&mut self) {
+        self.is_first = true;
         self.action = TaxisAction::None;
         self.explore.pre_update();
     }
 
     fn event(&mut self, event: &TaxisEvent) {
+        //if self.is_first {
+        //    self.is_first = false;
+        //    self.explore.pre_update();
+        //}
+
         match event {
-            // strong avoid events
+            // collision/escape - strong avoid events
             TaxisEvent::StrongAvoidLeft => {
                 self.action = self.action.avoid_left();
             }
@@ -70,13 +102,21 @@ impl TaxisPons {
                 self.action = self.action.avoid_right();
             }
 
-            // explore events
-            TaxisEvent::Avoid => self.explore.avoid(),
-            TaxisEvent::AvoidUTurn => self.explore.avoid_turn(),
-            TaxisEvent::Normal => self.explore.normal(),
+            // gradient taxis
             TaxisEvent::AvoidVector(vector) => {
                 self.explore.add_avoid(*vector)
             },
+            
+            TaxisEvent::ApproachVector(vector) => {
+                self.explore.add_approach(*vector)
+            },
+
+            // explore/speed modes
+            TaxisEvent::Approach => self.explore.approach(),
+            TaxisEvent::Avoid => self.explore.avoid(),
+            TaxisEvent::AvoidUTurn => self.explore.avoid_turn(),
+            TaxisEvent::Normal => self.explore.normal(),
+
         }
     }
 
@@ -86,13 +126,17 @@ impl TaxisPons {
                 self.explore.update(body);
             },
             TaxisAction::StrongAvoidLeft => {
-                body.locomotion_mut().action(self.right60.action(1.));
+                body.locomotion_mut().avoid(self.right60.action(1.));
             },
             TaxisAction::StrongAvoidRight => {
-                body.locomotion_mut().action(self.left60.action(1.));
+                body.locomotion_mut().avoid(self.left60.action(1.));
             },
             TaxisAction::StrongAvoidBoth => {
-                body.locomotion_mut().action(self.u_turn.action(1.));
+                if random_normal() < 0. {
+                    body.locomotion_mut().avoid(self.left120.action(1.));
+                } else {
+                    body.locomotion_mut().avoid(self.right120.action(1.));
+                }
             },
         }
     }
@@ -103,10 +147,14 @@ impl FromStore for TaxisPons {
         TaxisPons {
             left60: TaxisTurn::new(Angle::Deg(-60.), Angle::Deg(15.)),
             right60: TaxisTurn::new(Angle::Deg(60.), Angle::Deg(15.)),
-            u_turn: TaxisTurn::new(Angle::Deg(180.), Angle::Deg(60.)),
+
+            left120: TaxisTurn::new(Angle::Deg(-120.), Angle::Deg(60.)),
+            right120: TaxisTurn::new(Angle::Deg(120.), Angle::Deg(60.)),
 
             explore: Explore::new(),
             action: TaxisAction::None,
+
+            is_first: true,
         }
     }
 }
@@ -139,13 +187,20 @@ fn update_taxis_pons(
 
 #[derive(Clone, Copy, Debug, Event)]
 pub enum TaxisEvent {
-    Avoid,
-    AvoidUTurn,
-    Normal,
-    AvoidVector(DirVector),
+    // escape/collision
     StrongAvoidLeft,
     StrongAvoidRight,
     StrongAvoidBoth,
+
+    // gradient taxis
+    ApproachVector(DirVector),
+    AvoidVector(DirVector),
+
+    // speed modes
+    Approach,
+    Avoid,
+    AvoidUTurn,
+    Normal,
 }
 
 enum TaxisAction {
@@ -175,6 +230,8 @@ impl TaxisAction {
     }
 }
 struct Explore {
+    speed: f32,
+
     alpha: f32,
     low: f32,
     high: f32,
@@ -182,9 +239,15 @@ struct Explore {
     turn_mean: f32,
     turn_std: f32,
 
+    approach_left: f32,
+    approach_right: f32,
+    approach_forward: f32,
+    approach_dir: DirVector,
+
     avoid_left: f32,
     avoid_right: f32,
     avoid_forward: f32,
+    avoid_dir: DirVector,
 
     is_turn: bool,
 }
@@ -201,6 +264,8 @@ impl Explore {
 
     fn new() -> Self {
         Explore {
+            speed: 1.,
+
             low: Self::LOW,
             high: Self::HIGH,
             alpha: Self::ALPHA,
@@ -208,15 +273,37 @@ impl Explore {
             turn_mean: Self::TURN_MEAN,
             turn_std: Self::TURN_STD,
 
+            approach_left: 0.,
+            approach_right: 0.,
+            approach_forward: 0.,
+            approach_dir: DirVector::zero(),
+
             avoid_left: 0.,
             avoid_right: 0.,
             avoid_forward: 0.,
+            avoid_dir: DirVector::zero(),
 
             is_turn: false,
         }
     }
 
+    fn pre_update(&mut self) {
+        self.normal();
+
+        self.approach_left = 0.;
+        self.approach_right = 0.;
+        self.approach_forward = 0.;
+        self.approach_dir = DirVector::zero();
+
+        self.avoid_left = 0.;
+        self.avoid_right = 0.;
+        self.avoid_forward = 0.;
+        self.avoid_dir = DirVector::zero();
+    }
+
     fn normal(&mut self) {
+        self.speed = 1.;
+
         self.low = Self::LOW;
         self.high = Self::HIGH;
         self.alpha = Self::ALPHA;
@@ -227,15 +314,23 @@ impl Explore {
 
     fn add_avoid(&mut self, avoid_dir: DirVector) {
         if avoid_dir.value() > 0.05 {
-            let offset = 2. * avoid_dir.sin(); //  * avoid_dir.value();
+            let offset = 2. * avoid_dir.sin(); // * avoid_dir.value();
 
             self.avoid_left = offset.clamp(0., 1.);
             self.avoid_right = (- offset).clamp(0., 1.);
             self.avoid_forward = avoid_dir.cos().clamp(0., 1.);
-        } else {
-            self.avoid_left = 0.;
-            self.avoid_right = 0.;
-            self.avoid_forward = 0.;
+            self.avoid_dir = avoid_dir;
+        }
+    }
+
+    fn add_approach(&mut self, approach_dir: DirVector) {
+        if approach_dir.value() > 0.05 {
+            let offset = 2. * approach_dir.dx(); // * approach_dir.value();
+
+            self.approach_left = (- offset).clamp(0., 1.);
+            self.approach_right = offset.clamp(0., 1.);
+            self.approach_forward = - approach_dir.dy().clamp(-1., 0.);
+            self.approach_dir = approach_dir;
         }
     }
 
@@ -282,6 +377,29 @@ impl Explore {
         self.turn_std = 0.5 * Self::TURN_STD;
     }
 
+    fn approach(&mut self) {
+        self.speed = 0.5;
+
+        self.low = 0.5 * Self::LOW;
+        self.high = 0.5 * Self::LOW;
+        self.alpha = Self::ALPHA;
+
+        self.turn_mean = Self::TURN_MEAN;
+        self.turn_std = Self::TURN_STD;
+    }
+
+    fn forward_delta(&self) -> f32 {
+        0.5 * (self.avoid_forward - self.approach_forward + 1.)
+    }
+
+    fn left_delta(&self) -> f32 {
+        0.5 * (self.avoid_left - self.approach_left + 1.)
+    }
+
+    fn right_delta(&self) -> f32 {
+        0.5 * (self.avoid_right - self.approach_right + 1.)
+    }
+
     fn avoid_turn(&mut self) {
         self.low = Self::LOW;
         self.high = 0.5 * Self::HIGH;
@@ -291,24 +409,23 @@ impl Explore {
         self.turn_std = 3. * Self::TURN_STD;
     }
 
-    fn prefer(&mut self) {
+    fn _prefer(&mut self) {
         self.low = Self::LOW;
         self.high = Self::HIGH;
         self.alpha = Self::ALPHA;
     }
 
-    fn is_turn(&self) -> bool {
+    fn _is_turn(&self) -> bool {
         self.is_turn
-    }
-
-    fn pre_update(&mut self) {
-        self.normal();
     }
 
     fn update(
         &mut self,
         body: &mut Body
     ) {
+        body.set_avoid_dir(self.avoid_dir);
+        body.set_approach_dir(self.approach_dir);
+
         if ! body.locomotion().is_idle() {
             return;
         }
@@ -317,7 +434,8 @@ impl Explore {
         let mut mean = self.turn_mean;
         let mut std = self.turn_std;
 
-        if self.avoid_forward > 0. && random_normal().abs() < self.avoid_forward {
+        let avoid_forward = self.avoid_forward + self.approach_forward;
+        if avoid_forward > 0. && random_normal().abs() < avoid_forward {
             mean = 2. * Self::TURN_MEAN;
             std = 3. * Self::TURN_STD;
         }
@@ -329,7 +447,12 @@ impl Explore {
         let high = self.high; // 4.;
         let alpha = self.alpha;
 
-        let p_left = (1. - self.avoid_left) / (2. - self.avoid_left - self.avoid_right);
+        let f = 4.;
+        let approach_left = (1. - f * self.approach_right - self.avoid_left).max(1.0e-6);
+        let approach_right = (1. - f * self.approach_left - self.avoid_right).max(1.0e-6);
+        let p_left = approach_left / (approach_left + approach_right).max(0.01);
+
+        let speed = self.speed;
 
         // semi-brownian
         if self.is_turn {
@@ -337,19 +460,19 @@ impl Explore {
 
             let len = random_pareto(low, high, alpha);
 
-            let action = Action::new(len, 1., Angle::Unit(0.));
+            let action = Action::new(len, speed, Angle::Unit(0.));
 
             body.locomotion_mut().action(action);
         } else if random <= p_left {
             self.is_turn = true;
 
-            let action = Action::new(1., 1., Angle::Deg(angle));
+            let action = Action::new(1., speed, Angle::Deg(- angle));
             body.locomotion_mut().action(action);
             // tectum.toward().action_copy(Turn::Left)
         } else {
             self.is_turn = true;
 
-            let action = Action::new(1., 1., Angle::Deg(-angle));
+            let action = Action::new(1., speed, Angle::Deg(angle));
             body.locomotion_mut().action(action);
             // tectum.toward().action_copy(Turn::Right)
         }

@@ -16,7 +16,8 @@ pub struct Body {
     locomotion: BodyLocomotion,
     eat: BodyEat,
 
-    goal_dir: DirVector,
+    approach_dir: DirVector,
+    avoid_dir: DirVector,
 
     tick_food: usize,
     ticks: usize,
@@ -36,7 +37,8 @@ impl Body {
             tick_food: 0,
             ticks: 0,
 
-            goal_dir: DirVector::new(Angle::Unit(0.), 0.),
+            approach_dir: DirVector::zero(),
+            avoid_dir: DirVector::zero(),
         }
     }
 
@@ -48,12 +50,20 @@ impl Body {
         &mut self.locomotion
     }
 
-    pub fn goal_dir(&self) -> DirVector {
-        self.goal_dir.clone()
+    pub fn avoid_dir(&self) -> DirVector {
+        self.avoid_dir.clone()
     }
 
-    pub fn set_goal_dir(&mut self, dir: DirVector) {
-        self.goal_dir = dir;
+    pub fn set_avoid_dir(&mut self, dir: DirVector) {
+        self.avoid_dir = dir;
+    }
+
+    pub fn approach_dir(&self) -> DirVector {
+        self.approach_dir.clone()
+    }
+
+    pub fn set_approach_dir(&mut self, dir: DirVector) {
+        self.approach_dir = dir;
     }
 
     pub fn eat(&self) -> &BodyEat {

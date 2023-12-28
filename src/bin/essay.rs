@@ -2,14 +2,14 @@ use std::time::Duration;
 
 use essay::{food_graph, food_peptides};
 use essay_plot::api::Colors;
-use vertebrate::{body::{BodyPlugin, Body}, locomotor::taxis_pons::TaxisPonsPlugin};
+use vertebrate::{body::{BodyPlugin, Body}, taxis::{taxis_pons::TaxisPonsPlugin, chemotaxis::ChemotaxisPlugin, habenula_seek::HabenulaSeekPlugin}};
 use essay_ecs::prelude::App;
 use mind_ecs::TickSchedulePlugin;
 use ui_graphics::UiCanvasPlugin;
 use vertebrate::{
     habenula_giveup::HabenulaMedPlugin,
     mid_peptides::MidPeptidesPlugin,
-    locomotor::{
+    taxis::{
         phototaxis::Phototaxis,
         mid_locomotor::MidLocomotorPlugin,
     },
@@ -45,9 +45,11 @@ pub fn main() {
     // app.plugin(MidLocomotorPlugin);
     // app.plugin(TuberculumPlugin);
     // app.plugin(HabenulaMedPlugin);
+    app.plugin(HabenulaSeekPlugin);
     app.plugin(MidPeptidesPlugin);
     //app.plugin(MidFeedingPlugin);
     //app.plugin(PhototaxisPlugin);
+    app.plugin(ChemotaxisPlugin);
 
     //ui_phototaxis(&mut app);
     ui_chemotaxis(&mut app);

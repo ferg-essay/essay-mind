@@ -8,11 +8,11 @@ use mind_ecs::Tick;
 use crate::{
     body::Body, 
     world::World, 
-    locomotor::mid_locomotor::MidLocomotorPlugin, 
+    taxis::mid_locomotor::MidLocomotorPlugin, 
     util::{DecayValue, DirVector, Angle},
 };
 
-use super::taxis_pons::TaxisEvent;
+use super::{taxis_pons::TaxisEvent, GoalVector};
 
 pub struct Phototaxis {
     average: DecayValue,
@@ -122,65 +122,8 @@ fn update_phototaxis(
         explore.send(TaxisEvent::Avoid);
     }
 
-    /*
-    explore.add_avoid(avoid_ego.scale((-diff).clamp(0., 1.)));
-
-    if diff >= 0.2 {
-        // positive gradient, move forward, avoiding the current area
-        explore.avoid(); 
-    } else if diff <= -0.2 {
-        // negative gradient, turn avound
-        explore.avoid_turn();
-    } else if light > 0.5 {
-        explore.normal();
-    } else {
-        explore.avoid();
-    }
-    */
-
     let goal_vector = phototaxis.goal_vector();
-    body.set_goal_dir(goal_vector);
-}
-
-pub struct GoalVector {
-    dir: Angle,
-    value: DecayValue,
-}
-
-impl GoalVector {
-    fn new(half_life: usize) -> Self {
-        Self {
-            dir: Angle::Unit(0.),
-            value: DecayValue::new(half_life),
-        }
-    }
-
-    fn avoid(&mut self, dir: Angle, gradient: f32) {
-        self.value.update();
-
-        if gradient > 0. {
-            let reverse_dir = Angle::Unit(dir.to_unit() + 0.5);
-
-            self.add_vector(reverse_dir, gradient);
-            //self.dir_gradient(reverse_dir).set_max(gradient);
-            // self.goal_vector.update(reverse_dir, gradient);
-        } else if gradient < 0. {
-            //self.dir_gradient(head_dir).set_max(- gradient);
-            // self.goal_vector.update(head_dir, - gradient);
-            self.add_vector(dir, - gradient);
-        }
-    }
-
-    fn add_vector(&mut self, dir: Angle, value: f32) {
-        if self.value.value() < value {
-            self.dir = dir;
-            self.value.set(value);
-        }
-    }
-
-    fn to_vector(&self) -> DirVector {
-        DirVector::new(self.dir, self.value.value())
-    }
+    body.set_avoid_dir(goal_vector);
 }
 
 pub struct PhototaxisPlugin;

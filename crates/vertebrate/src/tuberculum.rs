@@ -2,7 +2,7 @@ use essay_ecs::prelude::{Plugin, App, ResMut, Res};
 use mind_ecs::Tick;
 
 use crate::{
-    locomotor::mid_locomotor::MidLocomotorPlugin, 
+    taxis::mid_locomotor::MidLocomotorPlugin, 
     olfactory_bulb::{OlfactoryPlugin, OlfactoryBulb}, 
     tectum::TectumLocomotionStn,
     action::Turn, mid_peptides::MidPeptides, 

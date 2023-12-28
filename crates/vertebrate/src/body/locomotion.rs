@@ -198,6 +198,7 @@ impl BodyLocomotion {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct Action {
     time: f32,
     speed: f32,
