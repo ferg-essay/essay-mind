@@ -168,10 +168,10 @@ impl From<OdorType> for Color {
     fn from(value: OdorType) -> Self {
         match value {
             OdorType::FoodA => Color::from("green"),
-            OdorType::FoodB => Color::from("teal"),
+            OdorType::FoodB => Color::from("azure"),
             OdorType::AvoidA => Color::from("red"),
             OdorType::AvoidB => Color::from("tomato"),
-            OdorType::OtherA => Color::from("azure"),
+            OdorType::OtherA => Color::from("purple"),
             OdorType::OtherB => Color::from("blue"),
         }
     }

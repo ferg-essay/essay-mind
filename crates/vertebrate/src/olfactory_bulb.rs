@@ -10,7 +10,7 @@ use mind_ecs::Tick;
 use crate::{
     body::Body, 
     world::{World, OdorType}, 
-    util::{Angle, DirVector},
+    util::{Angle, DirVector}, basal_forebrain::{BasalForebrain, AttendId, AttendValue},
 };
 
 pub struct OlfactoryBulb {
@@ -19,29 +19,79 @@ pub struct OlfactoryBulb {
 
     glomerules: Vec<Glomerule>,
     odor_map: HashMap<OdorType, usize>,
+
+    attention: BasalForebrain,
 }
 
 impl OlfactoryBulb {
+    fn new() -> Self {
+        Self { 
+            food: None,
+            avoid: None,
+            glomerules: Vec::new(),
+            odor_map: HashMap::new(),
+            attention: BasalForebrain::new(),
+        }
+    }
+
     fn odor(&mut self, odor: OdorType) -> OdorId {
         let index = self.glomerules.len();
 
-        self.glomerules.push(Glomerule::new(odor));
+        let attend_id = self.attention.push();
+
+        self.glomerules.push(Glomerule::new(odor, attend_id));
         self.odor_map.insert(odor, index);
 
         OdorId(index)
     }
 
-    fn update(&mut self) {
+    fn pre_update(&mut self) {
+        self.attention.pre_update();
+        
         for glom in &mut self.glomerules {
+            glom.pre_update();
+        }
+    }
+
+    fn update_odor(&mut self, index: usize, vector: DirVector) {
+        self.glomerules[index].odor(vector);
+
+        let attend_id = self.glomerules[index].attend_id;
+        let value = self.glomerules[index].attend_value();
+
+        self.attention.add(attend_id, value);
+    }
+
+    fn update(&mut self) {
+        self.attention.update();
+
+        for glom in &mut self.glomerules {
+            let attend_id = glom.attend_id;
+            let attend = self.attention.attend(attend_id);
+
+            glom.set_attend(attend);
+
             glom.update();
         }
     }
 
+    #[inline]
     pub fn value(&self, odor: OdorType) -> f32 {
+        let attend_value = self.value_pair(odor);
+
+        attend_value.value * attend_value.attend
+    }
+
+    pub fn value_pair(&self, odor: OdorType) -> AttendValue {
         if let Some(index) = self.odor_map.get(&odor) {
-            self.glomerules[*index].vector.value()
+            let glom = &self.glomerules[*index];
+
+            let value = glom.vector.value();
+            let factor = self.attention.attend(glom.attend_id);
+
+            AttendValue::new(value, factor)
         } else {
-            0.
+            AttendValue::new(0., 0.)
         }
     }
 
@@ -61,16 +111,6 @@ impl OlfactoryBulb {
         }
     }
 }
-impl Default for OlfactoryBulb {
-    fn default() -> Self {
-        Self { 
-            food: None,
-            avoid: None,
-            glomerules: Vec::new(),
-            odor_map: HashMap::new(),
-        }
-    }
-}
 
 fn update_olfactory(
     body: Res<Body>, 
@@ -81,20 +121,16 @@ fn update_olfactory(
     olf_bulb.food = None;
     olf_bulb.avoid = None;
 
-    olf_bulb.update();
+    olf_bulb.pre_update();
 
     for (odor, vector) in world.odors_by_head(body.pos_head()) {
         let index = *olf_bulb.odor_map.get(&odor).unwrap();
 
-        olf_bulb.glomerules[index].odor(vector);
-        /*
-        if odor.is_food() {
-            olfactory.food = Some(OdorItem::new(odor, angle));
-        } else {
-            olfactory.avoid = Some(OdorItem::new(odor, angle));
-        }
-        */
+        // olf_bulb.glomerules[index].odor(vector);
+        olf_bulb.get_mut().update_odor(index, vector);
     }
+
+    olf_bulb.update();
 
     for glomerule in &olf_bulb.glomerules {
         if glomerule.vector.value() > Glomerule::MIN {
@@ -131,24 +167,49 @@ impl OdorItem {
 struct Glomerule {
     odor: OdorType,
     vector: DirVector,
+    attend_id: AttendId,
+    attend: f32,
 }
 
 impl Glomerule {
     const MIN : f32 = 0.;
 
-    fn new(odor: OdorType) -> Self {
+    fn new(odor: OdorType, attend_id: AttendId) -> Self {
         Self {
             odor,
             vector: DirVector::zero(),
+            attend_id,
+            attend: 1.,
         }
     }
 
-    fn update(&mut self) {
+    #[inline]
+    fn value(&self) -> f32 {
+        self.vector.value()
+    }
+
+    fn attend(&self) -> f32 {
+        self.attend
+    }
+
+    #[inline]
+    fn attend_value(&self) -> f32 {
+        self.attend() * self.value()
+    }
+
+    fn pre_update(&mut self) {
         self.vector = DirVector::zero();
+    }
+
+    fn set_attend(&mut self, attend: f32) {
+        self.attend = attend;
     }
 
     fn odor(&mut self, vector: DirVector) {
         self.vector = vector;
+    }
+
+    fn update(&mut self) {
     }
 }
 
@@ -177,7 +238,7 @@ impl OlfactoryPlugin {
 
 impl Plugin for OlfactoryPlugin {
     fn build(&self, app: &mut App) {
-        let mut bulb = OlfactoryBulb::default();
+        let mut bulb = OlfactoryBulb::new();
 
         for odor in &self.odors {
             bulb.odor(*odor);

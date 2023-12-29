@@ -2,7 +2,7 @@ use essay_ecs::prelude::{App, Plugin};
 use essay_tensor::Tensor;
 
 use crate::{
-    ach_attention::NucleusIsthmi,
+    nucleus_isthmi::NucleusIsthmi,
     action::{ActionId, Turn}, 
     striatum::{StriatumStn, Sense, StriatumId, StriatumSnr},
 };

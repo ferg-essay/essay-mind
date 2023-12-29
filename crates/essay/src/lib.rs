@@ -1,5 +1,9 @@
 use essay_ecs::prelude::*;
-use vertebrate::{world::{WorldPlugin, OdorType, FloorType}, ui::{ui_graph::UiGraphPlugin, ui_peptide::UiPeptidePlugin}, mid_peptides::MidPeptides, body::Body};
+use vertebrate::{
+    world::{WorldPlugin, OdorType, FloorType}, 
+    ui::{ui_graph::UiGraphPlugin, ui_peptide::UiPeptidePlugin}, 
+    body::Body, peptide_core::mid_peptides::MidPeptides
+};
 
 pub fn world_block(app: &mut App) {
     app.plugin(

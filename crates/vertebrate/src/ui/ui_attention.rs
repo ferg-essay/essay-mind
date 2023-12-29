@@ -4,7 +4,7 @@ use essay_ecs::prelude::*;
 use essay_plot::{prelude::*, artist::{paths::{self, Unit}, PathStyle, ColorMap, ColorMaps}};
 use ui_graphics::{ui_layout::{UiLayout, UiLayoutEvent, BoxId, UiLayoutPlugin}, UiCanvas, UiCanvasPlugin};
 
-use crate::peptide_core::mid_peptides::MidPeptidesPlugin;
+use crate::{peptide_core::mid_peptides::MidPeptidesPlugin, basal_forebrain::AttendValue};
 
 #[derive(Component)]
 pub struct UiAttention {
@@ -30,7 +30,8 @@ impl UiAttention {
             bounds: Bounds::from([1., 1.]),
             boxes: Vec::new(),
 
-            colors: ColorMap::from(ColorMaps::WhiteBlack),
+            // colors: ColorMap::from(ColorMaps::WhiteBlack),
+            colors: ColorMap::from(ColorMaps::BlueOrange),
             // peptide_update: UiPeptideUpdate::<MidPeptides>::new(),
         }
     }
@@ -94,6 +95,7 @@ impl Coord for UiAttention {}
 struct UiAttentionItem {
     color: Color,
     value: f32,
+    attend: f32,
 }
 
 impl UiAttentionItem {
@@ -101,6 +103,7 @@ impl UiAttentionItem {
         Self {
             color,
             value: 0.,
+            attend: 0.,
         }
     }
 }
@@ -114,7 +117,7 @@ impl UiAttentionId {
     }
 }
 
-type UpdateBox<T> = Box<dyn Fn(&T) -> f32 + Sync + Send>;
+type UpdateBox<T> = Box<dyn Fn(&T) -> AttendValue + Sync + Send>;
 
 fn ui_attention_resize(
     mut ui_attention: ResMut<UiAttention>, 
@@ -137,7 +140,7 @@ fn ui_attention_draw(
 
         for (item, path) in ui_attention.attention.iter().zip(&ui_attention.boxes) {
             style.face_color(item.color.set_alpha(item.value));
-            style.edge_color(ui_attention.colors.map(1.));
+            style.edge_color(ui_attention.colors.map(item.attend));
 
             ui_render.draw_path(&path, &style);
         }
@@ -256,7 +259,10 @@ impl<T: Send + Sync + 'static> Item for ItemImpl<T> {
                 Update,
                 |updates: Res<AttentionUpdates<T>>, res: Res<T>, mut ui: ResMut<UiAttention>| {
                     for (id, fun) in &updates.updates {
-                        ui.attention[id.i()].value = fun(res.get());
+                        let value = fun(res.get());
+
+                        ui.attention[id.i()].value = value.value * value.attend;
+                        ui.attention[id.i()].attend = value.attend;
                     }
             });
         }
@@ -271,7 +277,7 @@ pub trait IntoItem<T> {
 
 impl<T: Send + Sync + 'static, F> IntoItem<T> for F
 where
-    F: Fn(&T) -> f32 + Send + Sync + 'static
+    F: Fn(&T) -> AttendValue + Send + Sync + 'static
 {
     fn into_item(this: Self) -> Box<dyn Item> {
         Box::new(ItemImpl {

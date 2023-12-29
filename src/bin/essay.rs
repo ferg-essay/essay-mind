@@ -2,13 +2,12 @@ use std::time::Duration;
 
 use essay::{food_graph, food_peptides};
 use essay_plot::api::Colors;
-use vertebrate::{body::{BodyPlugin, Body}, taxis::{taxis_pons::TaxisPonsPlugin, chemotaxis::{ChemotaxisPlugin, Chemotaxis}, habenula_seek::HabenulaSeekPlugin}, ui::ui_attention::UiAttentionPlugin, olfactory_bulb::OlfactoryBulb};
+use vertebrate::{body::{BodyPlugin, Body}, taxis::{taxis_pons::TaxisPonsPlugin, chemotaxis::{ChemotaxisPlugin, Chemotaxis}, habenula_seek::HabenulaSeekPlugin}, ui::ui_attention::UiAttentionPlugin, olfactory_bulb::OlfactoryBulb, peptide_core::mid_peptides::MidPeptidesPlugin};
 use essay_ecs::prelude::App;
 use mind_ecs::TickSchedulePlugin;
 use ui_graphics::UiCanvasPlugin;
 use vertebrate::{
     habenula_giveup::HabenulaMedPlugin,
-    mid_peptides::MidPeptidesPlugin,
     taxis::{
         phototaxis::Phototaxis,
         mid_locomotor::MidLocomotorPlugin,
@@ -72,7 +71,7 @@ pub fn world_odor(app: &mut App) {
         //.wall(((w - 1) / 2, h - h1), (2, h1))
         //.floor((0, 0), (w1, h), FloorType::Light)
         //.floor((w2, 0), (w - w2, h), FloorType::Dark)
-        .food_odor_r(6, 5, 4, OdorType::FoodA)
+        .food_odor_r(5, 5, 4, OdorType::FoodA)
         .odor_r(9, 5, 4, OdorType::FoodB)
     );
 }
@@ -86,7 +85,7 @@ fn ui_chemotaxis(app: &mut App) {
     app.plugin(UiBodyTrailPlugin);
 
     app.plugin(UiTablePlugin::new((2., 0.7), (1., 0.3))
-        .p_item("p(food)", |w: &World, b: &Body| 0.5)
+        .p_item("p(food)", |w: &World, b: &Body| if b.eat().is_sensor_food() { 1. } else { 0. })
     );
 
     app.plugin(UiLocationHeatmapPlugin::new((2., 0.), (1., 0.7)));
@@ -102,11 +101,12 @@ fn ui_chemotaxis(app: &mut App) {
 
     //food_peptides(app, (2.0, 1.0), (0.5, 1.));
 
+    let odor_colors = Colors::from(["green", "azure"]);
     app.plugin(UiAttentionPlugin::new((2.0, 1.0), (0.5, 1.))
-        .colors(colors)
+        .colors(odor_colors)
         // .item("v", |p: &Phototaxis| p.value())
-        .item(|ob: &OlfactoryBulb| ob.value(OdorType::FoodA))
-        .item(|ob: &OlfactoryBulb| ob.value(OdorType::FoodB))
+        .item(|ob: &OlfactoryBulb| ob.value_pair(OdorType::FoodA))
+        .item(|ob: &OlfactoryBulb| ob.value_pair(OdorType::FoodB))
     );
 
     app.plugin(UiHomunculusPlugin::new((2.5, 1.), (0.5, 1.)));
