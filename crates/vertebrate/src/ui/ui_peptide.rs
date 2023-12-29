@@ -2,9 +2,12 @@ use std::cell::RefCell;
 
 use essay_ecs::prelude::*;
 use essay_plot::{prelude::*, artist::{paths::{self, Unit}, PathStyle}};
-use ui_graphics::{ui_layout::{UiLayout, UiLayoutEvent, BoxId, UiLayoutPlugin}, UiCanvas, UiCanvasPlugin};
+use ui_graphics::{
+    ui_layout::{UiLayout, UiLayoutEvent, BoxId, UiLayoutPlugin}, 
+    UiCanvas, UiCanvasPlugin
+};
 
-use crate::mid_peptides::MidPeptidesPlugin;
+use crate::peptide_core::mid_peptides::MidPeptidesPlugin;
 
 #[derive(Component)]
 pub struct UiPeptide {

@@ -5,7 +5,7 @@ use essay_plot::api::{Bounds, Canvas, Clip, TextStyle, VertAlign, Point, Coord, 
 use mind_ecs::PostTick;
 use ui_graphics::{ui_layout::{BoxId, UiLayout, UiLayoutEvent, UiLayoutPlugin}, UiCanvas, UiCanvasPlugin};
 
-use crate::{mid_peptides::MidPeptidesPlugin, body::Body, world::World};
+use crate::{body::Body, world::World, peptide_core::mid_peptides::MidPeptidesPlugin};
 
 
 #[derive(Component)]

@@ -6,8 +6,6 @@ use crate::util::{DecayValue, DirVector, Angle};
 use super::{taxis_pons::TaxisEvent, GoalVector};
 
 pub struct HabenulaSeek {
-    toward: HabenulaItem,
-    away: Vec::<HabenulaItem>,
 }
 
 impl HabenulaSeek {
@@ -15,8 +13,6 @@ impl HabenulaSeek {
 
     pub fn new(half_life: usize) -> Self {
         Self {
-            toward: HabenulaItem::new(half_life),
-            away: Vec::new(),
         }
     }
 
@@ -45,22 +41,21 @@ pub struct HabenulaSeekItem {
 
     short_average: DecayValue,
 
-    //dir_gradients: Vec<DirGradient>,
     goal_vector: GoalVector,
 }
 
 impl HabenulaSeekItem {
     pub const N_DIR : usize = 12;
-    pub const AVERAGE_LIFE : usize = 40;
-    pub const SHORT_LIFE : usize = 5;
+    pub const GOAL_LIFE : usize = 20;
+    pub const SAMPLE_LIFE : usize = 5;
 
-    pub fn new(average_life: usize, short_life: usize) -> Self {
+    pub fn new(goal_life: usize, sample_life: usize) -> Self {
         Self { 
             // start with 20
-            average: DecayValue::new(average_life),
-            short_average: DecayValue::new(short_life),
+            average: DecayValue::new(goal_life),
+            short_average: DecayValue::new(sample_life),
             value: 0.,
-            goal_vector: GoalVector::new(average_life),
+            goal_vector: GoalVector::new(goal_life),
         }
     }
     
@@ -109,56 +104,10 @@ impl HabenulaSeekItem {
 impl Default for HabenulaSeekItem {
     fn default() -> Self {
         HabenulaSeekItem::new(
-            HabenulaSeekItem::AVERAGE_LIFE,
-            HabenulaSeekItem::SHORT_LIFE,
+            HabenulaSeekItem::GOAL_LIFE,
+            HabenulaSeekItem::SAMPLE_LIFE,
         )
     }
-}
-
-struct HabenulaItem {
-    value: f32,
-
-    average: DecayValue,
-    goal_vector: GoalVector,
-}
-impl HabenulaItem {
-    fn new(half_life: usize) -> Self {
-        Self {
-            value: 0.,
-            average: DecayValue::new(half_life),
-            goal_vector: GoalVector::new(half_life),
-        }
-    }
-
-    fn pre_update(&mut self) {
-        self.value = 0.;
-        self.average.update();
-    }
-
-    fn add(&mut self, value: f32) {
-        self.average.add(value);
-    }
-}
-
-pub struct HabenulaSetter {
-    avoid: AvoidType,
-    index: usize,
-}
-
-impl HabenulaSetter {
-    pub fn update(&self, value: f32, mut hb: impl AsMut<HabenulaSeek>) {
-        let hb = hb.as_mut();
-
-        match self.avoid {
-            AvoidType::TOWARD => { hb.toward.add(value) },
-            AvoidType::AWAY => { hb.away[self.index].add(value) },
-        }
-    }
-}
-
-enum AvoidType {
-    TOWARD,
-    AWAY,
 }
 
 pub struct HabenulaSeekPlugin;
