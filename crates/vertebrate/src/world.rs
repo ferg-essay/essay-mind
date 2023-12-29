@@ -76,8 +76,8 @@ impl World {
         self.odors.push(Odor::new(x, y, odor));
     }
 
-    fn add_odor(&mut self, x: usize, y: usize, odor: OdorType) {
-        self.odors.push(Odor::new(x, y, odor));
+    fn add_odor(&mut self, x: usize, y: usize, r: usize, odor: OdorType) {
+        self.odors.push(Odor::new_r(x, y, r, odor));
     }
 
     pub fn odor(&self, pt: Point) -> Option<(OdorType, Angle)> {
@@ -164,7 +164,60 @@ pub enum WorldCell {
 pub struct Odor {
     x: f32,
     y: f32,
+    r: f32,
     odor: OdorType,
+}
+
+impl Odor {
+    pub const RADIUS: f32 = 3.;
+
+    fn new(x: usize, y: usize, odor: OdorType) -> Self {
+        Self {
+            x: x as f32 + 0.5,
+            y: y as f32 + 0.5,
+            r: Self::RADIUS,
+            odor,
+        }
+    }
+
+    fn new_r(x: usize, y: usize, r:usize, odor: OdorType) -> Self {
+        Self {
+            x: x as f32 + 0.5,
+            y: y as f32 + 0.5,
+            r: r as f32,
+            odor,
+        }
+    }
+
+    pub fn x(&self) -> f32 {
+        self.x
+    }
+
+    pub fn y(&self) -> f32 {
+        self.y
+    }
+
+    pub fn pos(&self) -> Point {
+        Point(self.x, self.y)
+    }
+
+    pub fn r(&self) -> f32 {
+        self.r
+    }
+
+    pub fn is_food(&self) -> bool {
+        self.odor.is_food()
+    }
+
+    pub fn odor(&self) -> OdorType {
+        self.odor
+    }
+}
+
+impl fmt::Debug for Odor {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_tuple("Food").field(&self.x).field(&self.y).finish()
+    }
 }
 
 #[derive(Clone, Debug, Copy, PartialEq, Eq, Hash)]
@@ -213,48 +266,6 @@ impl From<usize> for OdorType {
             5 => OdorType::OtherB,
             _ => todo!(),
         }
-    }
-}
-
-impl Odor {
-    pub const RADIUS: f32 = 3.;
-
-    fn new(x: usize, y: usize, odor: OdorType) -> Self {
-        Self {
-            x: x as f32 + 0.5,
-            y: y as f32 + 0.5,
-            odor,
-        }
-    }
-
-    pub fn x(&self) -> f32 {
-        self.x
-    }
-
-    pub fn y(&self) -> f32 {
-        self.y
-    }
-
-    pub fn pos(&self) -> Point {
-        Point(self.x, self.y)
-    }
-
-    pub fn r(&self) -> f32 {
-        Self::RADIUS
-    }
-
-    pub fn is_food(&self) -> bool {
-        self.odor.is_food()
-    }
-
-    pub fn odor(&self) -> OdorType {
-        self.odor
-    }
-}
-
-impl fmt::Debug for Odor {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_tuple("Food").field(&self.x).field(&self.y).finish()
     }
 }
 
@@ -340,11 +351,26 @@ impl WorldPlugin {
         self.food(x, y).odor(x, y, odor)
     }
 
+    pub fn food_odor_r(self, x: usize, y: usize, r: usize, odor: OdorType) -> Self {
+        self.food(x, y).odor_r(x, y, r, odor)
+    }
+
     pub fn odor(mut self, x: usize, y: usize, odor: OdorType) -> Self {
         assert!(x < self.width);
         assert!(y < self.height);
 
-        self.odors.push(OdorItem::new(x, y, odor));
+        let r = Odor::RADIUS as usize;
+
+        self.odors.push(OdorItem::new(x, y, r, odor));
+
+        self
+    }
+
+    pub fn odor_r(mut self, x: usize, y: usize, r: usize, odor: OdorType) -> Self {
+        assert!(x < self.width);
+        assert!(y < self.height);
+
+        self.odors.push(OdorItem::new(x, y, r, odor));
 
         self
     }
@@ -376,7 +402,7 @@ impl WorldPlugin {
         }
 
         for odor in &self.odors {
-            world.add_odor(odor.pos.0, odor.pos.1, odor.odor);
+            world.add_odor(odor.pos.0, odor.pos.1, odor.r, odor.odor);
         }
 
         world
@@ -391,12 +417,16 @@ impl Plugin for WorldPlugin {
 
 struct OdorItem {
     pos: (usize, usize),
+    r: usize,
     odor: OdorType,
 }
 
 impl OdorItem {
-    fn new(x: usize, y: usize, odor: OdorType) -> Self {
-        Self { pos: (x, y), odor }
+    fn new(x: usize, y: usize, r: usize, odor: OdorType) -> Self {
+        Self { 
+            pos: (x, y), 
+            r,
+            odor }
     }
 }
 

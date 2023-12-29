@@ -154,7 +154,7 @@ pub fn draw_world(
 impl From<&WorldCell> for Color {
     fn from(value: &WorldCell) -> Self {
         match value {
-            WorldCell::Empty => Color::from(0xe0e0e0),
+            WorldCell::Empty => Color::from_hsv(0.25, 0.0, 0.98),
             WorldCell::Food => Color::from("green"),
             WorldCell::Wall => Color::from("dark beige"),
 

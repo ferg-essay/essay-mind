@@ -37,6 +37,20 @@ impl Chemotaxis {
         self.value += value;
         self.habenula.add(value);
     }
+    
+    fn goal_vector(&self) -> DirVector {
+        self.habenula.goal_vector()
+    }
+
+    #[inline]
+    pub fn gradient(&self) -> f32 {
+        self.habenula.gradient()
+    }
+
+    #[inline]
+    pub fn value(&self) -> f32 {
+        self.habenula.value()
+    }
 
     pub fn update(
         &mut self, 
@@ -46,38 +60,15 @@ impl Chemotaxis {
         // update the light average
         self.habenula.update(head_dir);
     
-        // the 5HT cells average the past light
-        // let average = phototaxis.average.value();
-    
-        // let diff = self.habenula.gradient();
-    
         let approach_vector = self.habenula.goal_vector();
         let approach_ego = approach_vector.to_approach(head_dir);
-    
-        //let approach_ego = approach_ego.scale(diff.clamp(0., 1.));
-    
-        if approach_ego.value() > 0.1 {
+
+        if self.habenula.value() > 0.01 || approach_ego.value() > 0.05 {
             taxis.send(TaxisEvent::ApproachVector(approach_ego));
             taxis.send(TaxisEvent::Approach); // small-scale search
+            taxis.send(TaxisEvent::ApproachDisplay(approach_vector));
         }
-    
-        /*
-        if diff >= 0.2 {
-            // positive gradient, move forward, avoiding the current area
-            taxis.send(TaxisEvent::Avoid);
-        } else if diff <= -0.2 {
-            // negative gradient, turn avound
-            taxis.send(TaxisEvent::AvoidUTurn);
-        }
-        */
-    
-        //let goal_vector = self.habenula.goal_vector();
-        // body.set_goal_dir(goal_vector);
      }
-    
-    fn goal_vector(&self) -> DirVector {
-        self.habenula.goal_vector()
-    }
 }
 
 fn update_chemotaxis(
@@ -86,8 +77,6 @@ fn update_chemotaxis(
     body: Res<Body>,
     mut taxis: OutEvent<TaxisEvent>,
 ) {
-    let mut value = 0.;
-
     chemotaxis.pre_update();
 
     for event in ob.iter() {

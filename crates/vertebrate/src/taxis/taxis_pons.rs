@@ -117,6 +117,9 @@ impl TaxisPons {
             TaxisEvent::AvoidUTurn => self.explore.avoid_turn(),
             TaxisEvent::Normal => self.explore.normal(),
 
+            // display events
+            TaxisEvent::ApproachDisplay(_) => {},
+            TaxisEvent::AvoidDisplay(_) => {},
         }
     }
 
@@ -180,6 +183,13 @@ fn update_taxis_pons(
 
     for event in taxis_events.iter() {
         taxis_pons.event(event);
+
+        match event {
+            TaxisEvent::ApproachDisplay(vector) => {
+                body.set_approach_dir(*vector);
+            }
+            _ => {},
+        }
     }
 
     taxis_pons.update(body.get_mut());
@@ -195,6 +205,9 @@ pub enum TaxisEvent {
     // gradient taxis
     ApproachVector(DirVector),
     AvoidVector(DirVector),
+
+    ApproachDisplay(DirVector),
+    AvoidDisplay(DirVector),
 
     // speed modes
     Approach,
@@ -324,7 +337,7 @@ impl Explore {
     }
 
     fn add_approach(&mut self, approach_dir: DirVector) {
-        if approach_dir.value() > 0.05 {
+        if approach_dir.value() > 0.01 {
             let offset = 2. * approach_dir.dx(); // * approach_dir.value();
 
             self.approach_left = (- offset).clamp(0., 1.);
@@ -380,8 +393,8 @@ impl Explore {
     fn approach(&mut self) {
         self.speed = 0.5;
 
-        self.low = 0.5 * Self::LOW;
-        self.high = 0.5 * Self::LOW;
+        self.low = Self::LOW;
+        self.high = Self::HIGH.min(2. * Self::LOW);
         self.alpha = Self::ALPHA;
 
         self.turn_mean = Self::TURN_MEAN;
@@ -423,9 +436,6 @@ impl Explore {
         &mut self,
         body: &mut Body
     ) {
-        body.set_avoid_dir(self.avoid_dir);
-        body.set_approach_dir(self.approach_dir);
-
         if ! body.locomotion().is_idle() {
             return;
         }

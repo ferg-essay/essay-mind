@@ -38,9 +38,11 @@ impl OlfactoryBulb {
     }
 
     pub fn value(&self, odor: OdorType) -> f32 {
-        let index = self.odor_map.get(&odor).unwrap();
-
-        self.glomerules[*index].vector.value()
+        if let Some(index) = self.odor_map.get(&odor) {
+            self.glomerules[*index].vector.value()
+        } else {
+            0.
+        }
     }
 
     pub fn food_dir(&self) -> Option<Angle> {
