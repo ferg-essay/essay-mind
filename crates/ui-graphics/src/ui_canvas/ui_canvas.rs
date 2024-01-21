@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use essay_ecs::prelude::*;
 use essay_plot::artist::PathStyle;
-use essay_plot::api::{TextStyle, Bounds};
+use essay_plot::api::{TextStyle, Bounds, FontStyle, FontTypeId};
 use essay_plot::api::{Canvas, Point, Path, Clip, driver::Renderer};
 use essay_plot::prelude::{ImageId, Color};
 use essay_plot::wgpu::{PlotCanvas, PlotRenderer};
@@ -266,6 +266,14 @@ impl<'a> UiRender<'a> {
 
     pub fn flush(&mut self) {
         self.renderer.flush(&self.clip);
+    }
+
+    pub fn font(&mut self, family: &str) -> FontTypeId {
+        let mut style = FontStyle::new();
+        
+        style.family(family);
+        
+        self.renderer.font(&style).unwrap()
     }
 }
 

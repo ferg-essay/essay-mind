@@ -31,7 +31,6 @@ pub fn main() {
 
     app.plugin(TickSchedulePlugin::new().ticks(2));
 
-    //world_place_preference(&mut app);
     world_odor(&mut app);
     app.plugin(BodyPlugin::new());
     app.plugin(TaxisPonsPlugin);
@@ -41,16 +40,10 @@ pub fn main() {
         .odor(OdorType::FoodB)
     );
     app.plugin(TectumPlugin::new().striatum());
-    // app.plugin(MidLocomotorPlugin);
-    // app.plugin(TuberculumPlugin);
-    // app.plugin(HabenulaMedPlugin);
     app.plugin(HabenulaSeekPlugin);
     app.plugin(MidPeptidesPlugin);
-    //app.plugin(MidFeedingPlugin);
-    //app.plugin(PhototaxisPlugin);
     app.plugin(ChemotaxisPlugin);
 
-    //ui_phototaxis(&mut app);
     ui_chemotaxis(&mut app);
 
     app.run();

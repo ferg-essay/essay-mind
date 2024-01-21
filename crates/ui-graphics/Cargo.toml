@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 log = { version = "0.4.17" }
-env_logger = { version = "0.10.0" }
+env_logger = { version = "0.11" }
 wgpu = { version = "0.18" }
 winit = { version = "0.29", features = ["rwh_05"] }
 pollster = { version = "0.3" }
@@ -15,7 +15,7 @@ pollster = { version = "0.3" }
 #essay-plot-api = { path = "../../../essay-plot/crates/essay-plot-api"  }
 #essay-plot-wgpu = { path = "../../../essay-plot/crates/essay-plot-wgpu" }
 #essay-plot-wgpu = { path = "../../../essay-plot" }
-essay-plot = { path = "../../../essay-plot"  }
+essay-plot = { path = "../../../essay-plot" }
 #essay-plot = { git = "https://github.com/ferg-essay/essay-plot", version="0.1.13"  }
 essay-ecs = { path = "../../../essay-ecs" }
 #essay-ecs = { git = "https://github.com/ferg-essay/essay-ecs", version="0.1.13" }

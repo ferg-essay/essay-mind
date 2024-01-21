@@ -23,6 +23,9 @@ pub struct UiHomunculus {
     approach_dir: HeadDir,
     avoid_dir: HeadDir,
 
+    emoji: Option<FontTypeId>,
+    emoji_pos: Point,
+
     colors: ColorMap,
     _head_dir_colors: ColorMap,
     avoid_colors: ColorMap,
@@ -57,6 +60,9 @@ impl UiHomunculus {
             approach_dir,
             avoid_dir,
 
+            emoji: None,
+            emoji_pos: Point(100., 100.),
+
             colors: sensorimotor_colormap(),
             _head_dir_colors: head_colormap(),
             avoid_colors: avoid_colormap(),
@@ -78,6 +84,8 @@ impl UiHomunculus {
         self.head_dir.set_pos(pos);
         self.avoid_dir.set_pos(pos);
         self.approach_dir.set_pos(pos);
+
+        self.emoji_pos = self.to_canvas().transform_point(Point(0.5, 0.725));
     }
 
     pub fn to_canvas(&self) -> Affine2d {
@@ -181,7 +189,7 @@ pub fn ui_homunculus_resize(
 }
 
 pub fn ui_homunculus_draw(
-    ui_homunculus: ResMut<UiHomunculus>,
+    mut ui_homunculus: ResMut<UiHomunculus>,
     body: Res<Body>,
     taxis: Res<TaxisPons>,
     mut ui_canvas: ResMut<UiCanvas>
@@ -263,6 +271,28 @@ pub fn ui_homunculus_draw(
         let avoid_dir = body.avoid_dir();
         let value = avoid_dir.value();
         ui_homunculus.avoid_dir.draw(&mut ui, avoid_dir.dir(), value);
+
+        if ui_homunculus.emoji.is_none() {
+            let emoji_path = "/Users/ferg/wsp/essay-mind/assets/font/NotoEmoji-Bold.ttf";
+        
+            ui_homunculus.emoji = Some(ui.font(emoji_path));
+        }
+
+        let state = TestState::new();
+        //let crab = "\u{1f980}";
+        // graph.text((0.5, 0.5), "\u{1f980}\u{1f990}").family(family).color("red");
+
+        let mut style = TextStyle::new();
+        style.valign(VertAlign::Center);
+        style.size(14.);
+        style.font(ui_homunculus.emoji.unwrap());
+
+        state.draw(&mut ui, ui_homunculus.emoji_pos, &mut style);
+
+        // ui.draw_text(ui_homunculus.emoji_pos, crab, &style);
+        //ui.draw_text((100.5, 100.5), "M", &style);
+
+        //println!("Emoji: {:?} {}", ui_homunculus.emoji, crab);
     }
 }
 
@@ -479,6 +509,118 @@ impl HeadDir {
             // let v = v.clamp(0., 1.) * 0.5 + 0.5;
 
         }
+    }
+}
+
+pub trait UiState {
+    fn draw(&self, ui: &mut UiRender, pos: Point, style: &mut TextStyle);
+}
+
+enum TestState {
+    Bandage,
+    Bell,
+    Candy,
+    Cheese,
+    Cupcake,
+    Crab,
+    Detective,
+    DirectHit,
+    Eyes,
+
+    FaceAstonished,
+    FaceConfounded,
+    FaceDisappointed,
+    FaceFreezing,
+    FaceFrowning,
+    FaceGrimacing,
+    FaceGrinning,
+    FaceOpenMouth,
+    FaceOverheated,
+    FaceMonocle,
+    FaceNauseated,
+    FaceNeutral,
+    FaceSleeping,
+    FaceSleepy,
+    FaceSlightlySmiling,
+    FaceSunglasses,
+    FaceThinking,
+    FaceVomiting,
+    FaceWithCowboyHat,
+    FaceWithThermometer,
+    FaceWorried,
+    FaceYawning,
+
+    Footprints,
+    ForkAndKnife,
+    Lemon,
+    MagnifyingGlassLeft,
+    MagnifyingGlassRight,
+    OctagonalSign,
+    Onion,
+    Pedestrian,
+    Salt,
+    Sleeping,
+    Telescope,
+}
+
+impl TestState {
+    fn new() -> Self {
+        Self::FaceNauseated
+    }
+
+    fn code(&self) -> &str {
+        match self {
+            TestState::Bandage => "\u{1fa79}",
+            TestState::Bell => "\u{1f514}",
+            TestState::Candy => "\u{1f36c}",
+            TestState::Cheese => "\u{1f9c0}",
+            TestState::Crab => "\u{1f980}",
+            TestState::Cupcake => "\u{1f9c1}",
+            TestState::Detective => "\u{1f575}",
+            TestState::DirectHit => "\u{1f3af}",
+            TestState::Eyes => "\u{1f440}",
+
+            TestState::FaceAstonished => "\u{1f632}",
+            TestState::FaceConfounded => "\u{1f616}",
+            TestState::FaceDisappointed => "\u{1f61e}",
+            TestState::FaceFreezing => "\u{1f976}",
+            TestState::FaceFrowning => "\u{2639}",
+            TestState::FaceGrimacing => "\u{1f62c}",
+            TestState::FaceGrinning => "\u{1f600}",
+            TestState::FaceMonocle => "\u{1f9d0}",
+            TestState::FaceNauseated => "\u{1f922}",
+            TestState::FaceNeutral => "\u{1f610}",
+            TestState::FaceOverheated => "\u{1f975}",
+            TestState::FaceOpenMouth => "\u{1f62e}",
+            TestState::FaceSleepy => "\u{1f62a}",
+            TestState::FaceSleeping => "\u{1f634}",
+            TestState::FaceSlightlySmiling => "\u{1f642}",
+            TestState::FaceSunglasses => "\u{1f60e}",
+            TestState::FaceThinking => "\u{1f914}",
+            TestState::FaceVomiting => "\u{1f92e}",
+            TestState::FaceWithCowboyHat => "\u{1f920}",
+            TestState::FaceWithThermometer => "\u{1f912}",
+            TestState::FaceWorried => "\u{1f61f}",
+            TestState::FaceYawning => "\u{1f971}",
+
+            TestState::Footprints => "\u{1f463}",
+            TestState::ForkAndKnife => "\u{1f374}",
+            TestState::Lemon => "\u{1f34b}",
+            TestState::MagnifyingGlassLeft => "\u{1f50d}",
+            TestState::MagnifyingGlassRight => "\u{1f50e}",
+            TestState::OctagonalSign => "\u{1f6d1}",
+            TestState::Onion => "\u{1f9c5}",
+            TestState::Pedestrian => "\u{1f6b6}",
+            TestState::Salt => "\u{1f9c2}",
+            TestState::Sleeping => "\u{1f4a4}",
+            TestState::Telescope => "\u{1f52d}",
+        }
+    }
+}
+
+impl UiState for TestState {
+    fn draw(&self, ui: &mut UiRender, pos: Point, style: &mut TextStyle) {
+        ui.draw_text(pos, self.code(), &style);
     }
 }
 
