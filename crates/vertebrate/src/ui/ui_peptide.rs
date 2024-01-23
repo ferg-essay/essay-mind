@@ -125,6 +125,7 @@ pub fn ui_peptide_draw(
 
         let mut text_style = TextStyle::new();
         text_style.valign(VertAlign::Top);
+        let text_path_style = PathStyle::new();
 
         for (i, item) in ui_peptide.peptides.iter().enumerate() {
             let value = item.value;
@@ -143,6 +144,7 @@ pub fn ui_peptide_draw(
             ui_render.draw_text(
                 to_canvas.transform_point(Point(x + 0.5, y_min)), 
                 &item.label,
+                &text_path_style,
                 &text_style
             );
         }

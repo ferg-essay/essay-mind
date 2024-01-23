@@ -620,7 +620,8 @@ impl TestState {
 
 impl UiState for TestState {
     fn draw(&self, ui: &mut UiRender, pos: Point, style: &mut TextStyle) {
-        ui.draw_text(pos, self.code(), &style);
+        let path_style = PathStyle::new();
+        ui.draw_text(pos, self.code(), &path_style, style);
     }
 }
 

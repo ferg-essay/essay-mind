@@ -251,13 +251,19 @@ impl<'a> UiRender<'a> {
         &mut self, 
         xy: impl Into<Point>, 
         text: &str, 
+        path_style: &PathStyle,
         text_style: &TextStyle
     ) {
         //canvas.clear_screen(&view);
-
-        let style = PathStyle::new();
     
-        self.renderer.draw_text(xy.into(), text, 0., &style, text_style, &Clip::None).unwrap();
+        self.renderer.draw_text(
+            xy.into(), 
+            text,
+            0., 
+            path_style, 
+            text_style, 
+            &Clip::None
+        ).unwrap();
     }
 
     pub fn draw_image(&mut self, pos: &Bounds<Canvas>, image: ImageId) {

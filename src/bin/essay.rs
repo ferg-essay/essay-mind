@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use essay::{food_graph, food_peptides};
 use essay_plot::api::Colors;
-use vertebrate::{body::{BodyPlugin, Body}, taxis::{taxis_pons::TaxisPonsPlugin, chemotaxis::{ChemotaxisPlugin, Chemotaxis}, habenula_seek::HabenulaSeekPlugin}, ui::ui_attention::UiAttentionPlugin, olfactory_bulb::OlfactoryBulb, peptide_core::mid_peptides::MidPeptidesPlugin};
+use vertebrate::{body::{BodyPlugin, Body}, taxis::{taxis_pons::TaxisPonsPlugin, chemotaxis::{ChemotaxisPlugin, Chemotaxis}, habenula_seek::HabenulaSeekPlugin}, ui::{ui_attention::UiAttentionPlugin, ui_homunculus::UiHomunculusPlugin, ui_motive::MotiveEmoji}, olfactory_bulb::OlfactoryBulb, peptide_core::mid_peptides::MidPeptidesPlugin};
 use essay_ecs::prelude::App;
 use mind_ecs::TickSchedulePlugin;
 use ui_graphics::UiCanvasPlugin;
@@ -17,7 +17,7 @@ use vertebrate::{
     ui::{
         ui_body::{UiBodyPlugin, UiBodyTrailPlugin},
         ui_body_heatmap::UiLocationHeatmapPlugin,
-        ui_body_homunculus::UiHomunculusPlugin,
+        ui_motive::UiMotivePlugin,
         ui_graph::UiGraphPlugin,
         ui_peptide::UiPeptidePlugin,
         ui_table::UiTablePlugin,
@@ -44,7 +44,8 @@ pub fn main() {
     app.plugin(MidPeptidesPlugin);
     app.plugin(ChemotaxisPlugin);
 
-    ui_chemotaxis(&mut app);
+    //ui_chemotaxis(&mut app);
+    ui_eat(&mut app);
 
     app.run();
 }
@@ -68,6 +69,47 @@ pub fn world_odor(app: &mut App) {
         .odor_r(9, 5, 4, OdorType::FoodB)
     );
 }
+
+fn ui_eat(app: &mut App) {
+    // UiCanvasPlugin enables graphics
+    app.plugin(UiCanvasPlugin::new().frame_ms(Duration::from_millis(50)));
+
+    app.plugin(UiWorldPlugin::new((0., 0.), (2., 1.0)));
+    app.plugin(UiBodyPlugin); // ::new((0., 0.5), (0.25, 0.5)));
+    app.plugin(UiBodyTrailPlugin);
+
+    app.plugin(UiTablePlugin::new((2., 0.7), (1., 0.3))
+        .p_item("p(food)", |w: &World, b: &Body| if b.eat().is_sensor_food() { 1. } else { 0. })
+    );
+
+    app.plugin(UiLocationHeatmapPlugin::new((2., 0.), (1., 0.7)));
+
+    let colors = Colors::from(["amber", "azure", "red", "purple", "blue", "green", "olive"]);
+    // food_graph(app, (0.0, 1.0), (2., 1.));
+
+    app.plugin(UiGraphPlugin::new((0.0, 1.0), (2., 1.))
+        .colors(colors.clone())
+        .item("v", |tx: &Chemotaxis| tx.value().clamp(0., 1.))
+        .item("gr", |tx: &Chemotaxis| 0.5 * (tx.gradient() + 1.))
+    );
+
+    //food_peptides(app, (2.0, 1.0), (0.5, 1.));
+
+    let odor_colors = Colors::from(["green", "azure"]);
+    app.plugin(UiAttentionPlugin::new((2.0, 1.0), (0.5, 0.5))
+        .colors(odor_colors)
+        // .item("v", |p: &Phototaxis| p.value())
+        .item(|ob: &OlfactoryBulb| ob.value_pair(OdorType::FoodA))
+        .item(|ob: &OlfactoryBulb| ob.value_pair(OdorType::FoodB))
+    );
+
+    app.plugin(UiMotivePlugin::new((2.0, 1.5), (0.5, 0.5))
+        .item(MotiveEmoji::Footprints)
+        .item(MotiveEmoji::FaceAstonished)
+);
+    app.plugin(UiHomunculusPlugin::new((2.5, 1.), (0.5, 1.)));
+}
+
 
 fn ui_chemotaxis(app: &mut App) {
     // UiCanvasPlugin enables graphics
@@ -102,7 +144,7 @@ fn ui_chemotaxis(app: &mut App) {
         .item(|ob: &OlfactoryBulb| ob.value_pair(OdorType::FoodB))
     );
 
-    app.plugin(UiHomunculusPlugin::new((2.5, 1.), (0.5, 1.)));
+    app.plugin(UiMotivePlugin::new((2.5, 1.), (0.5, 1.)));
 }
 
 
@@ -143,5 +185,5 @@ fn ui_phototaxis(app: &mut App) {
         .item("sg", |p: &Phototaxis| p.short_gradient() / 2. + 0.5)
     );
 
-    app.plugin(UiHomunculusPlugin::new((2.5, 1.), (0.5, 1.)));
+    app.plugin(UiMotivePlugin::new((2.5, 1.), (0.5, 1.)));
 }
