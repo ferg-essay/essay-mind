@@ -1,3 +1,5 @@
+use std::cell::RefCell;
+
 use essay_ecs::prelude::*;
 use essay_plot::{
     prelude::*, 
@@ -12,11 +14,13 @@ use crate::util::Angle;
 //#[derive(Component)]
 pub struct UiMotive {
     id: BoxId,
+
+    size: f32,
+    items: Vec<UiMotiveItem>,
+
     pos: Bounds<Canvas>,
     clip: Clip,
     bounds: Bounds<Unit>,
-
-    items: Vec<UiMotiveItem>,
 
     emoji: Option<FontTypeId>,
 }
@@ -29,29 +33,37 @@ impl UiMotive {
 
         Self {
             id,
+
+            size: 16.,
+            items: Vec::new(),
+
             pos: Bounds::zero(),
             clip: Clip::None,
             bounds: Bounds::from([1., 1.]),
-
-            items: Vec::new(),
 
             emoji: None,
         }
     }
 
-    fn push(&mut self, item: UiMotiveItem) {
+    fn push(&mut self, item: UiMotiveItem) -> usize {
+        let id = self.items.len();
+
+        let pos = item.pos;
+
         self.items.push(item);
 
-        let width = self.items.len() as f32;
-        let height = 1.0f32;
+        let width = self.bounds.width();
+        let height = self.bounds.height();
 
         self.bounds = Bounds::from([
-            width.max(self.bounds.width()),
-            height.max(self.bounds.height()),
+            width.max(pos.x() + 0.5),
+            height.max(pos.y() + 0.5),
         ]);
+
+        id
     }
 
-    pub fn set_pos(&mut self, pos: &Bounds<Canvas>) {
+    fn set_pos(&mut self, pos: &Bounds<Canvas>) {
         self.pos = Bounds::from([
             pos.xmin() + 0.05 * pos.width(),
             pos.ymin() + 0.05 * pos.height(),
@@ -62,7 +74,7 @@ impl UiMotive {
         self.clip = Clip::from(&self.pos);
     }
 
-    pub fn to_canvas(&self) -> Affine2d {
+    fn to_canvas(&self) -> Affine2d {
         self.bounds.affine_to(&self.pos)
     }
 
@@ -104,14 +116,22 @@ pub fn ui_motive_draw(
         let mut text_style = TextStyle::new();
         text_style.valign(VertAlign::Center);
         text_style.halign(HorizAlign::Center);
-        text_style.size(14.);
+        text_style.size(ui_motive.size);
         text_style.font(ui_motive.emoji.unwrap());
 
+        let height = ui_motive.bounds.height();
+
         for (i, item) in ui_motive.items.iter().enumerate() {
-            let pos = Point(0.5 + i as f32, 0.5);
+            let pos = Point(item.pos.0, height - item.pos.1);
             let pos = ui_motive.to_canvas().transform_point(pos);
-            
-            style.color(color_map.map(0.5));
+
+            let value = item.value.clamp(0.05, 1.);
+
+            if let Some(color_map) = &item.colormap {
+                style.color(color_map.map(value));
+            } else {
+                style.color(color_map.map(value));
+            }
 
             item.emoji.draw(&mut ui, pos, &style, &mut text_style);
         }
@@ -137,8 +157,201 @@ pub trait UiMotiveDraw {
     fn box_clone(&self) -> Box<dyn UiMotiveDraw>;
 }
 
+impl UiMotiveDraw for Emoji {
+    fn draw(
+        &self, 
+        ui: &mut UiRender, 
+        pos: Point, 
+        style: &PathStyle,
+        text_style: &mut TextStyle
+    ) {
+        ui.draw_text(pos, self.code(), style, text_style);
+    }
+
+    fn box_clone(&self) -> Box<dyn UiMotiveDraw> {
+        Box::new(self.clone())
+    }
+}
+
+struct UiMotiveItem {
+    pos: Point,
+
+    emoji: Emoji,
+    value: f32,
+    colormap: Option<ColorMap>,
+}
+
+impl UiMotiveItem {
+    fn new(item: &Box<dyn PluginItem>) -> Self {
+        Self {
+            pos: item.pos(),
+            emoji: item.emoji(),
+            value: 0.,
+            colormap: item.colormap(),
+        }
+    }
+}
+/*
+impl Clone for UiMotiveItem {
+    fn clone(&self) -> Self {
+        Self { 
+            emoji: self.emoji.clone(),
+            value: 0.,
+            colormap: self.colormap.clone(),
+        }
+    }
+}
+*/
+
+//
+// UiMotivePlugin
+//
+
+pub struct UiMotivePlugin {
+    bounds: Bounds::<UiLayout>,
+    size: f32,
+    items: Vec<Box<dyn PluginItem>>,
+
+    x: usize,
+    y: usize,
+}
+
+impl UiMotivePlugin {
+    pub fn new(xy: impl Into<Point>, wh: impl Into<Point>) -> Self {
+        let xy = xy.into();
+        let wh = wh.into();
+
+        Self {
+            bounds: Bounds::new(xy, (xy.0 + wh.0, xy.1 + wh.1)),
+            size: 12.,
+            items: Vec::new(),
+            x: 0,
+            y: 0,
+        }
+    }
+
+    pub fn size(mut self, size: f32) -> Self {
+        self.size = size;
+
+        self
+    }
+
+    pub fn row(mut self) -> Self {
+        self.y += 1;
+        self.x = 0;
+
+        self
+    }
+
+    pub fn item<T>(
+        mut self, 
+        emoji: Emoji,
+        fun: impl Fn(&T) -> f32 + Send + Sync + 'static
+    ) -> Self
+    where T: Default + Send + Sync + 'static
+    {
+        // let i = self.items.len();
+
+        self.items.push(Box::new(Item {
+            pos: Point(self.x as f32 + 0.5, self.y as f32 + 0.5),
+            emoji,
+            colormap: None,
+            fun: RefCell::new(Some(Box::new(fun)))
+        }));
+
+        self.x += 1;
+
+        self
+    }
+
+    pub fn colormap(
+        mut self,
+        colormap: impl Into<ColorMap>,
+    ) -> Self {
+        assert!(self.items.len() > 0);
+
+        let tail = self.items.len() - 1;
+        self.items[tail].set_colormap(colormap.into());
+
+        self
+
+    }
+}
+
+trait PluginItem {
+    fn pos(&self) -> Point;
+    fn emoji(&self) -> Emoji;
+    fn set_colormap(&mut self, colormap: ColorMap);
+    fn colormap(&self) -> Option<ColorMap>;
+    fn system(&self, id: usize, app: &mut App);
+}
+
+struct Item<T: Send + Sync + 'static> {
+    pos: Point,
+    emoji: Emoji,
+    colormap: Option<ColorMap>,
+    fun: RefCell<Option<Box<dyn Fn(&T) -> f32 + Send + Sync + 'static>>>,
+}
+
+impl<T: Send + Sync + 'static> Item<T> {
+    
+}
+
+impl<T: Default + Send + Sync + 'static> PluginItem for Item<T> {
+    fn pos(&self) -> Point {
+        self.pos.clone()
+    }
+
+    fn emoji(&self) -> Emoji {
+        self.emoji.clone()
+    }
+
+    fn set_colormap(&mut self, colormap: ColorMap) {
+        self.colormap = Some(colormap);
+    }
+
+    fn colormap(&self) -> Option<ColorMap> {
+        self.colormap.clone()
+    }
+
+    fn system(&self, id: usize, app: &mut App) {
+        app.init_resource::<T>();
+
+        let fun = self.fun.take().unwrap();
+
+        app.system(PostUpdate, 
+            move |mut motives: ResMut<UiMotive>, item: Res<T>| {
+                motives.items[id].value = fun(item.get());
+            }
+        );
+    }
+} 
+
+impl Plugin for UiMotivePlugin {
+    fn build(&self, app: &mut App) {
+        if app.contains_plugin::<UiWorldPlugin>() {
+            let box_id = app.resource_mut::<UiLayout>().add_box(self.bounds.clone());
+
+            let mut ui_motive = UiMotive::new(box_id);
+
+            ui_motive.size = self.size;
+
+            for item in &self.items {
+                let id = ui_motive.push(UiMotiveItem::new(item));
+
+                item.system(id, app);
+            }
+
+            app.insert_resource(ui_motive);
+
+            app.system(PreUpdate, ui_motive_resize);
+            app.system(Update, ui_motive_draw);
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
-pub enum MotiveEmoji {
+pub enum Emoji {
     Bandage,
     Bell,
     Candy,
@@ -185,140 +398,57 @@ pub enum MotiveEmoji {
     Telescope,
 }
 
-impl MotiveEmoji {
+impl Emoji {
     fn new() -> Self {
         Self::Footprints
     }
 
     fn code(&self) -> &str {
         match self {
-            MotiveEmoji::Bandage => "\u{1fa79}",
-            MotiveEmoji::Bell => "\u{1f514}",
-            MotiveEmoji::Candy => "\u{1f36c}",
-            MotiveEmoji::Cheese => "\u{1f9c0}",
-            MotiveEmoji::Crab => "\u{1f980}",
-            MotiveEmoji::Cupcake => "\u{1f9c1}",
-            MotiveEmoji::Detective => "\u{1f575}",
-            MotiveEmoji::DirectHit => "\u{1f3af}",
-            MotiveEmoji::Eyes => "\u{1f440}",
+            Emoji::Bandage => "\u{1fa79}",
+            Emoji::Bell => "\u{1f514}",
+            Emoji::Candy => "\u{1f36c}",
+            Emoji::Cheese => "\u{1f9c0}",
+            Emoji::Crab => "\u{1f980}",
+            Emoji::Cupcake => "\u{1f9c1}",
+            Emoji::Detective => "\u{1f575}",
+            Emoji::DirectHit => "\u{1f3af}",
+            Emoji::Eyes => "\u{1f440}",
 
-            MotiveEmoji::FaceAstonished => "\u{1f632}",
-            MotiveEmoji::FaceConfounded => "\u{1f616}",
-            MotiveEmoji::FaceDisappointed => "\u{1f61e}",
-            MotiveEmoji::FaceFreezing => "\u{1f976}",
-            MotiveEmoji::FaceFrowning => "\u{2639}",
-            MotiveEmoji::FaceGrimacing => "\u{1f62c}",
-            MotiveEmoji::FaceGrinning => "\u{1f600}",
-            MotiveEmoji::FaceMonocle => "\u{1f9d0}",
-            MotiveEmoji::FaceNauseated => "\u{1f922}",
-            MotiveEmoji::FaceNeutral => "\u{1f610}",
-            MotiveEmoji::FaceOverheated => "\u{1f975}",
-            MotiveEmoji::FaceOpenMouth => "\u{1f62e}",
-            MotiveEmoji::FaceSleepy => "\u{1f62a}",
-            MotiveEmoji::FaceSleeping => "\u{1f634}",
-            MotiveEmoji::FaceSlightlySmiling => "\u{1f642}",
-            MotiveEmoji::FaceSunglasses => "\u{1f60e}",
-            MotiveEmoji::FaceThinking => "\u{1f914}",
-            MotiveEmoji::FaceVomiting => "\u{1f92e}",
-            MotiveEmoji::FaceWithCowboyHat => "\u{1f920}",
-            MotiveEmoji::FaceWithThermometer => "\u{1f912}",
-            MotiveEmoji::FaceWorried => "\u{1f61f}",
-            MotiveEmoji::FaceYawning => "\u{1f971}",
+            Emoji::FaceAstonished => "\u{1f632}",
+            Emoji::FaceConfounded => "\u{1f616}",
+            Emoji::FaceDisappointed => "\u{1f61e}",
+            Emoji::FaceFreezing => "\u{1f976}",
+            Emoji::FaceFrowning => "\u{2639}",
+            Emoji::FaceGrimacing => "\u{1f62c}",
+            Emoji::FaceGrinning => "\u{1f600}",
+            Emoji::FaceMonocle => "\u{1f9d0}",
+            Emoji::FaceNauseated => "\u{1f922}",
+            Emoji::FaceNeutral => "\u{1f610}",
+            Emoji::FaceOverheated => "\u{1f975}",
+            Emoji::FaceOpenMouth => "\u{1f62e}",
+            Emoji::FaceSleepy => "\u{1f62a}",
+            Emoji::FaceSleeping => "\u{1f634}",
+            Emoji::FaceSlightlySmiling => "\u{1f642}",
+            Emoji::FaceSunglasses => "\u{1f60e}",
+            Emoji::FaceThinking => "\u{1f914}",
+            Emoji::FaceVomiting => "\u{1f92e}",
+            Emoji::FaceWithCowboyHat => "\u{1f920}",
+            Emoji::FaceWithThermometer => "\u{1f912}",
+            Emoji::FaceWorried => "\u{1f61f}",
+            Emoji::FaceYawning => "\u{1f971}",
 
-            MotiveEmoji::Footprints => "\u{1f463}",
-            MotiveEmoji::ForkAndKnife => "\u{1f374}",
-            MotiveEmoji::Lemon => "\u{1f34b}",
-            MotiveEmoji::MagnifyingGlassLeft => "\u{1f50d}",
-            MotiveEmoji::MagnifyingGlassRight => "\u{1f50e}",
-            MotiveEmoji::OctagonalSign => "\u{1f6d1}",
-            MotiveEmoji::Onion => "\u{1f9c5}",
-            MotiveEmoji::Pedestrian => "\u{1f6b6}",
-            MotiveEmoji::Salt => "\u{1f9c2}",
-            MotiveEmoji::Sleeping => "\u{1f4a4}",
-            MotiveEmoji::Telescope => "\u{1f52d}",
-        }
-    }
-}
-
-impl UiMotiveDraw for MotiveEmoji {
-    fn draw(
-        &self, 
-        ui: &mut UiRender, 
-        pos: Point, 
-        style: &PathStyle,
-        text_style: &mut TextStyle
-    ) {
-        ui.draw_text(pos, self.code(), style, text_style);
-    }
-
-    fn box_clone(&self) -> Box<dyn UiMotiveDraw> {
-        Box::new(self.clone())
-    }
-}
-
-struct UiMotiveItem {
-    emoji: MotiveEmoji,
-}
-
-impl UiMotiveItem {
-    fn new(emoji: MotiveEmoji) -> Self {
-        Self {
-            emoji,
-        }
-    }
-}
-
-impl Clone for UiMotiveItem {
-    fn clone(&self) -> Self {
-        Self { 
-            emoji: self.emoji.clone()
-        }
-    }
-}
-
-//
-// UiMotivePlugin
-//
-
-pub struct UiMotivePlugin {
-    bounds: Bounds::<UiLayout>,
-    items: Vec<UiMotiveItem>,
-
-}
-
-impl UiMotivePlugin {
-    pub fn new(xy: impl Into<Point>, wh: impl Into<Point>) -> Self {
-        let xy = xy.into();
-        let wh = wh.into();
-
-        Self {
-            bounds: Bounds::new(xy, (xy.0 + wh.0, xy.1 + wh.1)),
-            items: Vec::new(),
-        }
-    }
-
-    pub fn item(mut self, emoji: MotiveEmoji) -> Self {
-        self.items.push(UiMotiveItem::new(emoji));
-
-        self
-    }
-}
-
-impl Plugin for UiMotivePlugin {
-    fn build(&self, app: &mut App) {
-        if app.contains_plugin::<UiWorldPlugin>() {
-            let box_id = app.resource_mut::<UiLayout>().add_box(self.bounds.clone());
-
-            let mut ui_motive = UiMotive::new(box_id);
-
-            for item in &self.items {
-                ui_motive.push(item.clone());
-            }
-
-            app.insert_resource(ui_motive);
-
-            app.system(PreUpdate, ui_motive_resize);
-            app.system(Update, ui_motive_draw);
+            Emoji::Footprints => "\u{1f463}",
+            Emoji::ForkAndKnife => "\u{1f374}",
+            Emoji::Lemon => "\u{1f34b}",
+            Emoji::MagnifyingGlassLeft => "\u{1f50d}",
+            Emoji::MagnifyingGlassRight => "\u{1f50e}",
+            Emoji::OctagonalSign => "\u{1f6d1}",
+            Emoji::Onion => "\u{1f9c5}",
+            Emoji::Pedestrian => "\u{1f6b6}",
+            Emoji::Salt => "\u{1f9c2}",
+            Emoji::Sleeping => "\u{1f4a4}",
+            Emoji::Telescope => "\u{1f52d}",
         }
     }
 }

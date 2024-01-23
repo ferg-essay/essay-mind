@@ -1,8 +1,8 @@
 use std::time::Duration;
 
 use essay::{food_graph, food_peptides};
-use essay_plot::api::Colors;
-use vertebrate::{body::{BodyPlugin, Body}, taxis::{taxis_pons::TaxisPonsPlugin, chemotaxis::{ChemotaxisPlugin, Chemotaxis}, habenula_seek::HabenulaSeekPlugin}, ui::{ui_attention::UiAttentionPlugin, ui_homunculus::UiHomunculusPlugin, ui_motive::MotiveEmoji}, olfactory_bulb::OlfactoryBulb, peptide_core::mid_peptides::MidPeptidesPlugin};
+use essay_plot::{api::Colors, artist::ColorMaps};
+use vertebrate::{body::{BodyPlugin, Body}, taxis::{taxis_pons::TaxisPonsPlugin, chemotaxis::{ChemotaxisPlugin, Chemotaxis}, habenula_seek::HabenulaSeekPlugin}, ui::{ui_attention::UiAttentionPlugin, ui_homunculus::UiHomunculusPlugin, ui_motive::Emoji}, olfactory_bulb::OlfactoryBulb, peptide_core::{mid_peptides::MidPeptidesPlugin, motive::{Motive, Orexin, Surprise, Roam, Dwell, Seek}}};
 use essay_ecs::prelude::App;
 use mind_ecs::TickSchedulePlugin;
 use ui_graphics::UiCanvasPlugin;
@@ -104,8 +104,19 @@ fn ui_eat(app: &mut App) {
     );
 
     app.plugin(UiMotivePlugin::new((2.0, 1.5), (0.5, 0.5))
-        .item(MotiveEmoji::Footprints)
-        .item(MotiveEmoji::FaceAstonished)
+        .size(12.)
+        .item(Emoji::Footprints, |m: &Motive<Roam>| 1.)
+        .item(Emoji::MagnifyingGlassLeft, |m: &Motive<Dwell>| 1.)
+        .item(Emoji::DirectHit, |m: &Motive<Seek>| 1.)
+        .item(Emoji::FaceDisappointed, |m: &Motive<Seek>| 1.)
+        .item(Emoji::FaceSleeping, |m: &Motive<Seek>| 1.)
+        .row()
+        .item(Emoji::ForkAndKnife, |m: &Motive<Seek>| 1.)
+        .item(Emoji::Candy, |m: &Motive<Seek>| 1.)
+        .item(Emoji::Cheese, |m: &Motive<Seek>| 1.)
+        .item(Emoji::Lemon, |m: &Motive<Seek>| 1.)
+        .item(Emoji::Salt, |m: &Motive<Seek>| 1.)
+        // .item(Emoji::FaceAstonished, |m: &Motive<Hunger>| m.value())
 );
     app.plugin(UiHomunculusPlugin::new((2.5, 1.), (0.5, 1.)));
 }
