@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use essay::{food_graph, food_peptides};
 use essay_plot::{api::Colors, artist::ColorMaps};
-use vertebrate::{body::{BodyPlugin, Body}, taxis::{taxis_pons::TaxisPonsPlugin, chemotaxis::{ChemotaxisPlugin, Chemotaxis}, habenula_seek::HabenulaSeekPlugin}, ui::{ui_attention::UiAttentionPlugin, ui_homunculus::UiHomunculusPlugin, ui_motive::Emoji}, olfactory_bulb::OlfactoryBulb, peptide_core::{mid_peptides::MidPeptidesPlugin, motive::{Motive, Orexin, Surprise, Roam, Dwell, Seek}}};
+use vertebrate::{body::{BodyPlugin, Body}, taxis::{taxis_pons::TaxisPonsPlugin, chemotaxis::{ChemotaxisPlugin, Chemotaxis}, habenula_seek::HabenulaSeekPlugin}, ui::{ui_attention::UiAttentionPlugin, ui_homunculus::UiHomunculusPlugin, ui_motive::Emoji}, olfactory_bulb::OlfactoryBulb, motivation::{mid_peptides::MidPeptidesPlugin, motive::{Motive, Orexin, Surprise, Roam, Dwell, Seek}}};
 use essay_ecs::prelude::App;
 use mind_ecs::TickSchedulePlugin;
 use ui_graphics::UiCanvasPlugin;

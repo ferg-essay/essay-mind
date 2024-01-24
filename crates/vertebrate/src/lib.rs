@@ -4,7 +4,7 @@ pub mod body;
 pub mod habenula_giveup;
 pub mod nucleus_isthmi;
 pub mod olfactory_bulb;
-pub mod peptide_core;
+pub mod motivation;
 pub mod striatum;
 pub mod taxis;
 pub mod tectum;
