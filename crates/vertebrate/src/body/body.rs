@@ -1,7 +1,7 @@
 use essay_ecs::prelude::*;
 
 use essay_tensor::Tensor;
-use mind_ecs::Tick;
+use mind_ecs::{PreTick, Tick};
 use test_log::{TestLog, TestLogPlugin};
 use crate::body::touch::Touch;
 use crate::body::{BodyLocomotion, Action};
@@ -15,6 +15,8 @@ use super::eat::BodyEat;
 pub struct Body {
     locomotion: BodyLocomotion,
     eat: BodyEat,
+
+    action: BodyAction,
 
     approach_dir: DirVector,
     avoid_dir: DirVector,
@@ -34,12 +36,22 @@ impl Body {
             locomotion,
             eat,
 
+            action: BodyAction::Unset,
+
             tick_food: 0,
             ticks: 0,
 
             approach_dir: DirVector::zero(),
             avoid_dir: DirVector::zero(),
         }
+    }
+
+    pub fn action(&self) -> BodyAction {
+        self.action
+    }
+
+    pub fn set_action(&mut self, action: BodyAction) {
+        self.action = action;
     }
 
     pub fn locomotion(&self) -> &BodyLocomotion {
@@ -121,7 +133,13 @@ impl Body {
     }
 }
 
-///
+fn body_pre_tick(
+    mut body: ResMut<Body>
+) {
+    body.set_action(BodyAction::Unset);
+}
+
+    ///
 /// Update the animal's position based on the cilia movement
 /// 
 pub fn body_physics(
@@ -149,8 +167,12 @@ pub fn body_physics(
     body.ticks += 1;
 }
 
-fn _random() -> f32 {
-    Tensor::random_uniform([1], ())[0]
+#[derive(Clone, Copy)]
+pub enum BodyAction {
+    Unset,
+    Roam,
+    Dwell,
+    Eat,
 }
 
 pub fn body_log(
@@ -180,6 +202,7 @@ impl Plugin for BodyPlugin {
 
         app.event::<Touch>();
 
+        app.system(PreTick, body_pre_tick);
         app.system(Tick, body_physics);
         // app.system(Tick, body_habit);
 

@@ -5,7 +5,7 @@ use essay_plot::{
 };
 
 use ui_graphics::{ui_layout::{BoxId, UiLayout, UiLayoutEvent}, UiCanvas, ui_canvas::UiRender};
-use crate::{body::Body, taxis::taxis_pons::TaxisPons};
+use crate::{body::{Body, BodyAction}, taxis::taxis_pons::TaxisPons};
 use crate::ui::ui_world::UiWorldPlugin;
 use crate::util::Angle;
 
@@ -278,7 +278,13 @@ pub fn ui_homunculus_draw(
             ui_homunculus.emoji = Some(ui.font(emoji_path));
         }
 
-        let state = TestState::new();
+        let state = match body.action() {
+            BodyAction::Unset => TestState::FaceThinking,
+            BodyAction::Roam => TestState::Footprints,
+            BodyAction::Dwell => TestState::MagnifyingGlassLeft,
+            BodyAction::Eat => TestState::ForkAndKnife,
+        };
+
         //let crab = "\u{1f980}";
         // graph.text((0.5, 0.5), "\u{1f980}\u{1f990}").family(family).color("red");
 

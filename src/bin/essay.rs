@@ -2,7 +2,15 @@ use std::time::Duration;
 
 use essay::{food_graph, food_peptides};
 use essay_plot::{api::Colors, artist::ColorMaps};
-use vertebrate::{body::{BodyPlugin, Body}, taxis::{taxis_pons::TaxisPonsPlugin, chemotaxis::{ChemotaxisPlugin, Chemotaxis}, habenula_seek::HabenulaSeekPlugin}, ui::{ui_attention::UiAttentionPlugin, ui_homunculus::UiHomunculusPlugin, ui_motive::Emoji}, olfactory_bulb::OlfactoryBulb, motivation::{mid_peptides::MidPeptidesPlugin, motive::{Motive, Orexin, Surprise, Roam, Dwell, Seek}}};
+use vertebrate::{
+    body::{BodyPlugin, Body}, 
+    taxis::{taxis_pons::TaxisPonsPlugin, chemotaxis::{ChemotaxisPlugin, Chemotaxis}, habenula_seek::HabenulaSeekPlugin}, 
+    ui::{ui_attention::UiAttentionPlugin, ui_homunculus::UiHomunculusPlugin, ui_motive::Emoji}, 
+    olfactory_bulb::OlfactoryBulb, 
+    motivation::{
+        mid_peptides::MidPeptidesPlugin, motive::{Motive, Seek}, Dwell, ExplorePlugin, Roam, Wake, WakePlugin
+    }
+};
 use essay_ecs::prelude::App;
 use mind_ecs::TickSchedulePlugin;
 use ui_graphics::UiCanvasPlugin;
@@ -34,6 +42,9 @@ pub fn main() {
     world_odor(&mut app);
     app.plugin(BodyPlugin::new());
     app.plugin(TaxisPonsPlugin);
+
+    app.plugin(WakePlugin);
+    app.plugin(ExplorePlugin);
 
     app.plugin(OlfactoryPlugin::new()
         .odor(OdorType::FoodA)
@@ -105,17 +116,18 @@ fn ui_eat(app: &mut App) {
 
     app.plugin(UiMotivePlugin::new((2.0, 1.5), (0.5, 0.5))
         .size(12.)
-        .item(Emoji::Footprints, |m: &Motive<Roam>| 1.)
-        .item(Emoji::MagnifyingGlassLeft, |m: &Motive<Dwell>| 1.)
-        .item(Emoji::DirectHit, |m: &Motive<Seek>| 1.)
-        .item(Emoji::FaceDisappointed, |m: &Motive<Seek>| 1.)
-        .item(Emoji::FaceSleeping, |m: &Motive<Seek>| 1.)
+        .item(Emoji::FaceGrinning, |m: &Motive<Wake>| m.value())
+        .item(Emoji::Footprints, |m: &Motive<Roam>| m.value())
+        .item(Emoji::MagnifyingGlassLeft, |m: &Motive<Dwell>| m.value())
+        .item(Emoji::DirectHit, |m: &Motive<Seek>| m.value())
+        .item(Emoji::FaceDisappointed, |m: &Motive<Seek>| m.value())
+        .item(Emoji::FaceSleeping, |m: &Motive<Seek>| m.value())
         .row()
-        .item(Emoji::ForkAndKnife, |m: &Motive<Seek>| 1.)
-        .item(Emoji::Candy, |m: &Motive<Seek>| 1.)
-        .item(Emoji::Cheese, |m: &Motive<Seek>| 1.)
-        .item(Emoji::Lemon, |m: &Motive<Seek>| 1.)
-        .item(Emoji::Salt, |m: &Motive<Seek>| 1.)
+        .item(Emoji::ForkAndKnife, |m: &Motive<Seek>| m.value())
+        .item(Emoji::Candy, |m: &Motive<Seek>| m.value())
+        .item(Emoji::Cheese, |m: &Motive<Seek>| m.value())
+        .item(Emoji::Lemon, |m: &Motive<Seek>| m.value())
+        .item(Emoji::Salt, |m: &Motive<Seek>| m.value())
         // .item(Emoji::FaceAstonished, |m: &Motive<Hunger>| m.value())
 );
     app.plugin(UiHomunculusPlugin::new((2.5, 1.), (0.5, 1.)));

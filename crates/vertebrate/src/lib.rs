@@ -1,3 +1,4 @@
+pub mod ticks;
 pub mod action;
 pub mod basal_forebrain;
 pub mod body;
