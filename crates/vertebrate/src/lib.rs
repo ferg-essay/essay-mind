@@ -1,3 +1,4 @@
+pub mod hind_motor;
 pub mod ticks;
 pub mod action;
 pub mod basal_forebrain;

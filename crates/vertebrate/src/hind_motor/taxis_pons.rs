@@ -458,7 +458,7 @@ impl Explore {
         &mut self,
         body: &mut Body
     ) {
-        body.stop_action(self.action);
+        body.set_action(self.action);
 
         if ! body.locomotion().is_idle() {
             return;

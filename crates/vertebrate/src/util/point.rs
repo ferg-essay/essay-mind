@@ -103,6 +103,11 @@ impl Angle {
     }
 
     #[inline]
+    pub fn to_turn(&self) -> f32 {
+        (self.to_unit() + 0.5) % 1. - 0.5
+    }
+
+    #[inline]
     pub fn to_unit_zero(&self) -> f32 {
         match self {
             Angle::Rad(rad) => (1.5 - rad / TAU) % 1. - 0.5,
@@ -124,6 +129,11 @@ impl Angle {
     #[inline]
     pub fn sin_cos(&self) -> (f32, f32) {
         self.to_radians().sin_cos()
+    }
+
+    #[inline]
+    pub fn unit(dir: f32) -> Angle {
+        Self::Unit((dir + 1.) % 1.)
     }
 }
 
