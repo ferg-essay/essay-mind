@@ -6,11 +6,13 @@ use essay_ecs::{prelude::{Plugin, App, ResMut, Res}, app::event::{InEvent, OutEv
 use mind_ecs::Tick;
 
 use crate::{
-    taxis::habenula_seek::HabenulaSeek,
-    util::{DecayValue, DirVector, Angle}, olfactory_bulb::{OlfactoryBulb, ObEvent}, body::Body, 
+    body::Body, 
+    hind_motor::HindLocomotorEvent, 
+    olfactory_bulb::{OlfactoryBulb, ObEvent}, 
+    util::{DirVector, Angle} 
 };
 
-use super::{taxis_pons::TaxisEvent, habenula_seek::HabenulaSeekItem};
+use super::habenula_seek::HabenulaSeekItem;
 
 pub struct Chemotaxis {
     habenula: HabenulaSeekItem,
@@ -55,7 +57,7 @@ impl Chemotaxis {
     pub fn update(
         &mut self, 
         head_dir: Angle,
-        taxis: &mut OutEvent<TaxisEvent>
+        taxis: &mut OutEvent<HindLocomotorEvent>
     ) {
         // update the light average
         self.habenula.update(head_dir);
@@ -64,9 +66,9 @@ impl Chemotaxis {
         let approach_ego = approach_vector.to_approach(head_dir);
 
         if self.habenula.value() > 0.01 || approach_ego.value() > 0.05 {
-            taxis.send(TaxisEvent::ApproachVector(approach_ego));
+            taxis.send(HindLocomotorEvent::ApproachVector(approach_ego));
             // taxis.send(TaxisEvent::Roam); // small-scale search
-            taxis.send(TaxisEvent::ApproachDisplay(approach_vector));
+            taxis.send(HindLocomotorEvent::ApproachDisplay(approach_vector));
         }
      }
 }
@@ -75,7 +77,7 @@ fn update_chemotaxis(
     mut chemotaxis: ResMut<Chemotaxis>,
     mut ob: InEvent<ObEvent>,
     body: Res<Body>,
-    mut taxis: OutEvent<TaxisEvent>,
+    mut taxis: OutEvent<HindLocomotorEvent>,
 ) {
     chemotaxis.pre_update();
 

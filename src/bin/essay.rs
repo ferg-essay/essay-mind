@@ -3,21 +3,16 @@ use std::time::Duration;
 use essay::{food_graph, food_peptides};
 use essay_plot::{api::Colors, artist::ColorMaps};
 use vertebrate::{
-    body::{BodyPlugin, Body}, 
-    taxis::{taxis_pons::TaxisPonsPlugin, chemotaxis::{ChemotaxisPlugin, Chemotaxis}, habenula_seek::HabenulaSeekPlugin}, 
-    ui::{ui_attention::UiAttentionPlugin, ui_homunculus::UiHomunculusPlugin, ui_motive::Emoji}, 
-    olfactory_bulb::OlfactoryBulb, 
-    motivation::{
+    body::{BodyPlugin, Body}, hind_motor::HindLocomotorPlugin, motivation::{
         mid_peptides::MidPeptidesPlugin, motive::{Motive, Seek}, Dwell, ExplorePlugin, Roam, Wake, WakePlugin
-    },
-    habenula_giveup::HabenulaMedPlugin,
-    taxis::{
-        phototaxis::Phototaxis,
-        mid_locomotor::MidLocomotorPlugin,
-    },
-    olfactory_bulb::{ObEvent, OlfactoryPlugin},
-    tectum::TectumPlugin,
+    }, olfactory_bulb::OlfactoryBulb, olfactory_bulb::{ObEvent, OlfactoryPlugin}, 
+    mid_taxis::phototaxis::Phototaxis,
+    mid_taxis::{
+        chemotaxis::{ChemotaxisPlugin, Chemotaxis}, 
+        habenula_seek::HabenulaSeekPlugin
+    }, tectum::TectumPlugin, 
     ui::{
+        ui_attention::UiAttentionPlugin, ui_homunculus::UiHomunculusPlugin, ui_motive::Emoji,
         ui_body::{UiBodyPlugin, UiBodyTrailPlugin},
         ui_body_heatmap::UiLocationHeatmapPlugin,
         ui_motive::UiMotivePlugin,
@@ -25,8 +20,9 @@ use vertebrate::{
         ui_peptide::UiPeptidePlugin,
         ui_table::UiTablePlugin,
         ui_world::UiWorldPlugin,
-    },
-    world::{World, WorldPlugin, OdorType}
+    }, world::{
+        World, WorldPlugin, OdorType
+    }
 };
 use essay_ecs::{app::event::InEvent, core::ResMut, prelude::App};
 use mind_ecs::{Tick, TickSchedulePlugin};
@@ -39,7 +35,7 @@ pub fn main() {
 
     world_roam(&mut app);
     app.plugin(BodyPlugin::new());
-    app.plugin(TaxisPonsPlugin);
+    app.plugin(HindLocomotorPlugin);
 
     app.plugin(WakePlugin);
     app.plugin(ExplorePlugin);
@@ -126,7 +122,7 @@ fn ui_eat(app: &mut App) {
     app.plugin(UiBodyTrailPlugin);
 
     app.plugin(UiTablePlugin::new((2., 0.7), (1., 0.3))
-        .p_item("p(food)", |w: &World, b: &Body| if b.eat().is_sensor_food() { 1. } else { 0. })
+        .p_item("p(food)", |w: &World, b: &Body| 0.) // if b.eat().is_sensor_food() { 1. } else { 0. })
     );
 
     app.plugin(UiLocationHeatmapPlugin::new((2., 0.), (1., 0.7)));
@@ -179,7 +175,7 @@ fn ui_chemotaxis(app: &mut App) {
     app.plugin(UiBodyTrailPlugin);
 
     app.plugin(UiTablePlugin::new((2., 0.7), (1., 0.3))
-        .p_item("p(food)", |w: &World, b: &Body| if b.eat().is_sensor_food() { 1. } else { 0. })
+        .p_item("p(food)", |w: &World, b: &Body| 0.) // if b.eat().is_sensor_food() { 1. } else { 0. })
     );
 
     app.plugin(UiLocationHeatmapPlugin::new((2., 0.), (1., 0.7)));

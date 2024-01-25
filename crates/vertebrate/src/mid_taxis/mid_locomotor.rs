@@ -23,35 +23,40 @@ impl MesState {
         &mut self,
         body: &mut Body
     ) {
-        body.locomotion_mut().action(&self.left60);
+        todo!();
+        // body.locomotion_mut().action(&self.left60);
     }
 
     fn left_avoid(
         &mut self,
         body: &mut Body
     ) {
-        body.locomotion_mut().avoid(&self.left60);
+        todo!();
+        // body.locomotion_mut().avoid(&self.left60);
     }
 
     fn right_seek(
         &mut self,
         body: &mut Body
     ) {
-        body.locomotion_mut().action(&self.right60);
+        todo!();
+        //body.locomotion_mut().action(&self.right60);
     }
 
     fn right_avoid(
         &mut self,
         body: &mut Body
     ) {
-        body.locomotion_mut().avoid(&self.right60);
+        todo!();
+        // body.locomotion_mut().avoid(&self.right60);
     }
 
     fn _forward(
         &mut self,
         body: &mut Body
     ) {
-        body.locomotion_mut().action(&self._forward);
+        todo!();
+        // body.locomotion_mut().action(&self._forward);
     }
 
     // fn explore_mut(&mut self) -> &mut MidExplore {

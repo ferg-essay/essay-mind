@@ -8,7 +8,7 @@ pub mod nucleus_isthmi;
 pub mod olfactory_bulb;
 pub mod motivation;
 pub mod striatum;
-pub mod taxis;
+pub mod mid_taxis;
 pub mod tectum;
 pub mod tuberculum;
 pub mod util;

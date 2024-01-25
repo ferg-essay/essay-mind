@@ -58,7 +58,7 @@ pub fn food_graph(app: &mut App, pos: (f32, f32), extent: (f32, f32)) {
         .item("DA", |p: &MidPeptides| p.seek_food())
         .item("Hb", |p: &MidPeptides| p.give_up_seek_food())
         //.item("Df", |p: &MidPeptides| p.near_food())
-        .item("gl", |b: &Body| b.eat().glucose())
+        .item("gl", |b: &Body| 0.) // b.eat().glucose())
     );
 }
 
@@ -69,6 +69,6 @@ pub fn food_peptides(app: &mut App, pos: (f32, f32), extent: (f32, f32)) {
         .item("DA", |p: &MidPeptides| p.seek_food())
         .item("Hb", |p: &MidPeptides| p.give_up_seek_food())
         //.item("Df", |p: &MidPeptides| p.near_food())
-        .item("gl", |b: &Body| b.eat().glucose())
+        .item("gl", |b: &Body| 0.) // b.eat().glucose())
     );
 }

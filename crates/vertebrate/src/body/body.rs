@@ -1,11 +1,9 @@
 use essay_ecs::prelude::*;
 
-use essay_tensor::Tensor;
 use mind_ecs::{PreTick, Tick};
 use test_log::{TestLog, TestLogPlugin};
-use util::random::{random_normal, random_uniform};
+use util::random::random_uniform;
 use crate::body::touch::Touch;
-use crate::body::{BodyLocomotion};
 
 use crate::util::{DirVector, Point, Angle};
 use crate::world::{OdorType, World, WorldPlugin};
@@ -25,13 +23,13 @@ pub struct Body {
     collide_left: bool,
     collide_right: bool,
 
-    locomotion: BodyLocomotion,
-    eat: BodyEat,
+    //locomotion: BodyLocomotion,
+    //eat: BodyEat,
 
     approach_dir: DirVector,
     avoid_dir: DirVector,
 
-    tick_food: usize,
+    // tick_food: usize,
     ticks: usize,
 }
 
@@ -39,7 +37,7 @@ impl Body {
     pub const TICK_RATE : f32 = 10.;
 
     pub fn new(pos: Point) -> Self {
-        let mut locomotion = BodyLocomotion::new(pos);
+        //let mut locomotion = BodyLocomotion::new(pos);
         // locomotion.action_default(Action::forward());
 
         let eat = BodyEat::new();
@@ -55,10 +53,10 @@ impl Body {
             collide_left: false,
             collide_right: false,
 
-            locomotion,
-            eat,
+            //locomotion,
+            //eat,
 
-            tick_food: 0,
+            //tick_food: 0,
             ticks: 0,
 
             approach_dir: DirVector::zero(),
@@ -66,10 +64,12 @@ impl Body {
         }
     }
 
+    #[inline]
     pub fn pos(&self) -> Point {
         self.pos
     }
 
+    #[inline]
     pub fn pos_head(&self) -> Point {
         let Point(x, y) = self.pos;
 
@@ -82,54 +82,72 @@ impl Body {
         head
     }
 
+    #[inline]
     pub fn dir(&self) -> Angle {
         self.dir
     }
 
+    #[inline]
     pub fn head_dir(&self) -> Angle {
         self.dir()
     }
 
+    #[inline]
     pub fn set_action(&mut self, kind: BodyAction, speed: f32, turn: Angle) {
         self.action = Action::new(BodyAction::Roam, speed, turn);
     }
 
+    #[inline]
     pub fn roam(&mut self, speed: f32, turn: Angle) {
         self.set_action(BodyAction::Roam, speed, turn);
     }
 
+    #[inline]
     pub fn dwell(&mut self, speed: f32, turn: Angle) {
         self.set_action(BodyAction::Dwell, speed, turn);
     }
 
+    #[inline]
+    pub fn avoid(&mut self, speed: f32, turn: Angle) {
+        self.set_action(BodyAction::Avoid, speed, turn);
+    }
+
+    #[inline]
     pub fn stop(&mut self) {
         self.set_action(BodyAction::None, 0., Angle::Unit(0.))
     }
 
+    #[inline]
     pub fn stop_action(&mut self, kind: BodyAction) {
         self.set_action(kind, 0., Angle::Unit(0.))
     }
 
+    #[inline]
     pub fn speed(&self) -> f32 {
         self.action.speed
     }
 
+    #[inline]
     pub fn turn(&self) -> Angle {
         self.action.turn
     }
 
+    #[inline]
     pub fn action(&self) -> BodyAction {
         self.action.kind
     }
 
+    #[inline]
     pub fn is_collide_left(&self) -> bool {
         self.collide_left
     }
 
+    #[inline]
     pub fn is_collide_right(&self) -> bool {
         self.collide_right
     }
 
+    /*
     pub fn locomotion(&self) -> &BodyLocomotion {
         &self.locomotion
     }
@@ -137,6 +155,7 @@ impl Body {
     pub fn locomotion_mut(&mut self) -> &mut BodyLocomotion {
         &mut self.locomotion
     }
+    */
 
     pub fn avoid_dir(&self) -> DirVector {
         self.avoid_dir.clone()
@@ -154,6 +173,7 @@ impl Body {
         self.approach_dir = dir;
     }
 
+    /*
     pub fn eat(&self) -> &BodyEat {
         &self.eat
     }
@@ -161,37 +181,15 @@ impl Body {
     pub fn eat_mut(&mut self) -> &mut BodyEat {
         &mut self.eat
     }
-
-    pub fn _pos(&self) -> Point {
-        self.locomotion.pos()
-    }
-
-    pub fn _pos_head(&self) -> Point {
-        self.locomotion.pos_head()
-    }
-
-    pub fn _dir(&self) -> Angle {
-        self.locomotion.dir()
-    }
-
-    pub fn _head_dir(&self) -> Angle {
-        self.locomotion.dir()
-    }
-
-    pub fn _speed(&self) -> f32 {
-        self.locomotion.speed()
-    }
-
-    pub fn _turn(&self) -> Angle {
-        self.locomotion.turn()
-    }
+    */
 
     pub fn p_food(&self) -> f32 {
-        self.tick_food as f32 / self.ticks.max(1) as f32
+        // self.tick_food as f32 / self.ticks.max(1) as f32
+        0.
     }
 
     pub fn odor_turn(&self, world: &World) -> Option<(OdorType, Angle)> {
-        if let Some((odor, angle)) = world.odor(self.locomotion.pos_head()) {
+        if let Some((odor, angle)) = world.odor(self.pos_head()) {
             let turn = (2. + angle.to_unit() - self.dir().to_unit()) % 1.;
 
             Some((odor, Angle::Unit(turn)))
@@ -318,6 +316,7 @@ pub enum BodyAction {
     None,
     Roam,
     Dwell,
+    Avoid,
     Seek,
     Eat,
 }

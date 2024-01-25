@@ -8,7 +8,7 @@ use crate::util::{Angle, DirVector};
 use util::random::{random_pareto, random, random_normal};
 
 
-pub struct TaxisPons {
+pub struct HindLocomotor {
     left60: TaxisTurn,
     right60: TaxisTurn,
     left120: TaxisTurn,
@@ -20,7 +20,7 @@ pub struct TaxisPons {
     is_first: bool,
 }
 
-impl TaxisPons {
+impl HindLocomotor {
     const _CPG_TIME : f32 = 1.;
 
     pub fn avoid_left(&self) -> f32 {
@@ -83,7 +83,7 @@ impl TaxisPons {
         self.explore.pre_update();
     }
 
-    fn event(&mut self, event: &TaxisEvent) {
+    fn event(&mut self, event: &HindLocomotorEvent) {
         //if self.is_first {
         //    self.is_first = false;
         //    self.explore.pre_update();
@@ -91,37 +91,37 @@ impl TaxisPons {
 
         match event {
             // collision/escape - strong avoid events
-            TaxisEvent::StrongAvoidLeft => {
+            HindLocomotorEvent::StrongAvoidLeft => {
                 self.action = self.action.avoid_left();
             }
-            TaxisEvent::StrongAvoidRight => {
+            HindLocomotorEvent::StrongAvoidRight => {
                 self.action = self.action.avoid_right();
             }
-            TaxisEvent::StrongAvoidBoth => {
+            HindLocomotorEvent::StrongAvoidBoth => {
                 self.action = self.action.avoid_left();
                 self.action = self.action.avoid_right();
             }
 
             // gradient taxis
-            TaxisEvent::AvoidVector(vector) => {
+            HindLocomotorEvent::AvoidVector(vector) => {
                 self.explore.add_avoid(*vector)
             },
             
-            TaxisEvent::ApproachVector(vector) => {
+            HindLocomotorEvent::ApproachVector(vector) => {
                 self.explore.add_approach(*vector)
             },
 
             // explore/speed modes
-            TaxisEvent::Approach => self.explore.approach(),
-            TaxisEvent::Avoid => self.explore.avoid(),
-            TaxisEvent::AvoidUTurn => self.explore.avoid_turn(),
-            TaxisEvent::Normal => self.explore.normal(),
-            TaxisEvent::Roam => self.explore.roam(),
-            TaxisEvent::Dwell => self.explore.dwell(),
+            HindLocomotorEvent::Approach => self.explore.approach(),
+            HindLocomotorEvent::Avoid => self.explore.avoid(),
+            HindLocomotorEvent::AvoidUTurn => self.explore.avoid_turn(),
+            HindLocomotorEvent::Normal => self.explore.normal(),
+            HindLocomotorEvent::Roam => self.explore.roam(),
+            HindLocomotorEvent::Dwell => self.explore.dwell(),
 
             // display events
-            TaxisEvent::ApproachDisplay(_) => {},
-            TaxisEvent::AvoidDisplay(_) => {},
+            HindLocomotorEvent::ApproachDisplay(_) => {},
+            HindLocomotorEvent::AvoidDisplay(_) => {},
         }
     }
 
@@ -131,25 +131,33 @@ impl TaxisPons {
                 self.explore.update(body);
             },
             TaxisAction::StrongAvoidLeft => {
-                body.locomotion_mut().avoid(self.right60.action(1.));
+                body.avoid(1., self.right60.angle());
+                // todo!();
+                // body.locomotion_mut().avoid(self.right60.action(1.));
             },
             TaxisAction::StrongAvoidRight => {
-                body.locomotion_mut().avoid(self.left60.action(1.));
+                body.avoid(1., self.left60.angle());
+                // todo!();
+                // body.locomotion_mut().avoid(self.left60.action(1.));
             },
             TaxisAction::StrongAvoidBoth => {
+                body.avoid(1., self.left120.angle());
+                //todo!();
+                /*
                 if random_normal() < 0. {
                     body.locomotion_mut().avoid(self.left120.action(1.));
                 } else {
                     body.locomotion_mut().avoid(self.right120.action(1.));
                 }
+                */
             },
         }
     }
 }
 
-impl FromStore for TaxisPons {
+impl FromStore for HindLocomotor {
     fn init(_store: &mut Store) -> Self {
-        TaxisPons {
+        HindLocomotor {
             left60: TaxisTurn::new(Angle::Deg(-60.), Angle::Deg(15.)),
             right60: TaxisTurn::new(Angle::Deg(60.), Angle::Deg(15.)),
 
@@ -167,18 +175,18 @@ impl FromStore for TaxisPons {
 fn update_taxis_pons(
     mut body: ResMut<Body>, 
     mut touch_events: InEvent<Touch>,
-    mut taxis_events: InEvent<TaxisEvent>,
-    mut taxis_pons: ResMut<TaxisPons>, 
+    mut taxis_events: InEvent<HindLocomotorEvent>,
+    mut taxis_pons: ResMut<HindLocomotor>, 
 ) {
     taxis_pons.pre_update();
 
     for touch in touch_events.iter() {
         match touch {
             Touch::CollideLeft => {
-                taxis_pons.event(&TaxisEvent::StrongAvoidLeft);
+                taxis_pons.event(&HindLocomotorEvent::StrongAvoidLeft);
             },
             Touch::CollideRight => {
-                taxis_pons.event(&TaxisEvent::StrongAvoidRight);
+                taxis_pons.event(&HindLocomotorEvent::StrongAvoidRight);
             },
         }
     }
@@ -187,7 +195,7 @@ fn update_taxis_pons(
         taxis_pons.event(event);
 
         match event {
-            TaxisEvent::ApproachDisplay(vector) => {
+            HindLocomotorEvent::ApproachDisplay(vector) => {
                 body.set_approach_dir(*vector);
             }
             _ => {},
@@ -198,7 +206,7 @@ fn update_taxis_pons(
 }
 
 #[derive(Clone, Copy, Debug, Event)]
-pub enum TaxisEvent {
+pub enum HindLocomotorEvent {
     // escape/collision
     StrongAvoidLeft,
     StrongAvoidRight,
@@ -458,11 +466,11 @@ impl Explore {
         &mut self,
         body: &mut Body
     ) {
-        body.set_action(self.action);
+        //body.set_action(self.action);
 
-        if ! body.locomotion().is_idle() {
-            return;
-        }
+        //if ! body.locomotion().is_idle() {
+        //    return;
+        //}
 
         let random = random();
         let mut mean = self.turn_mean;
@@ -494,21 +502,29 @@ impl Explore {
 
             let len = random_pareto(low, high, alpha);
 
-            let action = Action::new(len, speed, Angle::Unit(0.));
+            body.set_action(self.action, speed, Angle::Unit(0.));
 
-            body.locomotion_mut().action(action);
+            // todo!();
+            //body.locomotion_mut().action(action);
         } else if random <= p_left {
             self.is_turn = true;
 
             let action = Action::new(1., speed, Angle::Deg(- angle));
-            body.locomotion_mut().action(action);
+            //todo!();
+            // body.locomotion_mut().action(action);
             // tectum.toward().action_copy(Turn::Left)
+
+            body.set_action(self.action, speed, Angle::Deg(- angle));
         } else {
             self.is_turn = true;
 
             let action = Action::new(1., speed, Angle::Deg(angle));
-            body.locomotion_mut().action(action);
+
+            // todo!();
+            // body.locomotion_mut().action(action);
             // tectum.toward().action_copy(Turn::Right)
+
+            body.set_action(self.action, speed, Angle::Deg(angle));
         }
     }
 }
@@ -534,18 +550,27 @@ impl TaxisTurn {
 
         Action::new(1., speed, Angle::Unit(angle))
     }
+
+    fn angle(&self) -> Angle {
+        let mean = self.mean.to_unit();
+        let std = self.std.to_unit();
+
+        let angle = mean + std * random_normal().clamp(-2., 2.);
+
+        Angle::unit(angle)
+    }
 }
 
-pub struct TaxisPonsPlugin;
+pub struct HindLocomotorPlugin;
 
-impl Plugin for TaxisPonsPlugin {
+impl Plugin for HindLocomotorPlugin {
     fn build(&self, app: &mut App) {
-        assert!(app.contains_plugin::<BodyPlugin>(), "MesLocomotorPlugin requires BodyPlugin");
+        assert!(app.contains_plugin::<BodyPlugin>(), "HindLocomotorPlugin requires BodyPlugin");
         // assert!(app.contains_plugin::<TectumPlugin>(), "MesLocomotorPlugin requires TectumPlugin");
 
         // app.init_resource::<Explore>();
-        app.event::<TaxisEvent>();
-        app.init_resource::<TaxisPons>();
+        app.event::<HindLocomotorEvent>();
+        app.init_resource::<HindLocomotor>();
 
         app.system(Tick, update_taxis_pons);
     }

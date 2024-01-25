@@ -72,7 +72,8 @@ fn update_body_glucose(
     body: Res<Body>,
     mut peptides: ResMut<MidPeptides>
 ) {
-    peptides.glucose_mut().set(body.eat().glucose());
+    todo!();
+    // peptides.glucose_mut().set(body.eat().glucose());
 }
 
 fn update_feeding_olfactory(
@@ -88,9 +89,12 @@ fn update_near_food(
     body: Res<Body>, 
     mut peptides: ResMut<MidPeptides>
 ) {
+    todo!();
+    /*
     if body.eat().is_sensor_food() {
         peptides.near_food_mut().add(1.0);
     }
+    */
 }
 
 fn update_eat(
@@ -98,11 +102,14 @@ fn update_eat(
     mut body: ResMut<Body>,
 ) {
     if peptides.near_food() > 0.5 {
+        todo!();
+        /*
         if body.eat().glucose() < 0.8 && body.eat().is_eating()
             || body.eat().glucose() < 0.3 {
             body.locomotion_mut().arrest();
             body.eat_mut().eat();
         }
+        */
     }
 }
 

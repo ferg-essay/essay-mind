@@ -1,7 +1,7 @@
 use essay_ecs::{app::{event::OutEvent, App, Plugin}, core::{Res, ResMut}};
 use mind_ecs::Tick;
 
-use crate::{taxis::taxis_pons::TaxisEvent, ticks::Seconds};
+use crate::{hind_motor::HindLocomotorEvent, ticks::Seconds};
 
 use super::{motive::{Motive, MotiveTrait, Motives}, Wake};
 
@@ -14,10 +14,10 @@ fn roam_update(
 
 fn dwell_update(
     dwell: Res<Motive<Dwell>>,
-    mut taxis: OutEvent<TaxisEvent>,
+    mut taxis: OutEvent<HindLocomotorEvent>,
 ) {
     if dwell.value() > 0.1 {
-        taxis.send(TaxisEvent::Dwell);
+        taxis.send(HindLocomotorEvent::Dwell);
     }
 }
 

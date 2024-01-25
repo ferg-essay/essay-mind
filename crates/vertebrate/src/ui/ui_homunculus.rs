@@ -5,7 +5,7 @@ use essay_plot::{
 };
 
 use ui_graphics::{ui_layout::{BoxId, UiLayout, UiLayoutEvent}, UiCanvas, ui_canvas::UiRender};
-use crate::{body::{Body, BodyAction}, taxis::taxis_pons::TaxisPons};
+use crate::{body::{Body, BodyAction}, hind_motor::HindLocomotor};
 use crate::ui::ui_world::UiWorldPlugin;
 use crate::util::Angle;
 
@@ -193,7 +193,7 @@ pub fn ui_homunculus_resize(
 pub fn ui_homunculus_draw(
     mut ui_homunculus: ResMut<UiHomunculus>,
     body: Res<Body>,
-    taxis: Res<TaxisPons>,
+    taxis: Res<HindLocomotor>,
     mut ui_canvas: ResMut<UiCanvas>
 ) {
     if let Some(mut ui) = ui_canvas.renderer(Clip::None) {
@@ -292,6 +292,7 @@ pub fn ui_homunculus_draw(
             BodyAction::Roam => Emoji::Footprints,
             BodyAction::Dwell => Emoji::MagnifyingGlassLeft,
             BodyAction::Seek => Emoji::DirectHit,
+            BodyAction::Avoid => Emoji::FaceAstonished,
             BodyAction::Eat => Emoji::ForkAndKnife,
         };
 
