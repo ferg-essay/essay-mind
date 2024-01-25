@@ -1,9 +1,7 @@
-use essay_ecs::core::Store;
-use essay_ecs::core::store::FromStore;
 use essay_ecs::prelude::*;
 use mind_ecs::Tick;
 use crate::body::touch::Touch;
-use crate::body::{Action, Body, BodyAction, BodyPlugin};
+use crate::body::{Body, BodyAction, BodyPlugin};
 use crate::util::{Angle, DirVector};
 use util::random::{random_pareto, random, random_normal};
 
@@ -155,8 +153,8 @@ impl HindLocomotor {
     }
 }
 
-impl FromStore for HindLocomotor {
-    fn init(_store: &mut Store) -> Self {
+impl Default for HindLocomotor {
+    fn default() -> Self {
         HindLocomotor {
             left60: TaxisTurn::new(Angle::Deg(-60.), Angle::Deg(15.)),
             right60: TaxisTurn::new(Angle::Deg(60.), Angle::Deg(15.)),
@@ -172,27 +170,27 @@ impl FromStore for HindLocomotor {
     }
 }
 
-fn update_taxis_pons(
+fn update_hind_locomotor(
     mut body: ResMut<Body>, 
     mut touch_events: InEvent<Touch>,
     mut taxis_events: InEvent<HindLocomotorEvent>,
-    mut taxis_pons: ResMut<HindLocomotor>, 
+    mut hind_locomotor: ResMut<HindLocomotor>, 
 ) {
-    taxis_pons.pre_update();
+    hind_locomotor.pre_update();
 
     for touch in touch_events.iter() {
         match touch {
             Touch::CollideLeft => {
-                taxis_pons.event(&HindLocomotorEvent::StrongAvoidLeft);
+                hind_locomotor.event(&HindLocomotorEvent::StrongAvoidLeft);
             },
             Touch::CollideRight => {
-                taxis_pons.event(&HindLocomotorEvent::StrongAvoidRight);
+                hind_locomotor.event(&HindLocomotorEvent::StrongAvoidRight);
             },
         }
     }
 
     for event in taxis_events.iter() {
-        taxis_pons.event(event);
+        hind_locomotor.event(event);
 
         match event {
             HindLocomotorEvent::ApproachDisplay(vector) => {
@@ -202,7 +200,7 @@ fn update_taxis_pons(
         }
     }
 
-    taxis_pons.update(body.get_mut());
+    hind_locomotor.update(body.get_mut());
 }
 
 #[derive(Clone, Copy, Debug, Event)]
@@ -274,9 +272,10 @@ struct Explore {
     avoid_forward: f32,
     avoid_dir: DirVector,
 
-    is_turn: bool,
+    is_last_turn: bool,
 
-    action: BodyAction,
+    action: Action,
+    action_kind: BodyAction,
 }
 
 impl Explore {
@@ -286,6 +285,8 @@ impl Explore {
 
     const TURN_MEAN : f32 = 60.;
     const TURN_STD : f32 = 15.;
+
+    const TICKS : f32 = 10.;
 
     const _CPG_TIME : f32 = 1.;
 
@@ -310,9 +311,10 @@ impl Explore {
             avoid_forward: 0.,
             avoid_dir: DirVector::zero(),
 
-            is_turn: false,
+            is_last_turn: false,
 
-            action: BodyAction::Roam,
+            action: Action::none(),
+            action_kind: BodyAction::Roam,
         }
     }
 
@@ -348,7 +350,7 @@ impl Explore {
         self.turn_mean = Self::TURN_MEAN;
         self.turn_std = Self::TURN_STD;
 
-        self.action = BodyAction::Roam;
+        self.action_kind = BodyAction::Roam;
     }
 
     fn dwell(&mut self) {
@@ -361,7 +363,7 @@ impl Explore {
         self.turn_mean = Self::TURN_MEAN;
         self.turn_std = Self::TURN_STD;
 
-        self.action = BodyAction::Dwell;
+        self.action_kind = BodyAction::Dwell;
     }
 
     fn add_avoid(&mut self, avoid_dir: DirVector) {
@@ -384,7 +386,7 @@ impl Explore {
             self.approach_forward = - approach_dir.dy().clamp(-1., 0.);
             self.approach_dir = approach_dir;
 
-            self.action = BodyAction::Seek;
+            self.action_kind = BodyAction::Seek;
         }
     }
 
@@ -459,7 +461,7 @@ impl Explore {
     }
 
     fn _is_turn(&self) -> bool {
-        self.is_turn
+        self.is_last_turn
     }
 
     fn update(
@@ -468,9 +470,9 @@ impl Explore {
     ) {
         //body.set_action(self.action);
 
-        //if ! body.locomotion().is_idle() {
-        //    return;
-        //}
+        if self.action.pre_update() {
+            return;
+        }
 
         let random = random();
         let mut mean = self.turn_mean;
@@ -497,35 +499,39 @@ impl Explore {
         let speed = self.speed;
 
         // semi-brownian
-        if self.is_turn {
-            self.is_turn = false;
+        if self.is_last_turn {
+            self.is_last_turn = false;
 
             let len = random_pareto(low, high, alpha);
 
-            body.set_action(self.action, speed, Angle::Unit(0.));
+            self.action = Action::new(self.action_kind, len, speed, Angle::Unit(0.));
+            //body.set_action(self.action_kind, speed, Angle::Unit(0.));
 
             // todo!();
             //body.locomotion_mut().action(action);
         } else if random <= p_left {
-            self.is_turn = true;
+            self.is_last_turn = true;
 
-            let action = Action::new(1., speed, Angle::Deg(- angle));
+            self.action = Action::new(self.action_kind, 1., speed, Angle::Deg(- angle));
             //todo!();
             // body.locomotion_mut().action(action);
             // tectum.toward().action_copy(Turn::Left)
 
-            body.set_action(self.action, speed, Angle::Deg(- angle));
+            //body.set_action(self.action_kind, speed, Angle::Deg(- angle));
+            //self.action = action;
         } else {
-            self.is_turn = true;
+            self.is_last_turn = true;
 
-            let action = Action::new(1., speed, Angle::Deg(angle));
+            self.action = Action::new(self.action_kind, 1., speed, Angle::Deg(angle));
 
             // todo!();
             // body.locomotion_mut().action(action);
             // tectum.toward().action_copy(Turn::Right)
 
-            body.set_action(self.action, speed, Angle::Deg(angle));
+            //body.set_action(self.action_kind, speed, Angle::Deg(angle));
         }
+
+        body.set_action(self.action.kind, self.action.speed, self.action.turn);
     }
 }
 
@@ -548,7 +554,7 @@ impl TaxisTurn {
 
         let angle = mean + std * random_normal().clamp(-2., 2.);
 
-        Action::new(1., speed, Angle::Unit(angle))
+        Action::new(BodyAction::Roam, 1., speed, Angle::Unit(angle))
     }
 
     fn angle(&self) -> Angle {
@@ -558,6 +564,35 @@ impl TaxisTurn {
         let angle = mean + std * random_normal().clamp(-2., 2.);
 
         Angle::unit(angle)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct Action {
+    kind: BodyAction,
+    time: f32,
+    speed: f32,
+    turn: Angle,
+}
+
+impl Action {
+    fn new(kind: BodyAction, time: f32, speed: f32, turn: Angle) -> Self {
+        Self {
+            kind,
+            time,
+            speed,
+            turn,
+        }
+    }
+
+    fn none() -> Self {
+        Action::new(BodyAction::None, 0., 0., Angle::Unit(0.))
+    }
+
+    fn pre_update(&mut self) -> bool {
+        self.time -= 1. / Explore::TICKS;
+
+        return self.time >= 1.0e-6
     }
 }
 
@@ -572,6 +607,6 @@ impl Plugin for HindLocomotorPlugin {
         app.event::<HindLocomotorEvent>();
         app.init_resource::<HindLocomotor>();
 
-        app.system(Tick, update_taxis_pons);
+        app.system(Tick, update_hind_locomotor);
     }
 }

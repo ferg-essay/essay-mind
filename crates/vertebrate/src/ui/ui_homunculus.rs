@@ -287,7 +287,7 @@ pub fn ui_homunculus_draw(
         text_style.size(14.);
         text_style.font(ui_homunculus.emoji.unwrap());
 
-        let state = match body.action() {
+        let state = match body.action_kind() {
             BodyAction::None => Emoji::FaceThinking,
             BodyAction::Roam => Emoji::Footprints,
             BodyAction::Dwell => Emoji::MagnifyingGlassLeft,

@@ -1,7 +1,6 @@
-use std::{marker::PhantomData, ops::{Deref, DerefMut}};
+use std::{marker::PhantomData, ops::Deref};
 
-use essay_ecs::{app::{Plugin, App, PreUpdate}, core::{ResMut, store::FromStore, Store}};
-use mind_ecs::PreTick;
+use essay_ecs::{app::{App, PreUpdate}, core::ResMut};
 
 use crate::{ticks::Ticks, util::DecayValue};
 

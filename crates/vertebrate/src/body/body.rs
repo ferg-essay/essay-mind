@@ -94,7 +94,7 @@ impl Body {
 
     #[inline]
     pub fn set_action(&mut self, kind: BodyAction, speed: f32, turn: Angle) {
-        self.action = Action::new(BodyAction::Roam, speed, turn);
+        self.action = Action::new(kind, speed, turn);
     }
 
     #[inline]
@@ -105,6 +105,11 @@ impl Body {
     #[inline]
     pub fn dwell(&mut self, speed: f32, turn: Angle) {
         self.set_action(BodyAction::Dwell, speed, turn);
+    }
+
+    #[inline]
+    pub fn seek(&mut self, speed: f32, turn: Angle) {
+        self.set_action(BodyAction::Seek, speed, turn);
     }
 
     #[inline]
@@ -133,7 +138,7 @@ impl Body {
     }
 
     #[inline]
-    pub fn action(&self) -> BodyAction {
+    pub fn action_kind(&self) -> BodyAction {
         self.action.kind
     }
 
