@@ -17,7 +17,7 @@ test = false
 bench = false
 
 [dependencies]
-env_logger = { version = "0.10.0" }
+env_logger = { version = "0.11" }
 log = { version = "0.4.17" }
 cpal = { version="0.15" }
 fundsp = { version="0.15" }

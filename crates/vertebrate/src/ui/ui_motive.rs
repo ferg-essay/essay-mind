@@ -403,7 +403,7 @@ impl Emoji {
         Self::Footprints
     }
 
-    fn code(&self) -> &str {
+    pub fn code(&self) -> &str {
         match self {
             Emoji::Bandage => "\u{1fa79}",
             Emoji::Bell => "\u{1f514}",

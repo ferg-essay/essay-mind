@@ -36,7 +36,7 @@ impl Body {
             locomotion,
             eat,
 
-            action: BodyAction::Unset,
+            action: BodyAction::None,
 
             tick_food: 0,
             ticks: 0,
@@ -136,7 +136,7 @@ impl Body {
 fn body_pre_tick(
     mut body: ResMut<Body>
 ) {
-    body.set_action(BodyAction::Unset);
+    body.set_action(BodyAction::None);
 }
 
     ///
@@ -169,9 +169,10 @@ pub fn body_physics(
 
 #[derive(Clone, Copy)]
 pub enum BodyAction {
-    Unset,
+    None,
     Roam,
     Dwell,
+    Seek,
     Eat,
 }
 

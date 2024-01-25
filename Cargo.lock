@@ -872,7 +872,7 @@ version = "0.1.13"
 dependencies = [
  "audio",
  "cpal",
- "env_logger 0.10.1",
+ "env_logger 0.11.0",
  "essay",
  "essay-ecs 0.1.13",
  "essay-plot",

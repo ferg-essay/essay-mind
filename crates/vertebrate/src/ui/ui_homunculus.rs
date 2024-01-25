@@ -9,6 +9,8 @@ use crate::{body::{Body, BodyAction}, taxis::taxis_pons::TaxisPons};
 use crate::ui::ui_world::UiWorldPlugin;
 use crate::util::Angle;
 
+use super::ui_motive::Emoji;
+
 #[derive(Component)]
 pub struct UiHomunculus {
     id: BoxId,
@@ -278,22 +280,25 @@ pub fn ui_homunculus_draw(
             ui_homunculus.emoji = Some(ui.font(emoji_path));
         }
 
+        let mut path_style = PathStyle::new();
+
+        let mut text_style = TextStyle::new();
+        text_style.valign(VertAlign::Center);
+        text_style.size(14.);
+        text_style.font(ui_homunculus.emoji.unwrap());
+
         let state = match body.action() {
-            BodyAction::Unset => TestState::FaceThinking,
-            BodyAction::Roam => TestState::Footprints,
-            BodyAction::Dwell => TestState::MagnifyingGlassLeft,
-            BodyAction::Eat => TestState::ForkAndKnife,
+            BodyAction::None => Emoji::FaceThinking,
+            BodyAction::Roam => Emoji::Footprints,
+            BodyAction::Dwell => Emoji::MagnifyingGlassLeft,
+            BodyAction::Seek => Emoji::DirectHit,
+            BodyAction::Eat => Emoji::ForkAndKnife,
         };
 
         //let crab = "\u{1f980}";
         // graph.text((0.5, 0.5), "\u{1f980}\u{1f990}").family(family).color("red");
 
-        let mut style = TextStyle::new();
-        style.valign(VertAlign::Center);
-        style.size(14.);
-        style.font(ui_homunculus.emoji.unwrap());
-
-        state.draw(&mut ui, ui_homunculus.emoji_pos, &mut style);
+        ui.draw_text(ui_homunculus.emoji_pos, state.code(), &path_style, &text_style);
 
         // ui.draw_text(ui_homunculus.emoji_pos, crab, &style);
         //ui.draw_text((100.5, 100.5), "M", &style);

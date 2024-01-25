@@ -9,18 +9,13 @@ use vertebrate::{
     olfactory_bulb::OlfactoryBulb, 
     motivation::{
         mid_peptides::MidPeptidesPlugin, motive::{Motive, Seek}, Dwell, ExplorePlugin, Roam, Wake, WakePlugin
-    }
-};
-use essay_ecs::prelude::App;
-use mind_ecs::TickSchedulePlugin;
-use ui_graphics::UiCanvasPlugin;
-use vertebrate::{
+    },
     habenula_giveup::HabenulaMedPlugin,
     taxis::{
         phototaxis::Phototaxis,
         mid_locomotor::MidLocomotorPlugin,
     },
-    olfactory_bulb::OlfactoryPlugin,
+    olfactory_bulb::{ObEvent, OlfactoryPlugin},
     tectum::TectumPlugin,
     ui::{
         ui_body::{UiBodyPlugin, UiBodyTrailPlugin},
@@ -33,13 +28,16 @@ use vertebrate::{
     },
     world::{World, WorldPlugin, OdorType}
 };
+use essay_ecs::{app::event::InEvent, core::ResMut, prelude::App};
+use mind_ecs::{Tick, TickSchedulePlugin};
+use ui_graphics::UiCanvasPlugin;
 
 pub fn main() {
     let mut app = App::new();
 
     app.plugin(TickSchedulePlugin::new().ticks(2));
 
-    world_odor(&mut app);
+    world_roam(&mut app);
     app.plugin(BodyPlugin::new());
     app.plugin(TaxisPonsPlugin);
 
@@ -50,6 +48,8 @@ pub fn main() {
         .odor(OdorType::FoodA)
         .odor(OdorType::FoodB)
     );
+
+    app.system(Tick, dwell_olfactory);
     app.plugin(TectumPlugin::new().striatum());
     app.plugin(HabenulaSeekPlugin);
     app.plugin(MidPeptidesPlugin);
@@ -59,6 +59,42 @@ pub fn main() {
     ui_eat(&mut app);
 
     app.run();
+}
+
+fn dwell_olfactory(
+    mut dwell: ResMut<Motive<Dwell>>,
+    mut ob: InEvent<ObEvent>,
+) {
+    for event in ob.iter() {
+        match event {
+            ObEvent::Odor(_odor, _vector) => {
+                dwell.set_max(1.);
+            },
+        }
+    }
+
+    //dwell.add(1.);
+    //dwell.set_max(1.);
+}
+
+pub fn world_roam(app: &mut App) {
+    let w = 21;
+    let h = 15;
+
+    let h1 = h / 2 - 1;
+
+    let w1 = w / 2;
+    let w2 = w1;
+
+    app.plugin(
+        WorldPlugin::new(w, h)
+        //.wall(((w - 1) / 2, 0), (2, h1))
+        //.wall(((w - 1) / 2, h - h1), (2, h1))
+        //.floor((0, 0), (w1, h), FloorType::Light)
+        //.floor((w2, 0), (w - w2, h), FloorType::Dark)
+        .food_odor_r(5, 5, 4, OdorType::FoodA)
+        .odor_r(9, 5, 4, OdorType::FoodB)
+    );
 }
 
 pub fn world_odor(app: &mut App) {
@@ -100,8 +136,8 @@ fn ui_eat(app: &mut App) {
 
     app.plugin(UiGraphPlugin::new((0.0, 1.0), (2., 1.))
         .colors(colors.clone())
-        .item("v", |tx: &Chemotaxis| tx.value().clamp(0., 1.))
-        .item("gr", |tx: &Chemotaxis| 0.5 * (tx.gradient() + 1.))
+        //.item("v", |tx: &Chemotaxis| tx.value().clamp(0., 1.))
+        //.item("gr", |tx: &Chemotaxis| 0.5 * (tx.gradient() + 1.))
     );
 
     //food_peptides(app, (2.0, 1.0), (0.5, 1.));

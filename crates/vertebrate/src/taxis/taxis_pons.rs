@@ -3,7 +3,7 @@ use essay_ecs::core::store::FromStore;
 use essay_ecs::prelude::*;
 use mind_ecs::Tick;
 use crate::body::touch::Touch;
-use crate::body::{Body, BodyPlugin, Action};
+use crate::body::{Action, Body, BodyAction, BodyPlugin};
 use crate::util::{Angle, DirVector};
 use util::random::{random_pareto, random, random_normal};
 
@@ -116,6 +116,8 @@ impl TaxisPons {
             TaxisEvent::Avoid => self.explore.avoid(),
             TaxisEvent::AvoidUTurn => self.explore.avoid_turn(),
             TaxisEvent::Normal => self.explore.normal(),
+            TaxisEvent::Roam => self.explore.roam(),
+            TaxisEvent::Dwell => self.explore.dwell(),
 
             // display events
             TaxisEvent::ApproachDisplay(_) => {},
@@ -214,6 +216,8 @@ pub enum TaxisEvent {
     Avoid,
     AvoidUTurn,
     Normal,
+    Roam,
+    Dwell,
 }
 
 enum TaxisAction {
@@ -263,6 +267,8 @@ struct Explore {
     avoid_dir: DirVector,
 
     is_turn: bool,
+
+    action: BodyAction,
 }
 
 impl Explore {
@@ -297,6 +303,8 @@ impl Explore {
             avoid_dir: DirVector::zero(),
 
             is_turn: false,
+
+            action: BodyAction::Roam,
         }
     }
 
@@ -315,6 +323,14 @@ impl Explore {
     }
 
     fn normal(&mut self) {
+        self.roam();
+    }
+
+    fn approach(&mut self) {
+        self.dwell();
+    }
+
+    fn roam(&mut self) {
         self.speed = 1.;
 
         self.low = Self::LOW;
@@ -323,6 +339,21 @@ impl Explore {
 
         self.turn_mean = Self::TURN_MEAN;
         self.turn_std = Self::TURN_STD;
+
+        self.action = BodyAction::Roam;
+    }
+
+    fn dwell(&mut self) {
+        self.speed = 0.5;
+
+        self.low = Self::LOW;
+        self.high = Self::HIGH.min(2. * Self::LOW);
+        self.alpha = Self::ALPHA;
+
+        self.turn_mean = Self::TURN_MEAN;
+        self.turn_std = Self::TURN_STD;
+
+        self.action = BodyAction::Dwell;
     }
 
     fn add_avoid(&mut self, avoid_dir: DirVector) {
@@ -344,6 +375,8 @@ impl Explore {
             self.approach_right = offset.clamp(0., 1.);
             self.approach_forward = - approach_dir.dy().clamp(-1., 0.);
             self.approach_dir = approach_dir;
+
+            self.action = BodyAction::Seek;
         }
     }
 
@@ -390,17 +423,6 @@ impl Explore {
         self.turn_std = 0.5 * Self::TURN_STD;
     }
 
-    fn approach(&mut self) {
-        self.speed = 0.5;
-
-        self.low = Self::LOW;
-        self.high = Self::HIGH.min(2. * Self::LOW);
-        self.alpha = Self::ALPHA;
-
-        self.turn_mean = Self::TURN_MEAN;
-        self.turn_std = Self::TURN_STD;
-    }
-
     fn forward_delta(&self) -> f32 {
         0.5 * (self.avoid_forward - self.approach_forward + 1.)
     }
@@ -436,6 +458,8 @@ impl Explore {
         &mut self,
         body: &mut Body
     ) {
+        body.set_action(self.action);
+
         if ! body.locomotion().is_idle() {
             return;
         }

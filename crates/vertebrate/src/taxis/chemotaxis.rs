@@ -65,7 +65,7 @@ impl Chemotaxis {
 
         if self.habenula.value() > 0.01 || approach_ego.value() > 0.05 {
             taxis.send(TaxisEvent::ApproachVector(approach_ego));
-            taxis.send(TaxisEvent::Approach); // small-scale search
+            // taxis.send(TaxisEvent::Roam); // small-scale search
             taxis.send(TaxisEvent::ApproachDisplay(approach_vector));
         }
      }
