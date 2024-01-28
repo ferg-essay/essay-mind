@@ -1,8 +1,8 @@
 use essay_ecs::{app::{Plugin, App}, core::{Res, ResMut}};
 use mind_ecs::Tick;
-use crate::{olfactory_bulb::OlfactoryBulb, habenula_giveup::HabenulaGiveUp, body::Body};
+use crate::{olfactory_bulb::OlfactoryBulb, body::Body};
 
-use super::mid_peptides::MidPeptides;
+use super::{habenula_giveup::HabenulaGiveUp, mid_peptides::MidPeptides};
 
 struct Eating {
     give_up_hb: HabenulaGiveUp,

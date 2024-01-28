@@ -6,8 +6,8 @@ use vertebrate::{
     body::{BodyPlugin, Body}, hind_motor::HindLocomotorPlugin, motivation::{
         mid_peptides::MidPeptidesPlugin, motive::{Motive, Seek}, Dwell, ExplorePlugin, Roam, Wake, WakePlugin
     }, olfactory_bulb::OlfactoryBulb, olfactory_bulb::{ObEvent, OlfactoryPlugin}, 
-    mid_taxis::phototaxis::Phototaxis,
-    mid_taxis::{
+    mid_seek::phototaxis::Phototaxis,
+    mid_seek::{
         chemotaxis::{ChemotaxisPlugin, Chemotaxis}, 
         habenula_seek::HabenulaSeekPlugin
     }, tectum::TectumPlugin, 

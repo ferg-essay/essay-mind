@@ -1,7 +1,7 @@
 use essay_ecs::prelude::{Plugin, App};
 
 use crate::{
-    mid_taxis::mid_locomotor::MidLocomotorPlugin, util::DecayValue 
+    mid_seek::mid_locomotor::MidLocomotorPlugin, util::DecayValue 
 };
 
 pub struct HabenulaGiveUp {
