@@ -1,7 +1,7 @@
 use essay_ecs::{app::{event::OutEvent, App, Plugin}, core::{Res, ResMut}};
 use mind_ecs::Tick;
 
-use crate::{hind_motor::HindLocomotorEvent, ticks::Seconds};
+use crate::{hind_motor::HindLocomotorEvent, util::Seconds};
 
 use super::{motive::{Motive, MotiveTrait, Motives}, Wake};
 

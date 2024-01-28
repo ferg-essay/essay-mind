@@ -1,7 +1,7 @@
 use essay_ecs::{app::{App, Plugin}, core::ResMut};
 use mind_ecs::Tick;
 
-use crate::ticks::Seconds;
+use crate::util::Seconds;
 
 use super::motive::{Motive, MotiveTrait, Motives};
 

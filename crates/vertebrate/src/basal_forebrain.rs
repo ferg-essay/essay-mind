@@ -1,7 +1,7 @@
-use crate::util::DecayValue;
+use crate::util::{DecayValue, HalfLife};
 
 pub struct BasalForebrain {
-    half_life: usize,
+    half_life: HalfLife,
 
     items: Vec<AttentionItem>,
     max: f32,
@@ -10,7 +10,7 @@ pub struct BasalForebrain {
 }
 
 impl BasalForebrain {
-    pub const HALF_LIFE : usize = 20;
+    pub const HALF_LIFE : HalfLife = HalfLife(2.);
     pub const THRESHOLD_LOW : f32 = 0.1;
     pub const THRESHOLD_HIGH : f32 = 0.98;
 
@@ -118,7 +118,7 @@ struct AttentionItem {
 }
 
 impl AttentionItem {
-    fn new(half_life: usize) -> Self {
+    fn new(half_life: impl Into<HalfLife>) -> Self {
         Self {
             value: DecayValue::new(half_life),
         }

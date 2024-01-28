@@ -1,3 +1,5 @@
+use super::ticks::HalfLife;
+
 pub struct DecayValue {
     decay: f32,
     fill: f32,
@@ -9,12 +11,8 @@ impl DecayValue {
     ///
     /// half_life in ticks
     /// 
-    pub fn new(half_life: usize) -> Self {
-        let decay = if half_life > 0 {
-            (- 2.0f32.ln() / half_life as f32).exp()
-        } else {
-            0.
-        };
+    pub fn new(half_life: impl Into<HalfLife>) -> Self {
+        let decay = half_life.into().decay();
 
         Self {
             decay,
@@ -23,12 +21,8 @@ impl DecayValue {
         }
     }
 
-    pub fn fill_time(mut self, half_life: usize) -> Self {
-        let decay = if half_life > 0 {
-            (- 2.0f32.ln() / half_life as f32).exp()
-        } else {
-            0.
-        };
+    pub fn fill_time(mut self, half_life: impl Into<HalfLife>) -> Self {
+        let decay = half_life.into().decay();
 
         self.fill = 1. - decay;
 
@@ -79,18 +73,20 @@ impl DecayValue {
 
 #[cfg(test)]
 mod test {
+    use crate::util::Ticks;
+
     use super::DecayValue;
 
     #[test]
     fn half_life() {
-        let hl_1 = DecayValue::new(1);
+        let hl_1 = DecayValue::new(Ticks(1));
         assert_eq!(hl_1.decay(), 0.5);
 
-        let hl_2 = DecayValue::new(2);
+        let hl_2 = DecayValue::new(Ticks(2));
         assert_eq!(hl_2.decay(), 0.70710677);
         assert_eq!(hl_2.decay().powi(2), 0.49999997);
 
-        let hl_10 = DecayValue::new(10);
+        let hl_10 = DecayValue::new(Ticks(10));
         assert_eq!(hl_10.decay().powi(10), 0.5);
     }
 }

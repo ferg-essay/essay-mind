@@ -1,7 +1,7 @@
 use essay_ecs::prelude::{Plugin, App};
 
 use crate::{
-    mid_seek::mid_locomotor::MidLocomotorPlugin, util::DecayValue 
+    mid_seek::mid_locomotor::MidLocomotorPlugin, util::{DecayValue, HalfLife} 
 };
 
 pub struct HabenulaGiveUp {
@@ -9,7 +9,7 @@ pub struct HabenulaGiveUp {
 }
 
 impl HabenulaGiveUp {
-    pub fn new(half_life: usize) -> Self {
+    pub fn new(half_life: impl Into<HalfLife>) -> Self {
         Self {
             give_up: DecayValue::new(half_life),
         }

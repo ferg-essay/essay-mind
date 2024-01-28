@@ -1,7 +1,7 @@
 use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}};
 use mind_ecs::Tick;
 
-use crate::{body::BodyPlugin, util::{DecayValue, Point}, world::World};
+use crate::{body::BodyPlugin, util::{DecayValue, Point, Seconds}, world::World};
 
 use super::Body;
 
@@ -75,14 +75,14 @@ impl Default for BodyEat {
         Self {
             is_sensor_food: false,
 
-            is_sweet: DecayValue::new(10),
+            is_sweet: DecayValue::new(Seconds(1.)),
             _is_umami: 0.,
             _is_bitter: 0.,
             _is_sour: 0.,
 
-            blood_sugar: DecayValue::new(200).fill_time(20),
+            blood_sugar: DecayValue::new(Seconds(20.)).fill_time(Seconds(2.)),
 
-            is_eating: DecayValue::new(2),
+            is_eating: DecayValue::new(Seconds(0.2)),
         }
     }
 }

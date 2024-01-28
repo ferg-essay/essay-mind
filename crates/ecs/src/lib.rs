@@ -1,4 +1,3 @@
-mod striatum;
 use essay_ecs::{prelude::*, core::{Local, Store, Schedule, schedule::Executors}};
 
 #[derive(ScheduleLabel, Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -10,14 +9,30 @@ pub struct Tick;
 #[derive(ScheduleLabel, Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct PostTick;
 
+#[derive(ScheduleLabel, Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct PreMenu;
+
+#[derive(ScheduleLabel, Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct Menu;
+
+#[derive(ScheduleLabel, Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct PostMenu;
+
 pub struct TickConfig {
     n_ticks: usize,
+    state: TickState,
 }
 
 impl TickConfig {
     pub fn set_n_ticks(&mut self, n_ticks: usize) {
         self.n_ticks = n_ticks;
     }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum TickState {
+    Default,
+    Menu
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, ScheduleLabel)]
@@ -44,6 +59,7 @@ impl TickSchedulePlugin {
     fn config(&self) -> TickConfig {
         TickConfig {
             n_ticks: self.ticks_per_update,
+            state: TickState::Default,
         }
     }
 }
@@ -78,17 +94,27 @@ fn tick_system(
     }
 
     let _ = store.try_run_schedule(First);
-    let _ = store.try_run_schedule(PreUpdate);
 
-    let n_ticks = store.resource::<TickConfig>().n_ticks;
-    for _ in 0..n_ticks {
-        let _ = store.try_run_schedule(PreTick);
-        let _ = store.try_run_schedule(Tick);
-        let _ = store.try_run_schedule(PostTick);
+    match store.resource::<TickConfig>().state {
+        TickState::Default => {
+            let _ = store.try_run_schedule(PreUpdate);
+
+            let n_ticks = store.resource::<TickConfig>().n_ticks;
+            for _ in 0..n_ticks {
+                let _ = store.try_run_schedule(PreTick);
+                let _ = store.try_run_schedule(Tick);
+                let _ = store.try_run_schedule(PostTick);
+            }
+
+            let _ = store.try_run_schedule(Update);
+            let _ = store.try_run_schedule(PostUpdate);
+        },
+        TickState::Menu => {
+            let _ = store.try_run_schedule(PreMenu);
+            let _ = store.try_run_schedule(Menu);
+            let _ = store.try_run_schedule(PostMenu);
+        }
     }
-
-    let _ = store.try_run_schedule(Update);
-    let _ = store.try_run_schedule(PostUpdate);
     let _ = store.try_run_schedule(Last);
 }
 

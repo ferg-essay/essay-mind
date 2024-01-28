@@ -2,14 +2,14 @@ use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}};
 use log::{log, Level};
 use mind_ecs::Tick;
 
-use crate::{body::{Body, BodyEat, BodyEatPlugin, BodyPlugin}, hind_motor::{HindLocomotor, HindLocomotorEvent}, util::DecayValue, world::World};
+use crate::{body::{Body, BodyEat, BodyEatPlugin, BodyPlugin}, hind_motor::{HindLocomotor, HindLocomotorEvent}, util::{DecayValue, HalfLife}, world::World};
 
 pub struct HindEat {
     eat_enable : DecayValue,
 }
 
 impl HindEat {
-    pub const HALF_LIFE : usize = 4;
+    pub const HALF_LIFE : HalfLife = HalfLife(0.4);
 }
 
 impl Default for HindEat {

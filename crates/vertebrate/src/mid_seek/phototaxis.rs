@@ -9,7 +9,7 @@ use crate::{
     body::Body, 
     hind_motor::HindLocomotorEvent, 
     mid_seek::mid_locomotor::MidLocomotorPlugin, 
-    util::{DecayValue, DirVector, Angle}, 
+    util::{Angle, DecayValue, DirVector, HalfLife, Seconds}, 
     world::World
 };
 
@@ -72,12 +72,12 @@ impl Phototaxis {
 
 impl Default for Phototaxis {
     fn default() -> Self {
-        let half_life = 40;
+        let half_life = HalfLife(4.);
 
         Self { 
             // start with 20
-            average: DecayValue::new(40),
-            short_average: DecayValue::new(5),
+            average: DecayValue::new(Seconds(4.)),
+            short_average: DecayValue::new(Seconds(0.5)),
             value: 0.,
             goal_vector: GoalVector::new(half_life),
         }

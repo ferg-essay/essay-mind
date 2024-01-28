@@ -1,4 +1,4 @@
-use super::{DecayValue, DirVector, Angle};
+use super::{ticks::HalfLife, Angle, DecayValue, DirVector};
 
 
 pub struct DirGradient {
@@ -7,7 +7,7 @@ pub struct DirGradient {
 }
 
 impl DirGradient {
-    pub fn new(dir: Angle, half_life: usize) -> Self {
+    pub fn new(dir: Angle, half_life: impl Into<HalfLife>) -> Self {
         Self {
             dir,
             gradient: DecayValue::new(half_life),

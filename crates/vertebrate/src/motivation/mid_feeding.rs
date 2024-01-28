@@ -1,6 +1,6 @@
 use essay_ecs::{app::{Plugin, App}, core::{Res, ResMut}};
 use mind_ecs::Tick;
-use crate::{olfactory_bulb::OlfactoryBulb,body::Body};
+use crate::{body::Body, olfactory_bulb::OlfactoryBulb, util::Seconds};
 
 use super::{habenula_giveup::HabenulaGiveUp, mid_peptides::MidPeptides};
 
@@ -11,7 +11,7 @@ struct MidFeeding {
 impl MidFeeding {
     fn new() -> Self {
         Self {
-            give_up_hb: HabenulaGiveUp::new(40),
+            give_up_hb: HabenulaGiveUp::new(Seconds(4.)),
         }
     }
 }

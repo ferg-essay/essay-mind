@@ -1,7 +1,7 @@
 use essay_ecs::{prelude::{Plugin, App}, core::ResMut, app::event::OutEvent};
 use mind_ecs::Tick;
 
-use crate::{hind_motor::HindLocomotorEvent, util::{DecayValue, DirVector, Angle}};
+use crate::{hind_motor::HindLocomotorEvent, util::{Angle, DecayValue, DirVector, HalfLife}};
 
 use super::GoalVector;
 
@@ -46,10 +46,15 @@ pub struct HabenulaSeekItem {
 
 impl HabenulaSeekItem {
     pub const N_DIR : usize = 12;
-    pub const GOAL_LIFE : usize = 20;
-    pub const SAMPLE_LIFE : usize = 5;
+    pub const GOAL_LIFE : HalfLife = HalfLife(2.);
+    pub const SAMPLE_LIFE : HalfLife = HalfLife(0.5);
 
-    pub fn new(goal_life: usize, sample_life: usize) -> Self {
+    pub fn new(
+        goal_life: impl Into<HalfLife>, 
+        sample_life: impl Into<HalfLife>
+    ) -> Self {
+        let goal_life = goal_life.into();
+        
         Self { 
             // start with 20
             average: DecayValue::new(goal_life),

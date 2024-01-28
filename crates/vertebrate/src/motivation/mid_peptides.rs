@@ -1,7 +1,7 @@
 use essay_ecs::{app::{Plugin, App}, core::{ResMut, store::FromStore, Store}};
 use mind_ecs::PreTick;
 
-use crate::util::DecayValue;
+use crate::util::{DecayValue, HalfLife};
 
 pub struct MidPeptides {
     // eating - consummation
@@ -20,7 +20,8 @@ pub struct MidPeptides {
 }
 
 impl MidPeptides {
-    const HALF_LIFE : usize = 10;
+    const HALF_LIFE : HalfLife = HalfLife(1.);
+
     pub fn new() -> Self {
         let half_life = Self::HALF_LIFE;
 

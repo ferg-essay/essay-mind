@@ -2,7 +2,7 @@ use std::{marker::PhantomData, ops::Deref};
 
 use essay_ecs::{app::{App, PreUpdate}, core::ResMut};
 
-use crate::{ticks::Ticks, util::DecayValue};
+use crate::{util::{DecayValue, HalfLife, Ticks}};
 
 pub struct Motive<T: MotiveTrait> {
     value: DecayValue,
@@ -14,7 +14,7 @@ pub struct Motive<T: MotiveTrait> {
 }
 
 impl<T: MotiveTrait> Motive<T> {
-    fn new(half_life: usize) -> Self {
+    fn new(half_life: impl Into<HalfLife>) -> Self {
         Self {
             value: DecayValue::new(half_life),
             delta: 0.,
@@ -76,13 +76,13 @@ impl MotiveTrait for Surprise {}
 pub struct Motives;
 
 impl Motives {
-    const HALF_LIFE : usize = 10;
+    const HALF_LIFE : HalfLife = HalfLife(1.);
 
     pub fn insert<T: MotiveTrait>(app: &mut App, half_life: impl Into<Ticks>) {
         let is_new = ! app.contains_resource::<Motive<T>>();
 
         let half_life : Ticks = half_life.into();
-        let motive = Motive::<T>::new(half_life.ticks());
+        let motive = Motive::<T>::new(half_life);
 
         app.insert_resource(motive);
 

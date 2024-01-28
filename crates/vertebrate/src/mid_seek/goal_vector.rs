@@ -1,4 +1,4 @@
-use crate::util::{DirVector, Angle, DecayValue};
+use crate::util::{Angle, DecayValue, DirVector, HalfLife};
 
 
 pub struct GoalVector {
@@ -7,7 +7,7 @@ pub struct GoalVector {
 }
 
 impl GoalVector {
-    pub fn new(half_life: usize) -> Self {
+    pub fn new(half_life: impl Into<HalfLife>) -> Self {
         Self {
             dir: Angle::Unit(0.),
             value: DecayValue::new(half_life),
