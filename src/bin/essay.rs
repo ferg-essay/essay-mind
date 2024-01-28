@@ -10,7 +10,8 @@ use vertebrate::{
     mid_seek::{
         chemotaxis::{ChemotaxisPlugin, Chemotaxis}, 
         habenula_seek::HabenulaSeekPlugin
-    }, tectum::TectumPlugin, 
+    }, 
+    mid_tectum::tectum::TectumPlugin, 
     ui::{
         ui_attention::UiAttentionPlugin, ui_homunculus::UiHomunculusPlugin, ui_motive::Emoji,
         ui_body::{UiBodyPlugin, UiBodyTrailPlugin},

@@ -4,7 +4,7 @@ use essay_ecs::{prelude::*, core::Local};
 use mind_ecs::Tick;
 use crate::action::Turn;
 //use crate::locomotor::mid_explore::MidExplore;
-use crate::tectum::{TectumPlugin, TectumLocomotionStn};
+use crate::mid_tectum::tectum::{TectumPlugin, TectumLocomotionStn};
 use crate::body::{Body, BodyPlugin};
 use crate::util::Angle;
 

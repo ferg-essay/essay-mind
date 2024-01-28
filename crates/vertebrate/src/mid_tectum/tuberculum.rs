@@ -4,9 +4,10 @@ use mind_ecs::Tick;
 use crate::{
     mid_seek::mid_locomotor::MidLocomotorPlugin, 
     olfactory_bulb::{OlfactoryPlugin, OlfactoryBulb}, 
-    tectum::TectumLocomotionStn,
     action::Turn, motivation::mid_peptides::MidPeptides, 
 };
+
+use super::tectum::TectumLocomotionStn;
 
 ///
 /// Midbrain dopamine region
