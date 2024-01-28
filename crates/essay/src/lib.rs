@@ -2,7 +2,7 @@ use essay_ecs::prelude::*;
 use vertebrate::{
     world::{WorldPlugin, OdorType, FloorType}, 
     ui::{ui_graph::UiGraphPlugin, ui_peptide::UiPeptidePlugin}, 
-    body::Body, motivation::mid_peptides::MidPeptides
+    body::Body, core_motive::mid_peptides::MidPeptides
 };
 
 pub fn world_block(app: &mut App) {

@@ -7,7 +7,7 @@ use ui_graphics::{
     UiCanvas, UiCanvasPlugin
 };
 
-use crate::motivation::mid_peptides::MidPeptidesPlugin;
+use crate::core_motive::mid_peptides::MidPeptidesPlugin;
 
 #[derive(Component)]
 pub struct UiPeptide {

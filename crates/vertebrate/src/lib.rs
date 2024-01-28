@@ -1,7 +1,7 @@
 pub mod hind_motor;
 pub mod body;
 pub mod olfactory_bulb;
-pub mod motivation;
+pub mod core_motive;
 pub mod pallidum;
 pub mod striatum;
 pub mod mid_seek;

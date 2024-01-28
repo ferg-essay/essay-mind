@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use essay_plot::api::Colors;
 use vertebrate::{
-    body::{BodyPlugin, Body}, hind_motor::HindLocomotorPlugin, motivation::{
+    body::{BodyPlugin, Body}, hind_motor::HindLocomotorPlugin, core_motive::{
         mid_peptides::MidPeptidesPlugin, motive::{Motive, Seek}, Dwell, ExplorePlugin, Roam, Wake, WakePlugin
     }, olfactory_bulb::OlfactoryBulb, olfactory_bulb::{ObEvent, OlfactoryPlugin}, 
     mid_seek::phototaxis::Phototaxis,

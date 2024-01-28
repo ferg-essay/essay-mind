@@ -2,7 +2,9 @@ use essay_ecs::prelude::{Plugin, App, ResMut, Res};
 use mind_ecs::Tick;
 
 use crate::{
-    mid_motor::mid_locomotor::MidLocomotorPlugin, motivation::mid_peptides::MidPeptides, olfactory_bulb::{OlfactoryPlugin, OlfactoryBulb} 
+    mid_motor::mid_locomotor::MidLocomotorPlugin, 
+    core_motive::mid_peptides::MidPeptides, 
+    olfactory_bulb::{OlfactoryPlugin, OlfactoryBulb} 
 };
 
 use super::{action::Turn, tectum::TectumLocomotionStn};
