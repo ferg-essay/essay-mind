@@ -10,7 +10,8 @@ use mind_ecs::Tick;
 use crate::{
     body::Body, 
     world::{World, OdorType}, 
-    util::{Angle, DirVector}, basal_forebrain::{BasalForebrain, AttendId, AttendValue},
+    util::{Angle, DirVector}, 
+    pallidum::basal_forebrain::{BasalForebrain, AttendId, AttendValue},
 };
 
 pub struct OlfactoryBulb {
@@ -118,8 +119,8 @@ fn update_olfactory(
     mut olf_bulb: ResMut<OlfactoryBulb>,
     mut ob_events: OutEvent<ObEvent>,
 ) {
-    olf_bulb.food = None;
-    olf_bulb.avoid = None;
+    // olf_bulb.food = None;
+    // olf_bulb.avoid = None;
 
     olf_bulb.pre_update();
 
@@ -148,7 +149,6 @@ impl OdorId {
         self.0
     }
 }
-
 
 struct OdorItem {
     _odor: OdorType,

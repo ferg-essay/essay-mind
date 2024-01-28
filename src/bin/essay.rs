@@ -1,7 +1,6 @@
 use std::time::Duration;
 
-use essay::{food_graph, food_peptides};
-use essay_plot::{api::Colors, artist::ColorMaps};
+use essay_plot::api::Colors;
 use vertebrate::{
     body::{BodyPlugin, Body}, hind_motor::HindLocomotorPlugin, motivation::{
         mid_peptides::MidPeptidesPlugin, motive::{Motive, Seek}, Dwell, ExplorePlugin, Roam, Wake, WakePlugin
@@ -11,7 +10,7 @@ use vertebrate::{
         chemotaxis::{ChemotaxisPlugin, Chemotaxis}, 
         habenula_seek::HabenulaSeekPlugin
     }, 
-    mid_tectum::tectum::TectumPlugin, 
+    mid_motor::tectum::TectumPlugin, 
     ui::{
         ui_attention::UiAttentionPlugin, ui_homunculus::UiHomunculusPlugin, ui_motive::Emoji,
         ui_body::{UiBodyPlugin, UiBodyTrailPlugin},

@@ -2,7 +2,7 @@ use essay_ecs::prelude::*;
 use mind_ecs::Tick;
 use crate::body::touch::Touch;
 use crate::body::{Body, BodyAction, BodyPlugin};
-use crate::util::{Angle, DirVector};
+use crate::util::{Angle, DirVector, Ticks};
 use util::random::{random_pareto, random, random_normal};
 
 
@@ -10,7 +10,7 @@ pub struct HindLocomotor {
     left60: TaxisTurn,
     right60: TaxisTurn,
     left120: TaxisTurn,
-    right120: TaxisTurn,
+    _right120: TaxisTurn,
 
     action: TaxisAction,
     explore: Explore,
@@ -160,7 +160,7 @@ impl Default for HindLocomotor {
             right60: TaxisTurn::new(Angle::Deg(60.), Angle::Deg(15.)),
 
             left120: TaxisTurn::new(Angle::Deg(-120.), Angle::Deg(60.)),
-            right120: TaxisTurn::new(Angle::Deg(120.), Angle::Deg(60.)),
+            _right120: TaxisTurn::new(Angle::Deg(120.), Angle::Deg(60.)),
 
             explore: Explore::new(),
             action: TaxisAction::None,
@@ -590,7 +590,7 @@ impl Action {
     }
 
     fn pre_update(&mut self) -> bool {
-        self.time -= 1. / Explore::TICKS;
+        self.time -= Ticks(1).to_seconds();
 
         return self.time >= 1.0e-6
     }
@@ -601,9 +601,7 @@ pub struct HindLocomotorPlugin;
 impl Plugin for HindLocomotorPlugin {
     fn build(&self, app: &mut App) {
         assert!(app.contains_plugin::<BodyPlugin>(), "HindLocomotorPlugin requires BodyPlugin");
-        // assert!(app.contains_plugin::<TectumPlugin>(), "MesLocomotorPlugin requires TectumPlugin");
 
-        // app.init_resource::<Explore>();
         app.event::<HindLocomotorEvent>();
         app.init_resource::<HindLocomotor>();
 

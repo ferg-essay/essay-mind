@@ -2,11 +2,12 @@ use essay_ecs::core::Store;
 use essay_ecs::core::store::FromStore;
 use essay_ecs::{prelude::*, core::Local};
 use mind_ecs::Tick;
-use crate::action::Turn;
 //use crate::locomotor::mid_explore::MidExplore;
-use crate::mid_tectum::tectum::{TectumPlugin, TectumLocomotionStn};
+use crate::mid_motor::tectum::{TectumPlugin, TectumLocomotionStn};
 use crate::body::{Body, BodyPlugin};
 use crate::util::Angle;
+
+use super::action::Turn;
 
 pub struct MesState {
     //left60: ActionFactory,

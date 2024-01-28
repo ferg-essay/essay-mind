@@ -1,12 +1,11 @@
 pub mod hind_motor;
-pub mod action;
-pub mod basal_forebrain;
 pub mod body;
 pub mod olfactory_bulb;
 pub mod motivation;
+pub mod pallidum;
 pub mod striatum;
 pub mod mid_seek;
-pub mod mid_tectum;
+pub mod mid_motor;
 pub mod util;
 pub mod ui;
 pub mod world;

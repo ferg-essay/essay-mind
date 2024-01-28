@@ -2,12 +2,10 @@ use essay_ecs::prelude::{Plugin, App, ResMut, Res};
 use mind_ecs::Tick;
 
 use crate::{
-    mid_seek::mid_locomotor::MidLocomotorPlugin, 
-    olfactory_bulb::{OlfactoryPlugin, OlfactoryBulb}, 
-    action::Turn, motivation::mid_peptides::MidPeptides, 
+    mid_motor::mid_locomotor::MidLocomotorPlugin, motivation::mid_peptides::MidPeptides, olfactory_bulb::{OlfactoryPlugin, OlfactoryBulb} 
 };
 
-use super::tectum::TectumLocomotionStn;
+use super::{action::Turn, tectum::TectumLocomotionStn};
 
 ///
 /// Midbrain dopamine region

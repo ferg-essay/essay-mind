@@ -2,11 +2,10 @@ use essay_ecs::prelude::{App, Plugin};
 use essay_tensor::Tensor;
 
 use crate::{
-    action::{ActionId, Turn}, 
-    striatum::{StriatumStn, Sense, StriatumId, StriatumSnr},
+    striatum::striatum::{StriatumStn, Sense, StriatumId, StriatumSnr},
 };
 
-use super::nucleus_isthmi::NucleusIsthmi;
+use super::{action::{ActionId, Turn}, nucleus_isthmi::NucleusIsthmi};
 
 pub struct TectumLocomotionStn {
     seek: TectumStnTurn,

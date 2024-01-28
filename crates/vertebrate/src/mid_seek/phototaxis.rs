@@ -8,7 +8,7 @@ use mind_ecs::Tick;
 use crate::{
     body::Body, 
     hind_motor::HindLocomotorEvent, 
-    mid_seek::mid_locomotor::MidLocomotorPlugin, 
+    mid_motor::mid_locomotor::MidLocomotorPlugin, 
     util::{Angle, DecayValue, DirVector, HalfLife, Seconds}, 
     world::World
 };

@@ -8,6 +8,11 @@ impl Ticks {
     pub fn ticks(&self) -> usize {
         self.0
     }
+
+    #[inline]
+    pub fn to_seconds(&self) -> f32 {
+        self.0 as f32 / Self::TICKS_PER_SECOND as f32
+    }
 }
 
 #[derive(Clone, Copy, Debug)]
