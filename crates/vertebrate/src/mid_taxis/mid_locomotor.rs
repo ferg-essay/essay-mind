@@ -5,13 +5,13 @@ use mind_ecs::Tick;
 use crate::action::Turn;
 //use crate::locomotor::mid_explore::MidExplore;
 use crate::tectum::{TectumPlugin, TectumLocomotionStn};
-use crate::body::{ActionFactory, Body, BodyPlugin};
+use crate::body::{Body, BodyPlugin};
 use crate::util::Angle;
 
 pub struct MesState {
-    left60: ActionFactory,
-    right60: ActionFactory,
-    _forward: ActionFactory,
+    //left60: ActionFactory,
+    //right60: ActionFactory,
+    //_forward: ActionFactory,
 
     // explore: MidExplore,
 }
@@ -67,9 +67,9 @@ impl MesState {
 impl FromStore for MesState {
     fn init(_store: &mut Store) -> Self {
         MesState {
-            left60: ActionFactory::new(1., Angle::Deg(-60.)),
-            right60: ActionFactory::new(1., Angle::Deg(60.)),
-            _forward: ActionFactory::new(1., Angle::Deg(0.)),
+            //left60: ActionFactory::new(1., Angle::Deg(-60.)),
+            //right60: ActionFactory::new(1., Angle::Deg(60.)),
+            //_forward: ActionFactory::new(1., Angle::Deg(0.)),
 
             // explore: MidExplore::init(store),
         }

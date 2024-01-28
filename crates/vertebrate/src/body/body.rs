@@ -8,8 +8,6 @@ use crate::body::touch::Touch;
 use crate::util::{DirVector, Point, Angle};
 use crate::world::{OdorType, World, WorldPlugin};
 
-use super::eat::BodyEat;
-
 // #[derive(Component)]
 pub struct Body {
     pos: Point,
@@ -37,26 +35,16 @@ impl Body {
     pub const TICK_RATE : f32 = 10.;
 
     pub fn new(pos: Point) -> Self {
-        //let mut locomotion = BodyLocomotion::new(pos);
-        // locomotion.action_default(Action::forward());
-
-        let eat = BodyEat::new();
-
         Self {
             pos,
             dir: Angle::Unit(0.),
             body_len: 1.,
-            // speed: 1.,
 
             action: Action::new(BodyAction::None, 0., Angle::Unit(0.)),
 
             collide_left: false,
             collide_right: false,
 
-            //locomotion,
-            //eat,
-
-            //tick_food: 0,
             ticks: 0,
 
             approach_dir: DirVector::zero(),
@@ -152,16 +140,6 @@ impl Body {
         self.collide_right
     }
 
-    /*
-    pub fn locomotion(&self) -> &BodyLocomotion {
-        &self.locomotion
-    }
-
-    pub fn locomotion_mut(&mut self) -> &mut BodyLocomotion {
-        &mut self.locomotion
-    }
-    */
-
     pub fn avoid_dir(&self) -> DirVector {
         self.avoid_dir.clone()
     }
@@ -177,16 +155,6 @@ impl Body {
     pub fn set_approach_dir(&mut self, dir: DirVector) {
         self.approach_dir = dir;
     }
-
-    /*
-    pub fn eat(&self) -> &BodyEat {
-        &self.eat
-    }
-
-    pub fn eat_mut(&mut self) -> &mut BodyEat {
-        &mut self.eat
-    }
-    */
 
     pub fn p_food(&self) -> f32 {
         // self.tick_food as f32 / self.ticks.max(1) as f32
@@ -251,13 +219,7 @@ impl Body {
 }
 
 
-fn body_pre_tick(
-    mut body: ResMut<Body>
-) {
-    // body.set_action(BodyAction::None);
-}
-
-    ///
+///
 /// Update the animal's position based on the cilia movement
 /// 
 pub fn body_physics(
@@ -274,13 +236,6 @@ pub fn body_physics(
     if body.is_collide_right() {
         touch_event.send(Touch::CollideRight);
     }
-
-    //let pos_head = body.pos_head();
-    //body.eat_mut().update(world.get(), pos_head);
-
-    //if body.eat().is_sensor_food() {
-    //        body.tick_food += 1;
-    //}
 
     body.ticks += 1;
 }
@@ -353,9 +308,7 @@ impl Plugin for BodyPlugin {
 
         app.event::<Touch>();
 
-        app.system(PreTick, body_pre_tick);
         app.system(Tick, body_physics);
-        // app.system(Tick, body_habit);
 
         if app.contains_plugin::<TestLogPlugin>() {
             app.system(Last, body_log);

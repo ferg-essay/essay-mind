@@ -1,7 +1,6 @@
 pub mod touch;
-mod locomotion;
 mod body;
-mod eat;
+mod body_eat;
 
 pub use body::{Body, BodyPlugin, BodyAction};
-pub use locomotion::{BodyLocomotion, Action, ActionFactory};
+//pub use locomotion::{BodyLocomotion, Action, ActionFactory};
