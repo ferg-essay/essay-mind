@@ -234,7 +234,7 @@ pub fn ui_homunculus_draw(
             ui.draw_path(&paths.mo_ll, &style);
         }
 
-        let forward = taxis.forward_delta();
+        let forward = taxis.get_forward_delta();
 
         if forward != 0.5 {
             let color = ui_homunculus.colors.map(forward);
@@ -243,7 +243,7 @@ pub fn ui_homunculus_draw(
             ui.draw_path(&paths.u_turn, &style);
         }
 
-        let left_delta = taxis.left_delta();
+        let left_delta = taxis.get_left_delta();
 
         if left_delta != 0.5 {
             let color = ui_homunculus.colors.map(left_delta);
@@ -253,7 +253,7 @@ pub fn ui_homunculus_draw(
             ui.draw_path(&paths.ss_ll, &style);
         }
 
-        let right_delta = taxis.right_delta();
+        let right_delta = taxis.get_right_delta();
 
         if right_delta != 0.5 {
             let color = ui_homunculus.colors.map(right_delta);

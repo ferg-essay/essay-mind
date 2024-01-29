@@ -9,13 +9,15 @@ use util::random::{random_pareto, random, random_normal};
 
 
 pub struct HindLocomotor {
-    left60: TaxisTurn,
-    right60: TaxisTurn,
-    left120: TaxisTurn,
-    _right120: TaxisTurn,
+    left60: Turn,
+    right60: Turn,
+    left120: Turn,
+    _right120: Turn,
 
-    action: TaxisAction,
-    explore: Explore,
+    action_kind: ActionKind,
+    action: Action,
+
+    random_walk: RandomWalk,
 
     is_first: bool,
 }
@@ -23,64 +25,70 @@ pub struct HindLocomotor {
 impl HindLocomotor {
     const _CPG_TIME : f32 = 1.;
 
-    pub fn avoid_left(&self) -> f32 {
-        match self.action {
-            TaxisAction::None => self.explore.avoid_left(),
-            TaxisAction::StrongAvoidLeft => 1.,
-            TaxisAction::StrongAvoidRight => 0.,
-            TaxisAction::StrongAvoidBoth => 1.,
+    pub fn get_avoid_left(&self) -> f32 {
+        match self.action_kind {
+            ActionKind::None => 0.,
+            ActionKind::Explore => self.random_walk.avoid_left(),
+            ActionKind::StrongAvoidLeft => 1.,
+            ActionKind::StrongAvoidRight => 0.,
+            ActionKind::StrongAvoidBoth => 1.,
         }
     }
 
-    pub fn avoid_right(&self) -> f32 {
-        match self.action {
-            TaxisAction::None => self.explore.avoid_right(),
-            TaxisAction::StrongAvoidLeft => 0.,
-            TaxisAction::StrongAvoidRight => 1.,
-            TaxisAction::StrongAvoidBoth => 1.,
+    pub fn get_avoid_right(&self) -> f32 {
+        match self.action_kind {
+            ActionKind::None => 0.,
+            ActionKind::Explore => self.random_walk.avoid_right(),
+            ActionKind::StrongAvoidLeft => 0.,
+            ActionKind::StrongAvoidRight => 1.,
+            ActionKind::StrongAvoidBoth => 1.,
         }
     }
 
-    pub fn avoid_forward(&self) -> f32 {
-        match self.action {
-            TaxisAction::None => self.explore.avoid_forward(),
-            TaxisAction::StrongAvoidLeft => 0.,
-            TaxisAction::StrongAvoidRight => 0.,
-            TaxisAction::StrongAvoidBoth => 1.,
+    pub fn get_avoid_forward(&self) -> f32 {
+        match self.action_kind {
+            ActionKind::None => 0.5,
+            ActionKind::Explore => self.random_walk.avoid_forward(),
+            ActionKind::StrongAvoidLeft => 0.,
+            ActionKind::StrongAvoidRight => 0.,
+            ActionKind::StrongAvoidBoth => 1.,
         }
     }
 
-    pub fn forward_delta(&self) -> f32 {
-        match self.action {
-            TaxisAction::None => self.explore.forward_delta(),
-            TaxisAction::StrongAvoidLeft => 0.5,
-            TaxisAction::StrongAvoidRight => 0.5,
-            TaxisAction::StrongAvoidBoth => 1.,
+    pub fn get_forward_delta(&self) -> f32 {
+        match self.action_kind {
+            ActionKind::None => 0.5,
+            ActionKind::Explore => self.random_walk.forward_delta(),
+            ActionKind::StrongAvoidLeft => 0.5,
+            ActionKind::StrongAvoidRight => 0.5,
+            ActionKind::StrongAvoidBoth => 1.,
         }
     }
 
-    pub fn left_delta(&self) -> f32 {
-        match self.action {
-            TaxisAction::None => self.explore.left_delta(),
-            TaxisAction::StrongAvoidLeft => 1.,
-            TaxisAction::StrongAvoidRight => 0.5,
-            TaxisAction::StrongAvoidBoth => 1.,
+    pub fn get_left_delta(&self) -> f32 {
+        match self.action_kind {
+            ActionKind::None => 0.5,
+            ActionKind::Explore => self.random_walk.left_delta(),
+            ActionKind::StrongAvoidLeft => 1.,
+            ActionKind::StrongAvoidRight => 0.5,
+            ActionKind::StrongAvoidBoth => 1.,
         }
     }
 
-    pub fn right_delta(&self) -> f32 {
-        match self.action {
-            TaxisAction::None => self.explore.right_delta(),
-            TaxisAction::StrongAvoidLeft => 0.5,
-            TaxisAction::StrongAvoidRight => 1.,
-            TaxisAction::StrongAvoidBoth => 1.,
+    pub fn get_right_delta(&self) -> f32 {
+        match self.action_kind {
+            ActionKind::None => 0.5,
+            ActionKind::Explore => self.random_walk.right_delta(),
+            ActionKind::StrongAvoidLeft => 0.5,
+            ActionKind::StrongAvoidRight => 1.,
+            ActionKind::StrongAvoidBoth => 1.,
         }
     }
 
     fn pre_update(&mut self) {
         self.is_first = true;
-        self.action = TaxisAction::None;
-        self.explore.pre_update();
+        self.action_kind = self.action_kind.pre_update();
+        self.random_walk.pre_update();
     }
 
     fn event(&mut self, event: &HindLocomotorEvent) {
@@ -92,33 +100,56 @@ impl HindLocomotor {
         match event {
             // collision/escape - strong avoid events
             HindLocomotorEvent::StrongAvoidLeft => {
-                self.action = self.action.avoid_left();
+                self.action_kind = self.action_kind.avoid_left();
             }
             HindLocomotorEvent::StrongAvoidRight => {
-                self.action = self.action.avoid_right();
+                self.action_kind = self.action_kind.avoid_right();
             }
             HindLocomotorEvent::StrongAvoidBoth => {
-                self.action = self.action.avoid_left();
-                self.action = self.action.avoid_right();
+                self.action_kind = self.action_kind.avoid_left();
+                self.action_kind = self.action_kind.avoid_right();
             }
 
             // gradient taxis
             HindLocomotorEvent::AvoidVector(vector) => {
-                self.explore.add_avoid(*vector)
+                self.action_kind = self.action_kind.explore();
+                self.random_walk.add_avoid(*vector)
             },
             
             HindLocomotorEvent::ApproachVector(vector) => {
-                self.explore.add_approach(*vector)
+                self.action_kind = self.action_kind.explore();
+                self.random_walk.add_approach(*vector)
             },
 
             // explore/speed modes
-            HindLocomotorEvent::Approach => self.explore.approach(),
-            HindLocomotorEvent::Avoid => self.explore.avoid(),
-            HindLocomotorEvent::AvoidUTurn => self.explore.avoid_turn(),
-            HindLocomotorEvent::Normal => self.explore.normal(),
-            HindLocomotorEvent::Roam => self.explore.roam(),
-            HindLocomotorEvent::Dwell => self.explore.dwell(),
-            HindLocomotorEvent::Stop => self.explore.stop(),
+            HindLocomotorEvent::Approach => {
+                self.action_kind = self.action_kind.explore();
+                self.random_walk.approach();
+            }
+            HindLocomotorEvent::Avoid => {
+                self.action_kind = self.action_kind.explore();
+                self.random_walk.avoid();
+            }
+            HindLocomotorEvent::AvoidUTurn => {
+                self.action_kind = self.action_kind.explore();
+                self.random_walk.avoid_turn();
+            }
+            HindLocomotorEvent::Normal => {
+                self.action_kind = self.action_kind.explore();
+                self.random_walk.normal();
+            }
+            HindLocomotorEvent::Roam => {
+                self.action_kind = self.action_kind.explore();
+                self.random_walk.roam();
+            }
+            HindLocomotorEvent::Dwell => {
+                self.action_kind = self.action_kind.explore();
+                self.random_walk.dwell();
+            }
+            HindLocomotorEvent::Stop => {
+                self.action_kind = ActionKind::None;
+                self.random_walk.stop();
+            }
 
             // display events
             HindLocomotorEvent::ApproachDisplay(_) => {},
@@ -127,21 +158,29 @@ impl HindLocomotor {
     }
 
     fn update(&mut self, body: &mut Body) {
-        match self.action {
-            TaxisAction::None => {
-                self.explore.update(body);
+        if self.action.pre_update() {
+            return;
+        }
+
+        match self.action_kind {
+            ActionKind::None => {
+                // self.action = self.random_walk.update(body);
+
+                // body.set_action(self.action.kind, self.action.speed, self.action.turn);
+                body.stop();
             },
-            TaxisAction::StrongAvoidLeft => {
+            ActionKind::Explore => {
+                self.action = self.random_walk.update(body);
+
+                body.set_action(self.action.kind, self.action.speed, self.action.turn);
+            },
+            ActionKind::StrongAvoidLeft => {
                 body.avoid(1., self.right60.angle());
-                // todo!();
-                // body.locomotion_mut().avoid(self.right60.action(1.));
             },
-            TaxisAction::StrongAvoidRight => {
+            ActionKind::StrongAvoidRight => {
                 body.avoid(1., self.left60.angle());
-                // todo!();
-                // body.locomotion_mut().avoid(self.left60.action(1.));
             },
-            TaxisAction::StrongAvoidBoth => {
+            ActionKind::StrongAvoidBoth => {
                 body.avoid(1., self.left120.angle());
                 //todo!();
                 /*
@@ -159,56 +198,19 @@ impl HindLocomotor {
 impl Default for HindLocomotor {
     fn default() -> Self {
         HindLocomotor {
-            left60: TaxisTurn::new(Angle::Deg(-60.), Angle::Deg(15.)),
-            right60: TaxisTurn::new(Angle::Deg(60.), Angle::Deg(15.)),
+            left60: Turn::new(Angle::Deg(-60.), Angle::Deg(15.)),
+            right60: Turn::new(Angle::Deg(60.), Angle::Deg(15.)),
 
-            left120: TaxisTurn::new(Angle::Deg(-120.), Angle::Deg(60.)),
-            _right120: TaxisTurn::new(Angle::Deg(120.), Angle::Deg(60.)),
+            left120: Turn::new(Angle::Deg(-120.), Angle::Deg(60.)),
+            _right120: Turn::new(Angle::Deg(120.), Angle::Deg(60.)),
 
-            explore: Explore::new(),
-            action: TaxisAction::None,
+            random_walk: RandomWalk::new(),
+            action: Action::none(),
+            action_kind: ActionKind::Explore,
 
             is_first: true,
         }
     }
-}
-
-fn update_hind_locomotor(
-    mut body: ResMut<Body>, 
-    mut touch_events: InEvent<Touch>,
-    mut locomotor_events: InEvent<HindLocomotorEvent>,
-    mut hind_locomotor: ResMut<HindLocomotor>, 
-    dwell: Res<Motive<Dwell>>,
-) {
-    hind_locomotor.pre_update();
-
-    if dwell.is_active() {
-        hind_locomotor.explore.dwell();
-    }
-
-    for touch in touch_events.iter() {
-        match touch {
-            Touch::CollideLeft => {
-                hind_locomotor.event(&HindLocomotorEvent::StrongAvoidLeft);
-            },
-            Touch::CollideRight => {
-                hind_locomotor.event(&HindLocomotorEvent::StrongAvoidRight);
-            },
-        }
-    }
-
-    for event in locomotor_events.iter() {
-        hind_locomotor.event(event);
-
-        match event {
-            HindLocomotorEvent::ApproachDisplay(vector) => {
-                body.set_approach_dir(*vector);
-            }
-            _ => {},
-        }
-    }
-
-    hind_locomotor.update(body.get_mut());
 }
 
 #[derive(Clone, Copy, Debug, Event)]
@@ -235,33 +237,54 @@ pub enum HindLocomotorEvent {
     Stop,
 }
 
-enum TaxisAction {
+#[derive(Clone, Copy, Debug)]
+enum ActionKind {
     None,
+    Explore,
     StrongAvoidLeft,
     StrongAvoidRight,
     StrongAvoidBoth,
 }
 
-impl TaxisAction {
+impl ActionKind {
+    fn pre_update(&self) -> Self {
+        match self {
+            ActionKind::None => ActionKind::None,
+            ActionKind::Explore => ActionKind::Explore,
+            ActionKind::StrongAvoidLeft => ActionKind::Explore,
+            ActionKind::StrongAvoidRight => ActionKind::Explore,
+            ActionKind::StrongAvoidBoth => ActionKind::Explore,
+        }
+    }
+
+    fn explore(&self) -> Self {
+        match self {
+            ActionKind::None => ActionKind::Explore,
+            _ => *self,
+        }
+    }
+
     fn avoid_left(&self) -> Self {
         match self {
-            TaxisAction::None => TaxisAction::StrongAvoidLeft,
-            TaxisAction::StrongAvoidLeft => TaxisAction::StrongAvoidLeft,
-            TaxisAction::StrongAvoidRight => TaxisAction::StrongAvoidBoth,
-            TaxisAction::StrongAvoidBoth => TaxisAction::StrongAvoidBoth,
+            ActionKind::None => ActionKind::StrongAvoidLeft,
+            ActionKind::Explore => ActionKind::StrongAvoidLeft,
+            ActionKind::StrongAvoidLeft => ActionKind::StrongAvoidLeft,
+            ActionKind::StrongAvoidRight => ActionKind::StrongAvoidBoth,
+            ActionKind::StrongAvoidBoth => ActionKind::StrongAvoidBoth,
         }
     }
 
     fn avoid_right(&self) -> Self {
         match self {
-            TaxisAction::None => TaxisAction::StrongAvoidRight,
-            TaxisAction::StrongAvoidLeft => TaxisAction::StrongAvoidBoth,
-            TaxisAction::StrongAvoidRight => TaxisAction::StrongAvoidRight,
-            TaxisAction::StrongAvoidBoth => TaxisAction::StrongAvoidBoth,
+            ActionKind::None => ActionKind::StrongAvoidRight,
+            ActionKind::Explore => ActionKind::StrongAvoidRight,
+            ActionKind::StrongAvoidLeft => ActionKind::StrongAvoidBoth,
+            ActionKind::StrongAvoidRight => ActionKind::StrongAvoidRight,
+            ActionKind::StrongAvoidBoth => ActionKind::StrongAvoidBoth,
         }
     }
 }
-struct Explore {
+struct RandomWalk {
     speed: f32,
 
     alpha: f32,
@@ -283,11 +306,11 @@ struct Explore {
 
     is_last_turn: bool,
 
-    action: Action,
+    // action: Action,
     action_kind: BodyAction,
 }
 
-impl Explore {
+impl RandomWalk {
     const LOW : f32 = 1.;
     const HIGH : f32 = 5.;
     const ALPHA : f32 = 2.;
@@ -295,12 +318,10 @@ impl Explore {
     const TURN_MEAN : f32 = 60.;
     const TURN_STD : f32 = 15.;
 
-    const TICKS : f32 = 10.;
-
     const _CPG_TIME : f32 = 1.;
 
     fn new() -> Self {
-        Explore {
+        RandomWalk {
             speed: 1.,
 
             low: Self::LOW,
@@ -322,7 +343,7 @@ impl Explore {
 
             is_last_turn: false,
 
-            action: Action::none(),
+            // action: Action::none(),
             action_kind: BodyAction::Roam,
         }
     }
@@ -482,12 +503,12 @@ impl Explore {
     fn update(
         &mut self,
         body: &mut Body
-    ) {
+    ) -> Action {
         //body.set_action(self.action);
 
-        if self.action.pre_update() {
-            return;
-        }
+        //if self.action.pre_update() {
+        //    return None;
+        //}
 
         let random = random();
         let mut mean = self.turn_mean;
@@ -519,43 +540,25 @@ impl Explore {
 
             let len = random_pareto(low, high, alpha);
 
-            self.action = Action::new(self.action_kind, len, speed, Angle::Unit(0.));
-            //body.set_action(self.action_kind, speed, Angle::Unit(0.));
-
-            // todo!();
-            //body.locomotion_mut().action(action);
+            Action::new(self.action_kind, len, speed, Angle::Unit(0.))
         } else if random <= p_left {
             self.is_last_turn = true;
 
-            self.action = Action::new(self.action_kind, 1., speed, Angle::Deg(- angle));
-            //todo!();
-            // body.locomotion_mut().action(action);
-            // tectum.toward().action_copy(Turn::Left)
-
-            //body.set_action(self.action_kind, speed, Angle::Deg(- angle));
-            //self.action = action;
+            Action::new(self.action_kind, 1., speed, Angle::Deg(- angle))
         } else {
             self.is_last_turn = true;
 
-            self.action = Action::new(self.action_kind, 1., speed, Angle::Deg(angle));
-
-            // todo!();
-            // body.locomotion_mut().action(action);
-            // tectum.toward().action_copy(Turn::Right)
-
-            //body.set_action(self.action_kind, speed, Angle::Deg(angle));
+            Action::new(self.action_kind, 1., speed, Angle::Deg(angle))
         }
-
-        body.set_action(self.action.kind, self.action.speed, self.action.turn);
     }
 }
 
-struct TaxisTurn {
+struct Turn {
     mean: Angle,
     std: Angle,
 }
 
-impl TaxisTurn {
+impl Turn {
     fn new(mean: Angle, std: Angle) -> Self {
         Self {
             mean,
@@ -609,6 +612,44 @@ impl Action {
 
         return self.time >= 1.0e-6
     }
+}
+
+fn update_hind_locomotor(
+    mut body: ResMut<Body>, 
+    mut touch_events: InEvent<Touch>,
+    mut locomotor_events: InEvent<HindLocomotorEvent>,
+    mut hind_locomotor: ResMut<HindLocomotor>, 
+    dwell: Res<Motive<Dwell>>,
+) {
+    hind_locomotor.pre_update();
+
+    if dwell.is_active() {
+        hind_locomotor.random_walk.dwell();
+    }
+
+    for touch in touch_events.iter() {
+        match touch {
+            Touch::CollideLeft => {
+                hind_locomotor.event(&HindLocomotorEvent::StrongAvoidLeft);
+            },
+            Touch::CollideRight => {
+                hind_locomotor.event(&HindLocomotorEvent::StrongAvoidRight);
+            },
+        }
+    }
+
+    for event in locomotor_events.iter() {
+        hind_locomotor.event(event);
+
+        match event {
+            HindLocomotorEvent::ApproachDisplay(vector) => {
+                body.set_approach_dir(*vector);
+            }
+            _ => {},
+        }
+    }
+
+    hind_locomotor.update(body.get_mut());
 }
 
 pub struct HindLocomotorPlugin;
