@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use essay_plot::api::Colors;
 use vertebrate::{
-    body::{BodyPlugin, Body}, hind_motor::HindLocomotorPlugin, core_motive::{
+    body::{Body, BodyEatPlugin, BodyPlugin}, hind_motor::{HindEatPlugin, HindLocomotorPlugin}, core_motive::{
         mid_peptides::MidPeptidesPlugin, motive::{Motive, Seek}, Dwell, ExplorePlugin, Roam, Wake, WakePlugin
     }, olfactory_bulb::OlfactoryBulb, olfactory_bulb::{ObEvent, OlfactoryPlugin}, 
     mid_seek::phototaxis::Phototaxis,
@@ -35,7 +35,10 @@ pub fn main() {
 
     world_roam(&mut app);
     app.plugin(BodyPlugin::new());
+    app.plugin(BodyEatPlugin);
+
     app.plugin(HindLocomotorPlugin);
+    app.plugin(HindEatPlugin);
 
     app.plugin(WakePlugin);
     app.plugin(ExplorePlugin);
@@ -74,8 +77,8 @@ fn dwell_olfactory(
 }
 
 pub fn world_roam(app: &mut App) {
-    let w = 21;
-    let h = 15;
+    let w = 15;
+    let h = 11;
 
     let h1 = h / 2 - 1;
 
@@ -89,7 +92,6 @@ pub fn world_roam(app: &mut App) {
         //.floor((0, 0), (w1, h), FloorType::Light)
         //.floor((w2, 0), (w - w2, h), FloorType::Dark)
         .food_odor_r(5, 5, 4, OdorType::FoodA)
-        .odor_r(9, 5, 4, OdorType::FoodB)
     );
 }
 

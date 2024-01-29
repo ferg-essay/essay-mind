@@ -17,7 +17,7 @@ fn dwell_update(
     mut taxis: OutEvent<HindLocomotorEvent>,
 ) {
     if dwell.value() > 0.1 {
-        taxis.send(HindLocomotorEvent::Dwell);
+        // taxis.send(HindLocomotorEvent::Dwell);
     }
 }
 

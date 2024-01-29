@@ -47,7 +47,7 @@ pub struct HabenulaSeekItem {
 impl HabenulaSeekItem {
     pub const N_DIR : usize = 12;
     pub const GOAL_LIFE : HalfLife = HalfLife(2.);
-    pub const SAMPLE_LIFE : HalfLife = HalfLife(0.5);
+    pub const SAMPLE_LIFE : HalfLife = HalfLife(1.);
 
     pub fn new(
         goal_life: impl Into<HalfLife>, 
