@@ -5,7 +5,7 @@ use essay_plot::{
 };
 
 use ui_graphics::{ui_layout::{BoxId, UiLayout, UiLayoutEvent}, UiCanvas, ui_canvas::UiRender};
-use crate::{body::{Body, BodyAction}, hind_motor::HindLocomotor};
+use crate::{body::{Body, BodyAction}, hind_motor::HindLocomotor, mid_seek::Taxis};
 use crate::ui::ui_world::UiWorldPlugin;
 use crate::util::Angle;
 
@@ -193,7 +193,8 @@ pub fn ui_homunculus_resize(
 pub fn ui_homunculus_draw(
     mut ui_homunculus: ResMut<UiHomunculus>,
     body: Res<Body>,
-    taxis: Res<HindLocomotor>,
+    hind_taxis: Res<HindLocomotor>,
+    taxis: Res<Taxis>,
     mut ui_canvas: ResMut<UiCanvas>
 ) {
     if let Some(mut ui) = ui_canvas.renderer(Clip::None) {
@@ -234,7 +235,7 @@ pub fn ui_homunculus_draw(
             ui.draw_path(&paths.mo_ll, &style);
         }
 
-        let forward = taxis.get_forward_delta();
+        let forward = hind_taxis.get_forward_delta();
 
         if forward != 0.5 {
             let color = ui_homunculus.colors.map(forward);
@@ -243,7 +244,7 @@ pub fn ui_homunculus_draw(
             ui.draw_path(&paths.u_turn, &style);
         }
 
-        let left_delta = taxis.get_left_delta();
+        let left_delta = hind_taxis.get_left_delta();
 
         if left_delta != 0.5 {
             let color = ui_homunculus.colors.map(left_delta);
@@ -253,7 +254,7 @@ pub fn ui_homunculus_draw(
             ui.draw_path(&paths.ss_ll, &style);
         }
 
-        let right_delta = taxis.get_right_delta();
+        let right_delta = hind_taxis.get_right_delta();
 
         if right_delta != 0.5 {
             let color = ui_homunculus.colors.map(right_delta);
@@ -266,11 +267,11 @@ pub fn ui_homunculus_draw(
         let value = 0.75;
         ui_homunculus.head_dir.draw(&mut ui, body.head_dir(), value);
 
-        let approach_dir = body.approach_dir();
+        let approach_dir = taxis.approach_dir();
         let value = approach_dir.value();
         ui_homunculus.approach_dir.draw(&mut ui, approach_dir.dir(), value);
 
-        let avoid_dir = body.avoid_dir();
+        let avoid_dir = taxis.avoid_dir();
         let value = avoid_dir.value();
         ui_homunculus.avoid_dir.draw(&mut ui, avoid_dir.dir(), value);
 
@@ -661,6 +662,8 @@ impl Plugin for UiHomunculusPlugin {
             let box_id = app.resource_mut::<UiLayout>().add_box(self.bounds.clone());
 
             let ui_homunculus = UiHomunculus::new(box_id);
+
+            app.init_resource::<Taxis>();
 
             app.insert_resource(ui_homunculus);
 

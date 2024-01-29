@@ -27,7 +27,7 @@ impl HindLocomotor {
 
     pub fn get_avoid_left(&self) -> f32 {
         match self.action_kind {
-            ActionKind::None => 0.,
+            ActionKind::Stop => 0.,
             ActionKind::Explore => self.random_walk.avoid_left(),
             ActionKind::StrongAvoidLeft => 1.,
             ActionKind::StrongAvoidRight => 0.,
@@ -37,7 +37,7 @@ impl HindLocomotor {
 
     pub fn get_avoid_right(&self) -> f32 {
         match self.action_kind {
-            ActionKind::None => 0.,
+            ActionKind::Stop => 0.,
             ActionKind::Explore => self.random_walk.avoid_right(),
             ActionKind::StrongAvoidLeft => 0.,
             ActionKind::StrongAvoidRight => 1.,
@@ -47,7 +47,7 @@ impl HindLocomotor {
 
     pub fn get_avoid_forward(&self) -> f32 {
         match self.action_kind {
-            ActionKind::None => 0.5,
+            ActionKind::Stop => 0.5,
             ActionKind::Explore => self.random_walk.avoid_forward(),
             ActionKind::StrongAvoidLeft => 0.,
             ActionKind::StrongAvoidRight => 0.,
@@ -57,7 +57,7 @@ impl HindLocomotor {
 
     pub fn get_forward_delta(&self) -> f32 {
         match self.action_kind {
-            ActionKind::None => 0.5,
+            ActionKind::Stop => 0.5,
             ActionKind::Explore => self.random_walk.forward_delta(),
             ActionKind::StrongAvoidLeft => 0.5,
             ActionKind::StrongAvoidRight => 0.5,
@@ -67,7 +67,7 @@ impl HindLocomotor {
 
     pub fn get_left_delta(&self) -> f32 {
         match self.action_kind {
-            ActionKind::None => 0.5,
+            ActionKind::Stop => 0.5,
             ActionKind::Explore => self.random_walk.left_delta(),
             ActionKind::StrongAvoidLeft => 1.,
             ActionKind::StrongAvoidRight => 0.5,
@@ -77,7 +77,7 @@ impl HindLocomotor {
 
     pub fn get_right_delta(&self) -> f32 {
         match self.action_kind {
-            ActionKind::None => 0.5,
+            ActionKind::Stop => 0.5,
             ActionKind::Explore => self.random_walk.right_delta(),
             ActionKind::StrongAvoidLeft => 0.5,
             ActionKind::StrongAvoidRight => 1.,
@@ -147,13 +147,13 @@ impl HindLocomotor {
                 self.random_walk.dwell();
             }
             HindLocomotorEvent::Stop => {
-                self.action_kind = ActionKind::None;
+                self.action_kind = ActionKind::Stop;
                 self.random_walk.stop();
             }
 
             // display events
-            HindLocomotorEvent::ApproachDisplay(_) => {},
-            HindLocomotorEvent::AvoidDisplay(_) => {},
+            // HindLocomotorEvent::ApproachDisplay(_) => {},
+            // HindLocomotorEvent::AvoidDisplay(_) => {},
         }
     }
 
@@ -163,7 +163,7 @@ impl HindLocomotor {
         }
 
         match self.action_kind {
-            ActionKind::None => {
+            ActionKind::Stop => {
                 // self.action = self.random_walk.update(body);
 
                 // body.set_action(self.action.kind, self.action.speed, self.action.turn);
@@ -224,8 +224,8 @@ pub enum HindLocomotorEvent {
     ApproachVector(DirVector),
     AvoidVector(DirVector),
 
-    ApproachDisplay(DirVector),
-    AvoidDisplay(DirVector),
+    // ApproachDisplay(DirVector),
+    // AvoidDisplay(DirVector),
 
     // speed modes
     Approach,
@@ -239,7 +239,7 @@ pub enum HindLocomotorEvent {
 
 #[derive(Clone, Copy, Debug)]
 enum ActionKind {
-    None,
+    Stop,
     Explore,
     StrongAvoidLeft,
     StrongAvoidRight,
@@ -249,7 +249,7 @@ enum ActionKind {
 impl ActionKind {
     fn pre_update(&self) -> Self {
         match self {
-            ActionKind::None => ActionKind::None,
+            ActionKind::Stop => ActionKind::Stop,
             ActionKind::Explore => ActionKind::Explore,
             ActionKind::StrongAvoidLeft => ActionKind::Explore,
             ActionKind::StrongAvoidRight => ActionKind::Explore,
@@ -259,14 +259,14 @@ impl ActionKind {
 
     fn explore(&self) -> Self {
         match self {
-            ActionKind::None => ActionKind::Explore,
+            ActionKind::Stop => ActionKind::Explore,
             _ => *self,
         }
     }
 
     fn avoid_left(&self) -> Self {
         match self {
-            ActionKind::None => ActionKind::StrongAvoidLeft,
+            ActionKind::Stop => ActionKind::StrongAvoidLeft,
             ActionKind::Explore => ActionKind::StrongAvoidLeft,
             ActionKind::StrongAvoidLeft => ActionKind::StrongAvoidLeft,
             ActionKind::StrongAvoidRight => ActionKind::StrongAvoidBoth,
@@ -276,7 +276,7 @@ impl ActionKind {
 
     fn avoid_right(&self) -> Self {
         match self {
-            ActionKind::None => ActionKind::StrongAvoidRight,
+            ActionKind::Stop => ActionKind::StrongAvoidRight,
             ActionKind::Explore => ActionKind::StrongAvoidRight,
             ActionKind::StrongAvoidLeft => ActionKind::StrongAvoidBoth,
             ActionKind::StrongAvoidRight => ActionKind::StrongAvoidRight,
@@ -641,12 +641,14 @@ fn update_hind_locomotor(
     for event in locomotor_events.iter() {
         hind_locomotor.event(event);
 
+        /*
         match event {
             HindLocomotorEvent::ApproachDisplay(vector) => {
                 body.set_approach_dir(*vector);
             }
             _ => {},
         }
+        */
     }
 
     hind_locomotor.update(body.get_mut());
@@ -656,6 +658,7 @@ pub struct HindLocomotorPlugin;
 
 impl Plugin for HindLocomotorPlugin {
     fn build(&self, app: &mut App) {
+        println!("HLF");
         assert!(app.contains_plugin::<BodyPlugin>(), "HindLocomotorPlugin requires BodyPlugin");
 
         app.event::<HindLocomotorEvent>();

@@ -13,7 +13,7 @@ use crate::{
     world::World
 };
 
-use super::GoalVector;
+use super::{GoalVector, Taxis};
 
 pub struct Phototaxis {
     average: DecayValue,
@@ -90,6 +90,7 @@ fn update_phototaxis(
     //mut explore: ResMut<MidExplore>,
     mut explore: OutEvent<HindLocomotorEvent>,
     mut phototaxis: ResMut<Phototaxis>,
+    mut taxis: ResMut<Taxis>,
 ) {
     let light = world.light(body.pos_head());
 
@@ -124,7 +125,7 @@ fn update_phototaxis(
     }
 
     let goal_vector = phototaxis.goal_vector();
-    body.set_avoid_dir(goal_vector);
+    taxis.set_avoid_dir(goal_vector);
 }
 
 pub struct PhototaxisPlugin;
@@ -134,6 +135,7 @@ impl Plugin for PhototaxisPlugin {
         assert!(app.contains_plugin::<MidLocomotorPlugin>());
 
         app.init_resource::<Phototaxis>();
+        app.init_resource::<Taxis>();
 
         app.system(Tick, update_phototaxis);
     }

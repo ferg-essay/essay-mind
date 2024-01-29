@@ -24,8 +24,8 @@ pub struct Body {
     //locomotion: BodyLocomotion,
     //eat: BodyEat,
 
-    approach_dir: DirVector,
-    avoid_dir: DirVector,
+    //approach_dir: DirVector,
+    // avoid_dir: DirVector,
 
     // tick_food: usize,
     ticks: usize,
@@ -47,8 +47,8 @@ impl Body {
 
             ticks: 0,
 
-            approach_dir: DirVector::zero(),
-            avoid_dir: DirVector::zero(),
+            //approach_dir: DirVector::zero(),
+            //avoid_dir: DirVector::zero(),
         }
     }
 
@@ -144,6 +144,7 @@ impl Body {
         self.collide_right
     }
 
+    /*
     pub fn avoid_dir(&self) -> DirVector {
         self.avoid_dir.clone()
     }
@@ -159,6 +160,7 @@ impl Body {
     pub fn set_approach_dir(&mut self, dir: DirVector) {
         self.approach_dir = dir;
     }
+    */
 
     pub fn p_food(&self) -> f32 {
         // self.tick_food as f32 / self.ticks.max(1) as f32
