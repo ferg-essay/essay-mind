@@ -12,9 +12,9 @@ fn wake_update(mut wake: ResMut<Motive<Wake>>) {
 pub struct Wake;
 impl MotiveTrait for Wake {}
 
-pub struct WakePlugin;
+pub struct CoreWakePlugin;
 
-impl Plugin for WakePlugin {
+impl Plugin for CoreWakePlugin {
     fn build(&self, app: &mut App) {
         Motives::insert::<Wake>(app, Seconds(1.));
 

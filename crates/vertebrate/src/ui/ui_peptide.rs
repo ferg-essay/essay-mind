@@ -7,7 +7,7 @@ use ui_graphics::{
     UiCanvas, UiCanvasPlugin
 };
 
-use crate::core_motive::mid_peptides::MidPeptidesPlugin;
+use crate::core_motive::mid_peptides::CorePeptidesPlugin;
 
 #[derive(Component)]
 pub struct UiPeptide {
@@ -202,7 +202,7 @@ impl UiPeptidePlugin {
 impl Plugin for UiPeptidePlugin {
     fn build(&self, app: &mut App) {
         if app.contains_plugin::<UiCanvasPlugin>() {
-            assert!(app.contains_plugin::<MidPeptidesPlugin>());
+            assert!(app.contains_plugin::<CorePeptidesPlugin>());
 
             if ! app.contains_plugin::<UiLayoutPlugin>() {
                 app.plugin(UiLayoutPlugin);

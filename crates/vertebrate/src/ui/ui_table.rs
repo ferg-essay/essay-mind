@@ -5,7 +5,7 @@ use essay_plot::api::{Bounds, Canvas, Clip, TextStyle, VertAlign, Point, Coord, 
 use mind_ecs::PostTick;
 use ui_graphics::{ui_layout::{BoxId, UiLayout, UiLayoutEvent, UiLayoutPlugin}, UiCanvas, UiCanvasPlugin};
 
-use crate::{body::Body, world::World, core_motive::mid_peptides::MidPeptidesPlugin};
+use crate::{body::Body, world::World, core_motive::mid_peptides::CorePeptidesPlugin};
 
 
 #[derive(Component)]
@@ -145,7 +145,7 @@ impl UiTablePlugin {
 impl Plugin for UiTablePlugin {
     fn build(&self, app: &mut App) {
         if app.contains_plugin::<UiCanvasPlugin>() {
-            assert!(app.contains_plugin::<MidPeptidesPlugin>());
+            assert!(app.contains_plugin::<CorePeptidesPlugin>());
 
             if ! app.contains_plugin::<UiLayoutPlugin>() {
                 app.plugin(UiLayoutPlugin);

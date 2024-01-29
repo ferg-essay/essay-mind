@@ -27,9 +27,9 @@ impl MotiveTrait for Roam {}
 pub struct Dwell;
 impl MotiveTrait for Dwell {}
 
-pub struct ExplorePlugin;
+pub struct CoreExplorePlugin;
 
-impl Plugin for ExplorePlugin {
+impl Plugin for CoreExplorePlugin {
     fn build(&self, app: &mut App) {
         Motives::insert::<Roam>(app, Seconds(1.));
         Motives::insert::<Dwell>(app, Seconds(1.));

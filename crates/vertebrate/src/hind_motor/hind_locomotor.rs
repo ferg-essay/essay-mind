@@ -2,6 +2,8 @@ use essay_ecs::prelude::*;
 use mind_ecs::Tick;
 use crate::body::touch::Touch;
 use crate::body::{Body, BodyAction, BodyPlugin};
+use crate::core_motive::motive::Motive;
+use crate::core_motive::Dwell;
 use crate::util::{Angle, DirVector, Ticks};
 use util::random::{random_pareto, random, random_normal};
 
@@ -175,8 +177,13 @@ fn update_hind_locomotor(
     mut touch_events: InEvent<Touch>,
     mut taxis_events: InEvent<HindLocomotorEvent>,
     mut hind_locomotor: ResMut<HindLocomotor>, 
+    dwell: Res<Motive<Dwell>>,
 ) {
     hind_locomotor.pre_update();
+
+    if dwell.is_active() {
+        hind_locomotor.explore.dwell();
+    }
 
     for touch in touch_events.iter() {
         match touch {
@@ -201,6 +208,15 @@ fn update_hind_locomotor(
     }
 
     hind_locomotor.update(body.get_mut());
+}
+
+fn update_hind_locomotor_motive(
+    dwell: Res<Motive<Dwell>>,
+    mut locomotor: ResMut<HindLocomotor>, 
+) {
+    if dwell.is_active() {
+        locomotor.explore.dwell();
+    }
 }
 
 #[derive(Clone, Copy, Debug, Event)]
@@ -606,5 +622,6 @@ impl Plugin for HindLocomotorPlugin {
         app.init_resource::<HindLocomotor>();
 
         app.system(Tick, update_hind_locomotor);
+        // app.system(Tick, update_hind_locomotor_motive);
     }
 }

@@ -6,5 +6,5 @@ pub use hind_locomotor::{
 };
 
 pub use hind_eat::{
-    HindEatPlugin,
+    HindEatPlugin, HindEat
 };

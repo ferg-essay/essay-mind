@@ -33,12 +33,19 @@ impl<T: MotiveTrait> Motive<T> {
         self.max = 0.;
     }
 
+    #[inline]
     pub fn add(&mut self, value: f32) {
         self.delta = value;
     }
 
+    #[inline]
     pub fn set_max(&mut self, value: f32) {
         self.max = value;
+    }
+
+    #[inline]
+    pub fn is_active(&self) -> bool {
+        self.value() > 0.05
     }
 }
 

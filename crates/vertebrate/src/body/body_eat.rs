@@ -1,12 +1,12 @@
 use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}};
 use mind_ecs::Tick;
 
-use crate::{body::BodyPlugin, util::{DecayValue, Point, Seconds}, world::World};
+use crate::{body::BodyPlugin, util::{DecayValue, Seconds}, world::World};
 
 use super::Body;
 
 pub struct BodyEat {
-    is_sensor_food: bool,
+    is_food_zone: bool,
 
     is_sweet: DecayValue,
     _is_umami: f32,
@@ -19,12 +19,12 @@ pub struct BodyEat {
 }
 
 impl BodyEat {
-    pub fn is_sensor_food(&self) -> bool {
-        self.is_sensor_food
+    pub fn is_food_zone(&self) -> bool {
+        self.is_food_zone
     }
 
-    pub fn set_sensor_food(&mut self, is_food: bool) {
-        self.is_sensor_food = is_food;
+    pub fn set_food_zone(&mut self, is_food: bool) {
+        self.is_food_zone = is_food;
     }
 
     #[inline]
@@ -61,9 +61,9 @@ impl BodyEat {
         self.is_eating.update();
 
         let is_food = world.is_food(body.pos_head());
-        self.set_sensor_food(is_food);
+        self.set_food_zone(is_food);
 
-        if self.is_eating() && self.is_sensor_food() {
+        if self.is_eating() && self.is_food_zone() {
             self.blood_sugar.add(1.);
             self.is_sweet.add(1.);
         }
@@ -73,7 +73,7 @@ impl BodyEat {
 impl Default for BodyEat {
     fn default() -> Self {
         Self {
-            is_sensor_food: false,
+            is_food_zone: false,
 
             is_sweet: DecayValue::new(Seconds(1.)),
             _is_umami: 0.,

@@ -3,7 +3,7 @@ use std::time::Duration;
 use essay_plot::api::Colors;
 use vertebrate::{
     body::{Body, BodyEatPlugin, BodyPlugin}, hind_motor::{HindEatPlugin, HindLocomotorPlugin}, core_motive::{
-        mid_peptides::MidPeptidesPlugin, motive::{Motive, Seek}, Dwell, ExplorePlugin, Roam, Wake, WakePlugin
+        core_eat::CoreEatingPlugin, mid_peptides::CorePeptidesPlugin, motive::{Motive, Seek}, Dwell, CoreExplorePlugin, Roam, Wake, CoreWakePlugin
     }, olfactory_bulb::OlfactoryBulb, olfactory_bulb::{ObEvent, OlfactoryPlugin}, 
     mid_seek::phototaxis::Phototaxis,
     mid_seek::{
@@ -40,20 +40,21 @@ pub fn main() {
     app.plugin(HindLocomotorPlugin);
     app.plugin(HindEatPlugin);
 
-    app.plugin(WakePlugin);
-    app.plugin(ExplorePlugin);
-
     app.plugin(OlfactoryPlugin::new()
         .odor(OdorType::FoodA)
         .odor(OdorType::FoodB)
     );
 
-    app.system(Tick, dwell_olfactory);
     app.plugin(TectumPlugin::new().striatum());
     app.plugin(HabenulaSeekPlugin);
-    app.plugin(MidPeptidesPlugin);
     app.plugin(ChemotaxisPlugin);
 
+    app.plugin(CoreWakePlugin);
+    app.plugin(CoreExplorePlugin);
+    app.plugin(CorePeptidesPlugin);
+    app.plugin(CoreEatingPlugin);
+
+    // app.system(Tick, dwell_olfactory);
     //ui_chemotaxis(&mut app);
     ui_eat(&mut app);
 

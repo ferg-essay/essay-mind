@@ -1,8 +1,8 @@
 use essay_ecs::{app::{Plugin, App}, core::{Res, ResMut}};
 use mind_ecs::Tick;
-use crate::{body::Body, olfactory_bulb::OlfactoryBulb, util::Seconds};
+use crate::{body::{Body, BodyEat}, hind_motor::HindEat, olfactory_bulb::OlfactoryBulb, util::Seconds};
 
-use super::{habenula_giveup::HabenulaGiveUp, mid_peptides::MidPeptides};
+use super::{give_up::HabenulaGiveUp, mid_peptides::MidPeptides, motive::Motive, Dwell};
 
 struct Eating {
     give_up_hb: HabenulaGiveUp,
@@ -16,7 +16,7 @@ impl Eating {
     }
 }
 
-fn update_feeding(
+fn update_feeding_old(
     mut feeding: ResMut<Eating>,
     mut peptides2: ResMut<MidPeptides>
 ) {
@@ -68,12 +68,13 @@ fn update_feeding(
     peptides2.seek_food_mut().add(seek.clamp(0., 1.));
 }
 
-fn update_body_glucose(
-    body: Res<Body>,
-    mut peptides: ResMut<MidPeptides>
+fn update_feeding(
+    mut eating: ResMut<Eating>,
+    body_eat: Res<BodyEat>
 ) {
-    todo!();
-    // peptides.glucose_mut().set(body.eat().glucose());
+    if body_eat.is_food_zone() {
+        println!("FoodZone2");
+    }
 }
 
 fn update_feeding_olfactory(
@@ -89,7 +90,7 @@ fn update_near_food(
     body: Res<Body>, 
     mut peptides: ResMut<MidPeptides>
 ) {
-    todo!();
+    println!("Near food");
     /*
     if body.eat().is_sensor_food() {
         peptides.near_food_mut().add(1.0);
@@ -98,36 +99,42 @@ fn update_near_food(
 }
 
 fn update_eat(
-    peptides: ResMut<MidPeptides>,
-    mut body: ResMut<Body>,
+    core_eat: ResMut<Eating>,
+    body_eat: Res<BodyEat>,
+    mut dwell: ResMut<Motive<Dwell>>,
 ) {
-    if peptides.near_food() > 0.5 {
-        todo!();
+    if body_eat.is_food_zone() {
+        println!("Dwell");
+        dwell.set_max(1.);
+    }
+    
         /*
+    if peptides.near_food() > 0.5 {
+        println!("Near eat");
         if body.eat().glucose() < 0.8 && body.eat().is_eating()
             || body.eat().glucose() < 0.3 {
             body.locomotion_mut().arrest();
             body.eat_mut().eat();
         }
-        */
     }
+        */
 }
 
 
-pub struct MidFeedingPlugin;
+pub struct CoreEatingPlugin;
 
-impl Plugin for MidFeedingPlugin {
+impl Plugin for CoreEatingPlugin {
     fn build(&self, app: &mut App) {
         let feeding = Eating::new();
 
         app.insert_resource(feeding);
-        app.system(Tick, update_body_glucose);
-        app.system(Tick, update_feeding);
-        app.system(Tick, update_near_food);
+        // app.system(Tick, update_body_glucose);
+        // app.system(Tick, update_feeding);
+        // app.system(Tick, update_near_food);
         app.system(Tick, update_eat);
 
-        if app.contains_resource::<OlfactoryBulb>() {
-            app.system(Tick, update_feeding_olfactory);
-        }
+        // if app.contains_resource::<OlfactoryBulb>() {
+        //    app.system(Tick, update_feeding_olfactory);
+        // }
     }
 }

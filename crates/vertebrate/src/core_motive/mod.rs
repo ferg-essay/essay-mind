@@ -1,10 +1,9 @@
-pub mod eating;
+pub mod core_eat;
 mod explore;
-pub mod mid_feeding;
 pub mod mid_peptides;
 pub mod motive;
-pub mod habenula_giveup;
+pub mod give_up;
 mod wake;
 
-pub use wake::{ WakePlugin, Wake };
-pub use explore::{ ExplorePlugin, Roam, Dwell };
+pub use wake::{ CoreWakePlugin, Wake };
+pub use explore::{ CoreExplorePlugin, Roam, Dwell };

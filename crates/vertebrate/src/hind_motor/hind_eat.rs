@@ -9,17 +9,34 @@ use crate::{
 };
 
 pub struct HindEat {
-    eat_enable : DecayValue,
+    eat_enable: DecayValue,
+    is_eat_while_move: bool,
+    is_food_zone: bool,
 }
 
 impl HindEat {
     pub const HALF_LIFE : HalfLife = HalfLife(0.4);
+
+    fn is_enable(&self) -> bool {
+        true
+    } 
+
+    fn is_eat_allowed(&self, body: &Body) -> bool {
+        ! self.is_eat_while_move || body.speed() < 0.1
+    } 
+
+    #[inline]
+    pub fn is_food_zone(&self) -> bool {
+        self.is_food_zone
+    } 
 }
 
 impl Default for HindEat {
     fn default() -> Self {
         Self {  
             eat_enable: DecayValue::new(HindEat::HALF_LIFE),
+            is_eat_while_move: true,
+            is_food_zone: false,
         }
     }
 }
@@ -30,19 +47,22 @@ fn update_hind_eat(
     body: Res<Body>,
     world: Res<World>,
 ) {
-    if hind_eat.eat_enable.value() <= 0.1 {
+    if ! hind_eat.is_enable() {
         return;
     }
 
-    if ! body_eat.is_sensor_food() {
-        log!(Level::Debug, "eating without sensor");
+    if ! body_eat.is_food_zone() {
+        // log!(Level::Debug, "eating without sensor");
         return;
     }
 
-    if body.speed() > 0.01 {
+    if ! hind_eat.is_eat_allowed(body.get()) {
         log!(Level::Info, "eating while moving");
+        println!("Eating while moving");
         return
     }
+
+    println!("Eating");
     // if world.isbody.is
 }
 

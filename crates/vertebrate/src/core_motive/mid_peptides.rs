@@ -145,9 +145,9 @@ fn update_peptides(mut peptides: ResMut<MidPeptides>) {
     peptides.update()
 }
 
-pub struct MidPeptidesPlugin;
+pub struct CorePeptidesPlugin;
 
-impl Plugin for MidPeptidesPlugin {
+impl Plugin for CorePeptidesPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<MidPeptides>();
 
