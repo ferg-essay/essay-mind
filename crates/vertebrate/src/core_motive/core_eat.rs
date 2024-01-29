@@ -1,6 +1,6 @@
-use essay_ecs::{app::{Plugin, App}, core::{Res, ResMut}};
+use essay_ecs::{app::{event::OutEvent, App, Plugin}, core::{Res, ResMut}};
 use mind_ecs::Tick;
-use crate::{body::{Body, BodyEat}, hind_motor::HindEat, olfactory_bulb::OlfactoryBulb, util::Seconds};
+use crate::{body::{Body, BodyEat}, hind_motor::{HindEat, HindLocomotorEvent}, olfactory_bulb::OlfactoryBulb, util::Seconds};
 
 use super::{give_up::HabenulaGiveUp, mid_peptides::MidPeptides, motive::Motive, Dwell};
 
@@ -102,10 +102,11 @@ fn update_eat(
     core_eat: ResMut<Eating>,
     body_eat: Res<BodyEat>,
     mut dwell: ResMut<Motive<Dwell>>,
+    mut locomotor_event: OutEvent<HindLocomotorEvent>,
 ) {
     if body_eat.is_food_zone() {
-        println!("Dwell");
         dwell.set_max(1.);
+        locomotor_event.send(HindLocomotorEvent::Stop);
     }
     
         /*

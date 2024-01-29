@@ -62,7 +62,7 @@ fn update_hind_eat(
         return
     }
 
-    println!("Eating");
+    body_eat.eat();
     // if world.isbody.is
 }
 

@@ -45,7 +45,7 @@ impl<T: MotiveTrait> Motive<T> {
 
     #[inline]
     pub fn is_active(&self) -> bool {
-        self.value() > 0.05
+        self.value() > 0.01
     }
 }
 

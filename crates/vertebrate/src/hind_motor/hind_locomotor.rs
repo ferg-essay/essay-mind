@@ -118,6 +118,7 @@ impl HindLocomotor {
             HindLocomotorEvent::Normal => self.explore.normal(),
             HindLocomotorEvent::Roam => self.explore.roam(),
             HindLocomotorEvent::Dwell => self.explore.dwell(),
+            HindLocomotorEvent::Stop => self.explore.stop(),
 
             // display events
             HindLocomotorEvent::ApproachDisplay(_) => {},
@@ -175,7 +176,7 @@ impl Default for HindLocomotor {
 fn update_hind_locomotor(
     mut body: ResMut<Body>, 
     mut touch_events: InEvent<Touch>,
-    mut taxis_events: InEvent<HindLocomotorEvent>,
+    mut locomotor_events: InEvent<HindLocomotorEvent>,
     mut hind_locomotor: ResMut<HindLocomotor>, 
     dwell: Res<Motive<Dwell>>,
 ) {
@@ -196,7 +197,7 @@ fn update_hind_locomotor(
         }
     }
 
-    for event in taxis_events.iter() {
+    for event in locomotor_events.iter() {
         hind_locomotor.event(event);
 
         match event {
@@ -208,15 +209,6 @@ fn update_hind_locomotor(
     }
 
     hind_locomotor.update(body.get_mut());
-}
-
-fn update_hind_locomotor_motive(
-    dwell: Res<Motive<Dwell>>,
-    mut locomotor: ResMut<HindLocomotor>, 
-) {
-    if dwell.is_active() {
-        locomotor.explore.dwell();
-    }
 }
 
 #[derive(Clone, Copy, Debug, Event)]
@@ -240,6 +232,7 @@ pub enum HindLocomotorEvent {
     Normal,
     Roam,
     Dwell,
+    Stop,
 }
 
 enum TaxisAction {
@@ -380,6 +373,12 @@ impl Explore {
         self.turn_std = Self::TURN_STD;
 
         self.action_kind = BodyAction::Dwell;
+    }
+
+    fn stop(&mut self) {
+        self.speed = 0.;
+
+        self.action_kind = BodyAction::None;
     }
 
     fn add_avoid(&mut self, avoid_dir: DirVector) {

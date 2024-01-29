@@ -115,6 +115,10 @@ impl Body {
         self.set_action(kind, 0., Angle::Unit(0.))
     }
 
+    pub fn eat(&mut self) {
+        self.stop_action(BodyAction::Eat);
+    }
+
     #[inline]
     pub fn speed(&self) -> f32 {
         self.action.speed

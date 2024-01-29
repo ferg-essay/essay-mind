@@ -53,7 +53,7 @@ impl BodyEat {
     ///
     /// Update the animal's eating and digestion
     /// 
-    fn update(&mut self, world: &World, body: &Body) {
+    fn update(&mut self, world: &World, body: &mut Body) {
         self.is_sweet.update();
 
         self.blood_sugar.update();
@@ -64,6 +64,7 @@ impl BodyEat {
         self.set_food_zone(is_food);
 
         if self.is_eating() && self.is_food_zone() {
+            body.eat();
             self.blood_sugar.add(1.);
             self.is_sweet.add(1.);
         }
@@ -89,10 +90,10 @@ impl Default for BodyEat {
 
 fn body_eat_update(
     mut body_eat: ResMut<BodyEat>,
-    body: Res<Body>,
+    mut body: ResMut<Body>,
     world: Res<World>,
 ) {
-    body_eat.update(world.get(), body.get());
+    body_eat.update(world.get(), body.get_mut());
 }
 
 pub struct BodyEatPlugin;
