@@ -1,11 +1,11 @@
 use essay_ecs::prelude::*;
 
-use mind_ecs::{PreTick, Tick};
+use mind_ecs::Tick;
 use test_log::{TestLog, TestLogPlugin};
 use util::random::random_uniform;
 use crate::body::touch::Touch;
 
-use crate::util::{DirVector, Point, Angle};
+use crate::util::{Point, Angle};
 use crate::world::{OdorType, World, WorldPlugin};
 
 // #[derive(Component)]
@@ -262,18 +262,6 @@ impl Action {
             speed,
             turn,
         }
-    }
-
-    pub fn roam(speed: f32, turn: Angle) -> Self {
-        Self::new(BodyAction::Roam, speed, turn)
-    }
-
-    pub fn dwell(speed: f32, turn: Angle) -> Self {
-        Self::new(BodyAction::Dwell, speed, turn)
-    }
-
-    pub fn stop() -> Self {
-        Self::new(BodyAction::None, 0., Angle::Unit(0.))
     }
 }
 

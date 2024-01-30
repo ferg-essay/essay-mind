@@ -10,7 +10,7 @@ use vertebrate::{
         chemotaxis::{ChemotaxisPlugin, Chemotaxis}, 
         habenula_seek::HabenulaSeekPlugin
     }, 
-    mid_motor::tectum::TectumPlugin, 
+    mid_motor::{tectum::TectumPlugin, MidSustainPlugin}, 
     ui::{
         ui_attention::UiAttentionPlugin, ui_homunculus::UiHomunculusPlugin, ui_motive::Emoji,
         ui_body::{UiBodyPlugin, UiBodyTrailPlugin},
@@ -48,6 +48,7 @@ pub fn main() {
     app.plugin(TectumPlugin::new().striatum());
     app.plugin(HabenulaSeekPlugin);
     app.plugin(ChemotaxisPlugin);
+    app.plugin(MidSustainPlugin);
 
     app.plugin(CoreWakePlugin);
     app.plugin(CoreExplorePlugin);

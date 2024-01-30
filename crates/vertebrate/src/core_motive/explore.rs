@@ -14,7 +14,7 @@ fn roam_update(
 
 fn dwell_update(
     dwell: Res<Motive<Dwell>>,
-    mut taxis: OutEvent<HindLocomotorEvent>,
+    mut _taxis: OutEvent<HindLocomotorEvent>,
 ) {
     if dwell.value() > 0.1 {
         // taxis.send(HindLocomotorEvent::Dwell);

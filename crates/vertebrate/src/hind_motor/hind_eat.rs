@@ -5,11 +5,10 @@ use mind_ecs::Tick;
 use crate::{
     body::{Body, BodyEat, BodyEatPlugin}, 
     util::{DecayValue, HalfLife}, 
-    world::World
 };
 
 pub struct HindEat {
-    eat_enable: DecayValue,
+    _eat_enable: DecayValue,
     is_eat_while_move: bool,
     is_food_zone: bool,
 }
@@ -34,7 +33,7 @@ impl HindEat {
 impl Default for HindEat {
     fn default() -> Self {
         Self {  
-            eat_enable: DecayValue::new(HindEat::HALF_LIFE),
+            _eat_enable: DecayValue::new(HindEat::HALF_LIFE),
             is_eat_while_move: true,
             is_food_zone: false,
         }
@@ -42,10 +41,9 @@ impl Default for HindEat {
 }
 
 fn update_hind_eat(
-    mut hind_eat: ResMut<HindEat>,
+    hind_eat: Res<HindEat>,
     mut body_eat: ResMut<BodyEat>,
     body: Res<Body>,
-    world: Res<World>,
 ) {
     if ! hind_eat.is_enable() {
         return;

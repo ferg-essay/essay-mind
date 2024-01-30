@@ -1,22 +1,36 @@
 use essay_ecs::{app::{event::OutEvent, App, Plugin}, core::{Res, ResMut}};
 use mind_ecs::Tick;
-use crate::{body::{Body, BodyEat}, hind_motor::{HindEat, HindLocomotorEvent}, olfactory_bulb::OlfactoryBulb, util::Seconds};
+use crate::{body::BodyEat, hind_motor::HindLocomotorEvent, util::{DecayValue, Seconds}};
 
-use super::{give_up::HabenulaGiveUp, mid_peptides::MidPeptides, motive::Motive, Dwell};
+use super::{persist::Persist, mid_peptides::MidPeptides, motive::Motive, Dwell};
 
 struct Eating {
-    give_up_hb: HabenulaGiveUp,
+    _persist: Persist,
+    timeout: DecayValue,
 }
 
 impl Eating {
     fn new() -> Self {
         Self {
-            give_up_hb: HabenulaGiveUp::new(Seconds(4.)),
+            _persist: Persist::new(Seconds(4.)),
+            timeout: DecayValue::new(2.),
         }
+    }
+
+    fn pre_update(&mut self) {
+        self.timeout.update();
+    }
+
+    fn add_eat(&mut self) {
+        self.timeout.add(1.);
+    }
+
+    fn is_eat_timeout(&mut self) -> bool {
+        self.timeout.value() > 0.5
     }
 }
 
-fn update_feeding_old(
+fn _update_feeding_old(
     mut feeding: ResMut<Eating>,
     mut peptides2: ResMut<MidPeptides>
 ) {
@@ -26,18 +40,18 @@ fn update_feeding_old(
     peptides2.explore_food_mut().add(explore_v);
 
     // habenula - give-up timer
-    feeding.give_up_hb.update();
+    feeding._persist.update();
 
     // H.l stimulates habenula, here based on DA feedback
     if peptides2.seek_food() > 0.25 {
-        feeding.give_up_hb.excite(1.);
+        feeding._persist.excite(1.);
     }
 
     // serotonin - high serotonin increases persistence
     let patience_5ht = (peptides2.urgency() - 0.7).clamp(0., 0.25);
-    feeding.give_up_hb.inhibit(patience_5ht);
+    feeding._persist.inhibit(patience_5ht);
 
-    peptides2.give_up_seek_food_mut().add(feeding.give_up_hb.value());
+    peptides2.give_up_seek_food_mut().add(feeding._persist.value());
 
     // serotonin - urgency
     let urgency_v = (
@@ -68,45 +82,21 @@ fn update_feeding_old(
     peptides2.seek_food_mut().add(seek.clamp(0., 1.));
 }
 
-fn update_feeding(
-    mut eating: ResMut<Eating>,
-    body_eat: Res<BodyEat>
-) {
-    if body_eat.is_food_zone() {
-        println!("FoodZone2");
-    }
-}
-
-fn update_feeding_olfactory(
-    olfactory: Res<OlfactoryBulb>,
-    mut peptides: ResMut<MidPeptides>
-) {
-    if olfactory.food_dir().is_some() {
-        peptides.cue_seek_food_mut().add(0.8);
-    }
-}
-
-fn update_near_food(
-    body: Res<Body>, 
-    mut peptides: ResMut<MidPeptides>
-) {
-    println!("Near food");
-    /*
-    if body.eat().is_sensor_food() {
-        peptides.near_food_mut().add(1.0);
-    }
-    */
-}
-
 fn update_eat(
-    core_eat: ResMut<Eating>,
+    mut core_eat: ResMut<Eating>,
     body_eat: Res<BodyEat>,
     mut dwell: ResMut<Motive<Dwell>>,
     mut locomotor_event: OutEvent<HindLocomotorEvent>,
 ) {
+    core_eat.pre_update();
+
     if body_eat.is_food_zone() {
+        core_eat.add_eat();
         dwell.set_max(1.);
-        locomotor_event.send(HindLocomotorEvent::Stop);
+
+        if ! core_eat.is_eat_timeout() {
+            locomotor_event.send(HindLocomotorEvent::Stop);
+        }
     }
     
         /*
@@ -129,9 +119,7 @@ impl Plugin for CoreEatingPlugin {
         let feeding = Eating::new();
 
         app.insert_resource(feeding);
-        // app.system(Tick, update_body_glucose);
-        // app.system(Tick, update_feeding);
-        // app.system(Tick, update_near_food);
+
         app.system(Tick, update_eat);
 
         // if app.contains_resource::<OlfactoryBulb>() {

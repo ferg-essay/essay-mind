@@ -43,7 +43,7 @@ impl BodyEat {
     }
 
     pub fn eat(&mut self) {
-        self.is_eating.add(1.);
+        self.is_eating.set(1.);
     }
 
     pub fn stop_eat(&mut self) {

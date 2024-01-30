@@ -502,7 +502,7 @@ impl RandomWalk {
 
     fn update(
         &mut self,
-        body: &mut Body
+        _body: &Body
     ) -> Action {
         //body.set_action(self.action);
 
@@ -564,15 +564,6 @@ impl Turn {
             mean,
             std
         }
-    }
-
-    fn action(&self, speed: f32) -> Action {
-        let mean = self.mean.to_unit();
-        let std = self.std.to_unit();
-
-        let angle = mean + std * random_normal().clamp(-2., 2.);
-
-        Action::new(BodyAction::Roam, 1., speed, Angle::Unit(angle))
     }
 
     fn angle(&self) -> Angle {
@@ -658,7 +649,6 @@ pub struct HindLocomotorPlugin;
 
 impl Plugin for HindLocomotorPlugin {
     fn build(&self, app: &mut App) {
-        println!("HLF");
         assert!(app.contains_plugin::<BodyPlugin>(), "HindLocomotorPlugin requires BodyPlugin");
 
         app.event::<HindLocomotorEvent>();
