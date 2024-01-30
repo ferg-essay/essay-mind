@@ -1,15 +1,15 @@
 use essay_ecs::{app::{event::OutEvent, App, Plugin}, core::{Res, ResMut}};
 use mind_ecs::Tick;
-use crate::{body::BodyEat, hind_motor::HindLocomotorEvent, util::{DecayValue, Seconds}};
+use crate::{body::BodyEat, hind_motor::HindMoveCommand, mid_motor::MidMotor, util::{DecayValue, Seconds}};
 
 use super::{persist::Persist, mid_peptides::MidPeptides, motive::Motive, Dwell};
 
-struct Eating {
+struct CoreEat {
     _persist: Persist,
     timeout: DecayValue,
 }
 
-impl Eating {
+impl CoreEat {
     fn new() -> Self {
         Self {
             _persist: Persist::new(Seconds(4.)),
@@ -31,7 +31,7 @@ impl Eating {
 }
 
 fn _update_feeding_old(
-    mut feeding: ResMut<Eating>,
+    mut feeding: ResMut<CoreEat>,
     mut peptides2: ResMut<MidPeptides>
 ) {
     // orexin - base exploratory drive
@@ -83,10 +83,10 @@ fn _update_feeding_old(
 }
 
 fn update_eat(
-    mut core_eat: ResMut<Eating>,
+    mut core_eat: ResMut<CoreEat>,
     body_eat: Res<BodyEat>,
     mut dwell: ResMut<Motive<Dwell>>,
-    mut locomotor_event: OutEvent<HindLocomotorEvent>,
+    mid_motor: Res<MidMotor>,
 ) {
     core_eat.pre_update();
 
@@ -95,7 +95,8 @@ fn update_eat(
         dwell.set_max(1.);
 
         if ! core_eat.is_eat_timeout() {
-            locomotor_event.send(HindLocomotorEvent::Stop);
+            // locomotor_event.send(HindLocomotorEvent::Stop);
+            mid_motor.eat();
         }
     }
     
@@ -116,7 +117,7 @@ pub struct CoreEatingPlugin;
 
 impl Plugin for CoreEatingPlugin {
     fn build(&self, app: &mut App) {
-        let feeding = Eating::new();
+        let feeding = CoreEat::new();
 
         app.insert_resource(feeding);
 

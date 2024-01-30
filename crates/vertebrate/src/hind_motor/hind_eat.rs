@@ -4,20 +4,22 @@ use mind_ecs::Tick;
 
 use crate::{
     body::{Body, BodyEat, BodyEatPlugin}, 
-    util::{DecayValue, HalfLife}, 
+    util::{DecayValue, HalfLife, Command}, 
 };
 
 pub struct HindEat {
-    _eat_enable: DecayValue,
+    is_eat: DecayValue,
     is_eat_while_move: bool,
     is_food_zone: bool,
+
+    commands: Command<EatCommand>,
 }
 
 impl HindEat {
     pub const HALF_LIFE : HalfLife = HalfLife(0.4);
 
-    fn is_enable(&self) -> bool {
-        true
+    fn is_eat(&self) -> bool {
+        self.is_eat.value() > 0.25
     } 
 
     fn is_eat_allowed(&self, body: &Body) -> bool {
@@ -25,29 +27,71 @@ impl HindEat {
     } 
 
     #[inline]
+    pub fn eat(&self) {
+        self.commands.send(EatCommand::Eat);
+    }
+
+    #[inline]
+    pub fn is_stop(&self) -> bool {
+        self.is_eat.value() < 0.1
+    } 
+
+    #[inline]
+    pub fn stop(&self) {
+        self.commands.send(EatCommand::Stop);
+    }
+
+    #[inline]
     pub fn is_food_zone(&self) -> bool {
         self.is_food_zone
     } 
+
+    #[inline]
+    fn commands(&mut self) -> Vec<EatCommand> {
+        self.commands.drain()
+    }
 }
 
 impl Default for HindEat {
     fn default() -> Self {
         Self {  
-            _eat_enable: DecayValue::new(HindEat::HALF_LIFE),
+            is_eat: DecayValue::new(HindEat::HALF_LIFE),
             is_eat_while_move: true,
             is_food_zone: false,
+            commands: Command::new(),
         }
     }
 }
 
+#[derive(Clone, Copy, Debug)]
+pub enum EatCommand {
+    Eat,
+    Stop,
+}
+
 fn update_hind_eat(
-    hind_eat: Res<HindEat>,
+    mut hind_eat: ResMut<HindEat>,
     mut body_eat: ResMut<BodyEat>,
     body: Res<Body>,
 ) {
-    if ! hind_eat.is_enable() {
+    for command in hind_eat.commands() {
+        println!("Cmd {:?}", command);
+
+        match command {
+            EatCommand::Eat => {
+                hind_eat.get_mut().is_eat.set(1.);
+            }
+            EatCommand::Stop => {
+                // hind_eat.get_mut().is_eat.set(0.);
+            }
+        }
+    }
+
+    if ! hind_eat.is_eat() {
         return;
     }
+
+    println!("Try eat");
 
     if ! body_eat.is_food_zone() {
         // log!(Level::Debug, "eating without sensor");

@@ -6,10 +6,7 @@ use essay_ecs::{prelude::{Plugin, App, ResMut, Res}, app::event::{InEvent, OutEv
 use mind_ecs::Tick;
 
 use crate::{
-    body::Body, 
-    hind_motor::{HindLocomotorEvent, HindLocomotorPlugin}, 
-    olfactory_bulb::{OlfactoryBulb, ObEvent}, 
-    util::{DirVector, Angle} 
+    body::Body, hind_motor::{HindMoveCommand, HindMove, HindMovePlugin}, mid_motor::MidMotor, olfactory_bulb::{OlfactoryBulb, ObEvent}, util::{DirVector, Angle} 
 };
 
 use super::{habenula_seek::HabenulaSeekItem, Taxis};
@@ -57,7 +54,7 @@ impl Chemotaxis {
     pub fn update(
         &mut self, 
         head_dir: Angle,
-        move_event: &mut OutEvent<HindLocomotorEvent>,
+        hind_move: &HindMove,
         taxis: &mut ResMut<Taxis>
     ) {
         // update the light average
@@ -67,7 +64,7 @@ impl Chemotaxis {
         let approach_ego = approach_vector.to_approach(head_dir);
 
         if self.habenula.value() > 0.01 || approach_ego.value() > 0.05 {
-            move_event.send(HindLocomotorEvent::ApproachVector(approach_ego));
+            hind_move.send(HindMoveCommand::ApproachVector(approach_ego));
             // taxis.send(TaxisEvent::Roam); // small-scale search
             // move_event.send(HindLocomotorEvent::ApproachDisplay(approach_vector));
             taxis.set_approach_dir(approach_vector);
@@ -79,7 +76,7 @@ fn update_chemotaxis(
     mut chemotaxis: ResMut<Chemotaxis>,
     mut ob: InEvent<ObEvent>,
     body: Res<Body>,
-    mut taxis_event: OutEvent<HindLocomotorEvent>,
+    hind_move: Res<HindMove>,
     mut taxis: ResMut<Taxis>,
 ) {
     chemotaxis.pre_update();
@@ -93,14 +90,14 @@ fn update_chemotaxis(
         }
     }
 
-    chemotaxis.update(body.head_dir(), &mut taxis_event, &mut taxis);
+    chemotaxis.update(body.head_dir(), hind_move.get(), &mut taxis);
 }
 
 pub struct ChemotaxisPlugin;
 
 impl Plugin for ChemotaxisPlugin {
     fn build(&self, app: &mut App) {
-        assert!(app.contains_plugin::<HindLocomotorPlugin>(), "chemotaxis requires HindLocomotorPlugin");
+        assert!(app.contains_plugin::<HindMovePlugin>(), "chemotaxis requires HindMovePlugin");
         
         assert!(app.contains_resource::<OlfactoryBulb>(), "chemotaxis requires OlfactoryBulb");
 

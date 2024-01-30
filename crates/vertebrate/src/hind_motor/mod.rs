@@ -1,8 +1,8 @@
 mod hind_eat;
-mod hind_locomotor;
+mod hind_move;
 
-pub use hind_locomotor::{
-    HindLocomotor, HindLocomotorEvent, HindLocomotorPlugin,
+pub use hind_move::{
+    HindMove, HindMoveCommand, HindMovePlugin,
 };
 
 pub use hind_eat::{

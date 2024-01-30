@@ -18,6 +18,13 @@ impl Ticks {
 #[derive(Clone, Copy, Debug)]
 pub struct Seconds(pub f32);
 
+impl Into<Seconds> for f32 {
+    #[inline]
+    fn into(self) -> Seconds {
+        Seconds(self)
+    }
+}
+
 impl Into<Ticks> for Seconds {
     #[inline]
     fn into(self) -> Ticks {

@@ -2,15 +2,21 @@ use std::time::Duration;
 
 use essay_plot::api::Colors;
 use vertebrate::{
-    body::{Body, BodyEatPlugin, BodyPlugin}, hind_motor::{HindEatPlugin, HindLocomotorPlugin}, core_motive::{
-        core_eat::CoreEatingPlugin, mid_peptides::CorePeptidesPlugin, motive::{Motive, Seek}, Dwell, CoreExplorePlugin, Roam, Wake, CoreWakePlugin
-    }, olfactory_bulb::OlfactoryBulb, olfactory_bulb::{ObEvent, OlfactoryPlugin}, 
-    mid_seek::phototaxis::Phototaxis,
-    mid_seek::{
+    body::{Body, BodyEatPlugin, BodyPlugin}, 
+    core_motive::{
+        core_eat::CoreEatingPlugin, 
+        mid_peptides::CorePeptidesPlugin, 
+        motive::{Motive, Seek}, 
+        Dwell, CoreExplorePlugin, Roam, Wake, CoreWakePlugin
+    }, 
+    hind_motor::{HindEatPlugin, HindMovePlugin}, 
+    mid_taxis::{
         chemotaxis::{ChemotaxisPlugin, Chemotaxis}, 
+        phototaxis::Phototaxis,
         habenula_seek::HabenulaSeekPlugin
     }, 
-    mid_motor::{tectum::TectumPlugin, MidSustainPlugin}, 
+    mid_motor::{tectum::TectumPlugin, MidMotorPlugin}, 
+    olfactory_bulb::{OlfactoryBulb, ObEvent, OlfactoryPlugin}, 
     ui::{
         ui_attention::UiAttentionPlugin, ui_homunculus::UiHomunculusPlugin, ui_motive::Emoji,
         ui_body::{UiBodyPlugin, UiBodyTrailPlugin},
@@ -37,7 +43,7 @@ pub fn main() {
     app.plugin(BodyPlugin::new());
     app.plugin(BodyEatPlugin);
 
-    app.plugin(HindLocomotorPlugin);
+    app.plugin(HindMovePlugin);
     app.plugin(HindEatPlugin);
 
     app.plugin(OlfactoryPlugin::new()
@@ -48,7 +54,7 @@ pub fn main() {
     app.plugin(TectumPlugin::new().striatum());
     app.plugin(HabenulaSeekPlugin);
     app.plugin(ChemotaxisPlugin);
-    app.plugin(MidSustainPlugin);
+    app.plugin(MidMotorPlugin);
 
     app.plugin(CoreWakePlugin);
     app.plugin(CoreExplorePlugin);

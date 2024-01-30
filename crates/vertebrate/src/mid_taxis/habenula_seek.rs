@@ -1,7 +1,7 @@
 use essay_ecs::{prelude::{Plugin, App}, core::ResMut, app::event::OutEvent};
 use mind_ecs::Tick;
 
-use crate::{hind_motor::HindLocomotorEvent, util::{Angle, DecayValue, DirVector, HalfLife}};
+use crate::{hind_motor::HindMoveCommand, util::{Angle, DecayValue, DirVector, HalfLife}};
 
 use super::GoalVector;
 
@@ -24,7 +24,7 @@ impl HabenulaSeek {
 
     }
 
-    pub fn update(&mut self, taxis: &mut OutEvent<HindLocomotorEvent>) {
+    pub fn update(&mut self, taxis: &mut OutEvent<HindMoveCommand>) {
         
     }
 }
