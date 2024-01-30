@@ -1,6 +1,6 @@
-use essay_ecs::{app::{event::OutEvent, App, Plugin}, core::{Res, ResMut}};
+use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}};
 use mind_ecs::Tick;
-use crate::{body::BodyEat, hind_motor::HindMoveCommand, mid_motor::MidMotor, util::{DecayValue, Seconds}};
+use crate::{body::BodyEat, mid_motor::MidMotor, util::{DecayValue, Seconds}};
 
 use super::{persist::Persist, mid_peptides::MidPeptides, motive::Motive, Dwell};
 

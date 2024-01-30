@@ -14,7 +14,8 @@ pub struct HindMove {
     left120: Turn,
     _right120: Turn,
 
-    commands: Command<HindMoveCommand>,
+    move_commands: Command<MoveCommand>,
+    turn_commands: Command<TurnCommand>,
 
     action_kind: ActionKind,
     action: Action,
@@ -49,7 +50,8 @@ impl HindMove {
             forward_avoid: DecayValue::new(Self::HALF_LIFE),
 
             random_walk: RandomWalk::new(),
-            commands: Command::new(),
+            move_commands: Command::new(),
+            turn_commands: Command::new(),
             action: Action::none(),
             action_kind: ActionKind::Explore,
 
@@ -106,17 +108,22 @@ impl HindMove {
 
     #[inline]
     pub fn explore(&self) {
-        self.send(HindMoveCommand::Roam);
+        self.send_move(MoveCommand::Roam);
     }
 
     #[inline]
     pub fn stop(&self) {
-        self.send(HindMoveCommand::Stop);
+        self.send_move(MoveCommand::Stop);
     }
 
     #[inline]
-    pub fn send(&self, command: HindMoveCommand) {
-        self.commands.send(command);
+    pub fn send_move(&self, command: MoveCommand) {
+        self.move_commands.send(command);
+    }
+
+    #[inline]
+    pub fn send_turn(&self, command: TurnCommand) {
+        self.turn_commands.send(command);
     }
 
     fn pre_update(&mut self) {
@@ -125,72 +132,85 @@ impl HindMove {
         self.random_walk.pre_update();
     }
 
-    fn commands(&mut self) -> Vec<HindMoveCommand> {
-        self.commands.drain()
+    fn update_move_commands(&mut self) {
+        for command in self.move_commands.drain() {
+            self.move_command(&command);
+        }
     }
 
-    fn event(&mut self, event: &HindMoveCommand) {
+    fn move_command(&mut self, event: &MoveCommand) {
         //if self.is_first {
         //    self.is_first = false;
         //    self.explore.pre_update();
         //}
 
         match event {
-            // collision/escape - strong avoid events
-            HindMoveCommand::StrongAvoidLeft => {
-                self.left_avoid.set(1.);
-                self.action_kind = self.action_kind.avoid_left();
-            }
-            HindMoveCommand::StrongAvoidRight => {
-                self.right_avoid.set(1.);
-                self.action_kind = self.action_kind.avoid_right();
-            }
-            HindMoveCommand::StrongAvoidBoth => {
-                self.left_avoid.set(1.);
-                self.right_avoid.set(1.);
-                self.action_kind = self.action_kind.avoid_left();
-                self.action_kind = self.action_kind.avoid_right();
-            }
-
-            // gradient taxis
-            HindMoveCommand::AvoidVector(vector) => {
-                self.action_kind = self.action_kind.explore();
-                self.random_walk.add_avoid(*vector)
-            },
-            
-            HindMoveCommand::ApproachVector(vector) => {
-                self.action_kind = self.action_kind.explore();
-                self.random_walk.add_approach(*vector)
-            },
-
             // explore/speed modes
-            HindMoveCommand::Approach => {
+            MoveCommand::Approach => {
                 self.action_kind = self.action_kind.explore();
                 self.random_walk.approach();
             }
-            HindMoveCommand::Avoid => {
+            MoveCommand::Avoid => {
                 self.action_kind = self.action_kind.explore();
                 self.random_walk.avoid();
             }
-            HindMoveCommand::AvoidUTurn => {
-                self.action_kind = self.action_kind.explore();
-                self.random_walk.avoid_turn();
-            }
-            HindMoveCommand::Normal => {
+            MoveCommand::Normal => {
                 self.action_kind = self.action_kind.explore();
                 self.random_walk.normal();
             }
-            HindMoveCommand::Roam => {
+            MoveCommand::Roam => {
                 self.action_kind = self.action_kind.explore();
                 self.random_walk.roam();
             }
-            HindMoveCommand::Dwell => {
+            MoveCommand::Dwell => {
                 self.action_kind = self.action_kind.explore();
                 self.random_walk.dwell();
             }
-            HindMoveCommand::Stop => {
+            MoveCommand::Stop => {
                 self.action_kind = ActionKind::Stop;
                 self.random_walk.stop();
+            }
+        }
+    }
+
+    fn update_turn_commands(&mut self) {
+        for command in self.turn_commands.drain() {
+            self.turn_command(command);
+        }
+    }
+
+    fn turn_command(&mut self, event: TurnCommand) {
+        match event {
+            // collision/escape - strong avoid events
+            TurnCommand::StrongAvoidLeft => {
+                self.left_avoid.set(1.);
+                self.action_kind = self.action_kind.avoid_left();
+            }
+            TurnCommand::StrongAvoidRight => {
+                self.right_avoid.set(1.);
+                self.action_kind = self.action_kind.avoid_right();
+            }
+            TurnCommand::StrongAvoidBoth => {
+                self.left_avoid.set(1.);
+                self.right_avoid.set(1.);
+                self.action_kind = self.action_kind.avoid_left();
+                self.action_kind = self.action_kind.avoid_right();
+            }
+
+            // taxis gradient
+            TurnCommand::AvoidVector(vector) => {
+                self.action_kind = self.action_kind.explore();
+                self.random_walk.add_avoid(vector)
+            },
+            
+            TurnCommand::ApproachVector(vector) => {
+                self.action_kind = self.action_kind.explore();
+                self.random_walk.add_approach(vector)
+            },
+
+            TurnCommand::AvoidUTurn => {
+                self.action_kind = self.action_kind.explore();
+                self.random_walk.avoid_turn();
             }
         }
     }
@@ -241,28 +261,28 @@ impl Default for HindMove {
     }
 }
 
-#[derive(Clone, Copy, Debug, Event)]
-pub enum HindMoveCommand {
+#[derive(Clone, Copy, Debug)] // , Event)]
+pub enum MoveCommand {
+    Approach,
+    Avoid,
+    Normal,
+    Roam,
+    Dwell,
+    Stop,
+}
+
+#[derive(Clone, Copy, Debug)] // , Event)]
+pub enum TurnCommand {
     // escape/collision
     StrongAvoidLeft,
     StrongAvoidRight,
     StrongAvoidBoth,
 
-    // gradient taxis
+    // taxis gradient
     ApproachVector(DirVector),
     AvoidVector(DirVector),
 
-    // ApproachDisplay(DirVector),
-    // AvoidDisplay(DirVector),
-
-    // speed modes
-    Approach,
-    Avoid,
     AvoidUTurn,
-    Normal,
-    Roam,
-    Dwell,
-    Stop,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -635,7 +655,7 @@ impl Action {
 fn update_hind_move(
     mut body: ResMut<Body>, 
     mut touch_events: InEvent<Touch>,
-    mut locomotor_events: InEvent<HindMoveCommand>,
+    // mut locomotor_events: InEvent<HindMoveCommand>,
     mut hind_locomotor: ResMut<HindMove>, 
     dwell: Res<Motive<Dwell>>,
 ) {
@@ -648,23 +668,27 @@ fn update_hind_move(
     for touch in touch_events.iter() {
         match touch {
             Touch::CollideLeft => {
-                hind_locomotor.event(&HindMoveCommand::StrongAvoidLeft);
+                hind_locomotor.turn_command(TurnCommand::StrongAvoidLeft);
             },
             Touch::CollideRight => {
-                hind_locomotor.event(&HindMoveCommand::StrongAvoidRight);
+                hind_locomotor.turn_command(TurnCommand::StrongAvoidRight);
             },
         }
     }
 
-    for event in hind_locomotor.commands() {
-        println!("HindC1 {:?}", event);
-        hind_locomotor.event(&event);
-    }
+    hind_locomotor.update_turn_commands();
+    hind_locomotor.update_move_commands();
+    //for event in hind_locomotor.commands() {
+    //    println!("HindC1 {:?}", event);
+    //    hind_locomotor.move_command(&event);
+    //}
 
+    /*
     for event in locomotor_events.iter() {
         println!("HindC2 {:?}", event);
         hind_locomotor.event(event);
     }
+    */
 
     hind_locomotor.update(body.get_mut());
 }

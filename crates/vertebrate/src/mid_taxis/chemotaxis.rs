@@ -2,11 +2,14 @@
 /// phototaxis
 ///
 
-use essay_ecs::{prelude::{Plugin, App, ResMut, Res}, app::event::{InEvent, OutEvent}};
+use essay_ecs::{prelude::{Plugin, App, ResMut, Res}, app::event::InEvent};
 use mind_ecs::Tick;
 
 use crate::{
-    body::Body, hind_motor::{HindMoveCommand, HindMove, HindMovePlugin}, mid_motor::MidMotor, olfactory_bulb::{OlfactoryBulb, ObEvent}, util::{DirVector, Angle} 
+    body::Body, 
+    hind_motor::{HindMove, HindMovePlugin, MoveCommand, TurnCommand}, 
+    olfactory_bulb::{OlfactoryBulb, ObEvent}, 
+    util::{DirVector, Angle} 
 };
 
 use super::{habenula_seek::HabenulaSeekItem, Taxis};
@@ -64,7 +67,7 @@ impl Chemotaxis {
         let approach_ego = approach_vector.to_approach(head_dir);
 
         if self.habenula.value() > 0.01 || approach_ego.value() > 0.05 {
-            hind_move.send(HindMoveCommand::ApproachVector(approach_ego));
+            hind_move.send_turn(TurnCommand::ApproachVector(approach_ego));
             // taxis.send(TaxisEvent::Roam); // small-scale search
             // move_event.send(HindLocomotorEvent::ApproachDisplay(approach_vector));
             taxis.set_approach_dir(approach_vector);

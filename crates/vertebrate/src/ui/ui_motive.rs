@@ -27,7 +27,7 @@ impl UiMotive {
     pub const N_DIR : usize = 12;
 
     pub fn new(id: BoxId) -> Self {
-        let affine = Affine2d::eye();
+        // let affine = Affine2d::eye();
 
         Self {
             id,
@@ -119,7 +119,7 @@ pub fn ui_motive_draw(
 
         let height = ui_motive.bounds.height();
 
-        for (i, item) in ui_motive.items.iter().enumerate() {
+        for item in ui_motive.items.iter() {
             let pos = Point(item.pos.0, height - item.pos.1);
             let pos = ui_motive.to_canvas().transform_point(pos);
 
@@ -397,7 +397,7 @@ pub enum Emoji {
 }
 
 impl Emoji {
-    fn new() -> Self {
+    fn _new() -> Self {
         Self::Footprints
     }
 

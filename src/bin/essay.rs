@@ -13,7 +13,6 @@ use vertebrate::{
     mid_taxis::{
         chemotaxis::{ChemotaxisPlugin, Chemotaxis}, 
         phototaxis::Phototaxis,
-        habenula_seek::HabenulaSeekPlugin
     }, 
     mid_motor::{tectum::TectumPlugin, MidMotorPlugin}, 
     olfactory_bulb::{OlfactoryBulb, ObEvent, OlfactoryPlugin}, 
@@ -26,12 +25,13 @@ use vertebrate::{
         ui_peptide::UiPeptidePlugin,
         ui_table::UiTablePlugin,
         ui_world::UiWorldPlugin,
-    }, world::{
+    }, 
+    world::{
         World, WorldPlugin, OdorType
     }
 };
 use essay_ecs::{app::event::InEvent, core::ResMut, prelude::App};
-use mind_ecs::{Tick, TickSchedulePlugin};
+use mind_ecs::TickSchedulePlugin;
 use ui_graphics::UiCanvasPlugin;
 
 pub fn main() {
@@ -52,7 +52,6 @@ pub fn main() {
     );
 
     app.plugin(TectumPlugin::new().striatum());
-    app.plugin(HabenulaSeekPlugin);
     app.plugin(ChemotaxisPlugin);
     app.plugin(MidMotorPlugin);
 

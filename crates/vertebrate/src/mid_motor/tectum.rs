@@ -5,7 +5,7 @@ use crate::{
     pallidum::nucleus_isthmi::NucleusIsthmi, striatum::striatum::{StriatumStn, Sense, StriatumId, StriatumSnr}
 };
 
-use super::{action::{ActionId, Turn}};
+use super::action::{ActionId, Turn};
 
 pub struct TectumLocomotionStn {
     seek: TectumStnTurn,

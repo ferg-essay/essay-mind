@@ -156,7 +156,7 @@ struct OdorItem {
 }
 
 impl OdorItem {
-    fn new(odor: OdorType, dir: Angle) -> Self {
+    fn _new(odor: OdorType, dir: Angle) -> Self {
         Self {
             _odor: odor,
             dir,

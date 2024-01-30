@@ -1,10 +1,8 @@
-use essay_ecs::{prelude::{Plugin, App}, core::ResMut, app::event::OutEvent};
-use mind_ecs::Tick;
-
-use crate::{hind_motor::HindMoveCommand, util::{Angle, DecayValue, DirVector, HalfLife}};
+use crate::util::{Angle, DecayValue, DirVector, HalfLife};
 
 use super::GoalVector;
 
+/*
 pub struct HabenulaSeek {
 }
 
@@ -28,12 +26,7 @@ impl HabenulaSeek {
         
     }
 }
-
-fn update_habenula_seek(
-    mut seek: ResMut<HabenulaSeek>,
-) {
-
-}
+*/
 
 pub struct HabenulaSeekItem {
     average: DecayValue,
@@ -115,6 +108,13 @@ impl Default for HabenulaSeekItem {
     }
 }
 
+/*
+fn update_habenula_seek(
+    mut seek: ResMut<HabenulaSeek>,
+) {
+
+}
+
 pub struct HabenulaSeekPlugin;
 
 impl Plugin for HabenulaSeekPlugin {
@@ -126,3 +126,4 @@ impl Plugin for HabenulaSeekPlugin {
         app.system(Tick, update_habenula_seek);
     }
 }
+*/

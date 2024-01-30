@@ -1,12 +1,9 @@
-use essay_ecs::{app::{event::{InEvent, OutEvent}, App, Plugin}, core::{Res, ResMut}, prelude::Event};
+use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}, prelude::Event};
 use mind_ecs::Tick;
 
 use crate::{hind_motor::{HindEat, HindMove}, util::Command};
 
 pub struct MidMotor {
-    is_explore: bool,
-    is_eat: bool,
-
     commands: Command<MidMotorEvent>,
 }
 
@@ -19,10 +16,6 @@ impl MidMotor {
     #[inline]
     pub fn explore(&self) {
         self.commands.send(MidMotorEvent::Explore);
-    }
-
-    fn is_explore(&self) -> bool {
-        self.is_explore
     }
 
     #[inline]
@@ -60,8 +53,6 @@ impl MidMotor {
 impl Default for MidMotor {
     fn default() -> Self {
         Self { 
-            is_explore: true,
-            is_eat: true,
             commands: Command::new(),
         }
     }
