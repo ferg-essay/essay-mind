@@ -7,12 +7,12 @@ use vertebrate::{
     core_motive::{
         core_eat::{CoreEatingPlugin, Eat}, 
         mid_peptides::CorePeptidesPlugin, 
-        motive::{Motive, Seek}, 
+        motive::{Motive, MotiveTrait}, 
         Dwell, CoreExplorePlugin, Roam, Wake, CoreWakePlugin
     }, 
     hind_motor::{HindEat, HindEatPlugin, HindMovePlugin}, 
     mid_taxis::{
-        chemotaxis::{ChemotaxisPlugin, Chemotaxis}, 
+        chemotaxis::{Chemotaxis, ChemotaxisPlugin, Seek}, 
         phototaxis::Phototaxis,
     }, 
     mid_motor::{tectum::TectumPlugin, MidMotorPlugin}, 
@@ -68,6 +68,10 @@ pub fn main() {
 
     app.run();
 }
+
+pub struct Dummy;
+impl MotiveTrait for Dummy {}
+
 
 fn dwell_eat(
     mut dwell: ResMut<Motive<Dwell>>,
@@ -172,14 +176,14 @@ fn ui_eat(app: &mut App) {
         .item(Emoji::Footprints, |m: &Motive<Roam>| m.value())
         .item(Emoji::MagnifyingGlassLeft, |m: &Motive<Dwell>| m.value())
         .item(Emoji::DirectHit, |m: &Motive<Seek>| m.value())
-        .item(Emoji::FaceDisappointed, |m: &Motive<Seek>| m.value())
-        .item(Emoji::FaceSleeping, |m: &Motive<Seek>| m.value())
+        .item(Emoji::FaceDisappointed, |m: &Motive<Dummy>| m.value())
+        .item(Emoji::FaceSleeping, |m: &Motive<Dummy>| m.value())
         .row()
         .item(Emoji::ForkAndKnife, |m: &Motive<Eat>| m.value())
-        .item(Emoji::Candy, |m: &Motive<Seek>| m.value())
-        .item(Emoji::Cheese, |m: &Motive<Seek>| m.value())
-        .item(Emoji::Lemon, |m: &Motive<Seek>| m.value())
-        .item(Emoji::Salt, |m: &Motive<Seek>| m.value())
+        .item(Emoji::Candy, |m: &Motive<Dummy>| m.value())
+        .item(Emoji::Cheese, |m: &Motive<Dummy>| m.value())
+        .item(Emoji::Lemon, |m: &Motive<Dummy>| m.value())
+        .item(Emoji::Salt, |m: &Motive<Dummy>| m.value())
         // .item(Emoji::FaceAstonished, |m: &Motive<Hunger>| m.value())
 );
     app.plugin(UiHomunculusPlugin::new((2.5, 1.), (0.5, 1.)));

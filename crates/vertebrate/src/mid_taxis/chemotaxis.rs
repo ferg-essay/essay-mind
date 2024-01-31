@@ -7,10 +7,13 @@ use mind_ecs::Tick;
 
 use crate::{
     body::Body, 
+    core_motive::motive::{Motive, MotiveTrait, Motives}, 
     hind_motor::{HindMove, HindMovePlugin, TurnCommand}, 
-    olfactory_bulb::{OlfactoryBulb, ObEvent}, 
-    util::{DirVector, Angle} 
+    olfactory_bulb::{OlfactoryBulb, ObEvent}, util::{Angle, DirVector, Seconds} 
 };
+pub struct Seek;
+impl MotiveTrait for Seek {}
+
 
 use super::{habenula_seek::HabenulaSeekItem, Taxis};
 
@@ -58,7 +61,8 @@ impl Chemotaxis {
         &mut self, 
         head_dir: Angle,
         hind_move: &HindMove,
-        taxis: &mut ResMut<Taxis>
+        taxis: &mut ResMut<Taxis>,
+        seek_motive: &mut Motive<Seek>,
     ) {
         // update the light average
         self.habenula.update(head_dir);
@@ -67,6 +71,7 @@ impl Chemotaxis {
         let approach_ego = approach_vector.to_approach(head_dir);
 
         if self.habenula.value() > 0.01 || approach_ego.value() > 0.05 {
+            seek_motive.set_max(1.);
             hind_move.send_turn(TurnCommand::ApproachVector(approach_ego));
 
             taxis.set_approach_dir(approach_vector);
@@ -80,6 +85,7 @@ fn update_chemotaxis(
     body: Res<Body>,
     hind_move: Res<HindMove>,
     mut taxis: ResMut<Taxis>,
+    mut seek_motive: ResMut<Motive<Seek>>,
 ) {
     chemotaxis.pre_update();
 
@@ -92,7 +98,7 @@ fn update_chemotaxis(
         }
     }
 
-    chemotaxis.update(body.head_dir(), hind_move.get(), &mut taxis);
+    chemotaxis.update(body.head_dir(), hind_move.get(), &mut taxis, seek_motive.get_mut());
 }
 
 pub struct ChemotaxisPlugin;
@@ -104,6 +110,8 @@ impl Plugin for ChemotaxisPlugin {
         assert!(app.contains_resource::<OlfactoryBulb>(), "chemotaxis requires OlfactoryBulb");
 
         app.init_resource::<Taxis>();
+
+        Motives::insert::<Seek>(app, Seconds(0.5));
 
         let chemotaxis = Chemotaxis::new();
 

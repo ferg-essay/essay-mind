@@ -53,7 +53,7 @@ impl HindMove {
             move_commands: Command::new(),
             turn_commands: Command::new(),
             action: Action::none(),
-            action_kind: ActionKind::Explore,
+            action_kind: ActionKind::Roam,
 
             is_first: true,
         }
@@ -74,30 +74,33 @@ impl HindMove {
     pub fn get_forward_delta(&self) -> f32 {
         match self.action_kind {
             ActionKind::Stop => 0.5,
-            ActionKind::Explore => self.random_walk.forward_delta(),
+            ActionKind::Roam => self.random_walk.forward_delta(),
             ActionKind::StrongAvoidLeft => 0.5,
             ActionKind::StrongAvoidRight => 0.5,
             ActionKind::StrongAvoidBoth => 1.,
+            _ => self.random_walk.forward_delta(),
         }
     }
 
     pub fn get_left_delta(&self) -> f32 {
         match self.action_kind {
             ActionKind::Stop => 0.5,
-            ActionKind::Explore => self.random_walk.left_delta(),
+            ActionKind::Roam => self.random_walk.left_delta(),
             ActionKind::StrongAvoidLeft => 1.,
             ActionKind::StrongAvoidRight => 0.5,
             ActionKind::StrongAvoidBoth => 1.,
+            _ => self.random_walk.left_delta(),
         }
     }
 
     pub fn get_right_delta(&self) -> f32 {
         match self.action_kind {
             ActionKind::Stop => 0.5,
-            ActionKind::Explore => self.random_walk.right_delta(),
+            ActionKind::Roam => self.random_walk.right_delta(),
             ActionKind::StrongAvoidLeft => 0.5,
             ActionKind::StrongAvoidRight => 1.,
             ActionKind::StrongAvoidBoth => 1.,
+            _ => self.random_walk.right_delta(),
         }
     }
 
@@ -199,12 +202,12 @@ impl HindMove {
 
             // taxis gradient
             TurnCommand::AvoidVector(vector) => {
-                self.action_kind = self.action_kind.explore();
+                self.action_kind = self.action_kind.seek();
                 self.random_walk.add_avoid(vector)
             },
             
             TurnCommand::ApproachVector(vector) => {
-                self.action_kind = self.action_kind.explore();
+                self.action_kind = self.action_kind.seek();
                 self.random_walk.add_approach(vector)
             },
 
@@ -233,10 +236,15 @@ impl HindMove {
                     body.stop();
                 }
             },
-            ActionKind::Explore => {
+            ActionKind::Roam => {
                 self.action = self.random_walk.update();
 
                 body.roam(self.action.speed, self.action.turn);
+            },
+            ActionKind::Seek => {
+                self.action = self.random_walk.update();
+
+                body.seek(self.action.speed, self.action.turn);
             },
             ActionKind::StrongAvoidLeft => {
                 self.action = Action::new(BodyAction::Avoid, 0.25, 1., self.right60.angle());
@@ -294,7 +302,8 @@ pub enum TurnCommand {
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum ActionKind {
     Stop,
-    Explore,
+    Roam,
+    Seek,
     StrongAvoidLeft,
     StrongAvoidRight,
     StrongAvoidBoth,
@@ -304,37 +313,40 @@ impl ActionKind {
     fn pre_update(&self) -> Self {
         match self {
             ActionKind::Stop => ActionKind::Stop,
-            ActionKind::Explore => ActionKind::Explore,
-            ActionKind::StrongAvoidLeft => ActionKind::Explore,
-            ActionKind::StrongAvoidRight => ActionKind::Explore,
-            ActionKind::StrongAvoidBoth => ActionKind::Explore,
+            _ => ActionKind::Roam,
         }
     }
 
     fn explore(&self) -> Self {
         match self {
-            ActionKind::Stop => ActionKind::Explore,
+            ActionKind::Stop => ActionKind::Roam,
+            _ => *self,
+        }
+    }
+
+    fn seek(&self) -> Self {
+        match self {
+            ActionKind::Stop => ActionKind::Seek,
+            ActionKind::Roam => ActionKind::Seek,
             _ => *self,
         }
     }
 
     fn avoid_left(&self) -> Self {
         match self {
-            ActionKind::Stop => ActionKind::StrongAvoidLeft,
-            ActionKind::Explore => ActionKind::StrongAvoidLeft,
             ActionKind::StrongAvoidLeft => ActionKind::StrongAvoidLeft,
             ActionKind::StrongAvoidRight => ActionKind::StrongAvoidBoth,
             ActionKind::StrongAvoidBoth => ActionKind::StrongAvoidBoth,
+            _ => ActionKind::StrongAvoidLeft,
         }
     }
 
     fn avoid_right(&self) -> Self {
         match self {
-            ActionKind::Stop => ActionKind::StrongAvoidRight,
-            ActionKind::Explore => ActionKind::StrongAvoidRight,
             ActionKind::StrongAvoidLeft => ActionKind::StrongAvoidBoth,
             ActionKind::StrongAvoidRight => ActionKind::StrongAvoidRight,
             ActionKind::StrongAvoidBoth => ActionKind::StrongAvoidBoth,
+            _ => ActionKind::StrongAvoidRight,
         }
     }
 }

@@ -73,9 +73,6 @@ impl<T: MotiveTrait> Deref for Motive<T> {
 pub trait MotiveTrait : Sync + Send + 'static {
 }
 
-pub struct Seek;
-impl MotiveTrait for Seek {}
-
 pub struct Surprise;
 impl MotiveTrait for Surprise {}
 
