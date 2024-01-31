@@ -9,6 +9,7 @@ use crate::{
 
 pub struct HindEat {
     is_eat: DecayValue,
+    is_eat_enable: DecayValue,
     is_eat_while_move: bool,
     is_food_zone: bool,
 
@@ -18,8 +19,12 @@ pub struct HindEat {
 impl HindEat {
     pub const HALF_LIFE : HalfLife = HalfLife(0.4);
 
-    fn is_eat(&self) -> bool {
+    pub fn is_eat(&self) -> bool {
         self.is_eat.value() > 0.25
+    } 
+
+    fn is_eat_enable(&self) -> bool {
+        self.is_eat_enable.value() > 0.25
     } 
 
     fn is_eat_allowed(&self, body: &Body) -> bool {
@@ -33,7 +38,7 @@ impl HindEat {
 
     #[inline]
     pub fn is_stop(&self) -> bool {
-        self.is_eat.value() < 0.1
+        self.is_eat_enable.value() < 0.1
     } 
 
     #[inline]
@@ -50,11 +55,17 @@ impl HindEat {
     fn commands(&mut self) -> Vec<EatCommand> {
         self.commands.drain()
     }
+
+    fn pre_update(&mut self) {
+        self.is_eat.update();
+        self.is_eat_enable.update();
+    }
 }
 
 impl Default for HindEat {
     fn default() -> Self {
         Self {  
+            is_eat_enable: DecayValue::new(HindEat::HALF_LIFE),
             is_eat: DecayValue::new(HindEat::HALF_LIFE),
             is_eat_while_move: true,
             is_food_zone: false,
@@ -74,10 +85,12 @@ fn update_hind_eat(
     mut body_eat: ResMut<BodyEat>,
     body: Res<Body>,
 ) {
+    hind_eat.pre_update();
+
     for command in hind_eat.commands() {
         match command {
             EatCommand::Eat => {
-                hind_eat.get_mut().is_eat.set(1.);
+                hind_eat.get_mut().is_eat_enable.set(1.);
             }
             EatCommand::Stop => {
                 // hind_eat.get_mut().is_eat.set(0.);
@@ -85,7 +98,7 @@ fn update_hind_eat(
         }
     }
 
-    if ! hind_eat.is_eat() {
+    if ! hind_eat.is_eat_enable() {
         return;
     }
 
@@ -101,6 +114,7 @@ fn update_hind_eat(
     }
 
     body_eat.eat();
+    hind_eat.get_mut().is_eat.set_max(1.);
     // if world.isbody.is
 }
 

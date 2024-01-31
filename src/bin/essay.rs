@@ -1,15 +1,16 @@
 use std::time::Duration;
 
 use essay_plot::api::Colors;
+use mind_ecs::Tick;
 use vertebrate::{
     body::{Body, BodyEatPlugin, BodyPlugin}, 
     core_motive::{
-        core_eat::CoreEatingPlugin, 
+        core_eat::{CoreEatingPlugin, Eat}, 
         mid_peptides::CorePeptidesPlugin, 
         motive::{Motive, Seek}, 
         Dwell, CoreExplorePlugin, Roam, Wake, CoreWakePlugin
     }, 
-    hind_motor::{HindEatPlugin, HindMovePlugin}, 
+    hind_motor::{HindEat, HindEatPlugin, HindMovePlugin}, 
     mid_taxis::{
         chemotaxis::{ChemotaxisPlugin, Chemotaxis}, 
         phototaxis::Phototaxis,
@@ -30,7 +31,7 @@ use vertebrate::{
         World, WorldPlugin, OdorType
     }
 };
-use essay_ecs::{app::event::InEvent, core::ResMut, prelude::App};
+use essay_ecs::{app::event::InEvent, core::{Res, ResMut}, prelude::App};
 use mind_ecs::TickSchedulePlugin;
 use ui_graphics::UiCanvasPlugin;
 
@@ -61,10 +62,20 @@ pub fn main() {
     app.plugin(CoreEatingPlugin);
 
     // app.system(Tick, dwell_olfactory);
+    app.system(Tick, dwell_eat);
     //ui_chemotaxis(&mut app);
     ui_eat(&mut app);
 
     app.run();
+}
+
+fn dwell_eat(
+    mut dwell: ResMut<Motive<Dwell>>,
+    mut eat: Res<HindEat>,
+) {
+    if eat.is_eat() {
+        dwell.set_max(1.);
+    }
 }
 
 fn dwell_olfactory(
@@ -164,7 +175,7 @@ fn ui_eat(app: &mut App) {
         .item(Emoji::FaceDisappointed, |m: &Motive<Seek>| m.value())
         .item(Emoji::FaceSleeping, |m: &Motive<Seek>| m.value())
         .row()
-        .item(Emoji::ForkAndKnife, |m: &Motive<Seek>| m.value())
+        .item(Emoji::ForkAndKnife, |m: &Motive<Eat>| m.value())
         .item(Emoji::Candy, |m: &Motive<Seek>| m.value())
         .item(Emoji::Cheese, |m: &Motive<Seek>| m.value())
         .item(Emoji::Lemon, |m: &Motive<Seek>| m.value())

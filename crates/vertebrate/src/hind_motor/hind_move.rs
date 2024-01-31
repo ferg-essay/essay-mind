@@ -220,7 +220,7 @@ impl HindMove {
 
         if self.action_kind == ActionKind::Stop {
             self.stop();
-            body.set_action(self.action.kind, self.action.speed, self.action.turn);
+            body.stop();
         }
 
         if self.action.is_active() {
@@ -229,12 +229,14 @@ impl HindMove {
 
         match self.action_kind {
             ActionKind::Stop => {
-                body.stop();
+                if body.speed() > 0. {
+                    body.stop();
+                }
             },
             ActionKind::Explore => {
                 self.action = self.random_walk.update();
 
-                body.set_action(self.action.kind, self.action.speed, self.action.turn);
+                body.roam(self.action.speed, self.action.turn);
             },
             ActionKind::StrongAvoidLeft => {
                 self.action = Action::new(BodyAction::Avoid, 0.25, 1., self.right60.angle());

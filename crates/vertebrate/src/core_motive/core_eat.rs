@@ -2,17 +2,17 @@ use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}};
 use mind_ecs::Tick;
 use crate::{body::BodyEat, mid_motor::MidMotor, util::{DecayValue, Seconds}};
 
-use super::{persist::Persist, mid_peptides::MidPeptides, motive::Motive, Dwell};
+use super::{give_up::GiveUp, mid_peptides::MidPeptides, motive::{Motive, MotiveTrait, Motives}, Dwell};
 
 struct CoreEat {
-    _persist: Persist,
+    _persist: GiveUp,
     timeout: DecayValue,
 }
 
 impl CoreEat {
     fn new() -> Self {
         Self {
-            _persist: Persist::new(Seconds(4.)),
+            _persist: GiveUp::new(Seconds(4.)),
             timeout: DecayValue::new(2.),
         }
     }
@@ -85,6 +85,7 @@ fn _update_feeding_old(
 fn update_eat(
     mut core_eat: ResMut<CoreEat>,
     body_eat: Res<BodyEat>,
+    mut eat_motive: ResMut<Motive<Eat>>,
     mut dwell: ResMut<Motive<Dwell>>,
     mid_motor: Res<MidMotor>,
 ) {
@@ -96,6 +97,7 @@ fn update_eat(
 
         if ! core_eat.is_eat_timeout() {
             // locomotor_event.send(HindLocomotorEvent::Stop);
+            eat_motive.set_max(1.);
             mid_motor.eat();
         }
     }
@@ -112,14 +114,17 @@ fn update_eat(
         */
 }
 
+pub struct Eat;
+impl MotiveTrait for Eat {}
 
 pub struct CoreEatingPlugin;
 
 impl Plugin for CoreEatingPlugin {
     fn build(&self, app: &mut App) {
         let feeding = CoreEat::new();
-
         app.insert_resource(feeding);
+
+        Motives::insert::<Eat>(app, Seconds(1.));
 
         app.system(Tick, update_eat);
 

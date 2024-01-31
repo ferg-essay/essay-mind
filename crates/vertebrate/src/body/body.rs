@@ -81,7 +81,7 @@ impl Body {
     }
 
     #[inline]
-    pub fn set_action(&mut self, kind: BodyAction, speed: f32, turn: Angle) {
+    fn set_action(&mut self, kind: BodyAction, speed: f32, turn: Angle) {
         self.action = Action::new(kind, speed, turn);
     }
 
@@ -107,7 +107,9 @@ impl Body {
 
     #[inline]
     pub fn stop(&mut self) {
-        self.set_action(BodyAction::None, 0., Angle::Unit(0.))
+        if self.action.speed > 0. {
+            self.set_action(BodyAction::None, 0., Angle::Unit(0.))
+        }
     }
 
     #[inline]

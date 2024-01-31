@@ -62,7 +62,7 @@ impl BodyEat {
 
         let is_food = world.is_food(body.pos_head());
         self.set_food_zone(is_food);
-        
+
         if self.is_eating() && self.is_food_zone() {
             body.eat();
             self.blood_sugar.add(1.);
