@@ -7,7 +7,7 @@ use mind_ecs::Tick;
 
 use crate::{
     body::Body, 
-    hind_motor::{HindMove, HindMovePlugin, MoveCommand, TurnCommand}, 
+    hind_motor::{HindMove, HindMovePlugin, TurnCommand}, 
     olfactory_bulb::{OlfactoryBulb, ObEvent}, 
     util::{DirVector, Angle} 
 };
@@ -68,8 +68,7 @@ impl Chemotaxis {
 
         if self.habenula.value() > 0.01 || approach_ego.value() > 0.05 {
             hind_move.send_turn(TurnCommand::ApproachVector(approach_ego));
-            // taxis.send(TaxisEvent::Roam); // small-scale search
-            // move_event.send(HindLocomotorEvent::ApproachDisplay(approach_vector));
+
             taxis.set_approach_dir(approach_vector);
         }
      }

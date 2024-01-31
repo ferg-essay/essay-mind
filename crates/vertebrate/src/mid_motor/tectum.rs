@@ -5,8 +5,6 @@ use crate::{
     pallidum::nucleus_isthmi::NucleusIsthmi, striatum::striatum::{StriatumStn, Sense, StriatumId, StriatumSnr}
 };
 
-use super::action::{ActionId, Turn};
-
 pub struct TectumLocomotionStn {
     seek: TectumStnTurn,
     away: TectumStnTurn,
@@ -248,6 +246,33 @@ impl TectumAction {
             value: 0.,
             ach: 1.,
             snr: 1.,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ActionId(usize);
+
+impl ActionId {
+    pub fn new(id: usize) -> Self {
+        ActionId(id)
+    }
+
+    pub fn i(&self) -> usize {
+        self.0
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum Turn {
+    Left,
+    Right,
+}
+
+impl Turn {
+    pub fn id(&self) -> ActionId {
+        match self {
+            Turn::Left => ActionId::new(0),
+            Turn::Right => ActionId::new(1),
         }
     }
 }

@@ -2,13 +2,12 @@
 /// phototaxis
 ///
 
-use essay_ecs::{prelude::{Plugin, App, ResMut, Res}, app::event::OutEvent};
+use essay_ecs::prelude::*;
 use mind_ecs::Tick;
 
 use crate::{
     body::Body, 
     hind_motor::{HindMove, MoveCommand, TurnCommand}, 
-    mid_motor::mid_locomotor::MidLocomotorPlugin, 
     util::{Angle, DecayValue, DirVector, HalfLife, Seconds}, 
     world::World
 };
@@ -133,7 +132,8 @@ pub struct PhototaxisPlugin;
 
 impl Plugin for PhototaxisPlugin {
     fn build(&self, app: &mut App) {
-        assert!(app.contains_plugin::<MidLocomotorPlugin>());
+        todo!();
+        //assert!(app.contains_plugin::<MidLocomotorPlugin>());
 
         app.init_resource::<Phototaxis>();
         app.init_resource::<Taxis>();

@@ -216,15 +216,19 @@ impl HindMove {
     }
 
     fn update(&mut self, body: &mut Body) {
-        if self.action.pre_update() {
+        self.action.pre_update();
+
+        if self.action_kind == ActionKind::Stop {
+            self.stop();
+            body.set_action(self.action.kind, self.action.speed, self.action.turn);
+        }
+
+        if self.action.is_active() {
             return;
         }
 
         match self.action_kind {
             ActionKind::Stop => {
-                // self.action = self.random_walk.update(body);
-
-                // body.set_action(self.action.kind, self.action.speed, self.action.turn);
                 body.stop();
             },
             ActionKind::Explore => {
@@ -645,10 +649,24 @@ impl Action {
         Action::new(BodyAction::None, 0., 0., Angle::Unit(0.))
     }
 
-    fn pre_update(&mut self) -> bool {
+    fn pre_update(&mut self) {
         self.time -= Ticks(1).to_seconds();
+    }
 
-        return self.time >= 1.0e-6
+    fn is_active(&self) -> bool {
+        self.time >= 1.0e-6
+    }
+
+    fn stop(&mut self) {
+        self.speed -= 0.1;
+
+        if self.speed <= 0. {
+            self.time = 0.;
+        }
+    }
+
+    fn _is_turn(&self) -> bool {
+        self.turn.to_unit().abs() <= 1e-3
     }
 }
 

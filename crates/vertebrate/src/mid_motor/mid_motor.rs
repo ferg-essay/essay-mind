@@ -41,10 +41,8 @@ impl MidMotor {
         hind_eat: &HindEat,
     ) {
         if hind_motor.is_stop() {
-            println!("Cmd HindEat");
             hind_eat.eat();
         } else {
-            println!("Cmd HindStop");
             hind_motor.stop();
         }
     }

@@ -75,8 +75,6 @@ fn update_hind_eat(
     body: Res<Body>,
 ) {
     for command in hind_eat.commands() {
-        println!("Cmd {:?}", command);
-
         match command {
             EatCommand::Eat => {
                 hind_eat.get_mut().is_eat.set(1.);
@@ -90,8 +88,6 @@ fn update_hind_eat(
     if ! hind_eat.is_eat() {
         return;
     }
-
-    println!("Try eat");
 
     if ! body_eat.is_food_zone() {
         // log!(Level::Debug, "eating without sensor");
