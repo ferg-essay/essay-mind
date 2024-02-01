@@ -62,7 +62,7 @@ pub fn main() {
     app.plugin(CoreEatingPlugin);
 
     // app.system(Tick, dwell_olfactory);
-    app.system(Tick, dwell_eat);
+    //app.system(Tick, dwell_eat);
     //ui_chemotaxis(&mut app);
     ui_eat(&mut app);
 
@@ -75,7 +75,7 @@ impl MotiveTrait for Dummy {}
 
 fn dwell_eat(
     mut dwell: ResMut<Motive<Dwell>>,
-    mut eat: Res<HindEat>,
+    eat: Res<HindEat>,
 ) {
     if eat.is_eat() {
         dwell.set_max(1.);

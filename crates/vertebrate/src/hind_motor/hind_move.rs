@@ -3,7 +3,7 @@ use mind_ecs::Tick;
 use crate::body::touch::Touch;
 use crate::body::{Body, BodyAction, BodyPlugin};
 use crate::util::{Angle, DecayValue, DirVector, Command, Seconds, Ticks};
-use util::random::{random, random_normal, random_pareto, random_uniform};
+use util::random::{random_normal, random_pareto, random_uniform};
 
 
 pub struct HindMove {
@@ -34,7 +34,6 @@ impl HindMove {
 
     const TURN_MEAN : f32 = 60.;
     const TURN_STD : f32 = 15.;
-
 
     fn new() -> Self {
         Self {
@@ -141,7 +140,11 @@ impl HindMove {
     fn move_command(&mut self, event: &MoveCommand) {
         match event {
             // explore/speed modes
-            MoveCommand::Seek => {
+            MoveCommand::SeekRoam => {
+                self.action_kind = self.action_kind.explore();
+                self.roam.set_max(1.);
+            }
+            MoveCommand::SeekDwell => {
                 self.action_kind = self.action_kind.explore();
                 self.roam.set_max(1.);
             }
@@ -274,10 +277,14 @@ impl HindMove {
     fn get_move(&self) -> MoveCommand {
         if self.avoid.is_active() {
             MoveCommand::Avoid
+        } else if self.seek.is_active() {
+            if self.dwell.is_active() {
+                MoveCommand::SeekDwell
+            } else {
+                MoveCommand::SeekRoam
+            }
         } else if self.dwell.is_active() {
             MoveCommand::Dwell
-        } else if self.seek.is_active() {
-            MoveCommand::Seek
         } else if self.roam.is_active() {
             MoveCommand::Roam
         } else {
@@ -319,9 +326,9 @@ impl HindMove {
         if random_uniform() <= p_left {
             let turn = Angle::unit(- turn.to_unit());
 
-            Action::new(self.action_kind.body(), len, speed, turn)
+            Action::new(move_command.body(), len, speed, turn)
         } else {
-            Action::new(self.action_kind.body(), len, speed, turn)
+            Action::new(move_command.body(), len, speed, turn)
         }
     }
 }
@@ -334,7 +341,8 @@ impl Default for HindMove {
 
 #[derive(Clone, Copy, PartialEq, Debug)] // , Event)]
 pub enum MoveCommand {
-    Seek,
+    SeekRoam,
+    SeekDwell,
     Avoid,
     Normal,
     Roam,
@@ -365,7 +373,10 @@ impl MoveCommand {
             MoveCommand::Stop => 0.,
 
             MoveCommand::Normal => todo!(),
-            MoveCommand::Seek => {
+            MoveCommand::SeekRoam => {
+                Self::ROAM_LOW
+            },
+            MoveCommand::SeekDwell => {
                 Self::DWELL_LOW
             },
         }
@@ -375,17 +386,19 @@ impl MoveCommand {
         match self {
             MoveCommand::Roam => 0.5,
             MoveCommand::Avoid => 1.,
-            MoveCommand::Dwell => 0.25,
+            MoveCommand::Dwell => 0.4,
             MoveCommand::Stop => 0.,
 
             MoveCommand::Normal => todo!(),
-            MoveCommand::Seek => 0.5,
+            MoveCommand::SeekRoam => 0.5,
+            MoveCommand::SeekDwell => 0.4,
         }
     }
 
     fn turn(&self) -> Angle {
         match self {
-            MoveCommand::Seek => turn_angle(60., 30.),
+            MoveCommand::SeekRoam => turn_angle(60., 30.),
+            MoveCommand::SeekDwell => turn_angle(60., 30.),
             MoveCommand::Avoid => turn_angle(60., 30.),
             MoveCommand::Normal => turn_angle(30., 15.),
             MoveCommand::Roam => turn_angle(30., 30.),
@@ -396,7 +409,8 @@ impl MoveCommand {
 
     fn body(&self) -> BodyAction {
         match self {
-            MoveCommand::Seek => BodyAction::Seek,
+            MoveCommand::SeekRoam => BodyAction::Seek,
+            MoveCommand::SeekDwell => BodyAction::Seek,
             MoveCommand::Avoid => BodyAction::Avoid,
             MoveCommand::Normal => BodyAction::Roam,
             MoveCommand::Roam => BodyAction::Roam,
@@ -426,10 +440,8 @@ pub enum TurnCommand {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum ActionKind {
-    None,
     Stop,
     Roam,
-    Dwell,
     Seek,
     StrongAvoidLeft,
     StrongAvoidRight,
@@ -446,10 +458,8 @@ impl ActionKind {
 
     fn body(&self) -> BodyAction {
         match self {
-            ActionKind::None => BodyAction::None,
             ActionKind::Stop => BodyAction::None,
             ActionKind::Roam => BodyAction::Roam,
-            ActionKind::Dwell => BodyAction::Dwell,
             ActionKind::Seek => BodyAction::Seek,
             ActionKind::StrongAvoidLeft => BodyAction::Avoid,
             ActionKind::StrongAvoidRight => BodyAction::Avoid,
@@ -520,18 +530,6 @@ impl Action {
     fn is_active(&self) -> bool {
         self.time >= 1.0e-6
     }
-
-    fn _update_stop(&mut self) {
-        self.speed -= 0.1;
-
-        if self.speed <= 0. {
-            self.time = 0.;
-        }
-    }
-
-    fn _is_turn(&self) -> bool {
-        self.turn.to_unit().abs() <= 1e-3
-    }
 }
 
 fn update_hind_move(
@@ -565,10 +563,8 @@ impl Plugin for HindMovePlugin {
     fn build(&self, app: &mut App) {
         assert!(app.contains_plugin::<BodyPlugin>(), "HindMovePlugin requires BodyPlugin");
 
-        // app.event::<HindLocomotorEvent>();
         app.init_resource::<HindMove>();
 
         app.system(Tick, update_hind_move);
-        // app.system(Tick, update_hind_locomotor_motive);
     }
 }

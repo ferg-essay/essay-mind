@@ -9,7 +9,7 @@ use crate::{
     body::Body, 
     core_motive::{core_eat::Sated, Motive, MotiveTrait, Motives}, 
     hind_motor::{HindMove, HindMovePlugin, TurnCommand}, 
-    olfactory_bulb::{OlfactoryBulb, ObEvent}, util::{Angle, DirVector, Seconds} 
+    olfactory_bulb::{OlfactoryBulb, ObEvent}, util::{Angle, Seconds} 
 };
 pub struct Seek;
 impl MotiveTrait for Seek {}
@@ -41,10 +41,6 @@ impl Chemotaxis {
     pub fn toward(&mut self, value: f32) {
         self.value += value;
         self.habenula.add(value);
-    }
-    
-    fn goal_vector(&self) -> DirVector {
-        self.habenula.goal_vector()
     }
 
     #[inline]
@@ -97,7 +93,6 @@ fn update_chemotaxis(
     for event in ob.iter() {
         match event {
             ObEvent::Odor(_odor, vector) => {
-                // println!("Odor {:?} {:?}", odor, vector);
                 chemotaxis.toward(vector.value());
             },
         }

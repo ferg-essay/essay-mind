@@ -60,10 +60,6 @@ impl Phototaxis {
         self.short_average.update();
         self.short_average.add(value);
 
-        //for dir_gradients in &mut self.dir_gradients {
-        //    dir_gradients.update();
-        //}
-
         let gradient = self.short_gradient();
         self.goal_vector.avoid(head_dir, gradient);
     }
@@ -84,10 +80,8 @@ impl Default for Phototaxis {
 }
 
 fn update_phototaxis(
-    mut body: ResMut<Body>, 
+    body: Res<Body>, 
     world: Res<World>, 
-    //mut explore: ResMut<MidExplore>,
-    //mut explore: OutEvent<HindMoveCommand>,
     hind_move: Res<HindMove>,
     mut phototaxis: ResMut<Phototaxis>,
     mut taxis: ResMut<Taxis>,
@@ -132,9 +126,6 @@ pub struct PhototaxisPlugin;
 
 impl Plugin for PhototaxisPlugin {
     fn build(&self, app: &mut App) {
-        todo!();
-        //assert!(app.contains_plugin::<MidLocomotorPlugin>());
-
         app.init_resource::<Phototaxis>();
         app.init_resource::<Taxis>();
 

@@ -19,10 +19,12 @@ pub struct BodyEat {
 }
 
 impl BodyEat {
+    #[inline]
     pub fn is_food_zone(&self) -> bool {
         self.is_food_zone
     }
 
+    #[inline]
     pub fn set_food_zone(&mut self, is_food: bool) {
         self.is_food_zone = is_food;
     }
@@ -42,10 +44,12 @@ impl BodyEat {
         self.is_eating.value() > 0.25
     }
 
+    #[inline]
     pub fn eat(&mut self) {
         self.is_eating.set(1.);
     }
 
+    #[inline]
     pub fn stop_eat(&mut self) {
         self.is_eating.set(0.);
     }

@@ -1,7 +1,7 @@
 use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}, prelude::Event};
 use mind_ecs::Tick;
 
-use crate::{hind_motor::{HindEat, HindMove}, util::Command};
+use crate::{core_motive::{Dwell, Motive}, hind_motor::{HindEat, HindMove}, util::Command};
 
 pub struct MidMotor {
     commands: Command<MidMotorEvent>,
@@ -23,13 +23,25 @@ impl MidMotor {
         self.commands.drain()
     }
 
-    fn on_explore(
+    fn on_roam(
         &mut self, 
         hind_motor: &HindMove,
         hind_eat: &HindEat,
     ) {
         if hind_eat.is_stop() {
             hind_motor.roam();
+        } else {
+            hind_eat.stop();
+        }
+    }
+
+    fn on_dwell(
+        &mut self, 
+        hind_motor: &HindMove,
+        hind_eat: &HindEat,
+    ) {
+        if hind_eat.is_stop() {
+            hind_motor.dwell();
         } else {
             hind_eat.stop();
         }
@@ -66,6 +78,7 @@ fn update_mid_motor(
     mut mid_motor: ResMut<MidMotor>,
     hind_eat: Res<HindEat>, 
     hind_move: Res<HindMove>, 
+    dwell: Res<Motive<Dwell>>,
 ) {
     for event in mid_motor.commands() {
         match event {
@@ -73,7 +86,11 @@ fn update_mid_motor(
                 mid_motor.on_eat(hind_move.get(), hind_eat.get());
             },
             MidMotorEvent::Explore => {
-                mid_motor.on_explore(hind_move.get(), hind_eat.get());
+                if dwell.is_active() {
+                    mid_motor.on_dwell(hind_move.get(), hind_eat.get());
+                } else {
+                    mid_motor.on_roam(hind_move.get(), hind_eat.get());
+                }
             },
         }
     }

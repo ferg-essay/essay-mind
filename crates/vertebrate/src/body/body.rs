@@ -5,7 +5,7 @@ use test_log::{TestLog, TestLogPlugin};
 use util::random::random_uniform;
 use crate::body::touch::Touch;
 
-use crate::util::{Point, Angle};
+use crate::util::{Angle, Point, Ticks};
 use crate::world::{OdorType, World, WorldPlugin};
 
 pub struct Body {
@@ -24,8 +24,6 @@ pub struct Body {
 }
 
 impl Body {
-    pub const TICK_RATE : f32 = 10.;
-
     pub fn new(pos: Point) -> Self {
         Self {
             pos,
@@ -75,26 +73,6 @@ impl Body {
     }
 
     #[inline]
-    pub fn roam(&mut self, speed: f32, turn: Angle) {
-        self.set_action(BodyAction::Roam, speed, turn);
-    }
-
-    #[inline]
-    pub fn dwell(&mut self, speed: f32, turn: Angle) {
-        self.set_action(BodyAction::Dwell, speed, turn);
-    }
-
-    #[inline]
-    pub fn seek(&mut self, speed: f32, turn: Angle) {
-        self.set_action(BodyAction::Seek, speed, turn);
-    }
-
-    #[inline]
-    pub fn avoid(&mut self, speed: f32, turn: Angle) {
-        self.set_action(BodyAction::Avoid, speed, turn);
-    }
-
-    #[inline]
     pub fn stop(&mut self) {
         if self.action.speed > 0. {
             self.set_action(BodyAction::None, 0., Angle::Unit(0.))
@@ -135,6 +113,7 @@ impl Body {
         self.collide_right
     }
 
+    // TODO: move out of body
     pub fn odor_turn(&self, world: &World) -> Option<(OdorType, Angle)> {
         if let Some((odor, angle)) = world.odor(self.pos_head()) {
             let turn = (2. + angle.to_unit() - self.dir().to_unit()) % 1.;
@@ -149,11 +128,11 @@ impl Body {
     /// Update the animal's position
     /// 
     pub fn update(&mut self, world: &World) {
-        let speed = self.speed() / Self::TICK_RATE;
+        let speed = self.speed() / Ticks::TICKS_PER_SECOND as f32;
 
         let mut dir = self.dir.to_unit();
         let turn_unit = self.turn().to_turn();
-        dir += turn_unit / Self::TICK_RATE;
+        dir += turn_unit / Ticks::TICKS_PER_SECOND as f32;
 
         // random noise into direction
         if speed > 0. && random_uniform() < 0.2 {
@@ -196,7 +175,7 @@ impl Body {
 ///
 /// Update the animal's position based on the cilia movement
 /// 
-pub fn body_physics(
+pub fn body_update(
     mut body: ResMut<Body>,
     mut touch_event: OutEvent<Touch>,
     world: Res<World>,
@@ -270,7 +249,7 @@ impl Plugin for BodyPlugin {
 
         app.event::<Touch>();
 
-        app.system(Tick, body_physics);
+        app.system(Tick, body_update);
 
         if app.contains_plugin::<TestLogPlugin>() {
             app.system(Last, body_log);

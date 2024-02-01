@@ -10,7 +10,7 @@ use crate::{
 pub struct HindEat {
     is_eat: DecayValue,
     is_eat_enable: DecayValue,
-    is_eat_while_move: bool,
+    allow_eat_while_move: bool,
     is_food_zone: bool,
 
     commands: Command<EatCommand>,
@@ -28,7 +28,7 @@ impl HindEat {
     } 
 
     fn is_eat_allowed(&self, body: &Body) -> bool {
-        ! self.is_eat_while_move || body.speed() < 0.1
+        ! self.allow_eat_while_move || body.speed() < 0.1
     } 
 
     #[inline]
@@ -67,7 +67,7 @@ impl Default for HindEat {
         Self {  
             is_eat_enable: DecayValue::new(HindEat::HALF_LIFE),
             is_eat: DecayValue::new(HindEat::HALF_LIFE),
-            is_eat_while_move: true,
+            allow_eat_while_move: true,
             is_food_zone: false,
             commands: Command::new(),
         }
@@ -115,7 +115,6 @@ fn update_hind_eat(
 
     body_eat.eat();
     hind_eat.get_mut().is_eat.set_max(1.);
-    // if world.isbody.is
 }
 
 pub struct HindEatPlugin;
@@ -124,8 +123,6 @@ impl Plugin for HindEatPlugin {
     fn build(&self, app: &mut App) {
         assert!(app.contains_plugin::<BodyEatPlugin>(), "HindEatPlugin requires BodyEatPlugin");
 
-        // app.init_resource::<Explore>();
-        // app.event::<HindLocomotorEvent>();
         app.init_resource::<HindEat>();
 
         app.system(Tick, update_hind_eat);

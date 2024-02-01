@@ -2,32 +2,6 @@ use crate::util::{Angle, DecayValue, DirVector, HalfLife};
 
 use super::GoalVector;
 
-/*
-pub struct HabenulaSeek {
-}
-
-impl HabenulaSeek {
-    pub const HALF_LIFE : usize = 10;
-
-    pub fn new(half_life: usize) -> Self {
-        Self {
-        }
-    }
-
-    pub fn pre_update(&mut self) {
-
-    }
-
-    pub fn toward(&mut self, value: f32) {
-
-    }
-
-    pub fn update(&mut self, taxis: &mut OutEvent<HindMoveCommand>) {
-        
-    }
-}
-*/
-
 pub struct HabenulaSeekItem {
     average: DecayValue,
     value: f32,
@@ -107,23 +81,3 @@ impl Default for HabenulaSeekItem {
         )
     }
 }
-
-/*
-fn update_habenula_seek(
-    mut seek: ResMut<HabenulaSeek>,
-) {
-
-}
-
-pub struct HabenulaSeekPlugin;
-
-impl Plugin for HabenulaSeekPlugin {
-    fn build(&self, app: &mut App) {
-        // assert!(app.contains_plugin::<MidLocomotorPlugin>(), "HabenulaSeekPlugin requires MidLocomotorPlugin");
-
-        app.insert_resource(HabenulaSeek::new(HabenulaSeek::HALF_LIFE));
-
-        app.system(Tick, update_habenula_seek);
-    }
-}
-*/
