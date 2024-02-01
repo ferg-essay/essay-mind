@@ -8,12 +8,11 @@ use crate::body::touch::Touch;
 use crate::util::{Point, Angle};
 use crate::world::{OdorType, World, WorldPlugin};
 
-// #[derive(Component)]
 pub struct Body {
     pos: Point,
 
     dir: Angle,
-    // speed: f32,
+
     body_len: f32,
 
     action: Action,
@@ -21,13 +20,6 @@ pub struct Body {
     collide_left: bool,
     collide_right: bool,
 
-    //locomotion: BodyLocomotion,
-    //eat: BodyEat,
-
-    //approach_dir: DirVector,
-    // avoid_dir: DirVector,
-
-    // tick_food: usize,
     ticks: usize,
 }
 
@@ -46,9 +38,6 @@ impl Body {
             collide_right: false,
 
             ticks: 0,
-
-            //approach_dir: DirVector::zero(),
-            //avoid_dir: DirVector::zero(),
         }
     }
 
@@ -81,7 +70,7 @@ impl Body {
     }
 
     #[inline]
-    fn set_action(&mut self, kind: BodyAction, speed: f32, turn: Angle) {
+    pub fn set_action(&mut self, kind: BodyAction, speed: f32, turn: Angle) {
         self.action = Action::new(kind, speed, turn);
     }
 
@@ -144,29 +133,6 @@ impl Body {
     #[inline]
     pub fn is_collide_right(&self) -> bool {
         self.collide_right
-    }
-
-    /*
-    pub fn avoid_dir(&self) -> DirVector {
-        self.avoid_dir.clone()
-    }
-
-    pub fn set_avoid_dir(&mut self, dir: DirVector) {
-        self.avoid_dir = dir;
-    }
-
-    pub fn approach_dir(&self) -> DirVector {
-        self.approach_dir.clone()
-    }
-
-    pub fn set_approach_dir(&mut self, dir: DirVector) {
-        self.approach_dir = dir;
-    }
-    */
-
-    pub fn p_food(&self) -> f32 {
-        // self.tick_food as f32 / self.ticks.max(1) as f32
-        0.
     }
 
     pub fn odor_turn(&self, world: &World) -> Option<(OdorType, Angle)> {
@@ -281,7 +247,7 @@ pub fn body_log(
     body: Res<Body>,
     mut log: ResMut<TestLog>,
 ) {
-    log.log(&format!("body: ({:.1}, {:.1}) dy={:.1} swim={:.1} turn={:.1}",
+    log.log(&format!("body: ({:.1}, {:.1}) dy={:.1} speed={:.1} turn={:.1}",
         body.pos().x(), body.pos().y(), body.dir().to_unit(), body.speed(), body.turn().to_unit()
     ));
 }

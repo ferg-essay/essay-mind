@@ -9,6 +9,7 @@ pub struct Motive<T: MotiveTrait> {
 
     delta: f32,
     max: f32,
+    threshold: f32,
 
     marker: PhantomData<T>,
 }
@@ -19,6 +20,7 @@ impl<T: MotiveTrait> Motive<T> {
             value: DecayValue::new(half_life),
             delta: 0.,
             max: 0.,
+            threshold: 0.125,
             marker: Default::default(),
         }
     }
@@ -45,18 +47,13 @@ impl<T: MotiveTrait> Motive<T> {
 
     #[inline]
     pub fn is_active(&self) -> bool {
-        self.value() > 0.01
+        self.value() > self.threshold
     }
 }
 
 impl<T: MotiveTrait> Default for Motive<T> {
     fn default() -> Self {
-        Self {
-            value: DecayValue::new(Motives::HALF_LIFE),
-            delta: 0.,
-            max: 0.,
-            marker: Default::default(),
-        }
+        Self::new(Motives::HALF_LIFE)
     }
 }
 

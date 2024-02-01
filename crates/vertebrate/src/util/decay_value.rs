@@ -3,6 +3,7 @@ use super::ticks::HalfLife;
 pub struct DecayValue {
     decay: f32,
     fill: f32,
+    threshold: f32,
 
     value: f32,
 }
@@ -17,6 +18,7 @@ impl DecayValue {
         Self {
             decay,
             fill: 1. - decay,
+            threshold: 0.25,
             value: 0.,
         }
     }
@@ -32,6 +34,21 @@ impl DecayValue {
     #[inline]
     pub fn decay(&self) -> f32 {
         self.decay
+    }
+
+    #[inline]
+    pub fn set_half_life(&mut self, half_life: impl Into<HalfLife>) {
+        self.decay = half_life.into().decay();
+    }
+
+    #[inline]
+    pub fn threshold(&self) -> f32 {
+        self.threshold
+    }
+
+    #[inline]
+    pub fn set_threshold(&mut self, threshold: f32) {
+        self.threshold = threshold
     }
 
     #[inline]
@@ -69,11 +86,16 @@ impl DecayValue {
     pub fn update(&mut self) {
         self.value = self.value * self.decay;
     }
+
+    #[inline]
+    pub fn is_active(&self) -> bool {
+        self.value() >= self.threshold
+    }
 }
 
 #[cfg(test)]
 mod test {
-    use crate::util::Ticks;
+    use crate::util::{Seconds, Ticks};
 
     use super::DecayValue;
 
@@ -88,5 +110,14 @@ mod test {
 
         let hl_10 = DecayValue::new(Ticks(10));
         assert_eq!(hl_10.decay().powi(10), 0.5);
+
+        let hl_1s = DecayValue::new(Seconds(1.));
+        assert_eq!(hl_1s.decay().powi(10), 0.5);
+
+        let hl_100ms = DecayValue::new(Seconds(0.1));
+        assert_eq!(hl_100ms.decay(), 0.5);
+
+        let hl_0_1 = DecayValue::new(0.1);
+        assert_eq!(hl_0_1.decay(), 0.5);
     }
 }

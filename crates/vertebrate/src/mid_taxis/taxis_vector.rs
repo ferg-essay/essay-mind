@@ -46,7 +46,7 @@ impl GoalVector {
         // let dt = (dir.to_unit() - self.dir.to_unit()).abs();
 
         if self.value.value() < value { // || dt > 0.25 {
-            self.set_vector(dir, value);
+            self.set_vector(dir, value.clamp(0., 1.));
             self.dir = dir;
             self.value.set(value);
         }

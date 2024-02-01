@@ -81,8 +81,6 @@ impl Into<HalfLife> for Ticks {
 impl Into<HalfLife> for f32 {
     #[inline]
     fn into(self) -> HalfLife {
-        let seconds = self;
-
-        HalfLife(seconds * Ticks::TICKS_PER_SECOND as f32)
+        HalfLife(self)
     }
 }

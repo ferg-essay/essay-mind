@@ -3,8 +3,8 @@ use log::{log, Level};
 use mind_ecs::Tick;
 
 use crate::{
-    body::{Body, BodyEat, BodyEatPlugin}, 
-    util::{DecayValue, HalfLife, Command}, 
+    body::{Body, BodyEat, BodyEatPlugin},
+    util::{DecayValue, HalfLife, Command} 
 };
 
 pub struct HindEat {
@@ -109,7 +109,7 @@ fn update_hind_eat(
 
     if ! hind_eat.is_eat_allowed(body.get()) {
         log!(Level::Info, "eating while moving");
-        println!("Eating while moving");
+        // println!("Eating while moving");
         return
     }
 

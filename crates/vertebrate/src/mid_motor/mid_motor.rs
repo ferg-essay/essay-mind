@@ -29,7 +29,7 @@ impl MidMotor {
         hind_eat: &HindEat,
     ) {
         if hind_eat.is_stop() {
-            hind_motor.explore();
+            hind_motor.roam();
         } else {
             hind_eat.stop();
         }

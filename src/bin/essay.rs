@@ -5,9 +5,9 @@ use mind_ecs::Tick;
 use vertebrate::{
     body::{Body, BodyEatPlugin, BodyPlugin}, 
     core_motive::{
-        core_eat::{CoreEatingPlugin, Eat}, 
+        core_eat::{CoreEatingPlugin, Eat, Sated}, 
         mid_peptides::CorePeptidesPlugin, 
-        motive::{Motive, MotiveTrait}, 
+        Motive, MotiveTrait, 
         Dwell, CoreExplorePlugin, Roam, Wake, CoreWakePlugin
     }, 
     hind_motor::{HindEat, HindEatPlugin, HindMovePlugin}, 
@@ -180,6 +180,7 @@ fn ui_eat(app: &mut App) {
         .item(Emoji::FaceSleeping, |m: &Motive<Dummy>| m.value())
         .row()
         .item(Emoji::ForkAndKnife, |m: &Motive<Eat>| m.value())
+        .item(Emoji::Pig, |m: &Motive<Sated>| m.value())
         .item(Emoji::Candy, |m: &Motive<Dummy>| m.value())
         .item(Emoji::Cheese, |m: &Motive<Dummy>| m.value())
         .item(Emoji::Lemon, |m: &Motive<Dummy>| m.value())

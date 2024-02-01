@@ -13,7 +13,7 @@ pub struct BodyEat {
     _is_bitter: f32,
     _is_sour: f32,
 
-    blood_sugar: DecayValue,
+    glucose: DecayValue,
 
     is_eating: DecayValue,
 }
@@ -34,7 +34,7 @@ impl BodyEat {
 
     #[inline]
     pub fn glucose(&self) -> f32 {
-        self.blood_sugar.value()
+        self.glucose.value()
     }
 
     #[inline]
@@ -50,13 +50,18 @@ impl BodyEat {
         self.is_eating.set(0.);
     }
 
+    pub fn p_food(&self) -> f32 {
+        // self.tick_food as f32 / self.ticks.max(1) as f32
+        0.
+    }
+
     ///
     /// Update the animal's eating and digestion
     /// 
     fn update(&mut self, world: &World, body: &mut Body) {
         self.is_sweet.update();
 
-        self.blood_sugar.update();
+        self.glucose.update();
 
         self.is_eating.update();
 
@@ -65,7 +70,7 @@ impl BodyEat {
 
         if self.is_eating() && self.is_food_zone() {
             body.eat();
-            self.blood_sugar.add(1.);
+            self.glucose.add(1.);
             self.is_sweet.add(1.);
         }
     }
@@ -81,7 +86,7 @@ impl Default for BodyEat {
             _is_bitter: 0.,
             _is_sour: 0.,
 
-            blood_sugar: DecayValue::new(Seconds(20.)).fill_time(Seconds(2.)),
+            glucose: DecayValue::new(Seconds(20.)).fill_time(Seconds(2.)),
 
             is_eating: DecayValue::new(Seconds(0.2)),
         }

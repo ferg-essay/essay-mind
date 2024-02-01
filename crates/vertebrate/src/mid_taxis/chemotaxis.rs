@@ -7,7 +7,7 @@ use mind_ecs::Tick;
 
 use crate::{
     body::Body, 
-    core_motive::motive::{Motive, MotiveTrait, Motives}, 
+    core_motive::{core_eat::Sated, Motive, MotiveTrait, Motives}, 
     hind_motor::{HindMove, HindMovePlugin, TurnCommand}, 
     olfactory_bulb::{OlfactoryBulb, ObEvent}, util::{Angle, DirVector, Seconds} 
 };
@@ -84,10 +84,15 @@ fn update_chemotaxis(
     mut ob: InEvent<ObEvent>,
     body: Res<Body>,
     hind_move: Res<HindMove>,
+    sated: Res<Motive<Sated>>,
     mut taxis: ResMut<Taxis>,
     mut seek_motive: ResMut<Motive<Seek>>,
 ) {
     chemotaxis.pre_update();
+
+    if sated.is_active() {
+        return;
+    }
 
     for event in ob.iter() {
         match event {
@@ -112,6 +117,7 @@ impl Plugin for ChemotaxisPlugin {
         app.init_resource::<Taxis>();
 
         Motives::insert::<Seek>(app, Seconds(0.5));
+        Motives::init::<Sated>(app);
 
         let chemotaxis = Chemotaxis::new();
 
