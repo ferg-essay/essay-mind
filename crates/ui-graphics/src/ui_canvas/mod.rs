@@ -20,8 +20,4 @@ pub(crate) use wgpu_canvas::{
 };
 
 
-pub use screen::{
-    ScreenApi
-};
-
-//pub use winit_loop::main_loop;
+pub use screen::ScreenApi;

@@ -40,6 +40,7 @@ essay-ecs = { path = "../essay-ecs"  }
 #essay-plot = { git = "https://github.com/ferg-essay/essay-plot", version="0.1.0" }
 #essay-plot-base = { git = "https://github.com/ferg-essay/essay-plot", version="0.1.0" }
 essay-tensor = { path = "../essay-tensor"  }
+
 #essay-plot = { git = "https://github.com/ferg-essay/essay-tensor", version="0.1.13" }
 essay-plot = { path = "../essay-plot" }
 #essay-plot = { git = "https://github.com/ferg-essay/essay-plot", version="0.1.13" }

@@ -64,7 +64,7 @@ pub fn main() {
     // app.system(Tick, dwell_olfactory);
     //app.system(Tick, dwell_eat);
     //ui_chemotaxis(&mut app);
-    ui_eat(&mut app);
+    ui_eat_flat(&mut app);
 
     app.run();
 }
@@ -188,6 +188,44 @@ fn ui_eat(app: &mut App) {
         // .item(Emoji::FaceAstonished, |m: &Motive<Hunger>| m.value())
 );
     app.plugin(UiHomunculusPlugin::new((2.5, 1.), (0.5, 1.)));
+}
+
+fn ui_eat_flat(app: &mut App) {
+    // UiCanvasPlugin enables graphics
+    app.plugin(UiCanvasPlugin::new().frame_ms(Duration::from_millis(50)));
+
+    app.plugin(UiWorldPlugin::new((0., 0.), (2., 1.0)));
+    app.plugin(UiBodyPlugin); // ::new((0., 0.5), (0.25, 0.5)));
+    app.plugin(UiBodyTrailPlugin);
+
+    let colors = Colors::from(["amber", "azure", "red", "purple", "blue", "green", "olive"]);
+
+    let odor_colors = Colors::from(["green", "azure"]);
+    app.plugin(UiAttentionPlugin::new((2.0, 0.0), (0.5, 0.5))
+        .colors(odor_colors)
+        // .item("v", |p: &Phototaxis| p.value())
+        .item(|ob: &OlfactoryBulb| ob.value_pair(OdorType::FoodA))
+        .item(|ob: &OlfactoryBulb| ob.value_pair(OdorType::FoodB))
+    );
+
+    app.plugin(UiMotivePlugin::new((2.0, 0.5), (0.5, 0.5))
+        .size(12.)
+        .item(Emoji::FaceGrinning, |m: &Motive<Wake>| m.value())
+        .item(Emoji::Footprints, |m: &Motive<Roam>| m.value())
+        .item(Emoji::MagnifyingGlassLeft, |m: &Motive<Dwell>| m.value())
+        .item(Emoji::DirectHit, |m: &Motive<Seek>| m.value())
+        .item(Emoji::FaceDisappointed, |m: &Motive<Dummy>| m.value())
+        .item(Emoji::FaceSleeping, |m: &Motive<Dummy>| m.value())
+        .row()
+        .item(Emoji::ForkAndKnife, |m: &Motive<Eat>| m.value())
+        .item(Emoji::Pig, |m: &Motive<Sated>| m.value())
+        .item(Emoji::Candy, |m: &Motive<Dummy>| m.value())
+        .item(Emoji::Cheese, |m: &Motive<Dummy>| m.value())
+        .item(Emoji::Lemon, |m: &Motive<Dummy>| m.value())
+        .item(Emoji::Salt, |m: &Motive<Dummy>| m.value())
+        // .item(Emoji::FaceAstonished, |m: &Motive<Hunger>| m.value())
+);
+    app.plugin(UiHomunculusPlugin::new((2.5, 0.), (0.5, 1.)));
 }
 
 
