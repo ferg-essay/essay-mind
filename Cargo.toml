@@ -1,6 +1,6 @@
 [package]
 name = "essay-mind"
-version = "0.1.13"
+version = "0.1.28"
 edition = "2021"
 publish=false
 
@@ -20,7 +20,7 @@ bench = false
 env_logger = { version = "0.11" }
 log = { version = "0.4.17" }
 cpal = { version="0.15" }
-fundsp = { version="0.15" }
+fundsp = { version="0.16" }
 ui-graphics = { path = "./crates/ui-graphics" }
 ui-audio = { path = "./crates/ui-audio" }
 test-log = { path = "./crates/test-log" }

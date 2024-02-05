@@ -218,9 +218,8 @@ impl HindMove {
     fn update(&mut self, body: &mut Body) {
         self.action.pre_update();
 
-        if self.action_kind == ActionKind::Stop {
-            self.stop();
-            body.stop();
+        if self.action_kind.is_curtail() {
+            self.action.curtail();
         }
 
         if self.action.is_active() {
@@ -356,6 +355,8 @@ impl MoveCommand {
 
     const DWELL_LOW : f32 = 1.;
     const DWELL_HIGH : f32 = 1.;
+
+    const AVOID_LOW : f32 = 1.;
     
     const ALPHA : f32 = 2.;
 
@@ -365,7 +366,7 @@ impl MoveCommand {
                 random_pareto(Self::ROAM_LOW, Self::ROAM_HIGH, Self::ALPHA)
             }
             MoveCommand::Avoid => {
-                0.
+                Self::AVOID_LOW
             },
             MoveCommand::Dwell => {
                 random_pareto(Self::DWELL_LOW, Self::DWELL_HIGH, Self::ALPHA)
@@ -399,7 +400,7 @@ impl MoveCommand {
         match self {
             MoveCommand::SeekRoam => turn_angle(60., 30.),
             MoveCommand::SeekDwell => turn_angle(60., 30.),
-            MoveCommand::Avoid => turn_angle(60., 30.),
+            MoveCommand::Avoid => turn_angle(90., 30.),
             MoveCommand::Normal => turn_angle(30., 15.),
             MoveCommand::Roam => turn_angle(30., 30.),
             MoveCommand::Dwell => turn_angle(60., 60.),
@@ -499,6 +500,16 @@ impl ActionKind {
             _ => ActionKind::StrongAvoidRight,
         }
     }
+
+    fn is_curtail(&self) -> bool {
+        match self {
+            ActionKind::Stop => true,
+            ActionKind::StrongAvoidLeft => true,
+            ActionKind::StrongAvoidRight => true,
+            ActionKind::StrongAvoidBoth => true,
+            _ => false,
+        }
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -525,6 +536,12 @@ impl Action {
 
     fn pre_update(&mut self) {
         self.time -= Ticks(1).to_seconds();
+    }
+
+    fn curtail(&mut self) {
+        if self.turn.to_unit() == 0. {
+            self.time = 0.;
+        }
     }
 
     fn is_active(&self) -> bool {

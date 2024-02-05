@@ -1,3 +1,4 @@
+pub mod hind_sense;
 pub mod hind_motor;
 pub mod body;
 pub mod olfactory_bulb;

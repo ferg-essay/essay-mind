@@ -40,7 +40,8 @@ pub fn main() {
 
     app.plugin(TickSchedulePlugin::new().ticks(2));
 
-    world_roam(&mut app);
+    world_lateral_line(&mut app);
+
     app.plugin(BodyPlugin::new());
     app.plugin(BodyEatPlugin);
 
@@ -96,6 +97,26 @@ fn dwell_olfactory(
 
     //dwell.add(1.);
     //dwell.set_max(1.);
+}
+
+pub fn world_lateral_line(app: &mut App) {
+    let w = 15;
+    let h = 11;
+
+    let h1 = h / 2 - 1;
+
+    let w1 = w / 2;
+    let w2 = w1;
+
+    app.plugin(
+        WorldPlugin::new(w, h)
+        .wall((2, 0), (1, h1 + 1))
+        .wall((5, h1), (1, h - h1))
+        .wall((8, 0), (1, h1 + 2))
+        //.wall(((w - 1) / 2, h - h1), (2, h1))
+        //.floor((0, 0), (w1, h), FloorType::Light)
+        //.floor((w2, 0), (w - w2, h), FloorType::Dark)
+    );
 }
 
 pub fn world_roam(app: &mut App) {
