@@ -14,6 +14,7 @@ impl AudioBuffer {
         }
     }
 
+    #[inline]
     pub fn push(&mut self, data: f32) {
         self.buffer.push(data);
     }
@@ -22,10 +23,12 @@ impl AudioBuffer {
         self.buffer.extend(&next.buffer);
     }
 
+    #[inline]
     pub fn append(&mut self, next: &[f32]) {
         self.buffer.extend(next);
     }
 
+    #[inline]
     pub fn next(&mut self) -> f32 {
         let i = self.index;
 
@@ -61,5 +64,61 @@ where
 
     fn index(&self, index: I) -> &Self::Output {
         &self.buffer[index]
+    }
+}
+
+pub struct AudioWriter<'a> {
+    buf: &'a mut AudioBuffer,
+    offset: f32,
+    rate: f32,
+    sum: f32,
+    source_count: usize,
+    target_count: usize,
+}
+
+impl<'a> AudioWriter<'a> {
+    pub const RATE : usize = 20000;
+
+    pub fn new(buf: &'a mut AudioBuffer, rate: usize) -> Self {
+        assert!(Self::RATE <= rate);
+
+        Self {
+            buf,
+            rate: rate as f32 / Self::RATE as f32,
+            offset: 0.,
+            sum: 0.,
+            source_count: 0,
+            target_count: 0,
+        }
+    }
+
+    #[inline]
+    pub fn push(&mut self, item: f32) {
+        let offset = self.offset + self.rate;
+
+        self.sum += item;
+        self.source_count += 1;
+        self.offset = offset;
+
+        if 1. < offset + self.rate {
+            if self.target_count < Self::RATE {
+                self.buf.push(self.sum / self.source_count as f32);
+                self.target_count += 1;
+            }
+            self.sum = 0.;
+            self.source_count = 0;
+            self.offset -= 1.;
+        }
+    }
+
+    pub fn finish(&mut self) {
+        if self.source_count > 0 {
+            let value = self.sum / self.source_count as f32;
+            while self.target_count < Self::RATE {
+                self.buf.push(value);
+                self.target_count += 1;
+            }
+            self.source_count = 0;
+        }
     }
 }

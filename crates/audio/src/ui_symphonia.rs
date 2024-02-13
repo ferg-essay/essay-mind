@@ -6,7 +6,7 @@ use symphonia::core::io::MediaSourceStream;
 use symphonia::core::meta::MetadataOptions;
 use symphonia::core::probe::Hint;
 
-use crate::AudioBuffer;
+use crate::{AudioBuffer, AudioWriter};
 
 pub struct AudioReader {
 
@@ -105,13 +105,13 @@ impl AudioReader {
                     //let duration = audio_buf.capacity() as u64;
                     
                     //assert!(spec.rate == 44100, "need encoding to be 44100");
-
                     // let mut sample_buf = SampleBuffer::<f32>::new(duration, spec);
+                    let mut out_writer = AudioWriter::new(&mut out_buffer, spec.rate as usize);
 
                     match audio_buf {
                         AudioBufferRef::F32(buf) => {
                             for src in buf.chan(0) {
-                                out_buffer.push(*src);
+                                out_writer.push(*src);
                             }
                         },
                         AudioBufferRef::U8(_) => todo!(),
@@ -121,17 +121,19 @@ impl AudioReader {
                         AudioBufferRef::S8(_) => todo!(),
                         AudioBufferRef::S16(buf) => {
                             for src in buf.chan(0) {
-                                out_buffer.push(*src as f32 / 0x8000 as f32);
+                                out_writer.push(*src as f32 / 0x8000 as f32);
                             }
                         },
                         AudioBufferRef::S24(_) => todo!(),
                         AudioBufferRef::S32(buf) => {
                             for src in buf.chan(0) {
-                                out_buffer.push(*src as f32 / 0x8000 as f32);
+                                out_writer.push(*src as f32 / 0x8000 as f32);
                             }
                         },
                         AudioBufferRef::F64(_) => todo!(),
                     }
+
+                    out_writer.finish();
 
                     //sample_buf.copy_interleaved_ref(audio_buf);
                     // buffer.append(sample_buf.samples());
