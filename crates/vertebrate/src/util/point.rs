@@ -204,6 +204,22 @@ impl From<f32> for Angle {
     }
 }
 
+impl Add<Angle> for Angle {
+    type Output = Angle;
+
+    fn add(self, rhs: Angle) -> Self::Output {
+        Angle::unit(self.to_unit() + rhs.to_unit())
+    }
+}
+
+impl Sub<Angle> for Angle {
+    type Output = Angle;
+
+    fn sub(self, rhs: Angle) -> Self::Output {
+        Angle::unit(self.to_unit() - rhs.to_unit())
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Line(pub Point, pub Point);
 

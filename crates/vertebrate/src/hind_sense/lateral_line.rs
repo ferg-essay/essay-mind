@@ -1,4 +1,7 @@
-use crate::util::{Angle, DirVector, Line, Point};
+use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}};
+use mind_ecs::Tick;
+
+use crate::{body::Body, tectum::tectum::TectumMap, util::{Angle, DirVector, Line, Point}, world::World};
 
 fn dist_point_line(
     p: impl Into<Point>, 
@@ -14,19 +17,39 @@ fn dist_point_line(
 
 struct SenseArc {
     point: Point,
-    dir1: Point,
-    dir2: Point,
+    dir: Angle,
+    // dir2: Point,
 }
 
 impl SenseArc {
     fn new(point: impl Into<Point>, dir: impl Into<Angle>) -> Self {
-        let dir1 = Point::from(dir.into().sin_cos());
-        let dir2 = Point(dir1.1, - dir1.0);
+        //let dir1 = Point::from(dir.into().sin_cos());
+        //let dir2 = Point(dir1.1, - dir1.0);
 
         Self {
             point: point.into(),
-            dir1,
-            dir2,
+            dir: dir.into(),
+            // dir2,
+        }
+    }
+
+    fn update(
+        &self, 
+        dx: f32, 
+        dy: f32, 
+        world: &World, 
+        tectum: &mut TectumMap
+    ) {
+        let pos = self.point + Point(dx, dy);
+
+        if world.is_collide(pos) {
+            let Point(x, y) = pos;
+
+            let vector = self.sense_square((x.floor(), y.floor()));
+            let dir = vector.dir();// - self.dir;
+            let value = (1. - vector.value()).clamp(0., 1.);
+
+            tectum.neg(dir, value);
         }
     }
 
@@ -66,6 +89,42 @@ fn best_vector(a: DirVector, b: DirVector) -> DirVector {
     }
 }
 
+fn update_lateral_line(
+    body: Res<Body>,
+    world: Res<World>,
+    mut tectum: ResMut<TectumMap>
+) {
+    // let Point(x, y) = body.pos();
+
+    let sense = SenseArc::new(body.pos(), body.dir());
+    // let sense = SenseArc::new(Point(0.1, 0.1), body.dir());
+
+    sense.update(-1., -1., world.get(), tectum.get_mut());
+    sense.update(0., -1., world.get(), tectum.get_mut());
+    sense.update(1., -1., world.get(), tectum.get_mut());
+
+    sense.update(-1., 0., world.get(), tectum.get_mut());
+    // sense.update(0., 0, world.get(), tectum.get_mut());
+    sense.update(1., 0., world.get(), tectum.get_mut());
+
+    sense.update(-1., 1., world.get(), tectum.get_mut());
+    sense.update(0., 1., world.get(), tectum.get_mut());
+    sense.update(1., 1., world.get(), tectum.get_mut());
+}
+
+pub struct LateralLinePlugin;
+
+impl Plugin for LateralLinePlugin {
+    fn build(&self, app: &mut App) {
+        assert!(app.contains_resource::<TectumMap>());
+        //assert!(app.ini.resour)
+        //app.init_resource::<MidMotor>();
+        //app.event::<MidMotorEvent>();
+
+        app.system(Tick, update_lateral_line);
+    }
+}
+
 #[cfg(test)]
 mod test {
     use crate::{hind_sense::lateral_line::SenseArc, util::DirVector};
@@ -89,6 +148,58 @@ mod test {
         assert_deq(dir, 0.125, 1.4142135);
         let dir = body.sense_square((-2., -2.));
         assert_deq(dir, 0.625, 1.4142135);
+    }
+
+    #[test]
+    fn test_surround() {
+        let body = SenseArc::new((0.5, 0.5), 0.);
+
+        let dir = body.sense_square((-1., 0.));
+        assert_deq(dir, 0.75, 0.5);
+        let dir = body.sense_square((1., 0.));
+        assert_deq(dir, 0.25, 0.5);
+
+        let dir = body.sense_square((0., 1.));
+        assert_deq(dir, 0., 0.5);
+        let dir = body.sense_square((0., -1.));
+        assert_deq(dir, 0.5, 0.5);
+
+        let dir = body.sense_square((-1., 1.));
+        assert_deq(dir, 0.875, 2.0f32.sqrt().recip());
+        let dir = body.sense_square((1., 1.));
+        assert_deq(dir, 0.125, 2.0f32.sqrt().recip());
+
+        let dir = body.sense_square((-1., -1.));
+        assert_deq(dir, 0.625, 2.0f32.sqrt().recip());
+        let dir = body.sense_square((1., -1.));
+        assert_deq(dir, 0.375, 2.0f32.sqrt().recip());
+    }
+
+    #[test]
+    fn test_surround_10_20() {
+        let (x, y) = (10., 20.);
+
+        let body = SenseArc::new((x + 0.5, y + 0.5), 0.);
+
+        let dir = body.sense_square((x - 1., y + 0.));
+        assert_deq(dir, 0.75, 0.5);
+        let dir = body.sense_square((x + 1., y + 0.));
+        assert_deq(dir, 0.25, 0.5);
+
+        let dir = body.sense_square((x + 0., y + 1.));
+        assert_deq(dir, 0., 0.5);
+        let dir = body.sense_square((x + 0., y - 1.));
+        assert_deq(dir, 0.5, 0.5);
+
+        let dir = body.sense_square((x - 1., y + 1.));
+        assert_deq(dir, 0.875, 2.0f32.sqrt().recip());
+        let dir = body.sense_square((x + 1., y + 1.));
+        assert_deq(dir, 0.125, 2.0f32.sqrt().recip());
+
+        let dir = body.sense_square((x - 1., y - 1.));
+        assert_deq(dir, 0.625, 2.0f32.sqrt().recip());
+        let dir = body.sense_square((x + 1., y - 1.));
+        assert_deq(dir, 0.375, 2.0f32.sqrt().recip());
     }
 
     fn assert_deq(a: DirVector, angle: f32, value: f32) {

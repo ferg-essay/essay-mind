@@ -1,1 +1,1 @@
-mod lateral_line;
+pub mod lateral_line;

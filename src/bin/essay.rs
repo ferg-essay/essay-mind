@@ -3,32 +3,15 @@ use std::time::Duration;
 use essay_plot::api::Colors;
 use mind_ecs::Tick;
 use vertebrate::{
-    body::{Body, BodyEatPlugin, BodyPlugin}, 
-    core_motive::{
-        core_eat::{CoreEatingPlugin, Eat, Sated}, 
-        mid_peptides::CorePeptidesPlugin, 
-        Motive, MotiveTrait, 
-        Dwell, CoreExplorePlugin, Roam, Wake, CoreWakePlugin
-    }, 
-    hind_motor::{HindEat, HindEatPlugin, HindMovePlugin}, 
-    mid_taxis::{
+    body::{Body, BodyEatPlugin, BodyPlugin}, core_motive::{
+        core_eat::{CoreEatingPlugin, Eat, Sated}, mid_peptides::CorePeptidesPlugin, CoreExplorePlugin, CoreWakePlugin, Dwell, Motive, MotiveTrait, Roam, Wake
+    }, hind_motor::{HindEat, HindEatPlugin, HindMovePlugin}, hind_sense::lateral_line::LateralLinePlugin, mid_motor::MidMotorPlugin, mid_taxis::{
         chemotaxis::{Chemotaxis, ChemotaxisPlugin, Seek}, 
         phototaxis::Phototaxis,
-    }, 
-    mid_motor::{tectum::TectumPlugin, MidMotorPlugin}, 
-    olfactory_bulb::{OlfactoryBulb, ObEvent, OlfactoryPlugin}, 
-    ui::{
-        ui_attention::UiAttentionPlugin, ui_homunculus::UiHomunculusPlugin, ui_motive::Emoji,
-        ui_body::{UiBodyPlugin, UiBodyTrailPlugin},
-        ui_body_heatmap::UiLocationHeatmapPlugin,
-        ui_motive::UiMotivePlugin,
-        ui_graph::UiGraphPlugin,
-        ui_peptide::UiPeptidePlugin,
-        ui_table::UiTablePlugin,
-        ui_world::UiWorldPlugin,
-    }, 
-    world::{
-        World, WorldPlugin, OdorType
+    }, olfactory_bulb::{ObEvent, OlfactoryBulb, OlfactoryPlugin}, tectum::tectum::TectumPlugin, ui::{
+        ui_attention::UiAttentionPlugin, ui_body::{UiBodyPlugin, UiBodyTrailPlugin}, ui_body_heatmap::UiLocationHeatmapPlugin, ui_graph::UiGraphPlugin, ui_homunculus::UiHomunculusPlugin, ui_motive::{Emoji, UiMotivePlugin}, ui_peptide::UiPeptidePlugin, ui_table::UiTablePlugin, ui_world::UiWorldPlugin
+    }, world::{
+        OdorType, World, WorldPlugin
     }
 };
 use essay_ecs::{app::event::InEvent, core::{Res, ResMut}, prelude::App};
@@ -55,6 +38,8 @@ pub fn main() {
 
     app.plugin(TectumPlugin::new().striatum());
     app.plugin(ChemotaxisPlugin);
+    app.plugin(LateralLinePlugin);
+
     app.plugin(MidMotorPlugin);
 
     app.plugin(CoreWakePlugin);
