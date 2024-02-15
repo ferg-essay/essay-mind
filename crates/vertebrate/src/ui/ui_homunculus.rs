@@ -473,6 +473,32 @@ pub fn ui_homunculus_draw(
         style.edge_color(ui_homunculus.colors.map(1.));
         style.face_color(ui_homunculus.colors.map(1.));
 
+        let mut left_delta = hind_taxis.get_left_delta();
+        if body.is_collide_left() { 
+            left_delta = 1.;
+        }
+
+        let mut right_delta = hind_taxis.get_right_delta();
+        if body.is_collide_right() { 
+            right_delta = 1.;
+        }
+
+        if left_delta != 0.5 {
+            let color = ui_homunculus.colors.map(left_delta);
+
+            style.edge_color(color);
+            style.face_color(color);
+            ui.draw_path(&paths.ss_ul, &style);
+        }
+
+        if right_delta != 0.5 {
+            let color = ui_homunculus.colors.map(right_delta);
+
+            style.edge_color(color);
+            style.face_color(color);
+            ui.draw_path(&paths.ss_ur, &style);
+        }
+
         if body.is_collide_left() { 
             ui.draw_path(&paths.ss_ul, &style);
         }
@@ -506,6 +532,7 @@ pub fn ui_homunculus_draw(
             ui.draw_path(&paths.u_turn, &style);
         }
 
+        /*
         let left_delta = hind_taxis.get_left_delta();
 
         if left_delta != 0.5 {
@@ -525,6 +552,7 @@ pub fn ui_homunculus_draw(
             style.face_color(color);
             ui.draw_path(&paths.ss_lr, &style);
         }
+        */
 
         let n = ui_homunculus.head_dir.paths.len();
 

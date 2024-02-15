@@ -1,7 +1,7 @@
 use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}};
 use mind_ecs::Tick;
 
-use crate::{body::Body, tectum::tectum::TectumMap, util::{Angle, DirVector, Line, Point}, world::World};
+use crate::{body::Body, hind_motor::{HindMove, TurnCommand}, tectum::tectum::TectumMap, util::{Angle, DirVector, Line, Point}, world::World};
 
 fn dist_point_line(
     p: impl Into<Point>, 
@@ -18,6 +18,11 @@ fn dist_point_line(
 struct SenseArc {
     point: Point,
     dir: Angle,
+
+    left: f32, 
+    right: f32, 
+
+    forward: f32,
     // dir2: Point,
 }
 
@@ -29,32 +34,79 @@ impl SenseArc {
         Self {
             point: point.into(),
             dir: dir.into(),
-            // dir2,
+            left: 0.,
+            right: 0.,
+            forward: 0.,
         }
     }
 
     fn update(
-        &self, 
+        &mut self, 
         dx: f32, 
         dy: f32, 
         world: &World, 
-        tectum: &mut TectumMap
+        tectum: &mut TectumMap,
     ) {
         let pos = self.point + Point(dx, dy);
 
         if world.is_collide(pos) {
             let Point(x, y) = pos;
 
-            let vector = self.sense_square((x.floor(), y.floor()));
+            let vector = self.sense_dist(pos);
             let dir = vector.dir();// - self.dir;
             let value = (1. - vector.value()).clamp(0., 1.);
 
             tectum.neg(dir, value);
+
+            if value > 0. {
+                let dir = vector.dir() - self.dir;
+                let dir = dir.to_unit();
+
+                let fwd = 0.03;
+
+                if dir >= fwd && dir < 0.3 || dir >= 1. - fwd {
+                    self.right = self.right.max(value);
+                }
+
+                if dir <= 1. - fwd && dir > 0.3 || dir < fwd {
+                    self.left = self.left.max(value);
+                }
+
+                if dir < fwd || dir > 1. - fwd {
+                    self.forward = self.forward.max(value);
+                }
+            }
         }
     }
 
+    fn update_hind_move(
+        &self, 
+        hind_move: &HindMove,
+    ) {
+        if self.left > 0. {
+            hind_move.send_turn(TurnCommand::AvoidLeft(self.left));
+        }
+
+        if self.right > 0. {
+            hind_move.send_turn(TurnCommand::AvoidRight(self.right));
+        }
+
+        if self.forward > 0.5 {
+            hind_move.send_turn(TurnCommand::AvoidUTurn);
+        }
+    }
+
+    fn sense_dist(&self, pos: impl Into<Point>) -> DirVector {
+        let pos = pos.into();
+        let ll = Point(pos.0.floor(), pos.1.floor());
+
+        // todo: dist from midpoint to allow larger distances
+
+        self.sense_square(ll)
+    }
+        
     pub fn sense_square(&self, square_ll: impl Into<Point>) -> DirVector {
-        let ll = square_ll.into();
+            let ll = square_ll.into();
 
         let vector = self.dir_to(ll, (ll.0, ll.1 + 1.));
         let vector = best_vector(
@@ -92,24 +144,25 @@ fn best_vector(a: DirVector, b: DirVector) -> DirVector {
 fn update_lateral_line(
     body: Res<Body>,
     world: Res<World>,
-    mut tectum: ResMut<TectumMap>
+    mut tectum: ResMut<TectumMap>,
+    hind_move: ResMut<HindMove>,
 ) {
     // let Point(x, y) = body.pos();
 
-    let sense = SenseArc::new(body.pos(), body.dir());
-    // let sense = SenseArc::new(Point(0.1, 0.1), body.dir());
+    let mut sense = SenseArc::new(body.pos_head(), body.dir());
 
-    sense.update(-1., -1., world.get(), tectum.get_mut());
-    sense.update(0., -1., world.get(), tectum.get_mut());
-    sense.update(1., -1., world.get(), tectum.get_mut());
+    let world = world.get();
+    let tectum = tectum.get_mut();
 
-    sense.update(-1., 0., world.get(), tectum.get_mut());
-    // sense.update(0., 0, world.get(), tectum.get_mut());
-    sense.update(1., 0., world.get(), tectum.get_mut());
+    for dy in -1..1 {
+        for dx in -1..1 {
+            if dx != 0 || dy != 0 {
+                sense.update(dx as f32, dy as f32, world, tectum);
+            }
+        }
+    }
 
-    sense.update(-1., 1., world.get(), tectum.get_mut());
-    sense.update(0., 1., world.get(), tectum.get_mut());
-    sense.update(1., 1., world.get(), tectum.get_mut());
+    sense.update_hind_move(hind_move.get());
 }
 
 pub struct LateralLinePlugin;

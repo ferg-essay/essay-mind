@@ -35,6 +35,9 @@ impl HindMove {
     const TURN_MEAN : f32 = 60.;
     const TURN_STD : f32 = 15.;
 
+    const UTURN_MEAN : f32 = 160.;
+    const UTURN_STD : f32 = 15.;
+
     fn new() -> Self {
         Self {
             move_commands: Command::new(),
@@ -195,6 +198,20 @@ impl HindMove {
                 self.action_kind = self.action_kind.avoid_left();
                 self.action_kind = self.action_kind.avoid_right();
             }
+            TurnCommand::AvoidLeft(v) => {
+                self.avoid_left.set_max(v);
+
+                if v > 0.75 {
+                    self.action_kind = self.action_kind.avoid_left();
+                }
+            }
+            TurnCommand::AvoidRight(v) => {
+                self.avoid_right.set_max(v);
+
+                if v > 0.75 {
+                    self.action_kind = self.action_kind.avoid_right();
+                }
+            }
 
             // taxis gradient
             TurnCommand::AvoidVector(vector) => {
@@ -208,9 +225,8 @@ impl HindMove {
             },
 
             TurnCommand::AvoidUTurn => {
-                self.action_kind = self.action_kind.explore();
-                // self.avoid_turn();
-                todo!()
+                // self.action_kind = self.action_kind.explore();
+                self.avoid_forward.set_max(1.);
             }
         }
     }
@@ -313,7 +329,7 @@ impl HindMove {
 
         let avoid_forward = self.avoid_forward.value() + self.approach_forward.value();
         if avoid_forward > 0.01 && random_normal().abs() < avoid_forward {
-            turn = turn_angle(2. * Self::TURN_MEAN, 3. * Self::TURN_STD);
+            turn = turn_angle(Self::UTURN_MEAN, Self::UTURN_STD);
         }
 
         let f = 4.;
@@ -432,6 +448,8 @@ pub enum TurnCommand {
     StrongAvoidRight,
     StrongAvoidBoth,
 
+    AvoidLeft(f32),
+    AvoidRight(f32),
     // taxis gradient
     ApproachVector(DirVector),
     AvoidVector(DirVector),
