@@ -30,7 +30,7 @@ pub struct UiHomunculus {
 
     colors: ColorMap,
     _head_dir_colors: ColorMap,
-    avoid_colors: ColorMap,
+    _avoid_colors: ColorMap,
 }
 
 impl UiHomunculus {
@@ -67,7 +67,7 @@ impl UiHomunculus {
 
             colors: sensorimotor_colormap(),
             _head_dir_colors: head_colormap(),
-            avoid_colors: avoid_colormap(),
+            _avoid_colors: avoid_colormap(),
         }
     }
 
@@ -289,7 +289,7 @@ struct HeadDir {
 
 impl HeadDir {
     pub const WIDTH : f32 = 0.1;
-    pub const MIN : f32 = 0.05;
+    pub const _MIN : f32 = 0.05;
 
     fn new(n: usize, radius: f32) -> Self {
         assert!(n > 0);
@@ -388,12 +388,12 @@ impl HeadDir {
                 let cos = angle.cos().max(0.);
                 let v = value * cos * cos.abs().powi(3);
     
-                if Self::MIN <= v {
+                if Self::_MIN <= v {
                     style.color(self.colors.map(v));
                     ui.draw_path(path, &style);
                 }
             } else {
-                if Self::MIN <= value || true {
+                if Self::_MIN <= value || true {
                     let v = (value * angle.cos()).clamp(0., 1.);
     
                     style.color(self.colors.map(v));
@@ -576,7 +576,7 @@ pub fn ui_homunculus_draw(
             ui_homunculus.emoji = Some(ui.font(emoji_path));
         }
 
-        let mut path_style = PathStyle::new();
+        let path_style = PathStyle::new();
 
         let mut text_style = TextStyle::new();
         text_style.valign(VertAlign::Center);

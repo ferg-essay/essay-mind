@@ -2,7 +2,7 @@ use std::{marker::PhantomData, ops::Deref};
 
 use essay_ecs::{app::{App, PreUpdate}, core::ResMut};
 
-use crate::{util::{DecayValue, HalfLife, Ticks}};
+use crate::util::{DecayValue, HalfLife, Ticks};
 
 pub struct Motive<T: MotiveTrait> {
     value: DecayValue,

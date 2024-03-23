@@ -68,7 +68,7 @@ impl Chemotaxis {
 
         if self.habenula.value() > 0.01 || approach_ego.value() > 0.05 {
             seek_motive.set_max(1.);
-            hind_move.send_turn(TurnCommand::ApproachVector(approach_ego));
+            hind_move.turn(TurnCommand::ApproachVector(approach_ego));
 
             taxis.set_approach_dir(approach_vector);
         }

@@ -84,15 +84,15 @@ impl SenseArc {
         hind_move: &HindMove,
     ) {
         if self.left > 0. {
-            hind_move.send_turn(TurnCommand::AvoidLeft(self.left));
+            hind_move.turn(TurnCommand::AvoidLeft(self.left));
         }
 
         if self.right > 0. {
-            hind_move.send_turn(TurnCommand::AvoidRight(self.right));
+            hind_move.turn(TurnCommand::AvoidRight(self.right));
         }
 
         if self.forward > 0.5 {
-            hind_move.send_turn(TurnCommand::AvoidUTurn);
+            hind_move.turn(TurnCommand::AvoidUTurn);
         }
     }
 

@@ -23,11 +23,35 @@ impl MidMotor {
         self.commands.drain()
     }
 
+    fn update(
+        &mut self,
+        dwell: &Motive<Dwell>,
+        hind_move: &HindMove,
+        hind_eat: &HindEat,
+    ) {
+        for event in self.commands() {
+            match event {
+                MidMotorEvent::Eat => {
+                    self.on_eat(hind_move, hind_eat);
+                },
+                MidMotorEvent::Explore => {
+                    if dwell.is_active() {
+                        self.on_dwell(hind_move, hind_eat);
+                    } else {
+                        self.on_roam(hind_move, hind_eat);
+                    }
+                }
+            }
+        }
+    
+    }
+
     fn on_roam(
         &mut self, 
         hind_motor: &HindMove,
         hind_eat: &HindEat,
     ) {
+        // H.stn managed transition waits for eat to stop before roam
         if hind_eat.is_stop() {
             hind_motor.roam();
         } else {
@@ -40,6 +64,7 @@ impl MidMotor {
         hind_motor: &HindMove,
         hind_eat: &HindEat,
     ) {
+        // H.stn managed transition waits for eat to stop before dwell
         if hind_eat.is_stop() {
             hind_motor.dwell();
         } else {
@@ -52,6 +77,7 @@ impl MidMotor {
         hind_motor: &HindMove,
         hind_eat: &HindEat,
     ) {
+        // H.stn managed transition waits for movement to stop before eat
         if hind_motor.is_stop() {
             hind_eat.eat();
         } else {
@@ -80,20 +106,7 @@ fn update_mid_motor(
     hind_move: Res<HindMove>, 
     dwell: Res<Motive<Dwell>>,
 ) {
-    for event in mid_motor.commands() {
-        match event {
-            MidMotorEvent::Eat => {
-                mid_motor.on_eat(hind_move.get(), hind_eat.get());
-            },
-            MidMotorEvent::Explore => {
-                if dwell.is_active() {
-                    mid_motor.on_dwell(hind_move.get(), hind_eat.get());
-                } else {
-                    mid_motor.on_roam(hind_move.get(), hind_eat.get());
-                }
-            },
-        }
-    }
+    mid_motor.update(dwell.get(), hind_move.get(), hind_eat.get());
 }
 
 pub struct MidMotorPlugin;

@@ -8,7 +8,7 @@ use vertebrate::{
     }, hind_motor::{HindEat, HindEatPlugin, HindMovePlugin}, hind_sense::lateral_line::LateralLinePlugin, mid_motor::MidMotorPlugin, mid_taxis::{
         chemotaxis::{Chemotaxis, ChemotaxisPlugin, Seek}, 
         phototaxis::Phototaxis,
-    }, olfactory_bulb::{ObEvent, OlfactoryBulb, OlfactoryPlugin}, tectum::tectum::TectumPlugin, ui::{
+    }, olfactory_bulb::{ObEvent, OlfactoryBulb, OlfactoryPlugin}, sleep::SleepPlugin, tectum::tectum::TectumPlugin, ui::{
         ui_attention::UiAttentionPlugin, ui_body::{UiBodyPlugin, UiBodyTrailPlugin}, ui_body_heatmap::UiLocationHeatmapPlugin, ui_graph::UiGraphPlugin, ui_homunculus::UiHomunculusPlugin, ui_motive::{Emoji, UiMotivePlugin}, ui_peptide::UiPeptidePlugin, ui_table::UiTablePlugin, ui_world::UiWorldPlugin
     }, world::{
         OdorType, World, WorldPlugin
@@ -23,9 +23,11 @@ pub fn main() {
 
     app.plugin(TickSchedulePlugin::new().ticks(2));
 
-    world_lateral_line(&mut app);
+    //world_lateral_line(&mut app);
+    world_roam(&mut app);
 
     app.plugin(BodyPlugin::new());
+    app.plugin(SleepPlugin);
     app.plugin(BodyEatPlugin);
 
     app.plugin(HindMovePlugin);

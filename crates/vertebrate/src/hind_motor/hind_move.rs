@@ -93,11 +93,6 @@ impl HindMove {
     }
 
     #[inline]
-    pub fn send_move(&self, command: MoveCommand) {
-        self.move_commands.send(command);
-    }
-
-    #[inline]
     pub fn stop(&self) {
         self.send_move(MoveCommand::Stop);
     }
@@ -113,7 +108,17 @@ impl HindMove {
     }
 
     #[inline]
-    pub fn send_turn(&self, command: TurnCommand) {
+    pub fn avoid(&self) {
+        self.send_move(MoveCommand::Avoid);
+    }
+
+    #[inline]
+    fn send_move(&self, command: MoveCommand) {
+        self.move_commands.send(command);
+    }
+
+    #[inline]
+    pub fn turn(&self, command: TurnCommand) {
         self.turn_commands.send(command);
     }
 
@@ -154,10 +159,6 @@ impl HindMove {
             MoveCommand::Avoid => {
                 self.action_kind = self.action_kind.explore();
                 self.avoid.set_max(1.);
-            }
-            MoveCommand::Normal => {
-                self.action_kind = self.action_kind.explore();
-                self.roam.set_max(1.);
             }
             MoveCommand::Roam => {
                 self.action_kind = self.action_kind.explore();
@@ -227,24 +228,10 @@ impl HindMove {
             TurnCommand::AvoidUTurn => {
                 // self.action_kind = self.action_kind.explore();
                 self.avoid_forward.set_max(1.);
+                self.action_kind = self.action_kind.avoid_left();
+                self.action_kind = self.action_kind.avoid_right();
             }
         }
-    }
-
-    fn update(&mut self, body: &mut Body) {
-        self.action.pre_update();
-
-        if self.action_kind.is_curtail() {
-            self.action.curtail();
-        }
-
-        if self.action.is_active() {
-            return;
-        }
-
-        self.action = self.update_action();
-
-        body.set_action(self.action.kind, self.action.speed, self.action.turn);
     }
 
     fn add_avoid(&mut self, avoid_dir: DirVector) {
@@ -269,6 +256,22 @@ impl HindMove {
 
             self.seek.set_max(1.);
         }
+    }
+
+    fn update(&mut self, body: &mut Body) {
+        self.action.pre_update();
+
+        if self.action_kind.is_curtail() {
+            self.action.curtail();
+        }
+
+        if self.action.is_active() {
+            return;
+        }
+
+        self.action = self.update_action();
+
+        body.set_action(self.action.kind, self.action.speed, self.action.turn);
     }
 
     fn update_action(
@@ -355,11 +358,10 @@ impl Default for HindMove {
 }
 
 #[derive(Clone, Copy, PartialEq, Debug)] // , Event)]
-pub enum MoveCommand {
+enum MoveCommand {
     SeekRoam,
     SeekDwell,
     Avoid,
-    Normal,
     Roam,
     Dwell,
     Stop,
@@ -389,7 +391,6 @@ impl MoveCommand {
             },
             MoveCommand::Stop => 0.,
 
-            MoveCommand::Normal => todo!(),
             MoveCommand::SeekRoam => {
                 Self::ROAM_LOW
             },
@@ -406,7 +407,6 @@ impl MoveCommand {
             MoveCommand::Dwell => 0.4,
             MoveCommand::Stop => 0.,
 
-            MoveCommand::Normal => todo!(),
             MoveCommand::SeekRoam => 0.5,
             MoveCommand::SeekDwell => 0.4,
         }
@@ -417,7 +417,6 @@ impl MoveCommand {
             MoveCommand::SeekRoam => turn_angle(60., 30.),
             MoveCommand::SeekDwell => turn_angle(60., 30.),
             MoveCommand::Avoid => turn_angle(90., 30.),
-            MoveCommand::Normal => turn_angle(30., 15.),
             MoveCommand::Roam => turn_angle(30., 30.),
             MoveCommand::Dwell => turn_angle(60., 60.),
             MoveCommand::Stop => Angle::unit(0.),
@@ -429,7 +428,6 @@ impl MoveCommand {
             MoveCommand::SeekRoam => BodyAction::Seek,
             MoveCommand::SeekDwell => BodyAction::Seek,
             MoveCommand::Avoid => BodyAction::Avoid,
-            MoveCommand::Normal => BodyAction::Roam,
             MoveCommand::Roam => BodyAction::Roam,
             MoveCommand::Dwell => BodyAction::Dwell,
             MoveCommand::Stop => BodyAction::None,

@@ -1,5 +1,15 @@
 use essay_ecs::{prelude::*, core::{Local, Store, Schedule, schedule::Executors}};
 
+pub struct MindApp;
+
+impl MindApp {
+    pub fn new() -> App {
+        let mut app = App::new();
+        app.plugin(TickSchedulePlugin::new());
+        app
+    }
+}
+
 #[derive(ScheduleLabel, Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct PreTick;
 

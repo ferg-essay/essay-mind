@@ -17,7 +17,7 @@ pub struct HindEat {
 }
 
 impl HindEat {
-    pub const HALF_LIFE : HalfLife = HalfLife(0.4);
+    pub const HALF_LIFE : HalfLife = HalfLife(2.);
 
     pub fn is_eat(&self) -> bool {
         self.is_eat.value() > 0.25
@@ -113,6 +113,7 @@ fn update_hind_eat(
         return
     }
 
+    println!("Eat {}", body.get().speed());
     body_eat.eat();
     hind_eat.get_mut().is_eat.set_max(1.);
 }

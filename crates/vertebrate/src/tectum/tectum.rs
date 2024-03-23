@@ -1,6 +1,6 @@
 use essay_ecs::{core::ResMut, prelude::{App, Plugin}};
 use essay_tensor::Tensor;
-use mind_ecs::{PreTick, Tick};
+use mind_ecs::PreTick;
 
 use crate::{
     striatum::striatum::{Sense, StriatumId, StriatumSnr, StriatumStn}, tectum::nucleus_isthmi::NucleusIsthmi, util::{Angle, DecayValue}

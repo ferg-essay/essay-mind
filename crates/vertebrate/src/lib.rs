@@ -1,3 +1,4 @@
+pub mod sleep;
 pub mod tectum;
 pub mod hind_sense;
 pub mod hind_motor;

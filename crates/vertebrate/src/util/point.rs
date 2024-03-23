@@ -220,6 +220,12 @@ impl Sub<Angle> for Angle {
     }
 }
 
+impl PartialEq for Angle {
+    fn eq(&self, other: &Self) -> bool {
+        self.to_unit() == other.to_unit()
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Line(pub Point, pub Point);
 

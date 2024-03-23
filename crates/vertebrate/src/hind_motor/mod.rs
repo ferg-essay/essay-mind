@@ -2,7 +2,7 @@ mod hind_eat;
 mod hind_move;
 
 pub use hind_move::{
-    HindMove, MoveCommand, TurnCommand, HindMovePlugin,
+    HindMove, TurnCommand, HindMovePlugin,
 };
 
 pub use hind_eat::{
