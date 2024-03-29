@@ -2,8 +2,7 @@ pub mod eat;
 mod explore;
 mod motive;
 pub mod timeout;
-mod wake;
-pub mod sleep;
+pub mod wake;
 
 pub use wake::{ CoreWakePlugin, Wake };
 pub use explore::{ CoreExplorePlugin, Roam, Dwell };

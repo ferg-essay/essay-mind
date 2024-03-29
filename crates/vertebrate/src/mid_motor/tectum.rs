@@ -3,8 +3,10 @@ use essay_tensor::Tensor;
 use mind_ecs::PreTick;
 
 use crate::{
-    striatum::striatum::{Sense, StriatumId, StriatumSnr, StriatumStn}, tectum::nucleus_isthmi::NucleusIsthmi, util::{Angle, DecayValue}
+    striatum::striatum::{Sense, StriatumId, StriatumSnr, StriatumStn}, util::{Angle, DecayValue}
 };
+
+use super::nucleus_isthmi::NucleusIsthmi;
 
 pub struct TectumLocomotionStn {
     seek: TectumStnTurn,

@@ -1,7 +1,9 @@
 use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}};
 use mind_ecs::Tick;
 
-use crate::{body::Body, hind_motor::{HindMove, TurnCommand}, tectum::tectum::TectumMap, util::{Angle, DirVector, Line, Point}, world::World};
+use crate::{
+    body::Body, hind_motor::{HindMove, TurnCommand}, mid_motor::tectum::TectumMap, util::{Angle, DirVector, Line, Point}, world::World
+};
 
 fn _dist_point_line(
     p: impl Into<Point>, 

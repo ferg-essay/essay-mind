@@ -11,14 +11,16 @@ impl MotiveTrait for Roam {}
 pub struct Dwell;
 impl MotiveTrait for Dwell {}
 
-fn roam_update(
+fn explore_update(
     mut roam: ResMut<Motive<Roam>>,
+    mut dwell: ResMut<Motive<Dwell>>,
     hind_eat: Res<HindEat>,
     mid_move: Res<MidMotor>,
     wake: Res<Motive<Wake>>,
 ) {
     if hind_eat.is_eat() {
         roam.set_max(wake.value() * 0.2);
+        dwell.set_max(wake.value());
     } else {
         roam.set_max(wake.value());
     }
@@ -28,14 +30,6 @@ fn roam_update(
     }   
 }
 
-fn dwell_update(
-    dwell: Res<Motive<Dwell>>,
-) {
-    if dwell.value() > 0.1 {
-        // taxis.send(HindLocomotorEvent::Dwell);
-    }
-}
-
 pub struct CoreExplorePlugin;
 
 impl Plugin for CoreExplorePlugin {
@@ -43,7 +37,6 @@ impl Plugin for CoreExplorePlugin {
         Motives::insert::<Roam>(app, Seconds(1.));
         Motives::insert::<Dwell>(app, Seconds(4.));
 
-        app.system(Tick, roam_update);
-        app.system(Tick, dwell_update);
+        app.system(Tick, explore_update);
     }
 }

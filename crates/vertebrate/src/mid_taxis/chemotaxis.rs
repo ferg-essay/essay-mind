@@ -7,9 +7,9 @@ use mind_ecs::Tick;
 
 use crate::{
     body::Body, 
-    core_motive::{eat::Sated, Motive, MotiveTrait, Motives}, 
+    core_motive::{eat::Sated, Motive, MotiveTrait, Motives, Wake}, 
     hind_motor::{HindMove, HindMovePlugin, TurnCommand}, 
-    olfactory_bulb::{OlfactoryBulb, ObEvent}, util::{Angle, Seconds} 
+    olfactory_bulb::{ObEvent, OlfactoryBulb}, util::{Angle, Seconds} 
 };
 pub struct Seek;
 impl MotiveTrait for Seek {}
@@ -81,10 +81,15 @@ fn update_chemotaxis(
     body: Res<Body>,
     hind_move: Res<HindMove>,
     sated: Res<Motive<Sated>>,
+    wake: Res<Motive<Wake>>,
     mut taxis: ResMut<Taxis>,
     mut seek_motive: ResMut<Motive<Seek>>,
 ) {
     chemotaxis.pre_update();
+
+    if ! wake.is_active() {
+        return;
+    }
 
     if sated.is_active() {
         return;

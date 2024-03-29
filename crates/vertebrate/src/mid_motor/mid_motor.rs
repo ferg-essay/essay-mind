@@ -43,7 +43,6 @@ impl MidMotor {
                 }
             }
         }
-    
     }
 
     fn on_roam(
