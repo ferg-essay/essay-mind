@@ -110,20 +110,20 @@ impl Body {
     }
 
     #[inline]
-    pub fn set_action(&mut self, kind: BodyAction, speed: f32, turn: Angle) {
+    pub fn action(&mut self, kind: BodyAction, speed: f32, turn: Angle) {
         self.action = Action::new(kind, speed, turn);
     }
 
     #[inline]
     pub fn stop(&mut self) {
         if self.action.speed > 0. {
-            self.set_action(BodyAction::None, 0., Angle::Unit(0.))
+            self.action(BodyAction::None, 0., Angle::Unit(0.))
         }
     }
 
     #[inline]
     pub fn stop_action(&mut self, kind: BodyAction) {
-        self.set_action(kind, 0., Angle::Unit(0.))
+        self.action(kind, 0., Angle::Unit(0.))
     }
 
     pub fn eat(&mut self) {
@@ -374,7 +374,7 @@ mod test {
         assert_eq!(Point(0.5, 0.5), app.eval(|x: Res<Body>| x.pos()));
 
         app.eval(|mut x: ResMut<Body>| {
-            x.set_action(BodyAction::Roam, 1., Angle::unit(0.));
+            x.action(BodyAction::Roam, 1., Angle::unit(0.));
         });
         
         app.tick();

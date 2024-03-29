@@ -1,6 +1,5 @@
 use essay_ecs::prelude::*;
 use mind_ecs::Tick;
-use crate::body::touch::Touch;
 use crate::body::{Body, BodyAction, BodyPlugin};
 use crate::core_motive::{Motive, Wake};
 use crate::util::{Angle, DecayValue, DirVector, Command, Seconds, Ticks};
@@ -323,14 +322,12 @@ impl HindMove {
             self.action.curtail();
         }
 
-        if self.action.is_active() {
-            return;
+        if ! self.action.is_active() {
+            self.action = self.update_action(wake);
+            self.next_action = ActionKind::None;
         }
 
-        self.action = self.update_action(wake);
-        self.next_action = ActionKind::None;
-
-        body.set_action(self.action.kind, self.action.speed, self.action.turn);
+        body.action(self.action.kind, self.action.speed, self.action.turn);
     }
 
     ///
@@ -349,7 +346,6 @@ impl HindMove {
                 Action::new(BodyAction::Sleep, 1., 0., Angle::unit(0.))
             }
         } else if self.sleep.is_active() {
-            println!("Sleep");
             Action::new(BodyAction::Sleep, 1., 0., Angle::unit(0.))
         } else if self.is_last_turn {
             self.is_last_turn = false;
@@ -644,28 +640,23 @@ impl Action {
 
 fn update_hind_move(
     mut body: ResMut<Body>, 
-    mut touch_events: InEvent<Touch>,
     wake: Res<Motive<Wake>>,
-    // mut locomotor_events: InEvent<HindMoveCommand>,
-    mut hind_locomotor: ResMut<HindMove>, 
+    mut hind_move: ResMut<HindMove>, 
 ) {
-    hind_locomotor.pre_update();
+    hind_move.pre_update();
 
-    for touch in touch_events.iter() {
-        match touch {
-            Touch::CollideLeft => {
-                hind_locomotor.turn_command(TurnCommand::StrongAvoidLeft);
-            },
-            Touch::CollideRight => {
-                hind_locomotor.turn_command(TurnCommand::StrongAvoidRight);
-            },
-        }
+    if body.is_collide_left() {
+        hind_move.turn_command(TurnCommand::StrongAvoidLeft);
     }
 
-    hind_locomotor.update_turn_commands();
-    hind_locomotor.update_move_commands();
+    if body.is_collide_right() {
+        hind_move.turn_command(TurnCommand::StrongAvoidRight);
+    }
 
-    hind_locomotor.update(body.get_mut(), wake.get());
+    hind_move.update_turn_commands();
+    hind_move.update_move_commands();
+
+    hind_move.update(body.get_mut(), wake.get());
 }
 
 pub struct HindMovePlugin;

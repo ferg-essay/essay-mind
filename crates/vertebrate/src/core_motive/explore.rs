@@ -18,6 +18,10 @@ fn explore_update(
     mid_move: Res<MidMotor>,
     wake: Res<Motive<Wake>>,
 ) {
+    if ! wake.is_active() {
+        return;
+    }
+
     if hind_eat.is_eat() {
         roam.set_max(wake.value() * 0.2);
         dwell.set_max(wake.value());
@@ -25,7 +29,7 @@ fn explore_update(
         roam.set_max(wake.value());
     }
 
-    if roam.is_active() {
+    if roam.is_active() || dwell.is_active() {
         mid_move.explore();
     }   
 }
