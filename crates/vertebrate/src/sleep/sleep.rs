@@ -3,15 +3,23 @@ use mind_ecs::Tick;
 
 use crate::util::{Seconds, Ticks};
 
-pub struct Sleep {
-    wake_ticks: usize,
-    sleep_ticks: usize,
+pub struct CircadianSleep {
+    /// number of ticks in the wake phase
+    wake_ticks: usize, 
+    /// number of ticks in the sleep phase
+    sleep_ticks: usize, 
 
-    tick: usize,
-    phase: f32,
+    /// current tick in the cycle
+    tick: usize, 
+
+    /// normalized sleep/wake phase where 0.0 starts wake and 0.5 starts sleep
+    phase: f32, 
 }
 
-impl Sleep {
+impl CircadianSleep {
+    const WAKE_TIME: Seconds = Seconds(180.);
+    const SLEEP_TIME: Seconds = Seconds(30.);
+
     fn new(wake: impl Into<Ticks>, sleep: impl Into<Ticks>) -> Self {
         let wake_ticks = wake.into().ticks();
         assert!(wake_ticks > 0);
@@ -36,13 +44,13 @@ impl Sleep {
     }
 }
 
-impl Default for Sleep {
+impl Default for CircadianSleep {
     fn default() -> Self {
-        Self::new(Seconds(180.), Seconds(30.))
+        Self::new(Self::WAKE_TIME, Self::SLEEP_TIME)
     }
 }
 
-fn update_sleep(mut sleep: ResMut<Sleep>) {
+fn update_sleep(mut sleep: ResMut<CircadianSleep>) {
     sleep.tick = (sleep.tick + 1) % (sleep.wake_ticks + sleep.sleep_ticks);
 
     if sleep.tick < sleep.wake_ticks {
@@ -62,7 +70,7 @@ pub struct SleepPlugin;
 
 impl Plugin for SleepPlugin {
     fn build(&self, app: &mut App) {
-        app.init_resource::<Sleep>();
+        app.init_resource::<CircadianSleep>();
 
         app.system(Tick, update_sleep);
     }

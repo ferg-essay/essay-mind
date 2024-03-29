@@ -1,9 +1,5 @@
 use essay_ecs::prelude::*;
-use vertebrate::{
-    world::{WorldPlugin, OdorType, FloorType}, 
-    ui::{ui_graph::UiGraphPlugin, ui_peptide::UiPeptidePlugin}, 
-    body::Body, core_motive::mid_peptides::MidPeptides
-};
+use vertebrate::world::{WorldPlugin, OdorType, FloorType};
 
 pub fn world_block(app: &mut App) {
     app.plugin(
@@ -52,6 +48,7 @@ pub fn slug_world(app: &mut App) {
 }
 
 pub fn food_graph(app: &mut App, pos: (f32, f32), extent: (f32, f32)) {
+    /*
     app.plugin(UiGraphPlugin::new(pos, extent)
         .colors(["amber", "sky", "olive", "red", "green", "blue"])
         .item("ox", |p: &MidPeptides| p.explore_food())
@@ -60,9 +57,11 @@ pub fn food_graph(app: &mut App, pos: (f32, f32), extent: (f32, f32)) {
         //.item("Df", |p: &MidPeptides| p.near_food())
         .item("gl", |b: &Body| 0.) // b.eat().glucose())
     );
+    */
 }
 
 pub fn food_peptides(app: &mut App, pos: (f32, f32), extent: (f32, f32)) {
+    /*
     app.plugin(UiPeptidePlugin::new(pos, extent)
         .colors(["amber", "sky", "olive", "red", "green", "blue"])
         .item("ox", |p: &MidPeptides| p.explore_food())
@@ -71,4 +70,5 @@ pub fn food_peptides(app: &mut App, pos: (f32, f32), extent: (f32, f32)) {
         //.item("Df", |p: &MidPeptides| p.near_food())
         .item("gl", |b: &Body| 0.) // b.eat().glucose())
     );
+    */
 }

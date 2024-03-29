@@ -2,17 +2,17 @@ use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}};
 use mind_ecs::Tick;
 use crate::{body::BodyEat, mid_motor::MidMotor, util::{DecayValue, Seconds}};
 
-use super::{give_up::GiveUp, motive::{Motive, MotiveTrait, Motives}, Dwell};
+use super::{timeout::Timeout, motive::{Motive, MotiveTrait, Motives}, Dwell};
 
 struct CoreEat {
-    _persist: GiveUp,
+    _persist: Timeout,
     timeout: DecayValue,
 }
 
 impl CoreEat {
     fn new() -> Self {
         Self {
-            _persist: GiveUp::new(Seconds(4.)),
+            _persist: Timeout::new(Seconds(4.)),
             timeout: DecayValue::new(2.),
         }
     }
@@ -44,16 +44,17 @@ fn update_eat(
 
     core_eat.pre_update();
 
+    // TODO: H.l food zone should be distinct from body_eat.
     if ! sated.is_active() && body_eat.is_food_zone() {
+        // activate eating
         core_eat.add_eat();
+
         if body_eat.is_eating() {
+            // eating sets dwell mode (5HT)
             dwell.set_max(1.);
-        //} else if dwell.is_active() {
-        //    dwell.set_max(1.);
         }
 
         if ! core_eat.is_eat_timeout() {
-            // locomotor_event.send(HindLocomotorEvent::Stop);
             eat_motive.set_max(1.);
             mid_motor.eat();
         }

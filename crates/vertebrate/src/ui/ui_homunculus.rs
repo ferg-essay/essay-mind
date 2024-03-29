@@ -585,6 +585,7 @@ pub fn ui_homunculus_draw(
 
         let state = match body.action_kind() {
             BodyAction::None => Emoji::FaceThinking,
+            BodyAction::Sleep => Emoji::Sleeping, // FaceSleeping
             BodyAction::Roam => Emoji::Footprints,
             BodyAction::Dwell => Emoji::MagnifyingGlassLeft,
             BodyAction::Seek => Emoji::DirectHit,

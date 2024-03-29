@@ -2,11 +2,11 @@ use essay_ecs::prelude::{Plugin, App};
 
 use crate::util::{DecayValue, HalfLife};
 
-pub struct GiveUp {
+pub struct Timeout {
     persist: DecayValue,
 }
 
-impl GiveUp {
+impl Timeout {
     pub fn new(half_life: impl Into<HalfLife>) -> Self {
         Self {
             persist: DecayValue::new(half_life),

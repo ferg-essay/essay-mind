@@ -34,6 +34,8 @@ pub struct HindMove {
     dwell: DecayValue,
     seek: DecayValue,
 
+    sleep: DecayValue,
+
     approach_left: DecayValue,
     approach_right: DecayValue,
     approach_forward: DecayValue,
@@ -66,6 +68,7 @@ impl HindMove {
             roam: DecayValue::new(Self::HALF_LIFE),
             dwell: DecayValue::new(Self::HALF_LIFE),
             seek: DecayValue::new(Self::HALF_LIFE),
+            sleep: DecayValue::new(Self::HALF_LIFE),
 
             approach_left: DecayValue::new(Self::HALF_LIFE),
             approach_right: DecayValue::new(Self::HALF_LIFE),
@@ -127,6 +130,14 @@ impl HindMove {
     }
 
     ///
+    /// Set sleep/inhibition pressure. Represents the output of Snr.
+    /// 
+    #[inline]
+    pub fn sleep(&mut self) {
+        self.send_move(MoveCommand::Sleep);
+    }
+
+    ///
     /// Move in a roaming mode, which has few turns and higher speed.
     /// 
     #[inline]
@@ -174,6 +185,7 @@ impl HindMove {
         self.seek.update();
         self.roam.update();
         self.dwell.update();
+        self.sleep.update();
     }
 
     fn update_move_commands(&mut self) {
@@ -206,6 +218,10 @@ impl HindMove {
                 self.dwell.set_max(1.);
             }
             MoveCommand::Stop => {
+                self.action_kind = ActionKind::Stop;
+                //self.random_walk.stop();
+            }
+            MoveCommand::Sleep => {
                 self.action_kind = ActionKind::Stop;
                 //self.random_walk.stop();
             }
@@ -311,12 +327,17 @@ impl HindMove {
         body.set_action(self.action.kind, self.action.speed, self.action.turn);
     }
 
+    ///
+    /// update_action selects the next action
+    /// 
     fn update_action(
         &mut self,
     ) -> Action {
         let move_command = self.get_move();
 
         if move_command == MoveCommand::Stop {
+            Action::none()
+        } else if self.sleep.is_active() {
             Action::none()
         } else if self.is_last_turn {
             self.is_last_turn = false;
@@ -347,6 +368,9 @@ impl HindMove {
         }
     }
 
+    ///
+    /// "run" is a straight movement in a run and tumble search
+    /// 
     fn action_run(
         &mut self,
         move_command: MoveCommand,
@@ -358,6 +382,9 @@ impl HindMove {
         Action::new(move_command.body(), len, speed, Angle::Unit(0.))
     }
 
+    ///
+    /// "turn" is the turn movement in a run and tumble search
+    /// 
     fn action_turn(
         &mut self,
         move_command: MoveCommand,
@@ -401,6 +428,7 @@ enum MoveCommand {
     Avoid,
     Roam,
     Dwell,
+    Sleep,
     Stop,
 }
 
@@ -413,6 +441,8 @@ impl MoveCommand {
 
     const AVOID_LOW : f32 = 1.;
     
+    const SLEEP : f32 = 5.;
+
     const ALPHA : f32 = 2.;
 
     fn run_len(&self) -> f32 {
@@ -427,6 +457,7 @@ impl MoveCommand {
                 random_pareto(Self::DWELL_LOW, Self::DWELL_HIGH, Self::ALPHA)
             },
             MoveCommand::Stop => 0.,
+            MoveCommand::Sleep => Self::SLEEP,
 
             MoveCommand::SeekRoam => {
                 Self::ROAM_LOW
@@ -443,6 +474,7 @@ impl MoveCommand {
             MoveCommand::Avoid => 1.,
             MoveCommand::Dwell => 0.4,
             MoveCommand::Stop => 0.,
+            MoveCommand::Sleep => 0.,
 
             MoveCommand::SeekRoam => 0.5,
             MoveCommand::SeekDwell => 0.4,
@@ -457,6 +489,7 @@ impl MoveCommand {
             MoveCommand::Roam => turn_angle(30., 30.),
             MoveCommand::Dwell => turn_angle(60., 60.),
             MoveCommand::Stop => Angle::unit(0.),
+            MoveCommand::Sleep => Angle::unit(0.),
         }
     }
 
@@ -467,6 +500,7 @@ impl MoveCommand {
             MoveCommand::Avoid => BodyAction::Avoid,
             MoveCommand::Roam => BodyAction::Roam,
             MoveCommand::Dwell => BodyAction::Dwell,
+            MoveCommand::Sleep => BodyAction::Sleep,
             MoveCommand::Stop => BodyAction::None,
         }
     }

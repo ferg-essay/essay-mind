@@ -1,3 +1,3 @@
 mod sleep;
 
-pub use sleep::{Sleep, SleepPlugin, SleepState};
+pub use sleep::{CircadianSleep, SleepPlugin, SleepState};

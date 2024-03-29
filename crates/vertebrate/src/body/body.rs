@@ -247,6 +247,7 @@ impl Action {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum BodyAction {
     None,
+    Sleep,
     Roam,
     Dwell,
     Avoid,
