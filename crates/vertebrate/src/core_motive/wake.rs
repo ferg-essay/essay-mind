@@ -13,7 +13,7 @@ impl WakeState {
     fn update(&mut self) {
         self.circadian.update();
 
-        
+
     }
 }
 
@@ -33,6 +33,9 @@ pub struct CircadianWake {
 impl CircadianWake {
     const WAKE_TIME: Seconds = Seconds(180.);
     const SLEEP_TIME: Seconds = Seconds(30.);
+
+    const WAKE_DECAY: Seconds = Seconds(1.);
+    const SLEEP_DECAY: Seconds = Seconds(1.);
 
     fn new(wake: impl Into<Ticks>, sleep: impl Into<Ticks>) -> Self {
         let wake_ticks = wake.into().ticks();
@@ -84,17 +87,26 @@ pub enum CircadianState {
 
 fn wake_update(
     mut circadian: ResMut<CircadianWake>,
-    mut wake: ResMut<Motive<Wake>>
+    mut wake: ResMut<Motive<Wake>>,
+    mut sleep: ResMut<Motive<Sleep>>
 ) {
     circadian.update();
 
-    if circadian.get_state() == CircadianState::Wake {
-        wake.add(1.);
+    match circadian.get_state() {
+        CircadianState::Sleep => {
+            if ! wake.is_active() {
+                sleep.set_max(1.);
+            }
+        },
+        CircadianState::Wake => wake.set_max(1.),
     }
 }
 
 pub struct Wake;
 impl MotiveTrait for Wake {}
+
+pub struct Sleep;
+impl MotiveTrait for Sleep {}
 
 pub struct CoreWakePlugin {
     wake: Ticks,
@@ -124,7 +136,8 @@ impl CoreWakePlugin {
 
 impl Plugin for CoreWakePlugin {
     fn build(&self, app: &mut App) {
-        Motives::insert::<Wake>(app, Seconds(1.));
+        Motives::insert::<Wake>(app, CircadianWake::WAKE_DECAY);
+        Motives::insert::<Sleep>(app, CircadianWake::SLEEP_DECAY);
 
         let circadian = CircadianWake::new(self.wake, self.sleep);
 

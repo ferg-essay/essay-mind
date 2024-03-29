@@ -1,19 +1,13 @@
 use std::time::Duration;
 
-use essay_plot::api::Colors;
+use essay_plot::api::{Colors, Point};
 use vertebrate::{
-    body::{Body, BodyEatPlugin, BodyPlugin}, 
-    core_motive::{
-        eat::{CoreEatingPlugin, Eat, Sated}, 
-        CoreExplorePlugin, CoreWakePlugin, Dwell, Motive, MotiveTrait, Roam, Wake,
-    }, 
-    hind_motor::{HindEat, HindEatPlugin, HindMovePlugin}, 
-    hind_sense::lateral_line::LateralLinePlugin, 
-    mid_motor::{tectum::TectumPlugin, MidMotorPlugin}, mid_taxis::{
+    body::{Body, BodyEatPlugin, BodyPlugin}, core_motive::{
+        eat::{CoreEatingPlugin, Eat, Sated}, wake::Sleep, CoreExplorePlugin, CoreWakePlugin, Dwell, Motive, MotiveTrait, Roam, Wake
+    }, hind_motor::{HindEat, HindEatPlugin, HindMovePlugin}, hind_sense::lateral_line::LateralLinePlugin, mid_motor::{tectum::TectumPlugin, MidMotorPlugin}, mid_taxis::{
         chemotaxis::{Chemotaxis, ChemotaxisPlugin, Seek}, 
         phototaxis::Phototaxis,
-    }, olfactory_bulb::{ObEvent, OlfactoryBulb, OlfactoryPlugin}, 
-    ui::{
+    }, olfactory_bulb::{ObEvent, OlfactoryBulb, OlfactoryPlugin}, ui::{
         ui_attention::UiAttentionPlugin, 
         ui_body::{UiBodyPlugin, UiBodyTrailPlugin}, 
         ui_body_heatmap::UiLocationHeatmapPlugin, ui_graph::UiGraphPlugin, ui_homunculus::UiHomunculusPlugin, 
@@ -186,14 +180,21 @@ fn ui_eat(app: &mut App) {
         .item(|ob: &OlfactoryBulb| ob.value_pair(OdorType::FoodB))
     );
 
-    app.plugin(UiMotivePlugin::new((2.0, 1.5), (0.5, 0.5))
+    ui_motive(app, (2.0, 1.5), (0.5, 0.5));
+    app.plugin(UiHomunculusPlugin::new((2.5, 1.), (0.5, 1.)));
+}
+
+fn ui_motive(app: &mut App, xy: impl Into<Point>, wh: impl Into<Point>) {
+
+    app.plugin(UiMotivePlugin::new(xy, wh)
         .size(12.)
-        .item(Emoji::FaceGrinning, |m: &Motive<Wake>| m.value())
         .item(Emoji::Footprints, |m: &Motive<Roam>| m.value())
         .item(Emoji::MagnifyingGlassLeft, |m: &Motive<Dwell>| m.value())
         .item(Emoji::DirectHit, |m: &Motive<Seek>| m.value())
         .item(Emoji::FaceDisappointed, |m: &Motive<Dummy>| m.value())
-        .item(Emoji::FaceSleeping, |m: &Motive<Dummy>| m.value())
+        //.item(Emoji::FaceGrinning, |m: &Motive<Wake>| m.value())
+        .item(Emoji::Coffee, |m: &Motive<Wake>| m.value())
+        .item(Emoji::FaceSleeping, |m: &Motive<Sleep>| m.value())
         .row()
         .item(Emoji::ForkAndKnife, |m: &Motive<Eat>| m.value())
         .item(Emoji::Pig, |m: &Motive<Sated>| m.value())
@@ -202,8 +203,7 @@ fn ui_eat(app: &mut App) {
         .item(Emoji::Lemon, |m: &Motive<Dummy>| m.value())
         .item(Emoji::Salt, |m: &Motive<Dummy>| m.value())
         // .item(Emoji::FaceAstonished, |m: &Motive<Hunger>| m.value())
-);
-    app.plugin(UiHomunculusPlugin::new((2.5, 1.), (0.5, 1.)));
+    );
 }
 
 fn ui_eat_flat(app: &mut App) {
@@ -224,23 +224,7 @@ fn ui_eat_flat(app: &mut App) {
         .item(|ob: &OlfactoryBulb| ob.value_pair(OdorType::FoodB))
     );
 
-    app.plugin(UiMotivePlugin::new((2.0, 0.5), (0.5, 0.5))
-        .size(12.)
-        .item(Emoji::FaceGrinning, |m: &Motive<Wake>| m.value())
-        .item(Emoji::Footprints, |m: &Motive<Roam>| m.value())
-        .item(Emoji::MagnifyingGlassLeft, |m: &Motive<Dwell>| m.value())
-        .item(Emoji::DirectHit, |m: &Motive<Seek>| m.value())
-        .item(Emoji::FaceDisappointed, |m: &Motive<Dummy>| m.value())
-        .item(Emoji::FaceSleeping, |m: &Motive<Dummy>| m.value())
-        .row()
-        .item(Emoji::ForkAndKnife, |m: &Motive<Eat>| m.value())
-        .item(Emoji::Pig, |m: &Motive<Sated>| m.value())
-        .item(Emoji::Candy, |m: &Motive<Dummy>| m.value())
-        .item(Emoji::Cheese, |m: &Motive<Dummy>| m.value())
-        .item(Emoji::Lemon, |m: &Motive<Dummy>| m.value())
-        .item(Emoji::Salt, |m: &Motive<Dummy>| m.value())
-        // .item(Emoji::FaceAstonished, |m: &Motive<Hunger>| m.value())
-);
+    ui_motive(app, (2.0, 0.5), (0.5, 0.5));
     app.plugin(UiHomunculusPlugin::new((2.5, 0.), (0.5, 1.)));
 }
 

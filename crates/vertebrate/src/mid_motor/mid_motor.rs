@@ -53,8 +53,6 @@ impl MidMotor {
         // H.stn managed transition waits for eat to stop before roam
         if hind_eat.is_stop() {
             hind_motor.roam();
-        } else {
-            hind_eat.stop();
         }
     }
 
@@ -66,8 +64,6 @@ impl MidMotor {
         // H.stn managed transition waits for eat to stop before dwell
         if hind_eat.is_stop() {
             hind_motor.dwell();
-        } else {
-            hind_eat.stop();
         }
     }
 

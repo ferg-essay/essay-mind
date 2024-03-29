@@ -2,6 +2,7 @@ use essay_ecs::prelude::*;
 use mind_ecs::Tick;
 use crate::body::touch::Touch;
 use crate::body::{Body, BodyAction, BodyPlugin};
+use crate::core_motive::{Motive, Wake};
 use crate::util::{Angle, DecayValue, DirVector, Command, Seconds, Ticks};
 use util::random::{random_normal, random_pareto, random_uniform};
 
@@ -26,7 +27,7 @@ pub struct HindMove {
     move_commands: Command<MoveCommand>,
     turn_commands: Command<TurnCommand>,
 
-    action_kind: ActionKind,
+    next_action: ActionKind,
     action: Action,
 
     avoid: DecayValue,
@@ -62,7 +63,7 @@ impl HindMove {
             turn_commands: Command::new(),
 
             action: Action::none(),
-            action_kind: ActionKind::Roam,
+            next_action: ActionKind::Roam,
 
             avoid: DecayValue::new(Self::HALF_LIFE),
             roam: DecayValue::new(Self::HALF_LIFE),
@@ -118,7 +119,7 @@ impl HindMove {
 
     #[inline]
     pub fn is_stop(&self) -> bool {
-        self.action_kind == ActionKind::Stop
+        self.next_action == ActionKind::Stop
     }
 
     ///
@@ -171,7 +172,7 @@ impl HindMove {
     }
 
     fn pre_update(&mut self) {
-        self.action_kind = self.action_kind.pre_update();
+        self.next_action = self.next_action.pre_update();
 
         self.approach_left.update();
         self.approach_right.update();
@@ -198,31 +199,31 @@ impl HindMove {
         match event {
             // explore/speed modes
             MoveCommand::SeekRoam => {
-                self.action_kind = self.action_kind.explore();
+                self.next_action = self.next_action.explore();
                 self.roam.set_max(1.);
             }
             MoveCommand::SeekDwell => {
-                self.action_kind = self.action_kind.explore();
+                self.next_action = self.next_action.explore();
                 self.roam.set_max(1.);
             }
             MoveCommand::Avoid => {
-                self.action_kind = self.action_kind.explore();
+                self.next_action = self.next_action.explore();
                 self.avoid.set_max(1.);
             }
             MoveCommand::Roam => {
-                self.action_kind = self.action_kind.explore();
+                self.next_action = self.next_action.explore();
                 self.roam.set_max(1.);
             }
             MoveCommand::Dwell => {
-                self.action_kind = self.action_kind.explore();
+                self.next_action = self.next_action.explore();
                 self.dwell.set_max(1.);
             }
             MoveCommand::Stop => {
-                self.action_kind = ActionKind::Stop;
+                self.next_action = ActionKind::Stop;
                 //self.random_walk.stop();
             }
             MoveCommand::Sleep => {
-                self.action_kind = ActionKind::Stop;
+                self.next_action = ActionKind::Stop;
                 //self.random_walk.stop();
             }
         }
@@ -239,50 +240,50 @@ impl HindMove {
             // collision/escape - strong avoid events
             TurnCommand::StrongAvoidLeft => {
                 self.avoid_left.set(1.);
-                self.action_kind = self.action_kind.avoid_left();
+                self.next_action = self.next_action.avoid_left();
             }
             TurnCommand::StrongAvoidRight => {
                 self.avoid_right.set(1.);
-                self.action_kind = self.action_kind.avoid_right();
+                self.next_action = self.next_action.avoid_right();
             }
             TurnCommand::StrongAvoidBoth => {
                 self.avoid_left.set(1.);
                 self.avoid_right.set(1.);
                 self.avoid_forward.set(1.);
-                self.action_kind = self.action_kind.avoid_left();
-                self.action_kind = self.action_kind.avoid_right();
+                self.next_action = self.next_action.avoid_left();
+                self.next_action = self.next_action.avoid_right();
             }
             TurnCommand::AvoidLeft(v) => {
                 self.avoid_left.set_max(v);
 
                 if v > 0.75 {
-                    self.action_kind = self.action_kind.avoid_left();
+                    self.next_action = self.next_action.avoid_left();
                 }
             }
             TurnCommand::AvoidRight(v) => {
                 self.avoid_right.set_max(v);
 
                 if v > 0.75 {
-                    self.action_kind = self.action_kind.avoid_right();
+                    self.next_action = self.next_action.avoid_right();
                 }
             }
 
             // taxis gradient
             TurnCommand::AvoidVector(vector) => {
-                self.action_kind = self.action_kind.seek();
+                self.next_action = self.next_action.seek();
                 self.add_avoid(vector)
             },
             
             TurnCommand::ApproachVector(vector) => {
-                self.action_kind = self.action_kind.seek();
+                self.next_action = self.next_action.seek();
                 self.add_approach(vector)
             },
 
             TurnCommand::AvoidUTurn => {
                 // self.action_kind = self.action_kind.explore();
                 self.avoid_forward.set_max(1.);
-                self.action_kind = self.action_kind.avoid_left();
-                self.action_kind = self.action_kind.avoid_right();
+                self.next_action = self.next_action.avoid_left();
+                self.next_action = self.next_action.avoid_right();
             }
         }
     }
@@ -311,10 +312,14 @@ impl HindMove {
         }
     }
 
-    fn update(&mut self, body: &mut Body) {
+    fn update(
+        &mut self, 
+        body: &mut Body,
+        wake: &Motive<Wake>,
+    ) {
         self.action.pre_update();
 
-        if self.action_kind.is_curtail() {
+        if self.next_action.is_curtail() {
             self.action.curtail();
         }
 
@@ -322,7 +327,8 @@ impl HindMove {
             return;
         }
 
-        self.action = self.update_action();
+        self.action = self.update_action(wake);
+        self.next_action = ActionKind::None;
 
         body.set_action(self.action.kind, self.action.speed, self.action.turn);
     }
@@ -332,13 +338,19 @@ impl HindMove {
     /// 
     fn update_action(
         &mut self,
+        wake: &Motive<Wake>,
     ) -> Action {
         let move_command = self.get_move();
 
         if move_command == MoveCommand::Stop {
-            Action::none()
+            if wake.is_active() {
+                Action::new(BodyAction::None, 0.25, 0., Angle::unit(0.))
+            } else {
+                Action::new(BodyAction::Sleep, 1., 0., Angle::unit(0.))
+            }
         } else if self.sleep.is_active() {
-            Action::none()
+            println!("Sleep");
+            Action::new(BodyAction::Sleep, 1., 0., Angle::unit(0.))
         } else if self.is_last_turn {
             self.is_last_turn = false;
 
@@ -351,7 +363,9 @@ impl HindMove {
     }
 
     fn get_move(&self) -> MoveCommand {
-        if self.avoid.is_active() {
+        if self.next_action == ActionKind::Stop {
+            MoveCommand::Stop
+        } else if self.avoid.is_active() {
             MoveCommand::Avoid
         } else if self.seek.is_active() {
             if self.dwell.is_active() {
@@ -363,6 +377,8 @@ impl HindMove {
             MoveCommand::Dwell
         } else if self.roam.is_active() {
             MoveCommand::Roam
+        } else if self.sleep.is_active() {
+            MoveCommand::Sleep
         } else {
             MoveCommand::Stop
         }
@@ -528,6 +544,7 @@ pub enum TurnCommand {
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum ActionKind {
+    None,
     Stop,
     Roam,
     Seek,
@@ -544,27 +561,16 @@ impl ActionKind {
         }
     }
 
-    fn _body(&self) -> BodyAction {
-        match self {
-            ActionKind::Stop => BodyAction::None,
-            ActionKind::Roam => BodyAction::Roam,
-            ActionKind::Seek => BodyAction::Seek,
-            ActionKind::StrongAvoidLeft => BodyAction::Avoid,
-            ActionKind::StrongAvoidRight => BodyAction::Avoid,
-            ActionKind::StrongAvoidBoth => BodyAction::Avoid,
-        }
-    }
-
     fn explore(&self) -> Self {
         match self {
-            ActionKind::Stop => ActionKind::Roam,
+            ActionKind::None => ActionKind::Roam,
             _ => *self,
         }
     }
 
     fn seek(&self) -> Self {
         match self {
-            ActionKind::Stop => ActionKind::Seek,
+            ActionKind::None => ActionKind::Seek,
             ActionKind::Roam => ActionKind::Seek,
             _ => *self,
         }
@@ -639,6 +645,7 @@ impl Action {
 fn update_hind_move(
     mut body: ResMut<Body>, 
     mut touch_events: InEvent<Touch>,
+    wake: Res<Motive<Wake>>,
     // mut locomotor_events: InEvent<HindMoveCommand>,
     mut hind_locomotor: ResMut<HindMove>, 
 ) {
@@ -658,7 +665,7 @@ fn update_hind_move(
     hind_locomotor.update_turn_commands();
     hind_locomotor.update_move_commands();
 
-    hind_locomotor.update(body.get_mut());
+    hind_locomotor.update(body.get_mut(), wake.get());
 }
 
 pub struct HindMovePlugin;
