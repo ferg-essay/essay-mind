@@ -2,7 +2,7 @@ use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}};
 use mind_ecs::Tick;
 use crate::{body::BodyEat, mid_motor::MidMotor, util::{DecayValue, Seconds}};
 
-use super::{timeout::Timeout, motive::{Motive, MotiveTrait, Motives}, Dwell};
+use super::{motive::{Motive, MotiveTrait, Motives}, timeout::Timeout, Dwell, Wake};
 
 struct CoreEat {
     _persist: Timeout,
@@ -34,6 +34,7 @@ fn update_eat(
     mut core_eat: ResMut<CoreEat>,
     body_eat: Res<BodyEat>,
     mut eat_motive: ResMut<Motive<Eat>>,
+    wake: Res<Motive<Wake>>,
     mut dwell: ResMut<Motive<Dwell>>,
     mut sated: ResMut<Motive<Sated>>,
     mid_motor: Res<MidMotor>,
@@ -43,6 +44,10 @@ fn update_eat(
     }
 
     core_eat.pre_update();
+
+    if ! wake.is_active() {
+        return;
+    }
 
     // TODO: H.l food zone should be distinct from body_eat.
     if ! sated.is_active() && body_eat.is_food_zone() {

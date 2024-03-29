@@ -1,7 +1,7 @@
 use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}, prelude::Event};
 use mind_ecs::Tick;
 
-use crate::{core_motive::{Dwell, Motive}, hind_motor::{HindEat, HindMove}, util::Command};
+use crate::{core_motive::{Dwell, Motive, Wake}, hind_motor::{HindEat, HindMove}, util::Command};
 
 pub struct MidMotor {
     commands: Command<MidMotorEvent>,
@@ -21,6 +21,15 @@ impl MidMotor {
     #[inline]
     fn commands(&mut self) -> Vec<MidMotorEvent> {
         self.commands.drain()
+    }
+
+    fn pre_update(&mut self) {
+    }
+
+    fn clear(
+        &mut self,
+    ) {
+        self.commands();
     }
 
     fn update(
@@ -99,9 +108,16 @@ fn update_mid_motor(
     mut mid_motor: ResMut<MidMotor>,
     hind_eat: Res<HindEat>, 
     hind_move: Res<HindMove>, 
+    wake: Res<Motive<Wake>>,
     dwell: Res<Motive<Dwell>>,
 ) {
-    mid_motor.update(dwell.get(), hind_move.get(), hind_eat.get());
+    mid_motor.pre_update();
+
+    if wake.is_active() {
+        mid_motor.update(dwell.get(), hind_move.get(), hind_eat.get());
+    } else {
+        mid_motor.clear();
+    }
 }
 
 pub struct MidMotorPlugin;

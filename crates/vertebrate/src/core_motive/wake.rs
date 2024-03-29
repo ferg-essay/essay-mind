@@ -1,3 +1,5 @@
+use std::sync::atomic::{AtomicBool, Ordering};
+
 use essay_ecs::{app::{App, Plugin}, core::ResMut};
 use mind_ecs::Tick;
 
@@ -5,19 +7,53 @@ use crate::util::{Seconds, Ticks};
 
 use super::motive::{Motive, MotiveTrait, Motives};
 
-pub struct WakeState {
-    circadian: CircadianWake,
+pub struct Wake {
+    circadian: Circadian,
+
+    state: CircadianState,
+
+    active_wake: AtomicBool,
 }
 
-impl WakeState {
+impl Wake {
+    fn new(circadian: Circadian) -> Self {
+        Self {
+            circadian,
+            state: CircadianState::Wake,
+            active_wake: AtomicBool::new(false),
+        }
+    }
+
+    ///
+    /// Ongoing actions or important wake alarms override the circadian
+    /// sleep/wake
+    /// 
+    pub fn wake(&self) {
+        self.active_wake.store(true, Ordering::Relaxed);
+    }
+
+    fn get_state(&self) -> CircadianState {
+        self.state
+    }
+
     fn update(&mut self) {
         self.circadian.update();
 
+        self.state = self.circadian.get_state();
 
+        // ongoing action forces a wake state
+        if let Ok(_) = self.active_wake.compare_exchange(
+            true, 
+            false, 
+            Ordering::Relaxed, 
+            Ordering::Relaxed
+        ) {
+            self.state = CircadianState::Wake;
+        }
     }
 }
 
-pub struct CircadianWake {
+pub struct Circadian {
     /// number of ticks in the wake phase
     wake_ticks: usize, 
     /// number of ticks in the sleep phase
@@ -30,7 +66,7 @@ pub struct CircadianWake {
     phase: f32, 
 }
 
-impl CircadianWake {
+impl Circadian {
     const WAKE_TIME: Seconds = Seconds(180.);
     const SLEEP_TIME: Seconds = Seconds(30.);
 
@@ -52,7 +88,7 @@ impl CircadianWake {
         }
     }
 
-    pub fn get_state(&self) -> CircadianState {
+    fn get_state(&self) -> CircadianState {
         if self.phase < 0.5 {
             CircadianState::Wake
         } else {
@@ -72,7 +108,7 @@ impl CircadianWake {
     }
 }
 
-impl Default for CircadianWake {
+impl Default for Circadian {
     fn default() -> Self {
         Self::new(Self::WAKE_TIME, Self::SLEEP_TIME)
     }
@@ -86,7 +122,7 @@ pub enum CircadianState {
 }
 
 fn wake_update(
-    mut circadian: ResMut<CircadianWake>,
+    mut circadian: ResMut<Wake>,
     mut wake: ResMut<Motive<Wake>>,
     mut sleep: ResMut<Motive<Sleep>>
 ) {
@@ -102,7 +138,7 @@ fn wake_update(
     }
 }
 
-pub struct Wake;
+// pub struct Wake;
 impl MotiveTrait for Wake {}
 
 pub struct Sleep;
@@ -116,8 +152,8 @@ pub struct CoreWakePlugin {
 impl CoreWakePlugin {
     pub fn new() -> Self {
         Self {
-            wake: CircadianWake::WAKE_TIME.into(),
-            sleep: CircadianWake::SLEEP_TIME.into(),
+            wake: Circadian::WAKE_TIME.into(),
+            sleep: Circadian::SLEEP_TIME.into(),
         }
     }
 
@@ -136,12 +172,13 @@ impl CoreWakePlugin {
 
 impl Plugin for CoreWakePlugin {
     fn build(&self, app: &mut App) {
-        Motives::insert::<Wake>(app, CircadianWake::WAKE_DECAY);
-        Motives::insert::<Sleep>(app, CircadianWake::SLEEP_DECAY);
+        Motives::insert::<Wake>(app, Circadian::WAKE_DECAY);
+        Motives::insert::<Sleep>(app, Circadian::SLEEP_DECAY);
 
-        let circadian = CircadianWake::new(self.wake, self.sleep);
+        let circadian = Circadian::new(self.wake, self.sleep);
+        let wake = Wake::new(circadian);
 
-        app.insert_resource(circadian);
+        app.insert_resource(wake);
 
         app.system(Tick, wake_update);
     }
