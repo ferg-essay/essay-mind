@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 log = { version = "0.4.17" }
-env_logger = { version = "0.10.0" }
+env_logger = { version = "0.11" }
 essay-ecs = { path = "../../../essay-ecs" }
 #essay-ecs = { git = "https://github.com/ferg-essay/essay-ecs", version="0.1.13" }
 #essay-tensor = { git = "https://github.com/ferg-essay/essay-tensor", version="0.1.13" }
@@ -21,7 +21,6 @@ mind-macros = { path = "../macros"  }
 mind-ecs = { path = "../ecs"  }
 util = { path = "../util"  }
 test-log = { path = "../test-log" }
-
 
 [lib]
 doctest = false

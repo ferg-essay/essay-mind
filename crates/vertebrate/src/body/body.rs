@@ -9,7 +9,16 @@ use crate::util::{Angle, Point, Ticks};
 use crate::world::{World, WorldPlugin};
 
 ///
-/// Body is the locomotive core of the animal
+/// Body is the locomotive core of the animal.
+/// 
+/// The body contains a position, direction, a current action,
+/// and the state of the last collision.
+/// 
+/// Actions are movement, turn pairs and they timeout after a
+/// simulation second. Typically higher layers will refresh the action.
+/// 
+/// Movement is mildly stochastic, meaning the speed and turn direction
+/// aren't precise or perfectly predictable. 
 /// 
 pub struct Body {
     body_len: f32,

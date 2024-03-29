@@ -1,12 +1,47 @@
-use essay_ecs::{prelude::*, core::{Local, Store, Schedule, schedule::Executors}};
+use std::ops::{Deref, DerefMut};
 
-pub struct MindApp;
+use essay_ecs::{prelude::*, core::{Local, Store, Schedule, schedule::Executors}};
+use util::random::random_test;
+
+pub struct MindApp {
+    app: App
+}
 
 impl MindApp {
-    pub fn new() -> App {
+    pub fn new() -> Self {
         let mut app = App::new();
         app.plugin(TickSchedulePlugin::new());
+
+        Self {
+            app
+        }
+    }
+
+    pub fn test() -> Self {
+        let app = Self::new();
+
+        random_test();
+
         app
+    }
+
+    pub fn build(self) -> App {
+        self.app
+    }
+}
+
+impl Deref for MindApp {
+    type Target = App;
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        &self.app
+    }
+}
+
+impl DerefMut for MindApp {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.app
     }
 }
 

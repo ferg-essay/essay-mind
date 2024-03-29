@@ -1704,9 +1704,10 @@ dependencies = [
 name = "mind-ecs"
 version = "0.1.0"
 dependencies = [
- "env_logger 0.10.1",
+ "env_logger 0.11.0",
  "essay-ecs 0.1.13",
  "log",
+ "util",
 ]
 
 [[package]]
@@ -2026,9 +2027,9 @@ dependencies = [
 
 [[package]]
 name = "once_cell"
-version = "1.18.0"
+version = "1.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd8b5dd2ae5ed71462c540258bedcb51965123ad7e7ccf4b9a8cafaa4a63576d"
+checksum = "3fdb12b2476b595f9358c5161aa467c2438859caa136dec86c26fdd2efe17b92"
 
 [[package]]
 name = "orbclient"
@@ -3055,8 +3056,10 @@ dependencies = [
  "env_logger 0.11.0",
  "essay-tensor",
  "log",
+ "once_cell",
  "pollster",
  "rand",
+ "rand_chacha",
 ]
 
 [[package]]
@@ -3069,7 +3072,7 @@ checksum = "49874b5167b65d7193b8aba1567f5c7d93d001cafc34600cee003eda787e483f"
 name = "vertebrate"
 version = "0.1.17-dev"
 dependencies = [
- "env_logger 0.10.1",
+ "env_logger 0.11.0",
  "essay-ecs 0.1.13",
  "essay-plot",
  "essay-tensor",

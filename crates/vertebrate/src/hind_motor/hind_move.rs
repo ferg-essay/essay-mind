@@ -5,7 +5,23 @@ use crate::body::{Body, BodyAction, BodyPlugin};
 use crate::util::{Angle, DecayValue, DirVector, Command, Seconds, Ticks};
 use util::random::{random_normal, random_pareto, random_uniform};
 
-
+///
+/// HindMove represents hindbrain motor areas, particularly reticulospinal
+/// areas (R.rs).
+/// 
+/// Zebrafish R.rs contains Brownian search oscillators as well as 
+/// stimulus-response escape neurons (giant Mauthner cells).
+/// 
+/// HindMove actions have a time length that they execute, and will ignore
+/// higher level commands until the execution completes, simulating fish tail
+/// movement, which have a slow time period compared to fast neuron cycles.
+/// 
+/// Movement mode and turn directions are independent.
+/// 
+/// Turn directions are encoded as either approach or avoid. Avoidance 1.0
+/// is a wall next to the first. An open area is 0.0.
+/// 
+/// 
 pub struct HindMove {
     move_commands: Command<MoveCommand>,
     turn_commands: Command<TurnCommand>,
@@ -32,8 +48,8 @@ pub struct HindMove {
 impl HindMove {
     const HALF_LIFE : f32 = 0.2;
 
-    const TURN_MEAN : f32 = 60.;
-    const TURN_STD : f32 = 15.;
+    const _TURN_MEAN : f32 = 60.;
+    const _TURN_STD : f32 = 15.;
 
     const UTURN_MEAN : f32 = 160.;
     const UTURN_STD : f32 = 15.;
@@ -63,10 +79,20 @@ impl HindMove {
         }
     }
 
+    ///
+    /// Returns the strength of left avoidance, such as a wall on the left.
+    /// Returns 0 if there is nothing to avoid.
+    /// Returns 1 for a wall immediately to the left.
+    /// 
     pub fn get_avoid_left(&self) -> f32 {
         self.avoid_left.value()
     }
 
+    ///
+    /// Returns the strength of left avoidance, such as a wall on the left.
+    /// Returns 0 if there is nothing to avoid.
+    /// Returns 1 for a wall immediately to the left.
+    /// 
     pub fn get_avoid_right(&self) -> f32 {
         self.avoid_right.value()
     }
@@ -92,16 +118,27 @@ impl HindMove {
         self.action_kind == ActionKind::Stop
     }
 
+    ///
+    /// Stops any current motion, curtailing the current action.
+    /// 
     #[inline]
     pub fn stop(&self) {
         self.send_move(MoveCommand::Stop);
     }
 
+    ///
+    /// Move in a roaming mode, which has few turns and higher speed.
+    /// 
     #[inline]
     pub fn roam(&self) {
         self.send_move(MoveCommand::Roam);
     }
 
+
+    ///
+    /// Move in a dwell mode, which has many turns and lower speed, for 
+    /// area restricted search.
+    /// 
     #[inline]
     pub fn dwell(&self) {
         self.send_move(MoveCommand::Dwell);
@@ -473,7 +510,7 @@ impl ActionKind {
         }
     }
 
-    fn body(&self) -> BodyAction {
+    fn _body(&self) -> BodyAction {
         match self {
             ActionKind::Stop => BodyAction::None,
             ActionKind::Roam => BodyAction::Roam,
@@ -599,5 +636,50 @@ impl Plugin for HindMovePlugin {
         app.init_resource::<HindMove>();
 
         app.system(Tick, update_hind_move);
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use essay_ecs::core::{Res, ResMut};
+    use mind_ecs::MindApp;
+
+    use crate::{body::{Body, BodyPlugin}, hind_motor::{HindMove, HindMovePlugin}, util::Point, world::{World, WorldPlugin}};
+
+    #[test]
+    fn test_default() {
+        let mut app = MindApp::test();
+        app.plugin(WorldPlugin::new(7, 13));
+        app.plugin(BodyPlugin::new());
+        app.plugin(HindMovePlugin);
+
+        assert_eq!(Point(0.5, 0.5), app.eval(|x: Res<Body>| x.pos()));
+
+        for _ in 0..100 {
+            app.tick();
+        }
+
+        assert_eq!(Point(0.5, 0.5), app.eval(|x: Res<Body>| x.pos()));
+    }
+
+    #[test]
+    fn roam() {
+        let mut app = MindApp::new();
+        app.plugin(WorldPlugin::new(7, 13));
+        app.plugin(BodyPlugin::new());
+        app.plugin(HindMovePlugin);
+
+        assert_eq!(Point(0.5, 0.5), app.eval(|x: Res<Body>| x.pos()));
+        app.eval(|x: Res<HindMove>| x.roam());
+        assert_eq!(Point(0.5, 0.5), app.eval(|x: Res<Body>| x.pos()));
+
+        app.tick();
+        assert_eq!(Point(0.5, 0.5), app.eval(|x: Res<Body>| x.pos()));
+        app.tick();
+        assert_eq!(Point(0.49996704, 0.525), app.eval(|x: Res<Body>| x.pos()));
+        app.tick();
+        assert_eq!(Point(0.49990112, 0.5499999), app.eval(|x: Res<Body>| x.pos()));
+
+        // TODO: randomness issues with testing
     }
 }

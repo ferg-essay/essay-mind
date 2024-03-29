@@ -8,6 +8,8 @@ log = { version = "0.4.17" }
 env_logger = { version = "0.11" }
 pollster = { version = "0.3" }
 rand = { version = "0.8" }
+rand_chacha = { version = "0.3" }
+once_cell = { version = "1.19" }
 essay-tensor = { path = "../../../essay-tensor" }
 
 [lib]
