@@ -1,14 +1,18 @@
 use std::time::Duration;
 
 use essay_plot::api::Colors;
-use mind_ecs::Tick;
 use vertebrate::{
-    body::{Body, BodyEatPlugin, BodyPlugin}, core_motive::{
-        core_eat::{CoreEatingPlugin, Eat, Sated}, mid_peptides::CorePeptidesPlugin, CoreExplorePlugin, CoreWakePlugin, Dwell, Motive, MotiveTrait, Roam, Wake
+    body::{Body, BodyEatPlugin, BodyPlugin}, 
+    core_motive::{
+        eat::{CoreEatingPlugin, Eat, Sated}, 
+        CoreExplorePlugin, CoreWakePlugin, Dwell, Motive, MotiveTrait, Roam, Wake,
+        sleep::SleepPlugin, 
     }, hind_motor::{HindEat, HindEatPlugin, HindMovePlugin}, hind_sense::lateral_line::LateralLinePlugin, mid_motor::MidMotorPlugin, mid_taxis::{
         chemotaxis::{Chemotaxis, ChemotaxisPlugin, Seek}, 
         phototaxis::Phototaxis,
-    }, olfactory_bulb::{ObEvent, OlfactoryBulb, OlfactoryPlugin}, sleep::SleepPlugin, tectum::tectum::TectumPlugin, ui::{
+    }, olfactory_bulb::{ObEvent, OlfactoryBulb, OlfactoryPlugin}, 
+    tectum::tectum::TectumPlugin, 
+    ui::{
         ui_attention::UiAttentionPlugin, ui_body::{UiBodyPlugin, UiBodyTrailPlugin}, ui_body_heatmap::UiLocationHeatmapPlugin, ui_graph::UiGraphPlugin, ui_homunculus::UiHomunculusPlugin, ui_motive::{Emoji, UiMotivePlugin}, ui_peptide::UiPeptidePlugin, ui_table::UiTablePlugin, ui_world::UiWorldPlugin
     }, world::{
         OdorType, World, WorldPlugin
@@ -46,7 +50,7 @@ pub fn main() {
 
     app.plugin(CoreWakePlugin);
     app.plugin(CoreExplorePlugin);
-    app.plugin(CorePeptidesPlugin);
+    // app.plugin(CorePeptidesPlugin);
     app.plugin(CoreEatingPlugin);
 
     // app.system(Tick, dwell_olfactory);

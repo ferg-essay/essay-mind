@@ -675,10 +675,10 @@ impl Plugin for HindMovePlugin {
 
 #[cfg(test)]
 mod test {
-    use essay_ecs::core::{Res, ResMut};
+    use essay_ecs::core::Res;
     use mind_ecs::MindApp;
 
-    use crate::{body::{Body, BodyPlugin}, hind_motor::{HindMove, HindMovePlugin}, util::Point, world::{World, WorldPlugin}};
+    use crate::{body::{Body, BodyPlugin}, hind_motor::{HindMove, HindMovePlugin}, util::Point, world::WorldPlugin};
 
     #[test]
     fn test_default() {

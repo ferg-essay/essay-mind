@@ -3,7 +3,7 @@ use mind_ecs::Tick;
 
 use crate::{body::Body, hind_motor::{HindMove, TurnCommand}, tectum::tectum::TectumMap, util::{Angle, DirVector, Line, Point}, world::World};
 
-fn dist_point_line(
+fn _dist_point_line(
     p: impl Into<Point>, 
     v: impl Into<Point>, 
     w: impl Into<Point>
@@ -50,8 +50,6 @@ impl SenseArc {
         let pos = self.point + Point(dx, dy);
 
         if world.is_collide(pos) {
-            let Point(x, y) = pos;
-
             let vector = self.sense_dist(pos);
             let dir = vector.dir();// - self.dir;
             let value = (1. - vector.value()).clamp(0., 1.);

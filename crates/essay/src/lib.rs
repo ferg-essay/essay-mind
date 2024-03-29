@@ -18,7 +18,7 @@ pub fn world_place_preference(app: &mut App) {
     let w = 10;
     let h = 5;
 
-    let h1 = h / 2 - 1;
+    //let h1 = h / 2 - 1;
 
     let w1 = w / 2;
     let w2 = w1;
@@ -47,7 +47,7 @@ pub fn slug_world(app: &mut App) {
     app.plugin(world);
 }
 
-pub fn food_graph(app: &mut App, pos: (f32, f32), extent: (f32, f32)) {
+pub fn food_graph(_app: &mut App, _pos: (f32, f32), _extent: (f32, f32)) {
     /*
     app.plugin(UiGraphPlugin::new(pos, extent)
         .colors(["amber", "sky", "olive", "red", "green", "blue"])
@@ -60,7 +60,7 @@ pub fn food_graph(app: &mut App, pos: (f32, f32), extent: (f32, f32)) {
     */
 }
 
-pub fn food_peptides(app: &mut App, pos: (f32, f32), extent: (f32, f32)) {
+pub fn food_peptides(_app: &mut App, _pos: (f32, f32), _extent: (f32, f32)) {
     /*
     app.plugin(UiPeptidePlugin::new(pos, extent)
         .colors(["amber", "sky", "olive", "red", "green", "blue"])
