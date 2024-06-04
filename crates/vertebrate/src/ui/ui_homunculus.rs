@@ -6,7 +6,7 @@ use essay_plot::{
 
 use ui_graphics::{ui_layout::{BoxId, UiLayout, UiLayoutEvent}, UiCanvas, ui_canvas::UiRender};
 use crate::{
-    body::{Body, BodyAction}, hind_motor::HindMove, mid_motor::tectum::TectumMap, hab_taxis::Taxis 
+    body::{Body, BodyAction}, hind_motor::HindLevyMove, mid_motor::tectum::TectumMap, hab_taxis::Taxis 
 };
 use crate::ui::ui_world::UiWorldPlugin;
 use crate::util::Angle;
@@ -457,7 +457,7 @@ pub fn ui_homunculus_draw(
     mut ui_canvas: ResMut<UiCanvas>,
     mut ui_homunculus: ResMut<UiHomunculus>,
     body: Res<Body>,
-    hind_taxis: Res<HindMove>,
+    hind_taxis: Res<HindLevyMove>,
     taxis: Res<Taxis>,
     tectum: Res<TectumMap>,
 ) {

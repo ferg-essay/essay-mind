@@ -7,7 +7,7 @@ use mind_ecs::Tick;
 
 use crate::{
     body::Body, 
-    hind_motor::{HindMove, TurnCommand}, 
+    hind_motor::{HindLevyMove, TurnCommand}, 
     util::{Angle, DecayValue, DirVector, HalfLife, Seconds}, 
     world::World
 };
@@ -82,7 +82,7 @@ impl Default for Phototaxis {
 fn update_phototaxis(
     body: Res<Body>, 
     world: Res<World>, 
-    hind_move: Res<HindMove>,
+    hind_move: Res<HindLevyMove>,
     mut phototaxis: ResMut<Phototaxis>,
     mut taxis: ResMut<Taxis>,
 ) {

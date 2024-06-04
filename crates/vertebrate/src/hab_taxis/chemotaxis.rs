@@ -8,7 +8,7 @@ use mind_ecs::Tick;
 use crate::{
     body::Body, 
     core_motive::{eat::Sated, Motive, MotiveTrait, Motives, Wake}, 
-    hind_motor::{HindMove, HindMovePlugin, TurnCommand}, 
+    hind_motor::{HindLevyMove, HindLevyPlugin, TurnCommand}, 
     olfactory_bulb::{ObEvent, OlfactoryBulb}, util::{Angle, Seconds} 
 };
 pub struct Seek;
@@ -56,7 +56,7 @@ impl Chemotaxis {
     pub fn update(
         &mut self, 
         head_dir: Angle,
-        hind_move: &HindMove,
+        hind_move: &HindLevyMove,
         taxis: &mut ResMut<Taxis>,
         seek_motive: &mut Motive<Seek>,
     ) {
@@ -79,7 +79,7 @@ fn update_chemotaxis(
     mut chemotaxis: ResMut<Chemotaxis>,
     mut ob: InEvent<ObEvent>,
     body: Res<Body>,
-    hind_move: Res<HindMove>,
+    hind_move: Res<HindLevyMove>,
     sated: Res<Motive<Sated>>,
     wake: Res<Motive<Wake>>,
     mut taxis: ResMut<Taxis>,
@@ -110,7 +110,7 @@ pub struct ChemotaxisPlugin;
 
 impl Plugin for ChemotaxisPlugin {
     fn build(&self, app: &mut App) {
-        assert!(app.contains_plugin::<HindMovePlugin>(), "chemotaxis requires HindMovePlugin");
+        assert!(app.contains_plugin::<HindLevyPlugin>(), "chemotaxis requires HindMovePlugin");
         
         assert!(app.contains_resource::<OlfactoryBulb>(), "chemotaxis requires OlfactoryBulb");
 

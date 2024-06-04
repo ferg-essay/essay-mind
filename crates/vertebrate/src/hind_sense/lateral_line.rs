@@ -2,7 +2,7 @@ use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}};
 use mind_ecs::Tick;
 
 use crate::{
-    body::Body, hind_motor::{HindMove, TurnCommand}, mid_motor::tectum::TectumMap, util::{Angle, DirVector, Line, Point}, world::World
+    body::Body, hind_motor::{HindLevyMove, TurnCommand}, mid_motor::tectum::TectumMap, util::{Angle, DirVector, Line, Point}, world::World
 };
 
 fn _dist_point_line(
@@ -81,7 +81,7 @@ impl SenseArc {
 
     fn update_hind_move(
         &self, 
-        hind_move: &HindMove,
+        hind_move: &HindLevyMove,
     ) {
         if self.left > 0. {
             hind_move.turn(TurnCommand::AvoidLeft(self.left));
@@ -145,7 +145,7 @@ fn update_lateral_line(
     body: Res<Body>,
     world: Res<World>,
     mut tectum: ResMut<TectumMap>,
-    hind_move: ResMut<HindMove>,
+    hind_move: ResMut<HindLevyMove>,
 ) {
     // let Point(x, y) = body.pos();
 

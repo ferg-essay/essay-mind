@@ -1,3 +1,4 @@
+pub mod teg_motor;
 pub mod body;
 pub mod core_motive;
 pub mod hind_sense;

@@ -1,7 +1,7 @@
 use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}, prelude::Event};
 use mind_ecs::Tick;
 
-use crate::{core_motive::{Dwell, Motive, Wake}, hind_motor::{HindEat, HindMove}, util::Command};
+use crate::{core_motive::{Dwell, Motive, Wake}, hind_motor::{HindEat, HindLevyMove}, util::Command};
 
 pub struct MidMotor {
     commands: Command<MidMotorEvent>,
@@ -35,7 +35,7 @@ impl MidMotor {
     fn update(
         &mut self,
         dwell: &Motive<Dwell>,
-        hind_move: &HindMove,
+        hind_move: &HindLevyMove,
         hind_eat: &HindEat,
     ) {
         for event in self.commands() {
@@ -56,7 +56,7 @@ impl MidMotor {
 
     fn on_roam(
         &mut self, 
-        hind_motor: &HindMove,
+        hind_motor: &HindLevyMove,
         hind_eat: &HindEat,
     ) {
         // H.stn managed transition waits for eat to stop before roam
@@ -67,7 +67,7 @@ impl MidMotor {
 
     fn on_dwell(
         &mut self, 
-        hind_motor: &HindMove,
+        hind_motor: &HindLevyMove,
         hind_eat: &HindEat,
     ) {
         // H.stn managed transition waits for eat to stop before dwell
@@ -78,7 +78,7 @@ impl MidMotor {
 
     fn on_eat(
         &mut self, 
-        hind_motor: &HindMove,
+        hind_motor: &HindLevyMove,
         hind_eat: &HindEat,
     ) {
         // H.stn managed transition waits for movement to stop before eat
@@ -107,7 +107,7 @@ enum MidMotorEvent {
 fn update_mid_motor(
     mut mid_motor: ResMut<MidMotor>,
     hind_eat: Res<HindEat>, 
-    hind_move: Res<HindMove>, 
+    hind_move: Res<HindLevyMove>, 
     wake: Res<Motive<Wake>>,
     dwell: Res<Motive<Dwell>>,
 ) {
