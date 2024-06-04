@@ -3,7 +3,7 @@ pub mod core_motive;
 pub mod hind_sense;
 pub mod hind_motor;
 pub mod mid_motor;
-pub mod mid_taxis;
+pub mod hab_taxis;
 pub mod olfactory_bulb;
 pub mod pallidum;
 pub mod striatum;

@@ -4,7 +4,7 @@ use essay_plot::api::{Colors, Point};
 use vertebrate::{
     body::{Body, BodyEatPlugin, BodyPlugin}, core_motive::{
         eat::{CoreEatingPlugin, Eat, Sated}, wake::Sleep, CoreExplorePlugin, CoreWakePlugin, Dwell, Motive, MotiveTrait, Roam, Wake
-    }, hind_motor::{HindEat, HindEatPlugin, HindMovePlugin}, hind_sense::lateral_line::LateralLinePlugin, mid_motor::{tectum::TectumPlugin, MidMotorPlugin}, mid_taxis::{
+    }, hind_motor::{HindEat, HindEatPlugin, HindMovePlugin}, hind_sense::lateral_line::LateralLinePlugin, mid_motor::{tectum::TectumPlugin, MidMotorPlugin}, hab_taxis::{
         chemotaxis::{Chemotaxis, ChemotaxisPlugin, Seek}, 
         phototaxis::Phototaxis,
     }, olfactory_bulb::{ObEvent, OlfactoryBulb, OlfactoryPlugin}, ui::{
