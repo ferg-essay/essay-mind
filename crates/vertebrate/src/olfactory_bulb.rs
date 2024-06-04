@@ -8,10 +8,7 @@ use essay_ecs::{prelude::{Plugin, App, ResMut, Res, Event}, app::event::OutEvent
 use mind_ecs::Tick;
 
 use crate::{
-    body::Body, 
-    world::{World, OdorType}, 
-    util::{Angle, DirVector}, 
-    pallidum::basal_forebrain::{BasalForebrain, AttendId, AttendValue},
+    body::Body, pallidum::basal_forebrain::{AttendId, AttendValue, BasalForebrain}, teg_motor::TegInput, util::{Angle, DirVector}, world::{OdorType, World}
 };
 
 pub struct OlfactoryBulb {
@@ -20,6 +17,8 @@ pub struct OlfactoryBulb {
 
     glomerules: Vec<Glomerule>,
     odor_map: HashMap<OdorType, usize>,
+
+    active_odors: Vec<OdorId>,
 
     attention: BasalForebrain,
 }
@@ -30,6 +29,7 @@ impl OlfactoryBulb {
             food: None,
             avoid: None,
             glomerules: Vec::new(),
+            active_odors: Vec::new(),
             odor_map: HashMap::new(),
             attention: BasalForebrain::new(),
         }
@@ -66,13 +66,19 @@ impl OlfactoryBulb {
     fn update(&mut self) {
         self.attention.update();
 
-        for glom in &mut self.glomerules {
+        self.active_odors.clear();
+
+        for (i, glom) in self.glomerules.iter_mut().enumerate() {
             let attend_id = glom.attend_id;
             let attend = self.attention.attend(attend_id);
 
             glom.set_attend(attend);
 
             glom.update();
+
+            if glom.vector.value() > Glomerule::MIN {
+                self.active_odors.push(OdorId(i));
+            }
         }
     }
 
@@ -113,6 +119,20 @@ impl OlfactoryBulb {
     }
 }
 
+impl TegInput for OlfactoryBulb {
+    fn seek_dir(&self) -> Option<DirVector> {
+        for id in &self.active_odors {
+            let glom = &self.glomerules[id.0];
+
+            if glom.odor.is_food() {
+                return Some(glom.vector);
+            }
+        }
+
+        None
+    }
+}
+
 fn update_olfactory(
     body: Res<Body>, 
     world: Res<World>, 
@@ -126,6 +146,8 @@ fn update_olfactory(
 
     for (odor, vector) in world.odors_by_head(body.pos_head()) {
         let index = *olf_bulb.odor_map.get(&odor).unwrap();
+
+        let vector = vector.to_ego(body.head_dir());
 
         // olf_bulb.glomerules[index].odor(vector);
         olf_bulb.get_mut().update_odor(index, vector);

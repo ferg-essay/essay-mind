@@ -1,3 +1,3 @@
-mod odor_seek;
+mod teg_seek;
 
-// pub use odor_seek;
+pub use teg_seek::{TegSeek, TegInput, TegSeekPlugin};

@@ -4,10 +4,10 @@ use essay_plot::api::{Colors, Point};
 use vertebrate::{
     body::{Body, BodyEatPlugin, BodyPlugin}, core_motive::{
         eat::{CoreEatingPlugin, Eat, Sated}, wake::Sleep, CoreExplorePlugin, CoreWakePlugin, Dwell, Motive, MotiveTrait, Roam, Wake
-    }, hind_motor::{HindEat, HindEatPlugin, HindLevyPlugin}, hind_sense::lateral_line::LateralLinePlugin, mid_motor::{tectum::TectumPlugin, MidMotorPlugin}, hab_taxis::{
+    }, hab_taxis::{
         chemotaxis::{Chemotaxis, ChemotaxisPlugin, Seek}, 
         phototaxis::Phototaxis,
-    }, olfactory_bulb::{ObEvent, OlfactoryBulb, OlfactoryPlugin}, ui::{
+    }, hind_motor::{HindEat, HindEatPlugin, HindLevyPlugin, HindMovePlugin}, hind_sense::lateral_line::LateralLinePlugin, mid_motor::{tectum::TectumPlugin, MidMotorPlugin}, olfactory_bulb::{ObEvent, OlfactoryBulb, OlfactoryPlugin}, teg_motor::TegSeekPlugin, ui::{
         ui_attention::UiAttentionPlugin, 
         ui_body::{UiBodyPlugin, UiBodyTrailPlugin}, 
         ui_body_heatmap::UiLocationHeatmapPlugin, ui_graph::UiGraphPlugin, ui_homunculus::UiHomunculusPlugin, 
@@ -33,6 +33,7 @@ pub fn main() {
     app.plugin(BodyEatPlugin);
 
     app.plugin(HindLevyPlugin);
+    app.plugin(HindMovePlugin);
     app.plugin(HindEatPlugin);
 
     app.plugin(OlfactoryPlugin::new()
@@ -41,7 +42,8 @@ pub fn main() {
     );
 
     app.plugin(TectumPlugin::new().striatum());
-    app.plugin(ChemotaxisPlugin);
+    // app.plugin(ChemotaxisPlugin);
+    app.plugin(TegSeekPlugin::<OlfactoryBulb>::new());
     app.plugin(LateralLinePlugin);
 
     app.plugin(MidMotorPlugin);

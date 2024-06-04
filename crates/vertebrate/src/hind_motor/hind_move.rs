@@ -168,16 +168,14 @@ impl HindMove {
 
         self.update_commands();
 
-        if self.next_action.is_curtail() {
-            self.action.curtail();
-        }
-
         if ! self.action.is_active() {
             self.action = self.update_action(wake);
             self.next_action = ActionKind::None;
         }
 
-        body.action(self.action.kind, self.action.speed, self.action.turn);
+        if self.action.is_active() {
+            body.action(self.action.kind, self.action.speed, self.action.turn);
+        }
     }
 
     ///
@@ -188,29 +186,28 @@ impl HindMove {
         wake: &Motive<Wake>,
     ) -> Action {
         if ! wake.is_active() {
-            self.sleep.set(1.);
+            return Action::none();
         }
 
-        if self.sleep.is_active() {
-            return Action::new(BodyAction::Sleep, 1., 0., Angle::unit(0.));
-        } 
-
-        let mut forward = self.left_brake.value();
+        let mut forward = self.forward.value();
 
         let mut left = self.left_brake.value();
         let mut right = self.right_brake.value();
         let brake = left.min(right);
+
+        if forward > 0. {
+        }
 
         forward -= brake;
         left -= brake;
         right -= brake;
 
         if forward <= 0. {
-            Action::new(BodyAction::None, 1., 0., Angle::unit(0.))
+            Action::none()
         } else if left > 0. {
-            Action::new(BodyAction::Roam, 1., forward, Angle::unit(-0.25 * left))
+            Action::new(BodyAction::Roam, 0.2, forward, Angle::unit(-0.25 * left))
         } else {
-            Action::new(BodyAction::Roam, 1., forward, Angle::unit(-0.25 * right))
+            Action::new(BodyAction::Roam, 0.2, forward, Angle::unit(0.25 * right))
         }
     }
 }
@@ -247,6 +244,7 @@ impl TimeoutValue {
         } else {
             self.value = value;
         }
+        self.timeout.set(1.);
     }
 
     fn value(&self) -> f32 {
