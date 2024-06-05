@@ -189,17 +189,6 @@ impl UiMotiveItem {
         }
     }
 }
-/*
-impl Clone for UiMotiveItem {
-    fn clone(&self) -> Self {
-        Self { 
-            emoji: self.emoji.clone(),
-            value: 0.,
-            colormap: self.colormap.clone(),
-        }
-    }
-}
-*/
 
 //
 // UiMotivePlugin
@@ -348,7 +337,7 @@ impl Plugin for UiMotivePlugin {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum Emoji {
     AnatomicalHeart,
     Bandage,

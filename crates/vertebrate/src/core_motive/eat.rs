@@ -37,6 +37,7 @@ fn update_eat(
     wake: Res<Motive<Wake>>,
     mut dwell: ResMut<Motive<Dwell>>,
     mut sated: ResMut<Motive<Sated>>,
+    mut food_seek: ResMut<Motive<FoodSearch>>,
     mid_motor: Res<MidMotor>,
 ) {
     if body_eat.glucose() > 0.75 || body_eat.glucose() > 0.25 && sated.is_active() {
@@ -45,12 +46,14 @@ fn update_eat(
 
     core_eat.pre_update();
 
-    if ! wake.is_active() {
+    if ! wake.is_active() || sated.is_active() {
         return;
     }
 
     // TODO: H.l food zone should be distinct from body_eat.
-    if ! sated.is_active() && body_eat.is_food_zone() {
+    if body_eat.is_food_zone() {
+        food_seek.clear();
+
         // activate eating
         core_eat.add_eat();
 
@@ -63,6 +66,8 @@ fn update_eat(
             eat_motive.set_max(1.);
             mid_motor.eat();
         }
+    } else {
+        food_seek.set_max(1.);
     }
 }
 pub struct Eat;
@@ -70,6 +75,9 @@ impl MotiveTrait for Eat {}
 
 pub struct Sated;
 impl MotiveTrait for Sated {}
+
+pub struct FoodSearch;
+impl MotiveTrait for FoodSearch {}
 
 pub struct CoreEatingPlugin;
 
@@ -79,6 +87,7 @@ impl Plugin for CoreEatingPlugin {
         app.insert_resource(feeding);
 
         Motives::insert::<Eat>(app, Seconds(1.));
+        Motives::insert::<FoodSearch>(app, Seconds(0.1));
         Motives::insert::<Sated>(app, Seconds(5.));
 
         app.system(Tick, update_eat);

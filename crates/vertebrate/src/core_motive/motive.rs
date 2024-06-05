@@ -9,6 +9,7 @@ pub struct Motive<T: MotiveTrait> {
 
     delta: f32,
     max: f32,
+    is_clear: bool,
     threshold: f32,
 
     marker: PhantomData<T>,
@@ -20,6 +21,7 @@ impl<T: MotiveTrait> Motive<T> {
             value: DecayValue::new(half_life),
             delta: 0.,
             max: 0.,
+            is_clear: false,
             threshold: 0.125,
             marker: Default::default(),
         }
@@ -28,11 +30,18 @@ impl<T: MotiveTrait> Motive<T> {
     fn update(&mut self) {
         self.value.update();
         self.value.add(self.delta);
+
         if self.max > 0. {
             self.value.set_max(self.max);
         }
+
+        if self.is_clear {
+            self.value.set(0.);
+        }
+
         self.delta = 0.;
         self.max = 0.;
+        self.is_clear = false;
     }
 
     #[inline]
@@ -43,6 +52,11 @@ impl<T: MotiveTrait> Motive<T> {
     #[inline]
     pub fn set_max(&mut self, value: f32) {
         self.max = value;
+    }
+
+    #[inline]
+    pub fn clear(&mut self) {
+        self.is_clear = true;
     }
 
     #[inline]

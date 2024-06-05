@@ -3,7 +3,7 @@ use std::time::Duration;
 use essay_plot::api::{Colors, Point};
 use vertebrate::{
     body::{Body, BodyEatPlugin, BodyPlugin}, core_motive::{
-        eat::{CoreEatingPlugin, Eat, Sated}, wake::Sleep, CoreExplorePlugin, CoreWakePlugin, Dwell, Motive, MotiveTrait, Roam, Wake
+        eat::{CoreEatingPlugin, Eat, FoodSearch, Sated}, wake::Sleep, CoreExplorePlugin, CoreWakePlugin, Dwell, Motive, MotiveTrait, Roam, Wake
     }, hab_taxis::{
         chemotaxis::{Chemotaxis, ChemotaxisPlugin, Seek}, 
         phototaxis::Phototaxis,
@@ -43,7 +43,7 @@ pub fn main() {
 
     app.plugin(TectumPlugin::new().striatum());
     // app.plugin(ChemotaxisPlugin);
-    app.plugin(TegSeekPlugin::<OlfactoryBulb>::new());
+    app.plugin(TegSeekPlugin::<OlfactoryBulb, FoodSearch>::new());
     app.plugin(LateralLinePlugin);
 
     app.plugin(MidMotorPlugin);
@@ -201,7 +201,7 @@ fn ui_motive(app: &mut App, xy: impl Into<Point>, wh: impl Into<Point>) {
         .item(Emoji::ForkAndKnife, |m: &Motive<Eat>| m.value())
         .item(Emoji::Pig, |m: &Motive<Sated>| m.value())
         .item(Emoji::Candy, |m: &Motive<Dummy>| m.value())
-        .item(Emoji::Cheese, |m: &Motive<Dummy>| m.value())
+        .item(Emoji::Cheese, |m: &Motive<FoodSearch>| m.value())
         .item(Emoji::Lemon, |m: &Motive<Dummy>| m.value())
         .item(Emoji::Salt, |m: &Motive<Dummy>| m.value())
         // .item(Emoji::FaceAstonished, |m: &Motive<Hunger>| m.value())
@@ -227,7 +227,14 @@ fn ui_eat_flat(app: &mut App) {
     );
 
     ui_motive(app, (2.0, 0.5), (0.5, 0.5));
-    app.plugin(UiHomunculusPlugin::new((2.5, 0.), (0.5, 1.)));
+    
+    app.plugin(UiHomunculusPlugin::new((2.5, 0.), (0.5, 1.))
+        .item(Emoji::ForkAndKnife, |m: &Motive<Eat>| m.is_active())
+        .item(Emoji::DirectHit, |m: &Motive<Seek>| m.is_active())
+        .item(Emoji::MagnifyingGlassLeft, |m: &Motive<Dwell>| m.is_active())
+        .item(Emoji::Footprints, |m: &Motive<Roam>| m.is_active())
+        .item(Emoji::FaceSleeping, |m: &Motive<Sleep>| m.is_active())
+    );
 }
 
 

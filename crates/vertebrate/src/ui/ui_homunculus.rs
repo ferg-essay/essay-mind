@@ -1,3 +1,5 @@
+use std::cell::RefCell;
+
 use essay_ecs::prelude::*;
 use essay_plot::{
     prelude::*, 
@@ -29,6 +31,9 @@ pub struct UiHomunculus {
 
     emoji: Option<FontTypeId>,
     emoji_pos: Point,
+
+    next_emoji: Emoji,
+    next_emoji_id: usize,
 
     colors: ColorMap,
     _head_dir_colors: ColorMap,
@@ -67,6 +72,9 @@ impl UiHomunculus {
             emoji: None,
             emoji_pos: Point(100., 100.),
 
+            next_emoji: Emoji::FaceThinking,
+            next_emoji_id: usize::MAX,
+
             colors: sensorimotor_colormap(),
             _head_dir_colors: head_colormap(),
             _avoid_colors: avoid_colormap(),
@@ -98,6 +106,13 @@ impl UiHomunculus {
 
     pub fn clip(&self) -> &Clip {
         &self.clip
+    }
+
+    fn emoji(&mut self, id: usize, emoji: Emoji) {
+        if id < self.next_emoji_id {
+            self.next_emoji = emoji;
+            self.next_emoji_id = id;
+        }
     }
 }
 
@@ -534,28 +549,6 @@ pub fn ui_homunculus_draw(
             ui.draw_path(&paths.u_turn, &style);
         }
 
-        /*
-        let left_delta = hind_taxis.get_left_delta();
-
-        if left_delta != 0.5 {
-            let color = ui_homunculus.colors.map(left_delta);
-
-            style.edge_color(color);
-            style.face_color(color);
-            ui.draw_path(&paths.ss_ll, &style);
-        }
-
-        let right_delta = hind_taxis.get_right_delta();
-
-        if right_delta != 0.5 {
-            let color = ui_homunculus.colors.map(right_delta);
-
-            style.edge_color(color);
-            style.face_color(color);
-            ui.draw_path(&paths.ss_lr, &style);
-        }
-        */
-
         let n = ui_homunculus.head_dir.paths.len();
 
         let value = 0.75;
@@ -585,15 +578,9 @@ pub fn ui_homunculus_draw(
         text_style.size(14.);
         text_style.font(ui_homunculus.emoji.unwrap());
 
-        let state = match body.action_kind() {
-            BodyAction::None => Emoji::FaceThinking,
-            BodyAction::Sleep => Emoji::Sleeping, // FaceSleeping
-            BodyAction::Roam => Emoji::Footprints,
-            BodyAction::Dwell => Emoji::MagnifyingGlassLeft,
-            BodyAction::Seek => Emoji::DirectHit,
-            BodyAction::Avoid => Emoji::FaceAstonished,
-            BodyAction::Eat => Emoji::ForkAndKnife,
-        };
+        let state = ui_homunculus.next_emoji;
+        ui_homunculus.next_emoji = Emoji::FaceThinking;
+        ui_homunculus.next_emoji_id = usize::MAX;
 
         //let crab = "\u{1f980}";
         // graph.text((0.5, 0.5), "\u{1f980}\u{1f990}").family(family).color("red");
@@ -612,6 +599,8 @@ pub fn ui_homunculus_draw(
 
 pub struct UiHomunculusPlugin {
     bounds: Bounds::<UiLayout>,
+
+    emoji_items: Vec<Box<dyn PluginItem>>,
 }
 
 impl UiHomunculusPlugin {
@@ -621,7 +610,51 @@ impl UiHomunculusPlugin {
 
         Self {
             bounds: Bounds::new(xy, (xy.0 + wh.0, xy.1 + wh.1)),
+            emoji_items: Vec::new(),
         }
+    }
+
+    pub fn item<T>(
+        mut self, 
+        emoji: Emoji,
+        fun: impl Fn(&T) -> bool + Send + Sync + 'static
+    ) -> Self
+    where T: Default + Send + Sync + 'static
+    {
+        // let i = self.items.len();
+
+        self.emoji_items.push(Box::new(Item {
+            emoji,
+            fun: RefCell::new(Some(Box::new(fun)))
+        }));
+
+        self
+    }
+}
+
+struct Item<T: Send + Sync + 'static> {
+    emoji: Emoji,
+    fun: RefCell<Option<Box<dyn Fn(&T) -> bool + Send + Sync + 'static>>>,
+}
+
+trait PluginItem {
+    fn system(&self, id: usize, app: &mut App);
+}
+
+impl<T: Default + Send + Sync + 'static> PluginItem for Item<T> {
+    fn system(&self, id: usize, app: &mut App) {
+        app.init_resource::<T>();
+
+        let fun = self.fun.take().unwrap();
+        let emoji = self.emoji;
+
+        app.system(PostUpdate, 
+            move |mut hom: ResMut<UiHomunculus>, item: Res<T>| {
+                if fun(item.get()) {
+                    hom.emoji(id, emoji);
+                }
+            }
+        );
     }
 }
 
@@ -635,6 +668,11 @@ impl Plugin for UiHomunculusPlugin {
             app.init_resource::<Taxis>();
 
             app.insert_resource(ui_homunculus);
+
+            for (i, item) in self.emoji_items.iter().enumerate() {
+                item.system(i, app);
+
+            }
 
             app.system(PreUpdate, ui_homunculus_resize);
             app.system(Update, ui_homunculus_draw);
