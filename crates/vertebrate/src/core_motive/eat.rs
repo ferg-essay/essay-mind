@@ -59,7 +59,11 @@ fn update_eat(
 
         if body_eat.is_eating() {
             // eating sets dwell mode (5HT)
-            dwell.set_max(1.);
+            if ! sated.is_active() {
+                dwell.set_max(1.);
+            } else {
+                dwell.clear();
+            }
         }
 
         if ! core_eat.is_eat_timeout() {

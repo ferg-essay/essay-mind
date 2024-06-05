@@ -4,8 +4,10 @@ pub struct DecayValue {
     decay: f32,
     fill: f32,
     threshold: f32,
+    rest_value: f32,
 
     value: f32,
+    last_ticks: u64,
 }
 
 impl DecayValue {
@@ -19,7 +21,9 @@ impl DecayValue {
             decay,
             fill: 1. - decay,
             threshold: 0.25,
+            rest_value: 0.,
             value: 0.,
+            last_ticks: 0,
         }
     }
 
@@ -47,8 +51,22 @@ impl DecayValue {
     }
 
     #[inline]
-    pub fn set_threshold(&mut self, threshold: f32) {
-        self.threshold = threshold
+    pub fn set_threshold(&mut self, threshold: f32) -> &mut Self {
+        self.threshold = threshold;
+
+        self
+    }
+
+    #[inline]
+    pub fn rest_value(&self) -> f32 {
+        self.rest_value
+    }
+
+    #[inline]
+    pub fn set_rest_value(mut self, value: f32) -> Self {
+        self.rest_value = value;
+
+        self
     }
 
     #[inline]
@@ -84,7 +102,18 @@ impl DecayValue {
 
     #[inline]
     pub fn update(&mut self) {
-        self.value = self.value * self.decay;
+        self.value = (self.value - self.rest_value) * self.decay + self.rest_value;
+        self.last_ticks += 1;
+    }
+
+    #[inline]
+    pub fn update_ticks(&mut self, ticks: u64) {
+        let delta_ticks = ticks - self.last_ticks;
+        self.last_ticks = ticks;
+
+        let decay = self.decay.powi(delta_ticks as i32);
+
+        self.value = (self.value - self.rest_value) * decay + self.rest_value;
     }
 
     #[inline]

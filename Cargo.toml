@@ -25,7 +25,7 @@ ui-graphics = { path = "./crates/ui-graphics" }
 ui-audio = { path = "./crates/ui-audio" }
 test-log = { path = "./crates/test-log" }
 audio = { path = "./crates/audio" }
-mind = { path = "./crates/mind" }
+#mind = { path = "./crates/mind" }
 mind-ecs = { path = "./crates/ecs" }
 essay = { path = "./crates/essay" }
 vertebrate = { path = "./crates/vertebrate" }
