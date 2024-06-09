@@ -11,8 +11,12 @@ use crate::{
     hind_motor::{HindLevyMove, HindLevyPlugin, TurnCommand}, 
     olfactory_bulb::{ObEvent, OlfactoryBulb}, util::{Angle, Seconds} 
 };
+
 pub struct Seek;
 impl MotiveTrait for Seek {}
+
+pub struct Avoid;
+impl MotiveTrait for Avoid {}
 
 
 use super::{habenula_seek::HabenulaSeekItem, Taxis};

@@ -5,7 +5,7 @@ use vertebrate::{
     body::{Body, BodyEatPlugin, BodyPlugin}, core_motive::{
         eat::{CoreEatingPlugin, Eat, FoodSearch, Sated}, wake::Sleep, CoreExplorePlugin, CoreWakePlugin, Dwell, Motive, MotiveTrait, Roam, Wake
     }, hab_taxis::{
-        chemotaxis::{Chemotaxis, ChemotaxisPlugin, Seek}, 
+        chemotaxis::{Avoid, Chemotaxis, ChemotaxisPlugin, Seek}, 
         phototaxis::Phototaxis,
     }, hind_motor::{HindEat, HindEatPlugin, HindLevyPlugin, HindMovePlugin}, hind_sense::lateral_line::LateralLinePlugin, mid_motor::{tectum::TectumPlugin, MidMotorPlugin}, olfactory_bulb::{ObEvent, OlfactoryBulb, OlfactoryPlugin}, teg_motor::TegSeekPlugin, ui::{
         ui_attention::UiAttentionPlugin, 
@@ -131,7 +131,7 @@ pub fn world_roam(app: &mut App) {
 
 pub fn world_food_and_non_food(app: &mut App) {
     let w = 21;
-    let h = 11;
+    let h = 15;
 
     let h1 = h / 2 - 1;
 
@@ -213,6 +213,7 @@ fn ui_motive(app: &mut App, xy: impl Into<Point>, wh: impl Into<Point>) {
         .item(Emoji::Footprints, |m: &Motive<Roam>| m.value())
         .item(Emoji::MagnifyingGlassLeft, |m: &Motive<Dwell>| m.value())
         .item(Emoji::DirectHit, |m: &Motive<Seek>| m.value())
+        .item(Emoji::NoEntry, |m: &Motive<Avoid>| m.value())
         .item(Emoji::FaceDisappointed, |m: &Motive<Dummy>| m.value())
         //.item(Emoji::FaceGrinning, |m: &Motive<Wake>| m.value())
         .item(Emoji::Coffee, |m: &Motive<Wake>| m.value())
@@ -248,9 +249,10 @@ fn ui_eat_flat(app: &mut App) {
 
     ui_motive(app, (2.0, 0.5), (0.5, 0.5));
     
-    app.plugin(UiHomunculusPlugin::new((2.5, 0.), (0.5, 1.))
+    app.plugin(UiHomunculusPlugin::new((2.5, 0.5), (0.5, 0.5))
         .item(Emoji::ForkAndKnife, |m: &Motive<Eat>| m.is_active())
         .item(Emoji::DirectHit, |m: &Motive<Seek>| m.is_active())
+        .item(Emoji::NoEntry, |m: &Motive<Avoid>| m.is_active())
         .item(Emoji::MagnifyingGlassLeft, |m: &Motive<Dwell>| m.is_active())
         .item(Emoji::Footprints, |m: &Motive<Roam>| m.is_active())
         .item(Emoji::FaceSleeping, |m: &Motive<Sleep>| m.is_active())
