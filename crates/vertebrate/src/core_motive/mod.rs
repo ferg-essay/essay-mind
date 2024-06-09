@@ -1,9 +1,8 @@
-pub mod core_eat;
+pub mod eat;
 mod explore;
-pub mod mid_peptides;
 mod motive;
-pub mod give_up;
-mod wake;
+pub mod timeout;
+pub mod wake;
 
 pub use wake::{ CoreWakePlugin, Wake };
 pub use explore::{ CoreExplorePlugin, Roam, Dwell };

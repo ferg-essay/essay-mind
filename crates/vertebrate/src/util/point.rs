@@ -1,5 +1,4 @@
-use std::f32::consts::TAU;
-
+use std::{f32::consts::TAU, ops::{Add, Mul, Sub}};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Point(pub f32, pub f32);
@@ -33,15 +32,50 @@ impl Point {
     }
 
     #[inline]
-    pub fn dist(&self, p: &Point) -> f32 {
+    pub fn dist(&self, p: impl Into<Point>) -> f32 {
+        let p = p.into();
+
         let dx = self.0 - p.0;
         let dy = self.1 - p.1;
 
         dx.hypot(dy)
     }
 
+    #[inline]
+    pub fn dist_square(&self, p: impl Into<Point>) -> f32 {
+        let p = p.into();
+
+        let dx = self.0 - p.0;
+        let dy = self.1 - p.1;
+
+        dx * dx + dy * dy
+    }
+
+    #[inline]
+    pub fn dot(&self, p: impl Into<Point>) -> f32 {
+        let p = p.into();
+
+        self.0 * p.0 + self.1 * p.1
+    }
+
+    #[inline]
     pub fn angle_to(&self, pos: Point) -> Angle {
         Angle::Rad((pos.x() - self.x()).atan2(pos.y() - self.y()))
+    }
+
+    #[inline]
+    pub fn tri_det(&self, b: impl Into<Point>, c: impl Into<Point>) -> f32 {
+        let b = b.into();
+        let c = c.into();
+
+        self.0 * (b.1 - c.1) + b.0 * (c.1 - self.1) + c.0 * (self.1 - b.1)
+    }
+}
+
+impl From<&Point> for Point {
+    #[inline]
+    fn from(value: &Point) -> Self {
+        value.clone()
     }
 }
 
@@ -63,6 +97,33 @@ impl From<&[f32; 2]> for Point {
     #[inline]
     fn from(value: &[f32; 2]) -> Self {
         Point(value[0], value[1])
+    }
+}
+
+impl Add<Point> for Point {
+    type Output = Point;
+
+    #[inline]
+    fn add(self, rhs: Point) -> Self::Output {
+        Point(self.0 + rhs.0, self.1 + rhs.1)
+    }
+}
+
+impl Sub<Point> for Point {
+    type Output = Point;
+
+    #[inline]
+    fn sub(self, rhs: Point) -> Self::Output {
+        Point(self.0 - rhs.0, self.1 - rhs.1)
+    }
+}
+
+impl Mul<Point> for f32 {
+    type Output = Point;
+
+    #[inline]
+    fn mul(self, rhs: Point) -> Self::Output {
+        Point(self * rhs.0, self * rhs.1)
     }
 }
 
@@ -143,11 +204,89 @@ impl From<f32> for Angle {
     }
 }
 
+impl Add<Angle> for Angle {
+    type Output = Angle;
+
+    fn add(self, rhs: Angle) -> Self::Output {
+        Angle::unit(self.to_unit() + rhs.to_unit())
+    }
+}
+
+impl Sub<Angle> for Angle {
+    type Output = Angle;
+
+    fn sub(self, rhs: Angle) -> Self::Output {
+        Angle::unit(self.to_unit() - rhs.to_unit())
+    }
+}
+
+impl PartialEq for Angle {
+    fn eq(&self, other: &Self) -> bool {
+        self.to_unit() == other.to_unit()
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Line(pub Point, pub Point);
+
+impl Line {
+    #[inline]
+    pub fn len(&self) -> f32 {
+        self.0.dist(self.1)
+    }
+
+    #[inline]
+    pub fn len_square(&self) -> f32 {
+        self.0.dist_square(self.1)
+    }
+
+    #[inline]
+    pub fn vector(&self) -> Point {
+        self.1 - self.0
+    }
+
+    #[inline]
+    pub fn dist_point(&self, p: impl Into<Point>) -> f32 {
+        let p = p.into();
+
+        p.dist(self.projection(p))
+    }
+
+    #[inline]
+    pub fn projection(&self, p: impl Into<Point>) -> Point {
+        let p = p.into();
+        let v = self.0;
+        let w = self.1;
+    
+        let l2 = v.dist_square(w);
+
+        if l2 == 0. {
+            return v
+        }
+
+        let t = ((p - v).dot(w - v) / l2).clamp(0., 1.);
+
+        v + t * (w - v)
+    }
+
+    #[inline]
+    pub fn tri_det(&self, p: impl Into<Point>) -> f32 {
+        self.0.tri_det(self.1, p.into())
+    }
+}
+
+impl From<(Point, Point)> for Line {
+    #[inline]
+    fn from(value: (Point, Point)) -> Self {
+        Line(value.0, value.1)
+    }
+}
+
 #[cfg(test)]
 mod test {
     use std::f32::consts::TAU;
 
-    use super::Angle;
+    use super::{Angle, Point};
 
     #[test]
     fn unit_angle() {
@@ -181,6 +320,19 @@ mod test {
         assert_feq(Angle::Deg(90.).to_radians(), 1e-6);
         assert_feq(Angle::Deg(180.).to_radians(), 0.75 * TAU);
         assert_feq(Angle::Deg(270.).to_radians(), 0.5 * TAU);
+    }
+
+    #[test]
+    fn point_tri_det() {
+        assert_feq(Point(0., 0.).tri_det((0., 1.), (1., 0.)), -1.);
+
+        assert_feq(Point(0., 0.).tri_det((0., 1.), (-1., 0.)), 1.);
+
+        assert_feq(Point(0., 1.).tri_det((0., 0.), (1., 0.)), 1.);
+
+        assert_feq(Point(0., 1.).tri_det((0., 0.), (-1., 0.)), -1.);
+
+        assert_feq(Point(0., 0.).tri_det((0., 1.), (0., 10.)), 0.);
     }
 
     fn assert_feq(left: f32, right: f32) {

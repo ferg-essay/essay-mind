@@ -5,8 +5,9 @@ edition = "2021"
 
 [dependencies]
 log = { version = "0.4.17" }
-env_logger = { version = "0.10.0" }
+env_logger = { version = "0.11" }
 essay-ecs = { path = "../../../essay-ecs" }
+util = { path = "../util" }
 #essay-ecs = { git = "https://github.com/ferg-essay/essay-ecs", version="0.1.13" }
 
 [lib]

@@ -4,7 +4,7 @@ use essay_ecs::prelude::*;
 use essay_plot::{prelude::*, artist::{paths::{self, Unit}, PathStyle, ColorMap, ColorMaps}};
 use ui_graphics::{ui_layout::{UiLayout, UiLayoutEvent, BoxId, UiLayoutPlugin}, UiCanvas, UiCanvasPlugin};
 
-use crate::{core_motive::mid_peptides::CorePeptidesPlugin, pallidum::basal_forebrain::AttendValue};
+use crate::pallidum::basal_forebrain::AttendValue;
 
 #[derive(Component)]
 pub struct UiAttention {
@@ -188,7 +188,7 @@ impl UiAttentionPlugin {
 impl Plugin for UiAttentionPlugin {
     fn build(&self, app: &mut App) {
         if app.contains_plugin::<UiCanvasPlugin>() {
-            assert!(app.contains_plugin::<CorePeptidesPlugin>());
+            //assert!(app.contains_plugin::<CorePeptidesPlugin>());
 
             if ! app.contains_plugin::<UiLayoutPlugin>() {
                 app.plugin(UiLayoutPlugin);

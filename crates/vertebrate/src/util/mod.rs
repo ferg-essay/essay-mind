@@ -9,5 +9,5 @@ pub use decay_value::DecayValue;
 pub use dir_vector::DirVector;
 pub use dir_gradient::DirGradient;
 pub use command::Command;
-pub use point::{Point, Angle};
-pub use ticks::{Ticks, Seconds, HalfLife};
+pub use point::{Point, Angle, Line};
+pub use ticks::{Ticks, TickDelta, Seconds, HalfLife};

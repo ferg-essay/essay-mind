@@ -1,11 +1,13 @@
-pub mod hind_motor;
+pub mod teg_motor;
 pub mod body;
-pub mod olfactory_bulb;
 pub mod core_motive;
+pub mod hind_sense;
+pub mod hind_motor;
+pub mod mid_motor;
+pub mod hab_taxis;
+pub mod olfactory_bulb;
 pub mod pallidum;
 pub mod striatum;
-pub mod mid_motor;
-pub mod mid_taxis;
 pub mod util;
 pub mod ui;
 pub mod world;

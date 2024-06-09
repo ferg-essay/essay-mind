@@ -17,7 +17,7 @@ pub struct HindEat {
 }
 
 impl HindEat {
-    pub const HALF_LIFE : HalfLife = HalfLife(0.4);
+    pub const HALF_LIFE : HalfLife = HalfLife(2.);
 
     pub fn is_eat(&self) -> bool {
         self.is_eat.value() > 0.25
@@ -109,12 +109,11 @@ fn update_hind_eat(
 
     if ! hind_eat.is_eat_allowed(body.get()) {
         log!(Level::Info, "eating while moving");
-        // println!("Eating while moving");
         return
     }
 
     body_eat.eat();
-    hind_eat.get_mut().is_eat.set_max(1.);
+    // hind_eat.get_mut().is_eat.set_max(1.);
 }
 
 pub struct HindEatPlugin;

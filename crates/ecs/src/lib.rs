@@ -1,4 +1,49 @@
+use std::ops::{Deref, DerefMut};
+
 use essay_ecs::{prelude::*, core::{Local, Store, Schedule, schedule::Executors}};
+use util::random::random_test;
+
+pub struct MindApp {
+    app: App
+}
+
+impl MindApp {
+    pub fn new() -> Self {
+        let mut app = App::new();
+        app.plugin(TickSchedulePlugin::new());
+
+        Self {
+            app
+        }
+    }
+
+    pub fn test() -> Self {
+        let app = Self::new();
+
+        random_test();
+
+        app
+    }
+
+    pub fn build(self) -> App {
+        self.app
+    }
+}
+
+impl Deref for MindApp {
+    type Target = App;
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        &self.app
+    }
+}
+
+impl DerefMut for MindApp {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.app
+    }
+}
 
 #[derive(ScheduleLabel, Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct PreTick;
@@ -74,11 +119,39 @@ impl Plugin for TickSchedulePlugin {
         let tick_cfg = self.config();
         app.insert_resource(tick_cfg);
 
+        app.init_resource::<AppTick>();
+
         app.system(Main, 
             move |w: &mut Store, is_init: Local<bool>| {
                 tick_system(w, is_init);
             }
         );
+
+        app.system(First, 
+            |mut ticks: ResMut<AppTick>| {
+                ticks.update();
+            }
+        );
+    }
+}
+
+pub struct AppTick(u64);
+
+impl AppTick {
+    #[inline]
+    pub fn ticks(&self) -> u64 {
+        self.0
+    }
+
+    #[inline]
+    fn update(&mut self) {
+        self.0 += 1;
+    }
+}
+
+impl Default for AppTick {
+    fn default() -> Self {
+        Self(Default::default())
     }
 }
 

@@ -7,12 +7,16 @@ use mind_ecs::Tick;
 
 use crate::{
     body::Body, 
-    core_motive::{core_eat::Sated, Motive, MotiveTrait, Motives}, 
-    hind_motor::{HindMove, HindMovePlugin, TurnCommand}, 
-    olfactory_bulb::{OlfactoryBulb, ObEvent}, util::{Angle, Seconds} 
+    core_motive::{eat::Sated, Motive, MotiveTrait, Motives, Wake}, 
+    hind_motor::{HindLevyMove, HindLevyPlugin, TurnCommand}, 
+    olfactory_bulb::{ObEvent, OlfactoryBulb}, util::{Angle, Seconds} 
 };
+
 pub struct Seek;
 impl MotiveTrait for Seek {}
+
+pub struct Avoid;
+impl MotiveTrait for Avoid {}
 
 
 use super::{habenula_seek::HabenulaSeekItem, Taxis};
@@ -56,7 +60,7 @@ impl Chemotaxis {
     pub fn update(
         &mut self, 
         head_dir: Angle,
-        hind_move: &HindMove,
+        hind_move: &HindLevyMove,
         taxis: &mut ResMut<Taxis>,
         seek_motive: &mut Motive<Seek>,
     ) {
@@ -68,7 +72,7 @@ impl Chemotaxis {
 
         if self.habenula.value() > 0.01 || approach_ego.value() > 0.05 {
             seek_motive.set_max(1.);
-            hind_move.send_turn(TurnCommand::ApproachVector(approach_ego));
+            hind_move.turn(TurnCommand::ApproachVector(approach_ego));
 
             taxis.set_approach_dir(approach_vector);
         }
@@ -79,12 +83,17 @@ fn update_chemotaxis(
     mut chemotaxis: ResMut<Chemotaxis>,
     mut ob: InEvent<ObEvent>,
     body: Res<Body>,
-    hind_move: Res<HindMove>,
+    hind_move: Res<HindLevyMove>,
     sated: Res<Motive<Sated>>,
+    wake: Res<Motive<Wake>>,
     mut taxis: ResMut<Taxis>,
     mut seek_motive: ResMut<Motive<Seek>>,
 ) {
     chemotaxis.pre_update();
+
+    if ! wake.is_active() {
+        return;
+    }
 
     if sated.is_active() {
         return;
@@ -105,7 +114,7 @@ pub struct ChemotaxisPlugin;
 
 impl Plugin for ChemotaxisPlugin {
     fn build(&self, app: &mut App) {
-        assert!(app.contains_plugin::<HindMovePlugin>(), "chemotaxis requires HindMovePlugin");
+        assert!(app.contains_plugin::<HindLevyPlugin>(), "chemotaxis requires HindMovePlugin");
         
         assert!(app.contains_resource::<OlfactoryBulb>(), "chemotaxis requires OlfactoryBulb");
 

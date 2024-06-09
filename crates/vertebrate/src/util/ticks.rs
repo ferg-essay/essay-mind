@@ -84,3 +84,31 @@ impl Into<HalfLife> for f32 {
         HalfLife(self)
     }
 }
+
+
+pub struct TickDelta {
+    last_ticks: u64,
+}
+
+impl TickDelta {
+    pub fn new() -> Self {
+        Self {
+            last_ticks: 0
+        }
+    }
+
+    pub fn update(&mut self, ticks: u64) -> u64 {
+        let delta = ticks - self.last_ticks;
+        self.last_ticks = ticks;
+
+        delta
+    }
+}
+
+impl Default for TickDelta {
+    fn default() -> Self {
+        Self {
+            last_ticks: 0,
+        }
+    }
+}

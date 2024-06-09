@@ -1,34 +1,20 @@
 use std::time::Duration;
 
-use essay_plot::api::Colors;
-use mind_ecs::Tick;
+use essay_plot::api::{Colors, Point};
 use vertebrate::{
-    body::{Body, BodyEatPlugin, BodyPlugin}, 
-    core_motive::{
-        core_eat::{CoreEatingPlugin, Eat, Sated}, 
-        mid_peptides::CorePeptidesPlugin, 
-        Motive, MotiveTrait, 
-        Dwell, CoreExplorePlugin, Roam, Wake, CoreWakePlugin
-    }, 
-    hind_motor::{HindEat, HindEatPlugin, HindMovePlugin}, 
-    mid_taxis::{
-        chemotaxis::{Chemotaxis, ChemotaxisPlugin, Seek}, 
+    body::{Body, BodyEatPlugin, BodyPlugin}, core_motive::{
+        eat::{CoreEatingPlugin, Eat, FoodSearch, Sated}, wake::Sleep, CoreExplorePlugin, CoreWakePlugin, Dwell, Motive, MotiveTrait, Roam, Wake
+    }, hab_taxis::{
+        chemotaxis::{Avoid, Chemotaxis, ChemotaxisPlugin, Seek}, 
         phototaxis::Phototaxis,
-    }, 
-    mid_motor::{tectum::TectumPlugin, MidMotorPlugin}, 
-    olfactory_bulb::{OlfactoryBulb, ObEvent, OlfactoryPlugin}, 
-    ui::{
-        ui_attention::UiAttentionPlugin, ui_homunculus::UiHomunculusPlugin, ui_motive::Emoji,
-        ui_body::{UiBodyPlugin, UiBodyTrailPlugin},
-        ui_body_heatmap::UiLocationHeatmapPlugin,
-        ui_motive::UiMotivePlugin,
-        ui_graph::UiGraphPlugin,
-        ui_peptide::UiPeptidePlugin,
-        ui_table::UiTablePlugin,
-        ui_world::UiWorldPlugin,
-    }, 
-    world::{
-        World, WorldPlugin, OdorType
+    }, hind_motor::{HindEat, HindEatPlugin, HindLevyPlugin, HindMovePlugin}, hind_sense::lateral_line::LateralLinePlugin, mid_motor::{tectum::TectumPlugin, MidMotorPlugin}, olfactory_bulb::{ObEvent, OlfactoryBulb, OlfactoryPlugin}, teg_motor::TegSeekPlugin, ui::{
+        ui_attention::UiAttentionPlugin, 
+        ui_body::{UiBodyPlugin, UiBodyTrailPlugin}, 
+        ui_body_heatmap::UiLocationHeatmapPlugin, ui_graph::UiGraphPlugin, ui_homunculus::UiHomunculusPlugin, 
+        ui_motive::{Emoji, UiMotivePlugin}, 
+        ui_peptide::UiPeptidePlugin, ui_table::UiTablePlugin, ui_world::UiWorldPlugin
+    }, world::{
+        OdorType, World, WorldPlugin
     }
 };
 use essay_ecs::{app::event::InEvent, core::{Res, ResMut}, prelude::App};
@@ -40,10 +26,13 @@ pub fn main() {
 
     app.plugin(TickSchedulePlugin::new().ticks(2));
 
-    world_roam(&mut app);
+    //world_lateral_line(&mut app);
+    world_food_and_non_food(&mut app);
+
     app.plugin(BodyPlugin::new());
     app.plugin(BodyEatPlugin);
 
+    app.plugin(HindLevyPlugin);
     app.plugin(HindMovePlugin);
     app.plugin(HindEatPlugin);
 
@@ -53,12 +42,15 @@ pub fn main() {
     );
 
     app.plugin(TectumPlugin::new().striatum());
-    app.plugin(ChemotaxisPlugin);
+    // app.plugin(ChemotaxisPlugin);
+    app.plugin(TegSeekPlugin::<OlfactoryBulb, FoodSearch>::new());
+    app.plugin(LateralLinePlugin);
+
     app.plugin(MidMotorPlugin);
 
-    app.plugin(CoreWakePlugin);
+    app.plugin(CoreWakePlugin::new());
     app.plugin(CoreExplorePlugin);
-    app.plugin(CorePeptidesPlugin);
+    // app.plugin(CorePeptidesPlugin);
     app.plugin(CoreEatingPlugin);
 
     // app.system(Tick, dwell_olfactory);
@@ -98,6 +90,26 @@ fn dwell_olfactory(
     //dwell.set_max(1.);
 }
 
+pub fn world_lateral_line(app: &mut App) {
+    let w = 15;
+    let h = 11;
+
+    let h1 = h / 2 - 1;
+
+    let w1 = w / 2;
+    let w2 = w1;
+
+    app.plugin(
+        WorldPlugin::new(w, h)
+        .wall((2, 0), (1, h1 + 1))
+        .wall((5, h1), (1, h - h1))
+        .wall((8, 0), (1, h1 + 2))
+        //.wall(((w - 1) / 2, h - h1), (2, h1))
+        //.floor((0, 0), (w1, h), FloorType::Light)
+        //.floor((w2, 0), (w - w2, h), FloorType::Dark)
+    );
+}
+
 pub fn world_roam(app: &mut App) {
     let w = 15;
     let h = 11;
@@ -114,6 +126,26 @@ pub fn world_roam(app: &mut App) {
         //.floor((0, 0), (w1, h), FloorType::Light)
         //.floor((w2, 0), (w - w2, h), FloorType::Dark)
         .food_odor_r(5, 5, 4, OdorType::FoodA)
+    );
+}
+
+pub fn world_food_and_non_food(app: &mut App) {
+    let w = 21;
+    let h = 15;
+
+    let h1 = h / 2 - 1;
+
+    let w1 = w / 2;
+    let w2 = w1;
+
+    app.plugin(
+        WorldPlugin::new(w, h)
+        //.wall(((w - 1) / 2, 0), (2, h1))
+        //.wall(((w - 1) / 2, h - h1), (2, h1))
+        //.floor((0, 0), (w1, h), FloorType::Light)
+        //.floor((w2, 0), (w - w2, h), FloorType::Dark)
+        .food_odor_r(5, 5, 4, OdorType::FoodA)
+        .odor_r(15, 5, 4, OdorType::FoodA)
     );
 }
 
@@ -170,24 +202,31 @@ fn ui_eat(app: &mut App) {
         .item(|ob: &OlfactoryBulb| ob.value_pair(OdorType::FoodB))
     );
 
-    app.plugin(UiMotivePlugin::new((2.0, 1.5), (0.5, 0.5))
+    ui_motive(app, (2.0, 1.5), (0.5, 0.5));
+    app.plugin(UiHomunculusPlugin::new((2.5, 1.), (0.5, 1.)));
+}
+
+fn ui_motive(app: &mut App, xy: impl Into<Point>, wh: impl Into<Point>) {
+
+    app.plugin(UiMotivePlugin::new(xy, wh)
         .size(12.)
-        .item(Emoji::FaceGrinning, |m: &Motive<Wake>| m.value())
         .item(Emoji::Footprints, |m: &Motive<Roam>| m.value())
         .item(Emoji::MagnifyingGlassLeft, |m: &Motive<Dwell>| m.value())
         .item(Emoji::DirectHit, |m: &Motive<Seek>| m.value())
+        .item(Emoji::NoEntry, |m: &Motive<Avoid>| m.value())
         .item(Emoji::FaceDisappointed, |m: &Motive<Dummy>| m.value())
-        .item(Emoji::FaceSleeping, |m: &Motive<Dummy>| m.value())
+        //.item(Emoji::FaceGrinning, |m: &Motive<Wake>| m.value())
+        .item(Emoji::Coffee, |m: &Motive<Wake>| m.value())
+        .item(Emoji::FaceSleeping, |m: &Motive<Sleep>| m.value())
         .row()
         .item(Emoji::ForkAndKnife, |m: &Motive<Eat>| m.value())
         .item(Emoji::Pig, |m: &Motive<Sated>| m.value())
         .item(Emoji::Candy, |m: &Motive<Dummy>| m.value())
-        .item(Emoji::Cheese, |m: &Motive<Dummy>| m.value())
+        .item(Emoji::Cheese, |m: &Motive<FoodSearch>| m.value())
         .item(Emoji::Lemon, |m: &Motive<Dummy>| m.value())
         .item(Emoji::Salt, |m: &Motive<Dummy>| m.value())
         // .item(Emoji::FaceAstonished, |m: &Motive<Hunger>| m.value())
-);
-    app.plugin(UiHomunculusPlugin::new((2.5, 1.), (0.5, 1.)));
+    );
 }
 
 fn ui_eat_flat(app: &mut App) {
@@ -208,24 +247,16 @@ fn ui_eat_flat(app: &mut App) {
         .item(|ob: &OlfactoryBulb| ob.value_pair(OdorType::FoodB))
     );
 
-    app.plugin(UiMotivePlugin::new((2.0, 0.5), (0.5, 0.5))
-        .size(12.)
-        .item(Emoji::FaceGrinning, |m: &Motive<Wake>| m.value())
-        .item(Emoji::Footprints, |m: &Motive<Roam>| m.value())
-        .item(Emoji::MagnifyingGlassLeft, |m: &Motive<Dwell>| m.value())
-        .item(Emoji::DirectHit, |m: &Motive<Seek>| m.value())
-        .item(Emoji::FaceDisappointed, |m: &Motive<Dummy>| m.value())
-        .item(Emoji::FaceSleeping, |m: &Motive<Dummy>| m.value())
-        .row()
-        .item(Emoji::ForkAndKnife, |m: &Motive<Eat>| m.value())
-        .item(Emoji::Pig, |m: &Motive<Sated>| m.value())
-        .item(Emoji::Candy, |m: &Motive<Dummy>| m.value())
-        .item(Emoji::Cheese, |m: &Motive<Dummy>| m.value())
-        .item(Emoji::Lemon, |m: &Motive<Dummy>| m.value())
-        .item(Emoji::Salt, |m: &Motive<Dummy>| m.value())
-        // .item(Emoji::FaceAstonished, |m: &Motive<Hunger>| m.value())
-);
-    app.plugin(UiHomunculusPlugin::new((2.5, 0.), (0.5, 1.)));
+    ui_motive(app, (2.0, 0.5), (0.5, 0.5));
+    
+    app.plugin(UiHomunculusPlugin::new((2.5, 0.5), (0.5, 0.5))
+        .item(Emoji::ForkAndKnife, |m: &Motive<Eat>| m.is_active())
+        .item(Emoji::DirectHit, |m: &Motive<Seek>| m.is_active())
+        .item(Emoji::NoEntry, |m: &Motive<Avoid>| m.is_active())
+        .item(Emoji::MagnifyingGlassLeft, |m: &Motive<Dwell>| m.is_active())
+        .item(Emoji::Footprints, |m: &Motive<Roam>| m.is_active())
+        .item(Emoji::FaceSleeping, |m: &Motive<Sleep>| m.is_active())
+    );
 }
 
 

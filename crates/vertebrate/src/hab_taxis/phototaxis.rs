@@ -7,7 +7,7 @@ use mind_ecs::Tick;
 
 use crate::{
     body::Body, 
-    hind_motor::{HindMove, MoveCommand, TurnCommand}, 
+    hind_motor::{HindLevyMove, TurnCommand}, 
     util::{Angle, DecayValue, DirVector, HalfLife, Seconds}, 
     world::World
 };
@@ -82,7 +82,7 @@ impl Default for Phototaxis {
 fn update_phototaxis(
     body: Res<Body>, 
     world: Res<World>, 
-    hind_move: Res<HindMove>,
+    hind_move: Res<HindLevyMove>,
     mut phototaxis: ResMut<Phototaxis>,
     mut taxis: ResMut<Taxis>,
 ) {
@@ -104,18 +104,18 @@ fn update_phototaxis(
 
     let avoid_ego = avoid_ego.scale((-diff).clamp(0., 1.));
 
-    hind_move.send_turn(TurnCommand::AvoidVector(avoid_ego));
+    hind_move.turn(TurnCommand::AvoidVector(avoid_ego));
 
     if diff >= 0.2 {
         // positive gradient, move forward, avoiding the current area
-        hind_move.send_move(MoveCommand::Avoid);
+        hind_move.avoid();
     } else if diff <= -0.2 {
         // negative gradient, turn avound
-        hind_move.send_turn(TurnCommand::AvoidUTurn);
+        hind_move.turn(TurnCommand::AvoidUTurn);
     } else if light > 0.5 {
-        hind_move.send_move(MoveCommand::Normal);
+        // hind_move.send_move(MoveCommand::Normal);
     } else {
-        hind_move.send_move(MoveCommand::Avoid);
+        hind_move.avoid(); // .send_move(MoveCommand::Avoid);
     }
 
     let goal_vector = phototaxis.goal_vector();

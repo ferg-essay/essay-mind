@@ -1,4 +1,4 @@
-use crate::mid_motor::tectum::ActionId;
+use super::tectum::ActionId;
 
 
 ///

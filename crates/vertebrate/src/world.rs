@@ -68,14 +68,6 @@ impl World {
         }
     }
 
-    pub fn add_food(&mut self, x: usize, y: usize, odor: OdorType) {
-        if odor.is_food() {
-            self[(x, y)] = WorldCell::Food;
-        }
-
-        self.odors.push(Odor::new(x, y, odor));
-    }
-
     fn add_odor(&mut self, x: usize, y: usize, r: usize, odor: OdorType) {
         self.odors.push(Odor::new_r(x, y, r, odor));
     }
@@ -170,15 +162,6 @@ pub struct Odor {
 
 impl Odor {
     pub const RADIUS: f32 = 3.;
-
-    fn new(x: usize, y: usize, odor: OdorType) -> Self {
-        Self {
-            x: x as f32 + 0.5,
-            y: y as f32 + 0.5,
-            r: Self::RADIUS,
-            odor,
-        }
-    }
 
     fn new_r(x: usize, y: usize, r:usize, odor: OdorType) -> Self {
         Self {
@@ -439,5 +422,15 @@ struct FloorItem {
 impl FloorItem {
     fn new(pos: (usize, usize), extent: (usize, usize), floor: FloorType) -> Self {
         Self { pos, extent, floor }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::world::World;
+
+    #[test]
+    fn world_extent() {
+        assert_eq!(World::new(7, 8).extent(), (7, 8));
     }
 }

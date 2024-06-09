@@ -6,37 +6,59 @@ use util::random::random_uniform;
 use crate::body::touch::Touch;
 
 use crate::util::{Angle, Point, Ticks};
-use crate::world::{OdorType, World, WorldPlugin};
+use crate::world::{World, WorldPlugin};
 
+///
+/// Body is the locomotive core of the animal.
+/// 
+/// The body contains a position, direction, a current action,
+/// and the state of the last collision.
+/// 
+/// Actions are movement, turn pairs and they timeout after a
+/// simulation second. Typically higher layers will refresh the action.
+/// 
+/// Movement is mildly stochastic, meaning the speed and turn direction
+/// aren't precise or perfectly predictable. 
+/// 
 pub struct Body {
+    body_len: f32,
+    noise_threshold: f32,
+
     pos: Point,
 
     dir: Angle,
-
-    body_len: f32,
 
     action: Action,
 
     collide_left: bool,
     collide_right: bool,
-
-    ticks: usize,
 }
 
 impl Body {
     pub fn new(pos: Point) -> Self {
+        let mut noise_threshold = 0.2;
+
+        if cfg!(test) {
+            noise_threshold = 0.;
+        }
+
         Self {
+            body_len: 1.,
+            noise_threshold,
+
             pos,
             dir: Angle::Unit(0.),
-            body_len: 1.,
 
             action: Action::new(BodyAction::None, 0., Angle::Unit(0.)),
 
             collide_left: false,
             collide_right: false,
-
-            ticks: 0,
         }
+    }
+
+    #[inline]
+    pub fn len(&self) -> f32 {
+        self.body_len
     }
 
     #[inline]
@@ -68,20 +90,40 @@ impl Body {
     }
 
     #[inline]
-    pub fn set_action(&mut self, kind: BodyAction, speed: f32, turn: Angle) {
+    pub fn action_kind(&self) -> BodyAction {
+        self.action.kind
+    }
+
+    #[inline]
+    pub fn is_moving(&self) -> bool {
+        self.action.kind != BodyAction::None
+    }
+
+    #[inline]
+    pub fn is_collide_left(&self) -> bool {
+        self.collide_left
+    }
+
+    #[inline]
+    pub fn is_collide_right(&self) -> bool {
+        self.collide_right
+    }
+
+    #[inline]
+    pub fn action(&mut self, kind: BodyAction, speed: f32, turn: Angle) {
         self.action = Action::new(kind, speed, turn);
     }
 
     #[inline]
     pub fn stop(&mut self) {
         if self.action.speed > 0. {
-            self.set_action(BodyAction::None, 0., Angle::Unit(0.))
+            self.action(BodyAction::None, 0., Angle::Unit(0.))
         }
     }
 
     #[inline]
     pub fn stop_action(&mut self, kind: BodyAction) {
-        self.set_action(kind, 0., Angle::Unit(0.))
+        self.action(kind, 0., Angle::Unit(0.))
     }
 
     pub fn eat(&mut self) {
@@ -98,36 +140,12 @@ impl Body {
         self.action.turn
     }
 
-    #[inline]
-    pub fn action_kind(&self) -> BodyAction {
-        self.action.kind
-    }
-
-    #[inline]
-    pub fn is_collide_left(&self) -> bool {
-        self.collide_left
-    }
-
-    #[inline]
-    pub fn is_collide_right(&self) -> bool {
-        self.collide_right
-    }
-
-    // TODO: move out of body
-    pub fn odor_turn(&self, world: &World) -> Option<(OdorType, Angle)> {
-        if let Some((odor, angle)) = world.odor(self.pos_head()) {
-            let turn = (2. + angle.to_unit() - self.dir().to_unit()) % 1.;
-
-            Some((odor, Angle::Unit(turn)))
-        } else {
-            None
-        }
-    }
-
     ///
     /// Update the animal's position
     /// 
     pub fn update(&mut self, world: &World) {
+        self.action.update();
+
         let speed = self.speed() / Ticks::TICKS_PER_SECOND as f32;
 
         let mut dir = self.dir.to_unit();
@@ -135,7 +153,7 @@ impl Body {
         dir += turn_unit / Ticks::TICKS_PER_SECOND as f32;
 
         // random noise into direction
-        if speed > 0. && random_uniform() < 0.2 {
+        if speed > 0. && random_uniform() < self.noise_threshold {
             if random_uniform() < 0.5 {
                 dir += 0.005;
             } else {
@@ -173,9 +191,9 @@ impl Body {
 
 
 ///
-/// Update the animal's position based on the cilia movement
+/// Update the animal's position
 /// 
-pub fn body_update(
+fn body_update(
     mut body: ResMut<Body>,
     mut touch_event: OutEvent<Touch>,
     world: Res<World>,
@@ -189,8 +207,6 @@ pub fn body_update(
     if body.is_collide_right() {
         touch_event.send(Touch::CollideRight);
     }
-
-    body.ticks += 1;
 }
 
 #[derive(Clone, Debug)]
@@ -198,6 +214,7 @@ struct Action {
     kind: BodyAction,
     speed: f32,
     turn: Angle,
+    timeout: usize,
 }
 
 impl Action {
@@ -208,13 +225,29 @@ impl Action {
             kind,
             speed,
             turn,
+            timeout: Ticks::TICKS_PER_SECOND,
+        }
+    }
+
+    fn update(&mut self) {
+        if self.timeout > 0 {
+            self.timeout -= 1;
+        } else {
+            self.kind = BodyAction::None;
+            self.speed = 0.;
+            self.turn = Angle::unit(0.);
+            self.timeout = 0x1000;
         }
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+///
+/// Descriptive movement actions
+/// 
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum BodyAction {
     None,
+    Sleep,
     Roam,
     Dwell,
     Avoid,
@@ -231,13 +264,28 @@ pub fn body_log(
     ));
 }
 
+///
+/// Animal base locomotor body contains a position, direction and
+/// a locomotion action.
+/// 
 pub struct BodyPlugin {
+    pos: Point,
 }
 
 impl BodyPlugin {
     pub fn new() -> Self {
         BodyPlugin {
+            pos: Point(0.5, 0.5)
         }
+    }
+
+    //
+    // Sets the animal's initial position.
+    //
+    pub fn pos(mut self, pos: impl Into<Point>) -> Self {
+        self.pos = pos.into();
+
+        self
     }
 }
 
@@ -248,11 +296,126 @@ impl Plugin for BodyPlugin {
         app.insert_resource(Body::new(Point(0.5, 0.5)));
 
         app.event::<Touch>();
-
         app.system(Tick, body_update);
 
         if app.contains_plugin::<TestLogPlugin>() {
             app.system(Last, body_log);
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use essay_ecs::core::{Res, ResMut};
+    use mind_ecs::MindApp;
+
+    use crate::{body::BodyAction, util::{Angle, Point, Ticks}, world::{World, WorldPlugin}};
+
+    use super::{Body, BodyPlugin};
+
+    #[test]
+    fn default_body() {
+        let mut app = MindApp::new();
+        app.plugin(WorldPlugin::new(7, 13));
+        app.plugin(BodyPlugin::new());
+
+        assert_eq!((7, 13), app.eval(|x: Res<World>| x.extent()));
+
+        assert_eq!(1., app.eval(|x: Res<Body>| x.len()));
+        assert_eq!(0., app.eval(|x: Res<Body>| x.noise_threshold));
+        assert_eq!(Point(0.5, 0.5), app.eval(|x: Res<Body>| x.pos()));
+        assert_eq!(Angle::unit(0.0), app.eval(|x: Res<Body>| x.dir()));
+        assert_eq!(Angle::unit(0.0), app.eval(|x: Res<Body>| x.head_dir()));
+        assert_eq!(Point(0.4999999, 1.), app.eval(|x: Res<Body>| x.pos_head()));
+        assert_eq!(false, app.eval(|x: Res<Body>| x.is_moving()));
+        assert_eq!(false, app.eval(|x: Res<Body>| x.is_collide_left()));
+        assert_eq!(false, app.eval(|x: Res<Body>| x.is_collide_right()));
+        assert_eq!(0., app.eval(|x: Res<Body>| x.speed()));
+        assert_eq!(Angle::unit(0.), app.eval(|x: Res<Body>| x.turn()));
+        assert_eq!(BodyAction::None, app.eval(|x: Res<Body>| x.action_kind()));
+    }
+
+    #[test]
+    fn default_move() {
+        let mut app = MindApp::new();
+        app.plugin(WorldPlugin::new(7, 13));
+        app.plugin(BodyPlugin::new());
+
+        assert_eq!(Point(0.5, 0.5), app.eval(|x: Res<Body>| x.pos()));
+
+        for _ in 0..100 {
+            app.tick();
+        }
+        
+        assert_eq!((7, 13), app.eval(|x: Res<World>| x.extent()));
+        assert_eq!(1., app.eval(|x: Res<Body>| x.len()));
+        assert_eq!(Point(0.5, 0.5), app.eval(|x: Res<Body>| x.pos()));
+        assert_eq!(Angle::unit(0.0), app.eval(|x: Res<Body>| x.dir()));
+        assert_eq!(Angle::unit(0.0), app.eval(|x: Res<Body>| x.head_dir()));
+        assert_eq!(Point(0.4999999, 1.), app.eval(|x: Res<Body>| x.pos_head()));
+        assert_eq!(false, app.eval(|x: Res<Body>| x.is_moving()));
+        assert_eq!(false, app.eval(|x: Res<Body>| x.is_collide_left()));
+        assert_eq!(false, app.eval(|x: Res<Body>| x.is_collide_right()));
+        assert_eq!(0., app.eval(|x: Res<Body>| x.speed()));
+        assert_eq!(Angle::unit(0.), app.eval(|x: Res<Body>| x.turn()));
+        assert_eq!(BodyAction::None, app.eval(|x: Res<Body>| x.action_kind()));
+    }
+
+    #[test]
+    fn move_1() {
+        let mut app = MindApp::new();
+        app.plugin(WorldPlugin::new(7, 13));
+        app.plugin(BodyPlugin::new());
+        app.setup();
+
+        assert_eq!(Point(0.5, 0.5), app.eval(|x: Res<Body>| x.pos()));
+
+        app.tick();
+        assert_eq!(Point(0.5, 0.5), app.eval(|x: Res<Body>| x.pos()));
+
+        app.eval(|mut x: ResMut<Body>| {
+            x.action(BodyAction::Roam, 1., Angle::unit(0.));
+        });
+        
+        app.tick();
+
+        assert_eq!(Point(0.49999997, 0.55), app.eval(|x: Res<Body>| x.pos()));
+        assert_eq!(Angle::unit(0.0), app.eval(|x: Res<Body>| x.dir()));
+        assert_eq!(Angle::unit(0.0), app.eval(|x: Res<Body>| x.head_dir()));
+        assert_eq!(Point(0.49999988, 1.05), app.eval(|x: Res<Body>| x.pos_head()));
+        assert_eq!(true, app.eval(|x: Res<Body>| x.is_moving()));
+        assert_eq!(false, app.eval(|x: Res<Body>| x.is_collide_left()));
+        assert_eq!(false, app.eval(|x: Res<Body>| x.is_collide_right()));
+        assert_eq!(1., app.eval(|x: Res<Body>| x.speed()));
+        assert_eq!(Angle::unit(0.), app.eval(|x: Res<Body>| x.turn()));
+        assert_eq!(BodyAction::Roam, app.eval(|x: Res<Body>| x.action_kind()));
+        
+        app.tick();
+
+        assert_eq!(Point(0.49999994, 0.6), app.eval(|x: Res<Body>| x.pos()));
+        assert_eq!(Angle::unit(0.0), app.eval(|x: Res<Body>| x.dir()));
+        assert_eq!(Angle::unit(0.0), app.eval(|x: Res<Body>| x.head_dir()));
+        assert_eq!(Point(0.49999985, 1.1), app.eval(|x: Res<Body>| x.pos_head()));
+        assert_eq!(true, app.eval(|x: Res<Body>| x.is_moving()));
+        assert_eq!(false, app.eval(|x: Res<Body>| x.is_collide_left()));
+        assert_eq!(false, app.eval(|x: Res<Body>| x.is_collide_right()));
+        assert_eq!(1., app.eval(|x: Res<Body>| x.speed()));
+        assert_eq!(Angle::unit(0.), app.eval(|x: Res<Body>| x.turn()));
+        assert_eq!(BodyAction::Roam, app.eval(|x: Res<Body>| x.action_kind()));
+
+        for _ in 0..Ticks::TICKS_PER_SECOND - 1 {
+            app.tick();
+        }
+
+        assert_eq!(Point(0.49999985, 0.9999998), app.eval(|x: Res<Body>| x.pos()));
+        assert_eq!(Angle::unit(0.0), app.eval(|x: Res<Body>| x.dir()));
+        assert_eq!(Angle::unit(0.0), app.eval(|x: Res<Body>| x.head_dir()));
+        assert_eq!(Point(0.49999976, 1.4999998), app.eval(|x: Res<Body>| x.pos_head()));
+        assert_eq!(false, app.eval(|x: Res<Body>| x.is_moving()));
+        assert_eq!(false, app.eval(|x: Res<Body>| x.is_collide_left()));
+        assert_eq!(false, app.eval(|x: Res<Body>| x.is_collide_right()));
+        assert_eq!(0., app.eval(|x: Res<Body>| x.speed()));
+        assert_eq!(Angle::unit(0.), app.eval(|x: Res<Body>| x.turn()));
+        assert_eq!(BodyAction::None, app.eval(|x: Res<Body>| x.action_kind()));
     }
 }
