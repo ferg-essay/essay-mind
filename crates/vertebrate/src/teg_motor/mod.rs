@@ -1,3 +1,3 @@
 mod teg_seek;
 
-pub use teg_seek::{TegSeek, TegInput, TegSeekPlugin};
+pub use teg_seek::{TegSeek, SeekInput, TegSeekPlugin};

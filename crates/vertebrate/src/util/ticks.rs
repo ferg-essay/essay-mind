@@ -18,6 +18,18 @@ impl Ticks {
 #[derive(Clone, Copy, Debug)]
 pub struct Seconds(pub f32);
 
+impl Seconds {
+    #[inline]
+    pub fn v(&self) -> f32 {
+        self.0
+    }
+
+    #[inline]
+    pub fn max(&self, y: impl Into<Seconds>) -> Self {
+        Self(self.0.max(y.into().0))
+    }
+}
+
 impl Into<Seconds> for f32 {
     #[inline]
     fn into(self) -> Seconds {
@@ -34,6 +46,19 @@ impl Into<Ticks> for Seconds {
             Ticks((self.0 * Ticks::TICKS_PER_SECOND as f32).max(1.) as usize)
         } else {
             Ticks(0)
+        }
+    }
+}
+
+impl Into<Seconds> for Ticks {
+    #[inline]
+    fn into(self) -> Seconds {
+        let ticks = self.0;
+
+        if ticks > 0 {
+            Seconds(self.0 as f32 / Ticks::TICKS_PER_SECOND as f32)
+        } else {
+            Seconds(0.)
         }
     }
 }

@@ -280,7 +280,7 @@ impl ActionKind {
         }
     }
 
-    fn is_curtail(&self) -> bool {
+    fn _is_curtail(&self) -> bool {
         match self {
             ActionKind::Stop => true,
             _ => false,
@@ -314,7 +314,7 @@ impl Action {
         self.time -= Ticks(1).to_seconds();
     }
 
-    fn curtail(&mut self) {
+    fn _curtail(&mut self) {
         if self.turn.to_unit() == 0. {
             self.time = 0.;
         }

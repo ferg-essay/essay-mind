@@ -8,7 +8,7 @@ use essay_ecs::{prelude::{Plugin, App, ResMut, Res, Event}, app::event::OutEvent
 use mind_ecs::Tick;
 
 use crate::{
-    body::Body, pallidum::basal_forebrain::{AttendId, AttendValue, BasalForebrain}, teg_motor::TegInput, util::{Angle, DirVector}, world::{OdorType, World}
+    body::Body, pallidum::basal_forebrain::{AttendId, AttendValue, BasalForebrain}, teg_motor::SeekInput, util::{Angle, DirVector}, world::{OdorType, World}
 };
 
 pub struct OlfactoryBulb {
@@ -119,7 +119,7 @@ impl OlfactoryBulb {
     }
 }
 
-impl TegInput for OlfactoryBulb {
+impl SeekInput for OlfactoryBulb {
     fn seek_dir(&self) -> Option<DirVector> {
         for id in &self.active_odors {
             let glom = &self.glomerules[id.0];

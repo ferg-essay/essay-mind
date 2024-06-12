@@ -1,5 +1,5 @@
 ///
-/// phototaxis
+/// chemotaxis
 ///
 
 use essay_ecs::{prelude::{Plugin, App, ResMut, Res}, app::event::InEvent};

@@ -9,14 +9,14 @@ use mind_ecs::{AppTick, Tick};
 
 use crate::{core_motive::{Motive, MotiveTrait, Motives}, hab_taxis::chemotaxis::{Avoid, Seek}, hind_motor::{HindMove, HindMovePlugin}, striatum::{Gate, Striatum2, StriatumGate}, util::{DecayValue, DirVector, Seconds}};
 
-pub struct TegSeek<I: TegInput> {
+pub struct TegSeek<I: SeekInput> {
     ltd_buildup: DecayValue,
     ltd_decay: DecayValue,
 
     marker: PhantomData<I>,
 }
 
-impl<I: TegInput> TegSeek<I> {
+impl<I: SeekInput> TegSeek<I> {
     const BUILDUP : f32 = 25.;
 
     fn new() -> Self {
@@ -52,7 +52,7 @@ impl<I: TegInput> TegSeek<I> {
     }
 }
 
-pub trait TegInput : Send + Sync + 'static {
+pub trait SeekInput : Send + Sync + 'static {
     fn seek_dir(&self) -> Option<DirVector>;
 }
 
@@ -61,21 +61,21 @@ pub trait TegOutput {
 }
 
 
-pub struct TegSeekPlugin<I: TegInput, M: MotiveTrait> {
-    striatum: Striatum2,
+pub struct TegSeekPlugin<I: SeekInput, M: MotiveTrait> {
+    _striatum: Striatum2,
     marker: PhantomData<(I, M)>,
 }
 
-impl<I: TegInput, M: MotiveTrait> TegSeekPlugin<I, M> {
+impl<I: SeekInput, M: MotiveTrait> TegSeekPlugin<I, M> {
     pub fn new() -> Self {
         Self {
-            striatum: Striatum2::default(),
+            _striatum: Striatum2::default(),
             marker: PhantomData::<(I, M)>::default(),
         }
     }
 }
 
-fn update_seek<I: TegInput, M: MotiveTrait>(
+fn update_seek<I: SeekInput, M: MotiveTrait>(
     mut seek: ResMut<TegSeek<I>>,
     hind_move: ResMut<HindMove>,
     input: Res<I>,
@@ -117,7 +117,7 @@ fn update_seek<I: TegInput, M: MotiveTrait>(
     }
 }
 
-impl<I: TegInput, M: MotiveTrait> Plugin for TegSeekPlugin<I, M> {
+impl<I: SeekInput, M: MotiveTrait> Plugin for TegSeekPlugin<I, M> {
     fn build(&self, app: &mut App) {
         assert!(app.contains_plugin::<HindMovePlugin>(), "TegSeek requires HindMovePlugin");
         assert!(app.contains_resource::<I>(), "TegSeek requires resource {}", type_name::<I>());
@@ -131,25 +131,19 @@ impl<I: TegInput, M: MotiveTrait> Plugin for TegSeekPlugin<I, M> {
         Motives::insert::<Avoid>(app, Seconds(0.2));
 
         StriatumGate::<SeekGate<I>>::init(app);
-        /*
-
-        app.init_resource::<Taxis>();
-
-        Motives::init::<Sated>(app);
-        */
     }
 }
 
-pub struct SeekGate<I: TegInput> {
+pub struct SeekGate<I: SeekInput> {
     marker: PhantomData<I>,
 }
 
-impl<I: TegInput> Default for SeekGate<I> {
+impl<I: SeekInput> Default for SeekGate<I> {
     fn default() -> Self {
         Self { marker: Default::default() }
     }
 }
 
-impl<I: TegInput> Gate for SeekGate<I> {
+impl<I: SeekInput> Gate for SeekGate<I> {
     
 }

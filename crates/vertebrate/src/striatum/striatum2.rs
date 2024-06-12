@@ -1,7 +1,3 @@
-use std::marker::PhantomData;
-
-use super::Gate;
-
 pub struct Striatum2 {
 }
 

@@ -5,7 +5,7 @@ use test_log::{TestLog, TestLogPlugin};
 use util::random::random_uniform;
 use crate::body::touch::Touch;
 
-use crate::util::{Angle, Point, Ticks};
+use crate::util::{Angle, Point, Seconds, Ticks};
 use crate::world::{World, WorldPlugin};
 
 ///
@@ -22,11 +22,14 @@ use crate::world::{World, WorldPlugin};
 /// 
 pub struct Body {
     body_len: f32,
+    cast_delta: Angle,
+    cast_angle: Angle,
     noise_threshold: f32,
 
     pos: Point,
 
     dir: Angle,
+    cast_pos: Angle,
 
     action: Action,
 
@@ -44,10 +47,13 @@ impl Body {
 
         Self {
             body_len: 1.,
+            cast_angle: Angle::Unit(0.),
+            cast_delta: Angle::Unit(0.),
             noise_threshold,
 
             pos,
             dir: Angle::Unit(0.),
+            cast_pos: Angle::Unit(0.),
 
             action: Action::new(BodyAction::None, 0., Angle::Unit(0.)),
 
@@ -70,7 +76,11 @@ impl Body {
     pub fn pos_head(&self) -> Point {
         let Point(x, y) = self.pos;
 
-        let (dy, dx) = self.dir.sin_cos();
+        let cast = Angle::unit(self.cast_pos.to_unit() * self.cast_angle.to_unit());
+
+        let dir = self.dir + cast;
+
+        let (dy, dx) = dir.sin_cos();
 
         let len = self.body_len;
         // head location
@@ -87,6 +97,29 @@ impl Body {
     #[inline]
     pub fn head_dir(&self) -> Angle {
         self.dir()
+    }
+
+    #[inline]
+    pub fn head_cast(&self) -> f32 {
+        self.cast_pos.sin()
+    }
+
+    #[inline]
+    pub fn set_cast_period(&mut self, cast_period: impl Into<Seconds>) {
+        let period: Seconds = cast_period.into();
+
+        if period.0 == 0. {
+            self.cast_delta = Angle::Unit(0.)
+        } else {
+            let ticks = Ticks::TICKS_PER_SECOND as f32 * period.0;
+            println!("Ticks {}", ticks);
+            self.cast_delta = Angle::Unit(1. / ticks);
+        }
+    }
+
+    #[inline]
+    pub fn set_cast_angle(&mut self, cast_angle: impl Into<Angle>) {
+        self.cast_angle = cast_angle.into();
     }
 
     #[inline]
@@ -166,6 +199,9 @@ impl Body {
         let Point(mut x, mut y) = self.pos;
 
         let (dy, dx) = self.dir.sin_cos();
+
+        // head casting
+        self.cast_pos = self.cast_pos + self.cast_delta;
 
         // head location
         let head = self.pos_head();
@@ -270,12 +306,14 @@ pub fn body_log(
 /// 
 pub struct BodyPlugin {
     pos: Point,
+    cast_period: Seconds,
 }
 
 impl BodyPlugin {
     pub fn new() -> Self {
         BodyPlugin {
-            pos: Point(0.5, 0.5)
+            pos: Point(0.5, 0.5),
+            cast_period: Seconds(0.),
         }
     }
 
@@ -287,13 +325,33 @@ impl BodyPlugin {
 
         self
     }
+
+    //
+    // Sets the animal's casting.
+    //
+    pub fn cast_period(mut self, cast_period: impl Into<Seconds>) -> Self {
+        let period = cast_period.into();
+
+        assert!(period.0 >= 0.);
+
+        self.cast_period = period;
+
+        self
+    }
 }
 
 impl Plugin for BodyPlugin {
     fn build(&self, app: &mut App) {
         assert!(app.contains_plugin::<WorldPlugin>(), "BodyPlugin requires WorldPlugin");
 
-        app.insert_resource(Body::new(Point(0.5, 0.5)));
+        let mut body = Body::new(Point(0.5, 0.5));
+
+        if self.cast_period.0 >= 0. {
+            body.set_cast_period(self.cast_period);
+            body.set_cast_angle(Angle::Deg(20.));
+        }
+
+        app.insert_resource(body);
 
         app.event::<Touch>();
         app.system(Tick, body_update);

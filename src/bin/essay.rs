@@ -5,15 +5,14 @@ use vertebrate::{
     body::{Body, BodyEatPlugin, BodyPlugin}, core_motive::{
         eat::{CoreEatingPlugin, Eat, FoodSearch, Sated}, wake::Sleep, CoreExplorePlugin, CoreWakePlugin, Dwell, Motive, MotiveTrait, Roam, Wake
     }, hab_taxis::{
-        chemotaxis::{Avoid, Chemotaxis, ChemotaxisPlugin, Seek}, 
-        phototaxis::Phototaxis,
+        chemotaxis::{Avoid, Chemotaxis, ChemotaxisPlugin, Seek}, klinotaxis::KlinotaxisPlugin, phototaxis::Phototaxis
     }, hind_motor::{HindEat, HindEatPlugin, HindLevyPlugin, HindMovePlugin}, hind_sense::lateral_line::LateralLinePlugin, mid_motor::{tectum::TectumPlugin, MidMotorPlugin}, olfactory_bulb::{ObEvent, OlfactoryBulb, OlfactoryPlugin}, teg_motor::TegSeekPlugin, ui::{
         ui_attention::UiAttentionPlugin, 
         ui_body::{UiBodyPlugin, UiBodyTrailPlugin}, 
         ui_body_heatmap::UiLocationHeatmapPlugin, ui_graph::UiGraphPlugin, ui_homunculus::UiHomunculusPlugin, 
         ui_motive::{Emoji, UiMotivePlugin}, 
         ui_peptide::UiPeptidePlugin, ui_table::UiTablePlugin, ui_world::UiWorldPlugin
-    }, world::{
+    }, util::{Seconds, Ticks}, world::{
         OdorType, World, WorldPlugin
     }
 };
@@ -29,7 +28,7 @@ pub fn main() {
     //world_lateral_line(&mut app);
     world_food_and_non_food(&mut app);
 
-    app.plugin(BodyPlugin::new());
+    app.plugin(BodyPlugin::new().cast_period(Seconds(0.2).max(Ticks(7))));
     app.plugin(BodyEatPlugin);
 
     app.plugin(HindLevyPlugin);
@@ -43,7 +42,8 @@ pub fn main() {
 
     app.plugin(TectumPlugin::new().striatum());
     // app.plugin(ChemotaxisPlugin);
-    app.plugin(TegSeekPlugin::<OlfactoryBulb, FoodSearch>::new());
+    // app.plugin(TegSeekPlugin::<OlfactoryBulb, FoodSearch>::new());
+    app.plugin(KlinotaxisPlugin::<OlfactoryBulb, FoodSearch>::new());
     app.plugin(LateralLinePlugin);
 
     app.plugin(MidMotorPlugin);

@@ -1,6 +1,6 @@
 use std::{marker::PhantomData, sync::Mutex};
 
-use essay_ecs::{app::{App, PreUpdate}, core::ResMut};
+use essay_ecs::{app::{App, PreUpdate}, core::Res};
 
 use crate::util::DecayValue;
 
@@ -20,7 +20,7 @@ impl<T: Gate> StriatumGate<T> {
             app.insert_resource(gate);
 
             app.system(PreUpdate, 
-                move |mut gate: ResMut<StriatumGate<T>>| {
+                move |gate: Res<StriatumGate<T>>| {
                     gate.update();
             });
         }
