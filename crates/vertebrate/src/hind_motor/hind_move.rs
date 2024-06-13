@@ -21,6 +21,7 @@ pub struct HindMove {
 
     left_brake: TimeoutValue,
     right_brake: TimeoutValue,
+    u_turn: TimeoutValue,
 
     sleep: DecayValue,
 }
@@ -39,6 +40,7 @@ impl HindMove {
 
             left_brake: TimeoutValue::new(Self::HALF_LIFE),
             right_brake: TimeoutValue::new(Self::HALF_LIFE),
+            u_turn: TimeoutValue::new(Self::HALF_LIFE),
 
             sleep: DecayValue::new(Self::HALF_LIFE),
         }
@@ -69,6 +71,10 @@ impl HindMove {
         self.right_brake.value()
     }
 
+    pub fn get_u_turn(&self) -> f32 {
+        self.u_turn.value()
+    }
+
     #[inline]
     pub fn is_stop(&self) -> bool {
         self.next_action == ActionKind::Stop
@@ -93,6 +99,13 @@ impl HindMove {
         assert!(0. <= value && value <= 1.);
 
         self.send_move(MoveCommand::LeftBrake(value));
+    }
+
+    #[inline]
+    pub fn u_turn(&self, value: f32) {
+        assert!(0. <= value && value <= 1.);
+
+        self.send_move(MoveCommand::UTurn(value));
     }
 
     #[inline]
@@ -130,6 +143,7 @@ impl HindMove {
 
         self.left_brake.update();
         self.right_brake.update();
+        self.u_turn.update();
 
         self.sleep.update();
     }
@@ -153,6 +167,9 @@ impl HindMove {
             },
             MoveCommand::RightBrake(value) => {
                 self.right_brake.set_max(*value);
+            },
+            MoveCommand::UTurn(value) => {
+                self.u_turn.set_max(*value);
             },
             MoveCommand::Sleep => todo!(),
         }
@@ -193,14 +210,20 @@ impl HindMove {
 
         let mut left = self.left_brake.value();
         let mut right = self.right_brake.value();
+        let u_turn = self.u_turn.value();
         let brake = left.min(right);
 
-        if forward > 0. {
-        }
+        //if forward > 0. {
+        //}
 
         forward -= brake;
         left -= brake;
         right -= brake;
+
+        left += u_turn;
+        right -= u_turn;
+
+        // println!("Fwd {} L {} R {} B {}", forward, left, right, brake);
 
         if forward <= 0. {
             Action::none()
@@ -262,6 +285,7 @@ enum MoveCommand {
     Backward(f32),
     LeftBrake(f32),
     RightBrake(f32),
+    UTurn(f32),
     Sleep,
 }
 

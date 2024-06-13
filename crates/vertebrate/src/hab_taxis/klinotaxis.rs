@@ -8,12 +8,19 @@ use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}};
 use mind_ecs::{AppTick, Tick};
 
 use crate::{
-    body::Body, core_motive::{Motive, MotiveTrait, Motives}, hab_taxis::chemotaxis::{Avoid, Seek}, hind_motor::{HindMove, HindMovePlugin}, striatum::{Gate, Striatum2, StriatumGate}, teg_motor::SeekInput, util::{DecayValue, DirVector, Seconds}
+    body::Body, 
+    core_motive::{Motive, MotiveTrait, Motives}, 
+    hab_taxis::chemotaxis::{Avoid, Seek}, 
+    hind_motor::{HindMove, HindMovePlugin}, 
+    striatum::{Gate, Striatum2, StriatumGate}, 
+    teg_motor::SeekInput, 
+    util::{DecayValue, Seconds}
 };
 
 pub struct Klinotaxis<I: SeekInput> {
     lateral: Vec<f32>,
-    average: DecayValue,
+    short_average: DecayValue,
+    long_average: DecayValue,
 
     striatum: KlinotaxisStriatum<I>,
 
@@ -21,7 +28,9 @@ pub struct Klinotaxis<I: SeekInput> {
 }
 
 impl<I: SeekInput> Klinotaxis<I> {
-    const THRESHOLD : f32 = 0.;
+    const THRESHOLD : f32 = 1e-3;
+    const IS_TURN : bool = true;
+    const IS_U_TURN : bool = true;
 
     fn new() -> Self {
         let mut values = Vec::new();
@@ -33,7 +42,8 @@ impl<I: SeekInput> Klinotaxis<I> {
 
         Self {
             lateral: values,
-            average: DecayValue::new(Seconds(0.5)),
+            short_average: DecayValue::new(Seconds(0.5)),
+            long_average: DecayValue::new(Seconds(1.0)),
 
             striatum: KlinotaxisStriatum::new(),
 
@@ -45,7 +55,8 @@ impl<I: SeekInput> Klinotaxis<I> {
         let bin = self.bin(head_cast);
 
         self.lateral[bin] = 0.;
-        self.average.update();
+        self.short_average.update();
+        self.long_average.update();
 
         // self.striatum.update(tick);
     }
@@ -54,9 +65,10 @@ impl<I: SeekInput> Klinotaxis<I> {
         let bin = self.bin(head_cast);
 
         self.lateral[bin] = value;
-        self.average.add(value);
+        self.short_average.add(value);
+        self.long_average.add(value);
 
-        //println!("AVG {} bin {} bins {:?}", self.average.value(), bin, self.lateral);
+        // println!("AVG {} bin {} bins {:?}", (self.short_average.value() - self.long_average.value()), bin, self.lateral);
         // self.striatum.update(tick);
     }
 
@@ -68,19 +80,43 @@ impl<I: SeekInput> Klinotaxis<I> {
     }
 
     fn is_left_turn(&self) -> bool {
+        if ! Self::IS_TURN {
+            return false;
+        }
+
         if self.lateral[0] < self.lateral[1] && self.lateral[2] < self.lateral[1] {
             false
         } else {
-            self.lateral[0] < self.lateral[2]
+            (self.lateral[0] - self.lateral[2]) > Self::THRESHOLD
         }
     }
 
     fn is_right_turn(&self) -> bool {
+        if ! Self::IS_TURN {
+            return false;
+        }
+
         if self.lateral[0] < self.lateral[1] && self.lateral[2] < self.lateral[1] {
             false
         } else {
-            self.lateral[2] < self.lateral[0]
+            (self.lateral[2] - self.lateral[0]) > Self::THRESHOLD
         }
+    }
+
+    fn is_moving_away(&self) -> bool {
+        if ! Self::IS_U_TURN {
+            return false;
+        }
+
+        (self.long_average.value() - self.short_average.value()) > 1e-3
+    }
+
+    fn is_moving_toward(&self) -> bool {
+        if ! Self::IS_U_TURN {
+            return false;
+        }
+
+        (self.short_average.value() - self.long_average.value()) > 1e-3
     }
 }
 
@@ -165,42 +201,37 @@ fn update_seek<I: SeekInput, M: MotiveTrait>(
     if let Some(goal) = input.seek_dir() {
         seek.update_signal(head_cast, goal.value());
 
-        let is_left_turn = seek.is_left_turn();
-        let is_right_turn = seek.is_right_turn();
-
-        /*
-        if is_left_turn && is_right_turn {
-            println!("  LR");
-        } else if is_left_turn {
-            println!("  L");
-        } else if is_right_turn {
-            println!("  R");
-        }
-        */
-
         if seek.striatum.update(tick.get()) {
             motive_seek.set_max(1.);
         
             hind_move.forward(0.5);
 
-            if is_left_turn {
-                hind_move.left_brake(0.5);
-            } 
+            if seek.is_moving_away() {
+                hind_move.u_turn(1.);
+            } else {
+                if seek.is_left_turn() {
+                    hind_move.left_brake(0.5);
+                } 
             
-            if is_right_turn {
-                hind_move.right_brake(0.5);
+                if seek.is_right_turn() {
+                    hind_move.right_brake(0.5);
+                }
             }
         } else {
             // avoid
             motive_avoid.set_max(1.);
             hind_move.forward(0.6);
 
-            if is_right_turn {
-                hind_move.right_brake(0.5);
-            } 
-            
-            if is_right_turn {
-                hind_move.left_brake(0.5);
+            if seek.is_moving_toward() {
+                hind_move.u_turn(1.)
+            } else {
+                if seek.is_left_turn() && seek.is_right_turn() {
+
+                } else if seek.is_right_turn() {
+                    hind_move.left_brake(0.5);
+                } else if seek.is_left_turn() {
+                    hind_move.right_brake(0.5);
+                }
             }
         }
     }

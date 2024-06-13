@@ -119,7 +119,7 @@ impl World {
 
             if dist < odor.r() {
                 let angle = point.angle_to(odor.pos());
-                let value = 1. / dist.max(1.);
+                let value = 0.5 / dist.max(0.5);
 
                 odors.push((odor.odor(), DirVector::new(angle, value)));
             }

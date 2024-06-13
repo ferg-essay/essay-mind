@@ -76,11 +76,12 @@ impl Body {
     pub fn pos_head(&self) -> Point {
         let Point(x, y) = self.pos;
 
-        let cast = Angle::unit(self.cast_pos.to_unit() * self.cast_angle.to_unit());
+        let cast = Angle::unit(self.cast_pos.sin() * self.cast_angle.to_unit());
 
         let dir = self.dir + cast;
 
         let (dy, dx) = dir.sin_cos();
+        // println!("Dir {:?} Cast {:?} Pos {:?} Delta {:?} dx,dy ({}, {})", self.dir, cast, self.cast_pos, self.cast_delta, dx, dy);
 
         let len = self.body_len;
         // head location
@@ -112,7 +113,7 @@ impl Body {
             self.cast_delta = Angle::Unit(0.)
         } else {
             let ticks = Ticks::TICKS_PER_SECOND as f32 * period.0;
-            println!("Ticks {}", ticks);
+
             self.cast_delta = Angle::Unit(1. / ticks);
         }
     }
