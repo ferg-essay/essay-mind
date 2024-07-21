@@ -56,7 +56,7 @@ fn audio_work() {
 
     let mut figure = Figure::new();
 
-    let mut graph = figure.new_graph([1., 1.]);
+    let mut graph = figure.graph([1., 1.]);
 
     let is_graph = false;
     let nfft = 512;
@@ -104,10 +104,10 @@ fn audio_work() {
     //let subfft = fft.subslice(1, subfft.len() - 1);
     if is_graph {
         graph.plot_y(&subslice).join_style(JoinStyle::Bevel);
-        let mut graph2 = figure.new_graph([0., 1., 1., 2.]);
+        let mut graph2 = figure.graph([0., 1., 1., 2.]);
         graph2.plot_y(subfft).join_style(JoinStyle::Bevel);
 
-        let mut graph3 = figure.new_graph([0., 2., 1., 3.]);
+        let mut graph3 = figure.graph([0., 2., 1., 3.]);
         graph3.plot_y(&rms).join_style(JoinStyle::Bevel);
     }
     //graph2.specgram(slice).color_map(ColorMaps::BlueWhite2);
@@ -122,11 +122,11 @@ fn audio_work() {
         //graph.specgram(slice);
         //graph.specgram(slice).nfft(1024).overlap(3 * 256);
         //graph.ylim(0., 400.).specgram(&slice).nfft(2048).overlap(3 * 512);
-        let mut graph2 = figure.new_graph([0., 1., 1., 2.]);
+        let mut graph2 = figure.graph([0., 1., 1., 2.]);
         let minmax = graph_fft(&mut graph2, &fft_vec2, None);
         //graph2.specgram(slice2).nfft(nfft).overlap(overlap);
 
-        let mut graph3 = figure.new_graph([0., 2., 1., 3.]);
+        let mut graph3 = figure.graph([0., 2., 1., 3.]);
         graph_fft(&mut graph3, &fft_vec3, None);
         //graph3.specgram(slice3).nfft(nfft3).overlap(overlap3);
 
@@ -197,7 +197,7 @@ fn audio_display() {
     let n = 1;
 
     {
-        let mut graph = figure.new_graph([0., 0., 1., 1.]);
+        let mut graph = figure.graph([0., 0., 1., 1.]);
         let reader = AudioReader::read(path1);
         let value = Tensor::from(reader.as_vec());
     
@@ -210,7 +210,7 @@ fn audio_display() {
     }
 
     {
-        let mut graph = figure.new_graph([1., 0., 2., 1.]);
+        let mut graph = figure.graph([1., 0., 2., 1.]);
         let reader = AudioReader::read(path2);
         let value = Tensor::from(reader.as_vec());
     
@@ -223,7 +223,7 @@ fn audio_display() {
     }
 
     {
-        let mut graph = figure.new_graph([0., 1., 1., 2.]);
+        let mut graph = figure.graph([0., 1., 1., 2.]);
         let reader = AudioReader::read(path3);
         let value = Tensor::from(reader.as_vec());
     
@@ -236,7 +236,7 @@ fn audio_display() {
     }
 
     {
-        let mut graph = figure.new_graph([1., 1., 2., 2.]);
+        let mut graph = figure.graph([1., 1., 2., 2.]);
         let reader = AudioReader::read(path4);
         let value = Tensor::from(reader.as_vec());
     
