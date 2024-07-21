@@ -3,9 +3,8 @@ use std::sync::{Arc, Mutex};
 
 use essay_ecs::prelude::*;
 use essay_plot::artist::{Lines2d, LinesOpt, GridColorOpt, GridColor};
-use essay_plot::frame::Layout;
-use essay_plot::graph::{FigureInner, GraphId};
-use essay_plot::prelude::driver::FigureApi;
+use essay_graphics::layout::Grid;
+use essay_plot::graph::GraphId;
 use essay_plot::prelude::*;
 use essay_tensor::Tensor;
 
@@ -102,38 +101,7 @@ impl<K: Send + Sync + 'static> UiFigure<K> {
             ui_plot.inner.0.lock().unwrap().figure.update_canvas(&canvas);
         }
     }
-    }
-
-pub struct UiFigurePlugin<Key> {
-    bounds: Bounds<UiLayout>,
-    marker: PhantomData<Key>,
-}
-
-impl<K> UiFigurePlugin<K> {
-    pub fn new(xy: impl Into<Point>, wh: impl Into<Point>) -> Self {
-        let xy = xy.into();
-        let wh = wh.into();
-
-        Self {
-            bounds: Bounds::new(xy, (xy.0 + wh.0, xy.1 + wh.1)),
-            marker: PhantomData::default(),
-        }
-    }
-}
-
-impl<K: Send + Sync + 'static> Plugin for UiFigurePlugin<K> {
-    fn build(&self, app: &mut App) {
-        let box_id = app.resource_mut::<UiLayout>().add_box(self.bounds.clone());
-        if ! app.contains_resource::<UiFigure<K>>() {
-            let figure = UiFigure::<K>::new(box_id);
-            app.insert_resource(figure);
-
-            app.system(Update, UiFigure::<K>::resize);
-            app.system(Update, UiFigure::<K>::draw);
-        }
-    }
-}
-
+} 
 pub struct UiFigureArc(Arc<Mutex<UiFigureInner>>);
 
 pub struct UiFigureInner {
@@ -151,7 +119,7 @@ impl UiFigureInner {
         )))
     }
 
-    fn plot_xy(&mut self, grid: Bounds::<Layout>) -> UiPlot {
+    fn plot_xy(&mut self, grid: Bounds::<Grid>) -> UiPlot {
         let graph = self.figure.new_graph(grid);
 
         UiPlot::new(graph)
@@ -186,7 +154,7 @@ impl UiFigureInner {
         graph.x_label(label);
     }
 
-    fn graph(&mut self, bounds: impl Into<Bounds<Layout>>) -> UiGraph {
+    fn graph(&mut self, bounds: impl Into<Bounds<Grid>>) -> UiGraph {
         let graph = self.figure.new_graph(bounds);
 
         UiGraph::new(graph)
@@ -194,7 +162,7 @@ impl UiFigureInner {
 
     fn color_grid(
         &mut self, 
-        bounds: impl Into<Bounds<Layout>>, 
+        bounds: impl Into<Bounds<Grid>>, 
         data: impl Into<Tensor>
     ) -> GridColorOpt {
         let mut graph = self.figure.new_graph(bounds);
@@ -205,5 +173,36 @@ impl UiFigureInner {
         let colormesh = GridColor::new(data);
 
         graph.artist(colormesh)
+    }
+}
+   
+
+pub struct UiFigurePlugin<Key> {
+    bounds: Bounds<UiLayout>,
+    marker: PhantomData<Key>,
+}
+
+impl<K> UiFigurePlugin<K> {
+    pub fn new(xy: impl Into<Point>, wh: impl Into<Point>) -> Self {
+        let xy = xy.into();
+        let wh = wh.into();
+
+        Self {
+            bounds: Bounds::new(xy, (xy.0 + wh.0, xy.1 + wh.1)),
+            marker: PhantomData::default(),
+        }
+    }
+}
+
+impl<K: Send + Sync + 'static> Plugin for UiFigurePlugin<K> {
+    fn build(&self, app: &mut App) {
+        let box_id = app.resource_mut::<UiLayout>().add_box(self.bounds.clone());
+        if ! app.contains_resource::<UiFigure<K>>() {
+            let figure = UiFigure::<K>::new(box_id);
+            app.insert_resource(figure);
+
+            app.system(Update, UiFigure::<K>::resize);
+            app.system(Update, UiFigure::<K>::draw);
+        }
     }
 }

@@ -14,14 +14,17 @@ impl CanvasState {
     pub(crate) fn new(
         wgpu_canvas: WgpuCanvas,
     ) -> Self {
-        let plot_renderer = PlotCanvas::new(
+        let canvas = PlotCanvas::new(
             &wgpu_canvas.device,
+            &wgpu_canvas.queue,
             wgpu_canvas.config.format,
+            wgpu_canvas.config.width,
+            wgpu_canvas.config.height,
         );
 
         Self {
             wgpu_canvas,
-            plot_renderer,
+            plot_renderer: canvas,
             is_stale: true,
         }
     }
