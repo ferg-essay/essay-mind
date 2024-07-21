@@ -887,6 +887,47 @@ dependencies = [
 ]
 
 [[package]]
+name = "essay-graphics"
+version = "0.1.34-dev"
+dependencies = [
+ "downcast-rs",
+ "env_logger 0.11.3",
+ "essay-graphics-api",
+ "essay-graphics-wgpu",
+ "essay-tensor",
+ "futures",
+ "image",
+ "log",
+]
+
+[[package]]
+name = "essay-graphics-api"
+version = "0.1.34-dev"
+dependencies = [
+ "essay-tensor",
+ "log",
+]
+
+[[package]]
+name = "essay-graphics-wgpu"
+version = "0.1.34-dev"
+dependencies = [
+ "bytemuck",
+ "bytemuck_derive",
+ "env_logger 0.11.3",
+ "essay-graphics-api",
+ "essay-tensor",
+ "futures-intrusive",
+ "image",
+ "log",
+ "png",
+ "pollster",
+ "swash",
+ "wgpu",
+ "winit",
+]
+
+[[package]]
 name = "essay-mind"
 version = "0.1.28"
 dependencies = [
@@ -895,6 +936,7 @@ dependencies = [
  "env_logger 0.11.3",
  "essay",
  "essay-ecs",
+ "essay-graphics",
  "essay-plot",
  "essay-tensor",
  "fundsp 0.16.0",
@@ -921,38 +963,9 @@ name = "essay-plot"
 version = "0.1.28-dev"
 dependencies = [
  "env_logger 0.11.3",
- "essay-plot-api",
- "essay-plot-wgpu",
- "essay-tensor",
- "futures",
- "log",
-]
-
-[[package]]
-name = "essay-plot-api"
-version = "0.1.14-dev"
-dependencies = [
+ "essay-graphics",
  "essay-tensor",
  "log",
-]
-
-[[package]]
-name = "essay-plot-wgpu"
-version = "0.1.14-dev"
-dependencies = [
- "bytemuck",
- "bytemuck_derive",
- "env_logger 0.11.3",
- "essay-plot-api",
- "essay-tensor",
- "futures-intrusive",
- "image",
- "log",
- "png",
- "pollster",
- "swash",
- "wgpu",
- "winit",
 ]
 
 [[package]]
@@ -3183,6 +3196,7 @@ version = "0.1.0"
 dependencies = [
  "env_logger 0.11.3",
  "essay-ecs",
+ "essay-graphics",
  "essay-plot",
  "essay-tensor",
  "log",

@@ -1,9 +1,12 @@
 use std::time::Duration;
 
 use essay_ecs::prelude::*;
+use essay_graphics::layout::Layout;
 use essay_plot::artist::PathStyle;
 use essay_plot::api::{TextStyle, Bounds, FontStyle, FontTypeId};
-use essay_plot::api::{Canvas, Point, Path, Clip, driver::Renderer};
+use essay_plot::api::{Canvas, Point, Path, Clip, driver::Renderer, driver::Drawable};
+use essay_plot::graph::graph::GraphBuilder;
+use essay_plot::graph::Graph;
 use essay_plot::prelude::{ImageId, Color};
 use essay_plot::wgpu::{PlotCanvas, PlotRenderer};
 use essay_tensor::Tensor;
@@ -14,7 +17,8 @@ use super::winit_loop::{main_loop, WinitEvents};
 
 pub struct UiCanvas {
     wgpu: WgpuCanvas,
-    plot_canvas: PlotCanvas,
+    canvas: PlotCanvas,
+    layout: GraphBuilder,
 
     view: Option<CanvasView>,
     is_stale: bool,
@@ -22,14 +26,18 @@ pub struct UiCanvas {
 
 impl UiCanvas {
     pub(crate) fn new(wgpu: WgpuCanvas) -> Self {
-        let plot_renderer = PlotCanvas::new(
+        let canvas = PlotCanvas::new(
             &wgpu.device,
+            &wgpu.queue,
             wgpu.config.format,
+            wgpu.config.width,
+            wgpu.config.height,
         );
 
         Self {
             wgpu,
-            plot_canvas: plot_renderer,
+            canvas,
+            layout: GraphBuilder::new(Layout::new()),
             view: None,
             is_stale: true,
         }
@@ -41,7 +49,7 @@ impl UiCanvas {
         if self.is_stale || true {
             self.is_stale = false;
 
-            self.plot_canvas.clear();
+            self.canvas.clear();
             let view = self.wgpu.create_view();
             self.wgpu.clear_screen(&view.view);
 
@@ -51,15 +59,34 @@ impl UiCanvas {
 
     pub(crate) fn close_view(&mut self) {
         if let Some(view) = self.view.take() {
+            let pos = self.canvas.bounds().clone();
+
+            let mut renderer = PlotRenderer::new(
+                &mut self.canvas, 
+                &self.wgpu.device, 
+                Some(&self.wgpu.queue), 
+                Some(&view.view)
+            );
+
+            self.layout.get_layout_mut().draw(&mut renderer, &pos);
+            //self.canvas..draw
+            //self.layout.
+
+            renderer.flush(&Clip::None);
+
             view.flush();
         }
+    }
+
+    pub fn graph(&mut self, pos: impl Into<Bounds<Layout>>) -> Graph {
+        self.layout.graph(pos)
     }
 
     pub fn renderer<'a>(&'a mut self, clip: Clip) -> Option<UiRender<'a>> {
         match &self.view {
             Some(view) => {
                 Some(UiRender::new(PlotRenderer::new(
-                    &mut self.plot_canvas, 
+                    &mut self.canvas, 
                     &self.wgpu.device, 
                     Some(&self.wgpu.queue), 
                     Some(&view.view)),
@@ -73,7 +100,7 @@ impl UiCanvas {
     pub fn draw_path(&mut self, path: &Path<Canvas>, style: &PathStyle) {
         if let Some(view) = &self.view {
             let mut plot_renderer = PlotRenderer::new(
-                &mut self.plot_canvas, 
+                &mut self.canvas, 
                 &self.wgpu.device, 
                 Some(&self.wgpu.queue), 
                 Some(&view.view)
@@ -95,7 +122,7 @@ impl UiCanvas {
     ) {
         if let Some(view) = &self.view {
             let mut plot_renderer = PlotRenderer::new(
-                &mut self.plot_canvas, 
+                &mut self.canvas, 
                 &self.wgpu.device, 
                 Some(&self.wgpu.queue), 
                 Some(&view.view)
@@ -114,7 +141,7 @@ impl UiCanvas {
     pub fn create_image(&mut self, colors: Tensor<u8>) -> Option<ImageId> {
         if let Some(view) = &self.view {
             let mut plot_renderer = PlotRenderer::new(
-                &mut self.plot_canvas, 
+                &mut self.canvas, 
                 &self.wgpu.device, 
                 Some(&self.wgpu.queue), 
                 Some(&view.view)
@@ -133,7 +160,7 @@ impl UiCanvas {
     pub fn draw_image(&mut self, pos: &Bounds<Canvas>, image: ImageId) {
         if let Some(view) = &self.view {
             let mut plot_renderer = PlotRenderer::new(
-                &mut self.plot_canvas, 
+                &mut self.canvas, 
                 &self.wgpu.device, 
                 Some(&self.wgpu.queue), 
                 Some(&view.view)
@@ -158,7 +185,7 @@ impl UiCanvas {
     ) {
         if let Some(view) = &self.view {
             let mut plot_renderer = PlotRenderer::new(
-                &mut self.plot_canvas, 
+                &mut self.canvas, 
                 &self.wgpu.device, 
                 Some(&self.wgpu.queue), 
                 Some(&view.view)
@@ -184,7 +211,7 @@ impl UiCanvas {
         match &self.view {
             Some(view) => {
                 Some(PlotRenderer::new(
-                    &mut self.plot_canvas, 
+                    &mut self.canvas, 
                     &self.wgpu.device, 
                     Some(&self.wgpu.queue), 
                     Some(&view.view)
@@ -196,8 +223,8 @@ impl UiCanvas {
 
     pub(crate) fn window_bounds(&mut self, width: u32, height: u32) {
         self.wgpu.window_bounds(width, height);
-        self.plot_canvas.set_canvas_bounds(width, height);
-        self.plot_canvas.set_scale_factor(2.);
+        self.canvas.resize(&self.wgpu.device, width, height);
+        self.canvas.set_scale_factor(2.);
         self.set_stale();
     }
 
@@ -323,8 +350,8 @@ impl Plugin for UiCanvasPlugin {
         app.insert_resource(ui_canvas);
         app.insert_resource_non_send(event_loop);
 
-        app.system(PreUpdate, ui_canvas_first);
-        app.system(PostUpdate, ui_canvas_last);
+        app.system(PreUpdate, ui_canvas_pre_update);
+        app.system(PostUpdate, ui_canvas_post_update);
 
         let time = self.time.clone();
         app.runner(move |app| {
@@ -333,11 +360,11 @@ impl Plugin for UiCanvasPlugin {
     }
 }
 
-fn ui_canvas_first(mut ui_canvas: ResMut<UiCanvas>) {
+fn ui_canvas_pre_update(mut ui_canvas: ResMut<UiCanvas>) {
     ui_canvas.init_view();
 }
 
-fn ui_canvas_last(mut ui_canvas: ResMut<UiCanvas>) {
+fn ui_canvas_post_update(mut ui_canvas: ResMut<UiCanvas>) {
     ui_canvas.close_view();
 }
 

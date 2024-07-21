@@ -11,7 +11,7 @@ pub struct UiPlot {
 impl UiPlot {
     pub const LIM: usize = 100;
 
-    pub(crate) fn new(graph: Graph) -> Self {
+    pub fn new(graph: Graph) -> Self {
         Self {
             graph,
             lines: Vec::new(),
@@ -97,27 +97,6 @@ impl UiLine {
         self.line.color(color);
     }
 }
-/*
-pub type BoxKey = Box<dyn UiKey>;
-
-pub trait UiKey : Send + DynLabel + fmt::Debug {
-    fn box_clone(&self) -> Box<dyn UiKey>;
-}
-
-impl PartialEq for dyn UiKey {
-    fn eq(&self, other: &Self) -> bool {
-        self.dyn_eq(other.as_dyn_eq())
-    }
-}
-
-impl Eq for dyn UiKey {}
-
-impl Hash for dyn UiKey {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.dyn_hash(state)
-    }
-}
-*/
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct PlotKeyId(usize);

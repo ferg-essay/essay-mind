@@ -1,8 +1,8 @@
 use essay_ecs::prelude::*;
-use essay_plot::{prelude::Point, artist::{GridColorOpt, ColorMaps}};
+use essay_plot::{api::Bounds, artist::{ColorMaps, GridColorOpt}, graph::Graph, prelude::Point};
 use essay_tensor::Tensor;
 use mind_ecs::PostTick;
-use ui_graphics::ui_plot::{UiFigurePlugin, UiFigure};
+use ui_graphics::UiCanvas;
 use crate::world::World;
 use crate::body::Body;
 use crate::ui::ui_world::UiWorldPlugin;
@@ -19,7 +19,7 @@ pub struct UiLocMap {
 
 impl UiLocMap {
     fn new(
-        ui_figure: &mut UiFigure<LocMap>,
+        mut graph: Graph,
         extent: (usize, usize)
     ) -> Self {
         let factor = 1;
@@ -27,8 +27,7 @@ impl UiLocMap {
         let mut data = Vec::<f32>::new();
         data.resize(extent.0 * extent.1 * factor * factor, 0.);
 
-        let mut graph = ui_figure.graph((0., 0.), (1., 1.));
-        let mut grid_plot = graph.color_grid(grid);
+        let mut grid_plot = graph.grid_color(grid);
         grid_plot.color_map(ColorMaps::RedYellow);
 
         // let mut text = graph.graph().text((0., 0.95), "hello");
@@ -45,7 +44,7 @@ impl UiLocMap {
     }
 }
 
-pub fn ui_locmap_update(
+pub fn ui_heatmap_update(
     ui_locmap: &mut UiLocMap,
     body: Res<Body>
 ) {
@@ -60,15 +59,15 @@ pub fn ui_locmap_update(
 
     // ui_locmap.p_food_text.text(format!("p(food) = {:.3}", body.p_food()));
 }
-
-pub fn ui_locmap_spawn_plot(
+/*
+pub fn ui_heatmap_spawn_plot(
     mut c: Commands,
     world: Res<World>,
     mut plot: ResMut<UiFigure<LocMap>>
 ) {
     c.spawn(UiLocMap::new(plot.get_mut(), world.extent()))
 }
-
+*/
 pub struct LocMap;
 
 pub struct UiLocationHeatmapPlugin {
@@ -89,11 +88,17 @@ impl Plugin for UiLocationHeatmapPlugin {
     fn build(&self, app: &mut App) {
         if app.contains_plugin::<UiWorldPlugin>() {
             // app.system(Update, draw_body.phase(DrawAgent));
+            if let Some(ui_canvas) = app.get_mut_resource::<UiCanvas>() {
+                let graph = ui_canvas.graph(Bounds::new(self.xy, self.wh));
 
-            app.plugin(UiFigurePlugin::<LocMap>::new(self.xy, self.wh));
+                let world = app.resource::<World>();
+                app.insert_resource(UiLocMap::new(graph, world.extent()))
+            }
 
-            app.system(Startup, ui_locmap_spawn_plot);
-            app.system(PostTick, ui_locmap_update);
+            // app.plugin(UiFigurePlugin::<LocMap>::new(self.xy, self.wh));
+
+            // app.system(Startup, ui_heatmap_startup);
+            app.system(PostTick, ui_heatmap_update);
         }
     }
 }

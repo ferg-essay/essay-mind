@@ -4,7 +4,7 @@ use essay_ecs::prelude::*;
 use essay_plot::prelude::*;
 
 use mind_ecs::{PostTick, PreTick};
-use ui_graphics::ui_plot::{UiPlot, UiFigurePlugin, UiFigure, PlotKeyId};
+use ui_graphics::{ui_plot::{PlotKeyId, UiPlot}, UiCanvas};
 
 #[derive(Component)]
 pub struct UiGraph {
@@ -13,8 +13,8 @@ pub struct UiGraph {
 }
 
 impl UiGraph {
-    fn new(figure: &UiFigure<BodyPlot>) -> Self {
-        let mut plot = figure.plot_xy((0., 0.), (1., 1.));
+    fn new(canvas: &mut UiCanvas) -> Self {
+        let mut plot = UiPlot::new(canvas.graph([0., 0., 1., 1.]));
         plot.lim(256);
 
         plot.graph_mut().ylim(-0.1, 1.1);
@@ -41,13 +41,6 @@ pub fn ui_plot_update(
     mut ui_body: ResMut<UiGraph>,
 ) {
     ui_body.plot.tick();
-}
-
-pub fn ui_body_spawn_plot(
-    mut c: Commands,
-    mut plot: ResMut<UiFigure<BodyPlot>>
-) {
-    c.spawn(UiGraph::new(plot.get_mut()))
 }
 
 pub struct BodyPlot;
@@ -95,12 +88,12 @@ impl UiGraphPlugin {
 
 impl Plugin for UiGraphPlugin {
     fn build(&self, app: &mut App) {
-        let figure = UiFigurePlugin::<BodyPlot>::new(self.xy, self.wh);
-        figure.build(app);
+        //let figure = UiFigurePlugin::<BodyPlot>::new(self.xy, self.wh);
+        //figure.build(app);
 
         let colors = self.colors.clone();
         
-        let mut graph = UiGraph::new(app.resource_mut::<UiFigure<BodyPlot>>());
+        let mut graph = UiGraph::new(app.resource_mut::<UiCanvas>());
 
         for (i, (label, item)) in self.items.iter().enumerate() {
             let color = colors[i % colors.len()];

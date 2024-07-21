@@ -99,7 +99,7 @@ impl BoxId {
     }
 }
 
-fn layout_update(
+fn layout_event(
     mut layout: ResMut<UiLayout>, 
     mut reader: InEvent<UiWindowEvent>,
     mut writer: OutEvent<UiLayoutEvent>
@@ -122,7 +122,7 @@ impl Plugin for UiLayoutPlugin {
 
         app.event::<UiLayoutEvent>();
 
-        app.system(First, layout_update);
+        app.system(First, layout_event);
     }
 }
 

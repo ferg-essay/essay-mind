@@ -12,7 +12,7 @@ use crate::{
     core_motive::{Motive, MotiveTrait, Motives}, 
     hab_taxis::chemotaxis::{Avoid, Seek}, 
     hind_motor::{HindMove, HindMovePlugin}, 
-    striatum::{Gate, Striatum2, StriatumGate}, 
+    striatum::{Gate, StriatumGate}, 
     teg_motor::SeekInput, 
     util::{DecayValue, Seconds}
 };
@@ -168,14 +168,12 @@ impl<I: SeekInput> KlinotaxisStriatum<I> {
 //}
 
 pub struct KlinotaxisPlugin<I: SeekInput, M: MotiveTrait> {
-    _striatum: Striatum2,
     marker: PhantomData<(I, M)>,
 }
 
 impl<I: SeekInput, M: MotiveTrait> KlinotaxisPlugin<I, M> {
     pub fn new() -> Self {
         Self {
-            _striatum: Striatum2::default(),
             marker: PhantomData::<(I, M)>::default(),
         }
     }
@@ -209,11 +207,11 @@ fn update_seek<I: SeekInput, M: MotiveTrait>(
             if seek.is_moving_away() {
                 hind_move.u_turn(1.);
             } else {
-                if seek.is_left_turn() {
+                if seek.is_left_turn() && seek.is_right_turn() {
+
+                } else if seek.is_left_turn() {
                     hind_move.left_brake(0.5);
-                } 
-            
-                if seek.is_right_turn() {
+                } else if seek.is_right_turn() {
                     hind_move.right_brake(0.5);
                 }
             }
