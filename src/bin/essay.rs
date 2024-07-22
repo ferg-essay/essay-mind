@@ -7,11 +7,7 @@ use vertebrate::{
     }, hab_taxis::{
         chemotaxis::{Avoid, Chemotaxis, ChemotaxisPlugin, Seek}, klinotaxis::KlinotaxisPlugin, phototaxis::Phototaxis
     }, hind_motor::{HindEat, HindEatPlugin, HindLevyPlugin, HindMovePlugin}, hind_sense::lateral_line::LateralLinePlugin, mid_motor::{tectum::TectumPlugin, MidMotorPlugin}, olfactory_bulb::{ObEvent, OlfactoryBulb, OlfactoryPlugin}, teg_motor::TegSeekPlugin, ui::{
-        ui_attention::UiAttentionPlugin, 
-        ui_body::{UiBodyPlugin, UiBodyTrailPlugin}, 
-        ui_body_heatmap::UiLocationHeatmapPlugin, ui_graph::UiGraphPlugin, ui_homunculus::UiHomunculusPlugin, 
-        ui_motive::{Emoji, UiMotivePlugin}, 
-        ui_peptide::UiPeptidePlugin, ui_table::UiTablePlugin, ui_world::UiWorldPlugin
+        ui_attention::UiAttentionPlugin, ui_body::{UiBodyPlugin, UiBodyTrailPlugin}, ui_body_heatmap::UiLocationHeatmapPlugin, ui_camera::UiCameraPlugin, ui_graph::UiGraphPlugin, ui_homunculus::UiHomunculusPlugin, ui_motive::{Emoji, UiMotivePlugin}, ui_peptide::UiPeptidePlugin, ui_table::UiTablePlugin, ui_world_map::UiWorldPlugin
     }, util::{Seconds, Ticks}, world::{
         OdorType, World, WorldPlugin
     }
@@ -240,6 +236,9 @@ fn ui_eat_flat(app: &mut App) {
     let colors = Colors::from(["amber", "azure", "red", "purple", "blue", "green", "olive"]);
 
     let odor_colors = Colors::from(["green", "azure"]);
+
+    app.plugin(UiCameraPlugin::new((0., 1.), (2., 1.0)));
+
     app.plugin(UiAttentionPlugin::new((2.0, 0.0), (0.5, 0.5))
         .colors(odor_colors)
         // .item("v", |p: &Phototaxis| p.value())

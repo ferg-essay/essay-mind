@@ -10,9 +10,9 @@ use crate::util as util;
 use mind_ecs::PostTick;
 use ui_graphics::UiCanvas;
 use crate::body::Body;
-use crate::ui::ui_world::{UiWorldPlugin, UiWorld};
+use crate::ui::ui_world_map::{UiWorldPlugin, UiWorld};
 
-use super::ui_world::DrawAgent;
+use super::ui_world_map::DrawAgent;
 
 pub fn draw_body(
     body: Res<Body>, 

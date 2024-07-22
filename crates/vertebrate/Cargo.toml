@@ -12,6 +12,7 @@ essay-ecs = { path = "../../../essay-ecs" }
 essay-tensor = { path = "../../../essay-tensor" }
 #essay-ecs = { git = "https://github.com/ferg-essay/essay-ecs", version="0.1.1-dev" }
 #essay-ecs-core = { git = "https://github.com/ferg-essay/essay-ecs" }
+essay-graphics = { path = "../../../essay-graphics" }
 essay-plot = { path = "../../../essay-plot" }
 #essay-plot = { git = "https://github.com/ferg-essay/essay-plot", version="0.1.13" }
 ui-graphics = { path = "../ui-graphics" }

@@ -5,7 +5,7 @@ use mind_ecs::PostTick;
 use ui_graphics::UiCanvas;
 use crate::world::World;
 use crate::body::Body;
-use crate::ui::ui_world::UiWorldPlugin;
+use crate::ui::ui_world_map::UiWorldPlugin;
 
 #[derive(Component)]
 pub struct UiLocMap {

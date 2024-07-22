@@ -7,7 +7,7 @@ use essay_plot::{
 };
 
 use ui_graphics::{ui_layout::{BoxId, UiLayout, UiLayoutEvent}, UiCanvas, ui_canvas::UiRender};
-use crate::ui::ui_world::UiWorldPlugin;
+use crate::ui::ui_world_map::UiWorldPlugin;
 
 //#[derive(Component)]
 pub struct UiMotive {

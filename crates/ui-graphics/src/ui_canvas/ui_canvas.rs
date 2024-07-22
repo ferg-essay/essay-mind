@@ -1,9 +1,9 @@
 use std::time::Duration;
 
 use essay_ecs::prelude::*;
-use essay_graphics::layout::Layout;
+use essay_graphics::layout::{Layout, View};
 use essay_plot::artist::PathStyle;
-use essay_plot::api::{TextStyle, Bounds, FontStyle, FontTypeId};
+use essay_plot::api::{Bounds, CanvasEvent, FontStyle, FontTypeId, TextStyle};
 use essay_plot::api::{Canvas, Point, Path, Clip, driver::Renderer, driver::Drawable};
 use essay_plot::graph::graph::GraphBuilder;
 use essay_plot::graph::Graph;
@@ -82,6 +82,14 @@ impl UiCanvas {
         self.layout.graph(pos)
     }
 
+    pub fn view<T: Drawable + Send + 'static>(
+        &mut self, 
+        pos: impl Into<Bounds<Layout>>, 
+        view: T
+    ) -> View<T> {
+        self.layout.get_layout_mut().add_view(pos, view)
+    }
+
     pub fn renderer<'a>(&'a mut self, clip: Clip) -> Option<UiRender<'a>> {
         match &self.view {
             Some(view) => {
@@ -97,7 +105,51 @@ impl UiCanvas {
         }
     }
 
+    pub fn renderer_viewless<'a>(&'a mut self) -> PlotRenderer<'a> {
+        PlotRenderer::new(
+            &mut self.canvas, 
+            &self.wgpu.device, 
+            Some(&self.wgpu.queue), 
+            None,
+        )
+    }
+
+    pub fn renderer_draw<'a>(&'a mut self) -> Option<PlotRenderer<'a>> {
+        match &self.view {
+            Some(view) => {
+                Some(PlotRenderer::new(
+                    &mut self.canvas, 
+                    &self.wgpu.device, 
+                    Some(&self.wgpu.queue), 
+                    Some(&view.view)
+                ))
+            },
+            None => None
+        }
+    }
+
+    fn plot_renderer<'a>(&'a mut self) -> Option<PlotRenderer<'a>> {
+        match &self.view {
+            Some(view) => {
+                Some(PlotRenderer::new(
+                    &mut self.canvas, 
+                    &self.wgpu.device, 
+                    Some(&self.wgpu.queue), 
+                    Some(&view.view)
+                ))
+            },
+            None => None
+        }
+    }
+
     pub fn draw_path(&mut self, path: &Path<Canvas>, style: &PathStyle) {
+        if let Some(mut renderer) = self.plot_renderer() {
+            renderer.draw_path(path, style, &Clip::None).unwrap();
+
+            renderer.flush(&Clip::None);
+        }
+
+        /*
         if let Some(view) = &self.view {
             let mut plot_renderer = PlotRenderer::new(
                 &mut self.canvas, 
@@ -112,6 +164,7 @@ impl UiCanvas {
 
             plot_renderer.flush(&Clip::None);
         }
+        */
     }
 
     pub fn draw_text(
@@ -207,6 +260,7 @@ impl UiCanvas {
         }
     }
 
+    /*
     pub fn plot_renderer<'a>(&'a mut self) -> Option<PlotRenderer<'a>> {
         match &self.view {
             Some(view) => {
@@ -220,12 +274,25 @@ impl UiCanvas {
             None => None
         }
     }
+    */
 
     pub(crate) fn window_bounds(&mut self, width: u32, height: u32) {
         self.wgpu.window_bounds(width, height);
         self.canvas.resize(&self.wgpu.device, width, height);
         self.canvas.set_scale_factor(2.);
         self.set_stale();
+
+        let mut renderer = PlotRenderer::new(
+            &mut self.canvas, 
+            &self.wgpu.device, 
+            Some(&self.wgpu.queue), 
+            None, // Some(&view.view)
+        );
+
+        self.layout.event(
+            &mut renderer, 
+            &CanvasEvent::Resize(Bounds::from([width as f32, height as f32]))
+        );
     }
 
     pub(crate) fn set_stale(&mut self) {

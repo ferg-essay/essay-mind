@@ -1,4 +1,6 @@
+use driver::Drawable;
 use essay_ecs::prelude::*;
+use essay_graphics::layout::{Layout, View};
 use essay_plot::{prelude::*, artist::paths};
 use essay_tensor::Tensor;
 use ui_graphics::{ui_layout::{UiLayout, UiLayoutEvent, BoxId, UiLayoutPlugin}, UiCanvas, UiCanvasPlugin};
@@ -9,84 +11,53 @@ use crate::world::WorldCell;
 
 #[derive(Component)]
 pub struct UiWorld {
-    id: BoxId,
-    pos: Bounds<Canvas>,
-    clip: Clip,
-    to_canvas: Affine2d,
-    bounds: Bounds<UiWorld>,
+    view: View<UiWorldView>,
+    // pos: Bounds<Canvas>,
     width: usize,
     height: usize,
     image: Option<ImageId>,
 }
 
 impl UiWorld {
-    pub fn new(id: BoxId, width: usize, height: usize) -> Self {
+    pub fn new(view: View<UiWorldView>, width: usize, height: usize) -> Self {
         let mut values = Vec::new();
 
         values.resize_with(width * height, || WorldCell::Empty);
 
         Self {
-            id,
-            pos: Bounds::zero(),
-            clip: Clip::None,
-            to_canvas: Affine2d::eye(),
+            view,
+            // pos: Bounds::zero(),
             width,
             height,
-            bounds: Bounds::from([width as f32, height as f32]),
             image: None,
         }
     }
 
-    pub fn _extent(&self) -> (f32, f32) {
-        (self.bounds.xmax(), self.bounds.ymax())
+    fn pos(&self) -> Bounds<Canvas> {
+        self.view.read(|v| v.pos.clone())    
     }
 
-    pub fn set_pos(&mut self, pos: &Bounds<Canvas>) {
-        let aspect = self.bounds.width() / self.bounds.height();
-
-        // force bounds to match aspect ratio
-        let (c_width, c_height) = if aspect * pos.height() <= pos.width() {
-            (aspect * pos.height(), pos.height())
-        } else {
-            (pos.width(), pos.width() / aspect)
-        };
-
-        // center the box
-        let xmin = pos.xmin() + 0.5 * (pos.width() - c_width);
-        let ymin = pos.ymin() + 0.5 * (pos.height() - c_height);
-
-        let xmin = xmin.max(10.);
-        let ymin = ymin.max(10.);
-
-        //let xmin = pos.xmin();
-        //let ymin = pos.ymin();
-
-        let c_width = c_width - xmin - pos.xmin();
-        let c_height = c_height - xmin - pos.xmin();
-
-        let pos = Bounds::<Canvas>::new(
-            Point(xmin, ymin),
-            Point(xmin + c_width, ymin + c_height),
-        );
-
-        self.pos = pos;
-        self.clip = Clip::from(&self.pos);
-        self.to_canvas = self.bounds.affine_to(&self.pos);
+    fn bounds(&self) -> Bounds<Canvas> {
+        self.view.read(|v| v.pos.clone())    
     }
 
     pub fn to_canvas(&self) -> Affine2d {
-        self.to_canvas.clone()
+        self.view.read(|v| v.to_canvas.clone())    
     }
 
     pub fn to_canvas_scale(&self) -> Affine2d {
+        let pos = self.pos();
+        let bounds = self.bounds();
+
         Affine2d::eye().scale(
-            self.pos.width() / self.bounds.width(), 
-            self.pos.height() / self.bounds.height(),
+            pos.width() / bounds.width(), 
+            pos.height() / bounds.height(),
         )
     }
 
     pub fn clip(&self) -> &Clip {
-        &self.clip
+        // &self.clip
+        &Clip::None
     }
 }
 
@@ -98,10 +69,10 @@ pub fn world_resize(
     ui_layout: Res<UiLayout>,
     mut read: InEvent<UiLayoutEvent>
 ) {
-    for _ in read.iter() {
-        let id = ui_world.id;
-        ui_world.set_pos(ui_layout.get_box(id));
-    }
+    //for _ in read.iter() {
+    //    let id = ui_world.id;
+    //    ui_world.set_pos(ui_layout.get_box(id));
+    //}
 }
 
 pub fn draw_world(
@@ -146,7 +117,7 @@ pub fn draw_world(
         }
 
         if let Some(image) = &ui_world.image {
-            ui.draw_image(&ui_world.pos, image.clone());
+            ui.draw_image(&ui_world.pos(), image.clone());
         }
     }
 }
@@ -186,8 +157,75 @@ pub struct DrawItem;
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Phase)]
 pub struct DrawAgent;
 
+struct UiWorldView {
+    bounds: Bounds<UiWorld>,
+    pos: Bounds<Canvas>,
+
+    clip: Clip,
+    to_canvas: Affine2d,
+}
+
+impl UiWorldView {
+    fn new(bounds: impl Into<Bounds<UiWorld>>) -> Self {
+        Self {
+            bounds: bounds.into(),
+            pos: Bounds::zero(),
+
+            clip: Clip::None,
+            to_canvas: Affine2d::eye(),
+        }
+    }
+
+    fn set_pos(&mut self, pos: &Bounds<Canvas>) {
+        let aspect = self.bounds.width() / self.bounds.height();
+
+        // force bounds to match aspect ratio
+        let (c_width, c_height) = if aspect * pos.height() <= pos.width() {
+            (aspect * pos.height(), pos.height())
+        } else {
+            (pos.width(), pos.width() / aspect)
+        };
+
+        // center the box
+        let xmin = pos.xmin() + 0.5 * (pos.width() - c_width);
+        let ymin = pos.ymin() + 0.5 * (pos.height() - c_height);
+
+        let xmin = xmin.max(10.);
+        let ymin = ymin.max(10.);
+
+        //let xmin = pos.xmin();
+        //let ymin = pos.ymin();
+
+        let c_width = c_width - xmin - pos.xmin();
+        let c_height = c_height - xmin - pos.xmin();
+
+        let pos = Bounds::<Canvas>::new(
+            Point(xmin, ymin),
+            Point(xmin + c_width, ymin + c_height),
+        );
+
+        self.pos = pos;
+        self.clip = Clip::from(&self.pos);
+        self.to_canvas = self.bounds.affine_to(&self.pos);
+        println!("SetCanvas: {:?}", self.to_canvas);
+    }
+}
+
+impl Drawable for UiWorldView {
+    fn draw(&mut self, renderer: &mut dyn driver::Renderer, pos: &Bounds<Canvas>) {
+        // todo!()
+    }
+
+    fn event(&mut self, renderer: &mut dyn driver::Renderer, event: &CanvasEvent) {
+        if let CanvasEvent::Resize(pos) = event {
+            println!("Resize: {:?}", pos);
+            self.set_pos(pos);
+        }
+    }
+}
+
 pub struct UiWorldPlugin {
-    bounds: Bounds::<UiLayout>,
+    bounds: Bounds::<Layout>,
 }
 
 impl UiWorldPlugin {
@@ -210,9 +248,16 @@ impl Plugin for UiWorldPlugin {
                 app.plugin(UiLayoutPlugin);
             }
 
-            let box_id = app.resource_mut::<UiLayout>().add_box(self.bounds.clone());
-            let world = app.get_plugin::<WorldPlugin>().unwrap();
-            let ui_world = UiWorld::new(box_id, world.width(), world.height());
+            let (width, height) = {
+                let world = app.get_plugin::<WorldPlugin>().unwrap();
+                (world.width(), world.height())
+            };
+            let view = UiWorldView::new([width as f32, height as f32]);
+            let view = app.resource_mut::<UiCanvas>().view(self.bounds.clone(), view);
+
+            let ui_world = UiWorld::new(view, width, height);
+
+            // let box_id = app.resource_mut::<UiLayout>().add_box(self.bounds.clone());
             app.insert_resource(ui_world);
 
             app.phase(Update, (DrawWorld, DrawItem, DrawAgent).chain());

@@ -1,6 +1,8 @@
 use std::cell::RefCell;
 
+use driver::Drawable;
 use essay_ecs::prelude::*;
+use essay_graphics::layout::{Layout, View};
 use essay_plot::{
     prelude::*, 
     artist::{paths::Unit, PathStyle, ColorMaps, ColorMap}
@@ -10,14 +12,14 @@ use ui_graphics::{ui_layout::{BoxId, UiLayout, UiLayoutEvent}, UiCanvas, ui_canv
 use crate::{
     body::Body, hind_motor::HindLevyMove, mid_motor::tectum::TectumMap, hab_taxis::Taxis 
 };
-use crate::ui::ui_world::UiWorldPlugin;
+use crate::ui::ui_world_map::UiWorldPlugin;
 use crate::util::Angle;
 
 use super::ui_motive::Emoji;
 
 #[derive(Component)]
 pub struct UiHomunculus {
-    id: BoxId,
+    view: View<UiHomunculusView>,
     pos: Bounds<Canvas>,
     clip: Clip,
     bounds: Bounds<Unit>,
@@ -43,7 +45,7 @@ pub struct UiHomunculus {
 impl UiHomunculus {
     pub const N_DIR : usize = 12;
 
-    pub fn new(id: BoxId) -> Self {
+    pub fn new(view: View<UiHomunculusView>) -> Self {
         let paths_unit = UiHomunculusPath::<Unit>::new();
         let affine = Affine2d::eye();
         let paths_canvas = paths_unit.transform(&affine);
@@ -57,7 +59,7 @@ impl UiHomunculus {
         outer_dir.set_head(false);
 
         Self {
-            id,
+            view,
             pos: Bounds::zero(),
             clip: Clip::None,
             bounds: Bounds::from([1., 1.]),
@@ -81,7 +83,9 @@ impl UiHomunculus {
         }
     }
 
-    pub fn set_pos(&mut self, pos: &Bounds<Canvas>) {
+    pub fn resize(&mut self) {
+        let pos = self.view.pos();
+
         self.pos = Bounds::from([
             pos.xmin() + 0.05 * pos.width(),
             pos.ymin() + 0.05 * pos.height(),
@@ -93,9 +97,9 @@ impl UiHomunculus {
 
         self.paths_canvas = self.paths_unit.transform(&self.to_canvas());
 
-        self.head_dir.set_pos(pos);
-        self.outer_dir.set_pos(pos);
-        self.inner_dir.set_pos(pos);
+        self.head_dir.set_pos(&pos);
+        self.outer_dir.set_pos(&pos);
+        self.inner_dir.set_pos(&pos);
 
         self.emoji_pos = self.to_canvas().transform_point(Point(0.5, 0.75));
     }
@@ -462,10 +466,7 @@ pub fn ui_homunculus_resize(
     ui_layout: Res<UiLayout>,
     mut read: InEvent<UiLayoutEvent>
 ) {
-    for _ in read.iter() {
-        let id = ui_homunculus.id;
-        ui_homunculus.set_pos(ui_layout.get_box(id));
-    }
+    ui_homunculus.resize();
 }
 
 pub fn ui_homunculus_draw(
@@ -594,11 +595,34 @@ pub fn ui_homunculus_draw(
     }
 }
 
+struct UiHomunculusView {
+    pos: Bounds<Canvas>,
+}
+
+impl UiHomunculusView {
+    fn new() -> Self {
+        Self {
+            pos: Bounds::zero(),
+        }
+    }
+}
+
+impl Drawable for UiHomunculusView {
+    fn draw(&mut self, _renderer: &mut dyn driver::Renderer, _pos: &Bounds<Canvas>) {
+        // todo!()
+    }
+
+    fn event(&mut self, _renderer: &mut dyn driver::Renderer, event: &CanvasEvent) {
+        if let CanvasEvent::Resize(pos) = event {
+            self.pos = pos.clone();
+        }
+    }
+}
 //
 // UiHomunculusPlugin
 
 pub struct UiHomunculusPlugin {
-    bounds: Bounds::<UiLayout>,
+    bounds: Bounds::<Layout>,
 
     emoji_items: Vec<Box<dyn PluginItem>>,
 }
@@ -661,9 +685,10 @@ impl<T: Default + Send + Sync + 'static> PluginItem for Item<T> {
 impl Plugin for UiHomunculusPlugin {
     fn build(&self, app: &mut App) {
         if app.contains_plugin::<UiWorldPlugin>() {
-            let box_id = app.resource_mut::<UiLayout>().add_box(self.bounds.clone());
+            let view = UiHomunculusView::new();
+            let view = app.resource_mut::<UiCanvas>().view(self.bounds.clone(), view);
 
-            let ui_homunculus = UiHomunculus::new(box_id);
+            let ui_homunculus = UiHomunculus::new(view);
 
             app.init_resource::<Taxis>();
 
