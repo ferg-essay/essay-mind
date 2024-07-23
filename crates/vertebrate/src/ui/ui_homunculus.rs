@@ -8,14 +8,14 @@ use essay_plot::{
     artist::{paths::Unit, PathStyle, ColorMaps, ColorMap}
 };
 
-use ui_graphics::{ui_layout::{BoxId, UiLayout, UiLayoutEvent}, UiCanvas, ui_canvas::UiRender};
+use ui_graphics::{ui_layout::{UiLayout, UiLayoutEvent}, UiCanvas, ui_canvas::UiRender};
 use crate::{
     body::Body, hind_motor::HindLevyMove, mid_motor::tectum::TectumMap, hab_taxis::Taxis 
 };
 use crate::ui::ui_world_map::UiWorldPlugin;
 use crate::util::Angle;
 
-use super::ui_motive::Emoji;
+use super::ui_emoji::Emoji;
 
 #[derive(Component)]
 pub struct UiHomunculus {

@@ -1,3 +1,4 @@
+pub mod ui_emoji;
 pub mod ui_camera;
 pub mod ui_attention;
 pub mod ui_body;

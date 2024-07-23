@@ -10,11 +10,11 @@ use crate::pallidum::basal_forebrain::AttendValue;
 
 #[derive(Component)]
 pub struct UiAttention {
-    view: View<AttentionView>,
+    view: View<AttentionDraw>,
 }
 
 impl UiAttention {
-    fn new(view: View<AttentionView>) -> Self {
+    fn new(view: View<AttentionDraw>) -> Self {
         Self {
             view,
         }
@@ -34,7 +34,7 @@ impl Coord for UiAttention {}
 
 type UpdateBox<T> = Box<dyn Fn(&T) -> AttendValue + Sync + Send>;
 
-struct AttentionView {
+struct AttentionDraw {
     pos: Bounds<Canvas>,
     clip: Clip,
     bounds: Bounds<Data>,
@@ -45,7 +45,7 @@ struct AttentionView {
     colors: ColorMap,
 }
 
-impl AttentionView {
+impl AttentionDraw {
     pub fn new() -> Self {
         Self {
             pos: Bounds::zero(),
@@ -107,7 +107,7 @@ impl AttentionView {
     }
 }
 
-impl Drawable for AttentionView {
+impl Drawable for AttentionDraw {
     fn draw(&mut self, renderer: &mut dyn Renderer, _pos: &Bounds<Canvas>) {
         let mut style = PathStyle::new();
         style.line_width(1.);
@@ -201,7 +201,7 @@ impl Plugin for UiAttentionPlugin {
                 app.plugin(UiLayoutPlugin);
             }
 
-            let mut ui_view = AttentionView::new();
+            let mut ui_view = AttentionDraw::new();
 
             let colors = if self.colors.len() > 0 {
                 self.colors.clone()
