@@ -1,51 +1,73 @@
 use std::cell::RefCell;
 
+use driver::{Drawable, Renderer};
 use essay_ecs::prelude::*;
-use essay_plot::{prelude::*, artist::{paths::{self, Unit}, PathStyle, ColorMap, ColorMaps}};
-use ui_graphics::{ui_layout::{UiLayout, UiLayoutEvent, BoxId, UiLayoutPlugin}, UiCanvas, UiCanvasPlugin};
+use essay_graphics::layout::{Layout, View};
+use essay_plot::{artist::{paths::{self, Unit}, ColorMap, ColorMaps, PathStyle}, frame::Data, prelude::*};
+use ui_graphics::{ui_layout::UiLayoutPlugin, UiCanvas, UiCanvasPlugin};
 
 use crate::pallidum::basal_forebrain::AttendValue;
 
 #[derive(Component)]
 pub struct UiAttention {
-    id: BoxId,
-    pos: Bounds<Canvas>,
-    clip: Clip,
-    bounds: Bounds<UiAttention>,
-
-    attention: Vec<UiAttentionItem>,
-    boxes: Vec<Path<Canvas>>,
-
-    colors: ColorMap,
-    // peptide_update: UiPeptideUpdate<MidPeptides>,
+    view: View<AttentionView>,
 }
 
 impl UiAttention {
-    pub fn new(id: BoxId) -> Self {
+    fn new(view: View<AttentionView>) -> Self {
         Self {
-            id,
+            view,
+        }
+    }
+
+    #[inline]
+    fn set_value(&mut self, id: UiAttentionId, value: AttendValue) {
+        self.view.write(|ui| {
+            ui.attention[id.i()].value = value.value * value.attend;
+            ui.attention[id.i()].attend = value.attend;
+        });
+    }
+}
+
+impl Coord for UiAttention {}
+
+
+type UpdateBox<T> = Box<dyn Fn(&T) -> AttendValue + Sync + Send>;
+
+struct AttentionView {
+    pos: Bounds<Canvas>,
+    clip: Clip,
+    bounds: Bounds<Data>,
+
+    attention: Vec<AttentionItem>,
+    boxes: Vec<Path<Canvas>>,
+
+    colors: ColorMap,
+}
+
+impl AttentionView {
+    pub fn new() -> Self {
+        Self {
             pos: Bounds::zero(),
             clip: Clip::None,
             attention: Vec::new(),
             bounds: Bounds::from([1., 1.]),
             boxes: Vec::new(),
 
-            // colors: ColorMap::from(ColorMaps::WhiteBlack),
             colors: ColorMap::from(ColorMaps::BlueOrange),
-            // peptide_update: UiPeptideUpdate::<MidPeptides>::new(),
         }
     }
 
     fn add(&mut self, color: Color) -> UiAttentionId {
         let id = UiAttentionId(self.attention.len());
 
-        self.attention.push(UiAttentionItem::new(color));
+        self.attention.push(AttentionItem::new(color));
 
-        //self.bounds = Bounds::from([self.attention.len() as f32, 1.]);
         self.bounds = Bounds::from([1., 1.]);
 
         id
     }
+
 
     fn set_pos(&mut self, set_pos: &Bounds<Canvas>) {
         let aspect = 1.;
@@ -83,22 +105,35 @@ impl UiAttention {
     fn to_canvas(&self) -> Affine2d {
         self.bounds.affine_to(&self.pos)
     }
+}
 
-    pub fn clip(&self) -> &Clip {
-        &self.clip
+impl Drawable for AttentionView {
+    fn draw(&mut self, renderer: &mut dyn Renderer, _pos: &Bounds<Canvas>) {
+        let mut style = PathStyle::new();
+        style.line_width(1.);
+
+        for (item, path) in self.attention.iter().zip(&self.boxes) {
+            style.face_color(item.color.set_alpha(item.value));
+            style.edge_color(self.colors.map(item.attend));
+
+            renderer.draw_path(&path, &style, &Clip::None).unwrap();
+        }
+    }
+
+    fn event(&mut self, _renderer: &mut dyn Renderer, event: &CanvasEvent) {
+        if let CanvasEvent::Resize(pos) = event {
+            self.set_pos(pos);
+        }
     }
 }
 
-impl Coord for UiAttention {}
-
-
-struct UiAttentionItem {
+struct AttentionItem {
     color: Color,
     value: f32,
     attend: f32,
 }
 
-impl UiAttentionItem {
+impl AttentionItem {
     fn new(color: Color) -> Self {
         Self {
             color,
@@ -117,38 +152,12 @@ impl UiAttentionId {
     }
 }
 
-type UpdateBox<T> = Box<dyn Fn(&T) -> AttendValue + Sync + Send>;
-
-fn ui_attention_resize(
-    mut ui_attention: ResMut<UiAttention>, 
-    ui_layout: Res<UiLayout>,
-    mut read: InEvent<UiLayoutEvent>
-) {
-    for _ in read.iter() {
-        let id = ui_attention.id;
-        ui_attention.set_pos(ui_layout.get_box(id));
-    }
-}
-
-fn ui_attention_draw(
-    ui_attention: ResMut<UiAttention>, 
-    mut ui: ResMut<UiCanvas>
-) {
-    if let Some(mut ui_render) = ui.renderer(Clip::None) {
-        let mut style = PathStyle::new();
-        style.line_width(1.);
-
-        for (item, path) in ui_attention.attention.iter().zip(&ui_attention.boxes) {
-            style.face_color(item.color.set_alpha(item.value));
-            style.edge_color(ui_attention.colors.map(item.attend));
-
-            ui_render.draw_path(&path, &style);
-        }
-    }
-}
+//
+// Plugin configuration
+//
 
 pub struct UiAttentionPlugin {
-    bounds: Bounds::<UiLayout>,
+    bounds: Bounds::<Layout>,
     colors: Vec<Color>,
 
     items: Vec<Box<dyn Item>>,
@@ -188,13 +197,11 @@ impl UiAttentionPlugin {
 impl Plugin for UiAttentionPlugin {
     fn build(&self, app: &mut App) {
         if app.contains_plugin::<UiCanvasPlugin>() {
-            //assert!(app.contains_plugin::<CorePeptidesPlugin>());
-
             if ! app.contains_plugin::<UiLayoutPlugin>() {
                 app.plugin(UiLayoutPlugin);
             }
 
-            let box_id = app.resource_mut::<UiLayout>().add_box(self.bounds.clone());
+            let mut ui_view = AttentionView::new();
 
             let colors = if self.colors.len() > 0 {
                 self.colors.clone()
@@ -208,20 +215,19 @@ impl Plugin for UiAttentionPlugin {
                 )
             };
 
-            let mut ui_peptide = UiAttention::new(box_id);
-
             for (i, item) in self.items.iter().enumerate() {
                 let color = colors[i % colors.len()];
 
-                let id = ui_peptide.add(color);
+                let id = ui_view.add(color);
 
                 item.add(id, app);
             }
 
-            app.insert_resource(ui_peptide);
+            let view = app.resource_mut::<UiCanvas>().view(&self.bounds, ui_view);
 
-            app.system(Update, ui_attention_draw);
-            app.system(PreUpdate, ui_attention_resize);
+            let ui_attention = UiAttention::new(view);
+
+            app.insert_resource(ui_attention);
         }
     }
 }
@@ -256,13 +262,12 @@ impl<T: Send + Sync + 'static> Item for ItemImpl<T> {
             app.insert_resource(updates);
 
             app.system(
-                Update,
+                PreUpdate, // TODO: PostTick?
                 |updates: Res<AttentionUpdates<T>>, res: Res<T>, mut ui: ResMut<UiAttention>| {
                     for (id, fun) in &updates.updates {
                         let value = fun(res.get());
 
-                        ui.attention[id.i()].value = value.value * value.attend;
-                        ui.attention[id.i()].attend = value.attend;
+                        ui.set_value(*id, value);
                     }
             });
         }

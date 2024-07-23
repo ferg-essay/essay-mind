@@ -237,7 +237,7 @@ fn ui_eat_flat(app: &mut App) {
 
     let odor_colors = Colors::from(["green", "azure"]);
 
-    app.plugin(UiCameraPlugin::new((0., 1.), (2., 1.0)));
+    // app.plugin(UiCameraPlugin::new((2., 1.), (0.5, 0.5)));
 
     app.plugin(UiAttentionPlugin::new((2.0, 0.0), (0.5, 0.5))
         .colors(odor_colors)

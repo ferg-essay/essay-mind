@@ -13,6 +13,7 @@ pub use ui_canvas::{
     UiCanvasPlugin,
     UiWindowEvent,
     UiRender,
+    UiView,
 };
 
 pub(crate) use wgpu_canvas::{

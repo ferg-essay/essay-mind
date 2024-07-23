@@ -1,7 +1,9 @@
+use driver::Drawable;
 use essay_ecs::prelude::*;
 use essay_plot::prelude::*;
 
 use crate::ui_canvas::UiWindowEvent;
+
 
 pub struct UiLayout {
     boxes: Vec<UiBox>,

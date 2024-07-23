@@ -383,6 +383,25 @@ impl<'a> Drop for UiRender<'a> {
     }
 }
 
+pub struct UiView {
+
+}
+
+impl UiView {
+    pub fn new() -> Self {
+        Self {
+        }
+    }
+}
+
+impl Drawable for UiView {
+    fn draw(&mut self, _renderer: &mut dyn Renderer, _pos: &Bounds<Canvas>) {
+    }
+
+    fn event(&mut self, _renderer: &mut dyn Renderer, _event: &CanvasEvent) {
+    }
+}
+
 pub struct UiCanvasPlugin {
     time: Duration,
 }

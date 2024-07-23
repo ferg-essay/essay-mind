@@ -14,7 +14,7 @@ use crate::ui::ui_world_map::{UiWorldPlugin, UiWorld};
 
 use super::ui_world_map::DrawAgent;
 
-pub fn draw_body(
+fn draw_body(
     body: Res<Body>, 
     world: Res<UiWorld>, 
     mut ui_canvas: ResMut<UiCanvas>
