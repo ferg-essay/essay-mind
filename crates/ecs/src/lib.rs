@@ -55,6 +55,9 @@ pub struct Tick;
 pub struct PostTick;
 
 #[derive(ScheduleLabel, Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct AfterTicks;
+
+#[derive(ScheduleLabel, Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct PreMenu;
 
 #[derive(ScheduleLabel, Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -178,6 +181,8 @@ fn tick_system(
                 let _ = store.try_run_schedule(Tick);
                 let _ = store.try_run_schedule(PostTick);
             }
+
+            let _ = store.try_run_schedule(AfterTicks);
 
             let _ = store.try_run_schedule(Update);
             let _ = store.try_run_schedule(PostUpdate);
