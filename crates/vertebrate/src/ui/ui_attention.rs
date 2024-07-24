@@ -1,9 +1,9 @@
 use std::cell::RefCell;
 
-use driver::{Drawable, Renderer};
+use renderer::{Canvas, Drawable, Event, Renderer};
 use essay_ecs::prelude::*;
 use essay_graphics::layout::{Layout, View};
-use essay_plot::{artist::{paths::{self, Unit}, ColorMap, ColorMaps, PathStyle}, frame::Data, prelude::*};
+use essay_plot::{artist::{paths::{self, Unit}, ColorMap, ColorMaps, PathStyle}, chart::Data, prelude::*};
 use ui_graphics::{ui_layout::UiLayoutPlugin, UiCanvas, UiCanvasPlugin};
 
 use crate::pallidum::basal_forebrain::AttendValue;
@@ -108,7 +108,7 @@ impl AttentionDraw {
 }
 
 impl Drawable for AttentionDraw {
-    fn draw(&mut self, renderer: &mut dyn Renderer, _pos: &Bounds<Canvas>) {
+    fn draw(&mut self, renderer: &mut dyn Renderer) {
         let mut style = PathStyle::new();
         style.line_width(1.);
 
@@ -120,8 +120,8 @@ impl Drawable for AttentionDraw {
         }
     }
 
-    fn event(&mut self, _renderer: &mut dyn Renderer, event: &CanvasEvent) {
-        if let CanvasEvent::Resize(pos) = event {
+    fn event(&mut self, _renderer: &mut dyn Renderer, event: &Event) {
+        if let Event::Resize(pos) = event {
             self.set_pos(pos);
         }
     }

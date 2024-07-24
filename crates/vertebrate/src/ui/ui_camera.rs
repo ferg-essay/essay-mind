@@ -1,10 +1,12 @@
-use std::backtrace::Backtrace;
-
 use essay_ecs::{app::{App, Plugin, Startup, Update}, core::{Res, ResMut}};
 use essay_graphics::layout::{Layout, View};
-use essay_plot::api::{driver::{Drawable, Renderer}, form::{Form, FormId, Matrix4}, Angle, Bounds, Canvas, CanvasEvent, Clip, Color, Point};
+use essay_plot::api::{
+    renderer::{Drawable, Renderer, Canvas, Event}, 
+    form::{Form, FormId, Matrix4}, 
+    Angle, Bounds, Clip, Color, Point
+};
 use essay_tensor::Tensor;
-use ui_graphics::{ui_layout::UiLayout, UiCanvas, UiCanvasPlugin};
+use ui_graphics::{UiCanvas, UiCanvasPlugin};
 
 use crate::{body::Body, world::{World, WorldCell, WorldPlugin}};
 
@@ -23,9 +25,9 @@ impl UiCamera {
         }
     }
 
-    fn pos(&self) -> Bounds<Canvas> {
-        self.view.pos()
-    }
+    //fn pos(&self) -> Bounds<Canvas> {
+    //    self.view.pos()
+    //}
 }
 
 fn startup_camera(
@@ -169,9 +171,10 @@ fn draw_camera(
             let fov = 90.0f32;
             camera = camera.projection(fov.to_radians(), 1., 0.1, 100.);
 
-            let pos = ui_camera.pos();
+            // let pos = ui_camera.pos();
+            let pos = renderer.pos();
 
-            let bounds = renderer.bounds();
+            let bounds = renderer.extent();
             let to = Matrix4::view_to_canvas_unit(&pos, bounds);
     
             let camera = to.matmul(&camera);
@@ -196,14 +199,14 @@ impl UiCameraView {
 }
 
 impl Drawable for UiCameraView {
-    fn draw(&mut self, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) {
+    fn draw(&mut self, renderer: &mut dyn Renderer) {
         // self.cube.draw(renderer, pos);
         if self.is_dirty {
             self.is_dirty = false;
         }
     }
 
-    fn event(&mut self, renderer: &mut dyn Renderer, event: &CanvasEvent) {
+    fn event(&mut self, renderer: &mut dyn Renderer, event: &Event) {
         // self.cube.event(renderer, event);
     }
 }
@@ -343,7 +346,7 @@ impl CubeView {
 
     fn camera(&self, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) -> Matrix4 {
         let matrix = self.camera.matrix();
-        let bounds = renderer.bounds();
+        let bounds = renderer.extent();
         let to = Matrix4::view_to_canvas_unit(pos, bounds);
 
         to.matmul(&matrix)
@@ -354,7 +357,7 @@ impl Drawable for CubeView {
     // fn update_pos(&mut self, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) {
     // }
 
-    fn draw(&mut self, renderer: &mut dyn Renderer, pos: &Bounds<Canvas>) {
+    fn draw(&mut self, renderer: &mut dyn Renderer) {
         if self.is_dirty {
             self.is_dirty = false;
             self.fill_model(renderer);
@@ -365,6 +368,7 @@ impl Drawable for CubeView {
             //    (0.5 * pos.xmax(), 0.5 * pos.ymax()),
             //    (pos.xmax(), pos.ymax())
             //);
+            let pos = renderer.pos().clone();
             let camera = self.camera(renderer, &pos);
 
             renderer.draw_form(
@@ -376,42 +380,40 @@ impl Drawable for CubeView {
         }
     }
 
-    fn event(&mut self, renderer: &mut dyn Renderer, event: &CanvasEvent) {
+    fn event(&mut self, renderer: &mut dyn Renderer, event: &Event) {
         match event {
-            CanvasEvent::Resize(bounds) => {
+            Event::Resize(bounds) => {
                 println!("Cube Resize {:?}", bounds);
             }
-            CanvasEvent::KeyPress(_, 'w') => {
+            Event::KeyPress(_, 'w') => {
                 self.camera.forward(0.1);
                 renderer.request_redraw(&Bounds::zero());
             }
-            CanvasEvent::KeyPress(_, 's') => {
+            Event::KeyPress(_, 's') => {
                 self.camera.forward(-0.1);
                 renderer.request_redraw(&Bounds::zero());
             }
-            CanvasEvent::KeyPress(_, 'a') => {
+            Event::KeyPress(_, 'a') => {
                 self.camera.right(-0.1);
                 renderer.request_redraw(&Bounds::zero());
             }
-            CanvasEvent::KeyPress(_, 'd') => {
+            Event::KeyPress(_, 'd') => {
                 self.camera.right(0.1);
                 renderer.request_redraw(&Bounds::zero());
             }
-
-            CanvasEvent::KeyPress(_, 'q') => {
+            Event::KeyPress(_, 'q') => {
                 self.camera.yaw(Angle::Deg(10.));
                 renderer.request_redraw(&Bounds::zero());
             }
-            CanvasEvent::KeyPress(_, 'e') => {
+            Event::KeyPress(_, 'e') => {
                 self.camera.yaw(Angle::Deg(-10.));
                 renderer.request_redraw(&Bounds::zero());
             }
-
-            CanvasEvent::KeyPress(_, 'r') => {
+            Event::KeyPress(_, 'r') => {
                 self.camera.up(0.1);
                 renderer.request_redraw(&Bounds::zero());
             }
-            CanvasEvent::KeyPress(_, 'f') => {
+            Event::KeyPress(_, 'f') => {
                 self.camera.up(-0.1);
                 renderer.request_redraw(&Bounds::zero());
             }

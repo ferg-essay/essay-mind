@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 
-use driver::{Drawable, Renderer};
+use renderer::{Drawable, Event, Renderer};
 use essay_ecs::prelude::*;
 use essay_graphics::layout::{Layout, View};
 use essay_plot::{
@@ -8,6 +8,7 @@ use essay_plot::{
     artist::{paths::Unit, PathStyle, ColorMaps, ColorMap}
 };
 
+use renderer::Canvas;
 use ui_graphics::UiCanvas;
 use crate::ui::ui_world_map::UiWorldPlugin;
 
@@ -57,12 +58,12 @@ impl MotiveView {
     }
 
     fn set_pos(&mut self, pos: &Bounds<Canvas>) {
-        self.pos = Bounds::from([
+        self.pos = Bounds::from((
             pos.xmin() + 0.05 * pos.width(),
             pos.ymin() + 0.05 * pos.height(),
             pos.xmax() - 0.05 * pos.width(),
             pos.ymax() - 0.05 * pos.height()
-        ]);
+        ));
 
         self.clip = Clip::from(&self.pos);
     }
@@ -73,7 +74,7 @@ impl MotiveView {
 }
 
 impl Drawable for MotiveView {
-    fn draw(&mut self, renderer: &mut dyn Renderer, _pos: &Bounds<Canvas>) {
+    fn draw(&mut self, renderer: &mut dyn Renderer) {
         if self.emoji.is_none() {
             let emoji_path = "/Users/ferg/wsp/essay-mind/assets/font/NotoEmoji-Bold.ttf";
 
@@ -111,8 +112,8 @@ impl Drawable for MotiveView {
         }
     }
 
-    fn event(&mut self, _renderer: &mut dyn driver::Renderer, event: &CanvasEvent) {
-        if let CanvasEvent::Resize(pos) = event {
+    fn event(&mut self, _renderer: &mut dyn Renderer, event: &Event) {
+        if let Event::Resize(pos) = event {
             self.set_pos(pos);
         }
     }

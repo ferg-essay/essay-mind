@@ -1,7 +1,7 @@
-use essay_plot::{graph::Graph, artist::{Lines2d, LinesOpt}, api::Color};
+use essay_plot::{chart::Chart, artist::{Lines2d, LinesOpt}, api::Color};
 
 pub struct UiPlot {
-    graph: Graph,
+    chart: Chart,
     lines: Vec<UiLine>,
     tick: usize,
     lim: usize,
@@ -11,9 +11,9 @@ pub struct UiPlot {
 impl UiPlot {
     pub const LIM: usize = 100;
 
-    pub fn new(graph: Graph) -> Self {
+    pub fn new(chart: Chart) -> Self {
         Self {
-            graph,
+            chart,
             lines: Vec::new(),
             tick: 0,
             lim: Self::LIM,
@@ -21,8 +21,8 @@ impl UiPlot {
         }
     }
 
-    pub fn graph_mut(&mut self) -> &mut Graph {
-        &mut self.graph
+    pub fn chart_mut(&mut self) -> &mut Chart {
+        &mut self.chart
     }
 
     pub fn lim(&mut self, lim: usize) {
@@ -32,7 +32,7 @@ impl UiPlot {
     pub fn line(&mut self, label: &str) -> PlotKeyId {
         let lines = Lines2d::from_xy([0.], [0.]);
 
-        let mut line_opt = self.graph.artist(lines);
+        let mut line_opt = self.chart.artist(lines);
         line_opt.label(label);
 
         let id = PlotKeyId(self.lines.len());
@@ -70,7 +70,7 @@ impl UiPlot {
     }
 
     pub fn x_label(&mut self, label: &str) {
-        self.graph.x_label(label);
+        self.chart.x_label(label);
     }
 
     pub fn color(&mut self, id: PlotKeyId, color: Color) {

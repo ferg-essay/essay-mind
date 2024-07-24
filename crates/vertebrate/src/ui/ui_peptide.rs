@@ -2,6 +2,7 @@ use std::cell::RefCell;
 
 use essay_ecs::prelude::*;
 use essay_plot::{prelude::*, artist::{paths::{self, Unit}, PathStyle}};
+use renderer::Canvas;
 use ui_graphics::{
     ui_layout::{UiLayout, UiLayoutEvent, BoxId, UiLayoutPlugin}, 
     UiCanvas, UiCanvasPlugin

@@ -1,5 +1,11 @@
 use essay_ecs::prelude::*;
-use essay_plot::{api::Bounds, artist::{ColorMaps, GridColor, GridColorOpt}, graph::Graph, prelude::Point};
+use essay_graphics::layout::Layout;
+use essay_plot::{
+    api::{renderer::Canvas, Bounds}, 
+    artist::{ColorMaps, GridColor, GridColorOpt}, 
+    chart::Chart, 
+    prelude::Point
+};
 use essay_tensor::Tensor;
 use mind_ecs::PostTick;
 use ui_graphics::UiCanvas;
@@ -17,7 +23,7 @@ struct UiHeatmap {
 
 impl UiHeatmap {
     fn new(
-        mut graph: Graph,
+        mut chart: Chart,
         extent: (usize, usize)
     ) -> Self {
         let factor = 1;
@@ -25,14 +31,14 @@ impl UiHeatmap {
         let mut data = Vec::<f32>::new();
         data.resize(extent.0 * extent.1 * factor * factor, 0.);
 
-        graph.flip_y(true);
-        graph.aspect(1.);
-        graph.x().visible(false);
-        graph.y().visible(false);
+        chart.flip_y(true);
+        chart.aspect(1.);
+        chart.x().visible(false);
+        chart.y().visible(false);
         // graph.colorbar();
         let init_data = Tensor::from(&data).reshape([extent.0, extent.1]);
         let colormesh = GridColor::new(init_data);
-        let mut grid_plot = graph.artist(colormesh);
+        let mut grid_plot = chart.artist(colormesh);
         grid_plot.color_map(ColorMaps::RedYellow);
 
         Self {
@@ -62,15 +68,13 @@ fn ui_heatmap_update(
 }
 
 pub struct UiHeatmapPlugin {
-    xy: Point,
-    wh: Point,
+    pos: Bounds<Layout>,
 }
 
 impl UiHeatmapPlugin {
-    pub fn new(xy: impl Into<Point>, wh: impl Into<Point>) -> Self {
+    pub fn new(pos: impl Into<Bounds<Layout>>) -> Self {
         Self {
-            xy: xy.into(),
-            wh: wh.into(),
+            pos: pos.into(),
         }
     }
 }
@@ -79,7 +83,7 @@ impl Plugin for UiHeatmapPlugin {
     fn build(&self, app: &mut App) {
         if app.contains_plugin::<UiWorldPlugin>() {
             if let Some(ui_canvas) = app.get_mut_resource::<UiCanvas>() {
-                let graph = ui_canvas.graph(Bounds::new(self.xy, self.wh));
+                let graph = ui_canvas.chart(&self.pos);
 
                 let world = app.resource::<World>();
                 app.insert_resource(UiHeatmap::new(graph, world.extent()));

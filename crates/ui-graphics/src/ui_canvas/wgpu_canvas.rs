@@ -54,13 +54,12 @@ impl WgpuCanvas {
             .create_view(&wgpu::TextureViewDescriptor::default());
 
         CanvasView {
-            frame,
+            frame: Some(frame),
             view
         }
     }
 
     pub(crate) fn clear_screen(&self, view: &wgpu::TextureView) {
-
         let mut encoder =
             self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
@@ -100,13 +99,15 @@ impl WgpuCanvas {
 }
 
 pub struct CanvasView {
-    frame: SurfaceTexture,
+    frame: Option<SurfaceTexture>,
     pub(crate) view: TextureView,
 }
 
-impl CanvasView {
-    pub(crate) fn flush(self) {
-        self.frame.present();
+impl Drop for CanvasView {
+    fn drop(&mut self) {
+        if let Some(frame) = self.frame.take() {
+            frame.present();
+        }
     }
 }
 

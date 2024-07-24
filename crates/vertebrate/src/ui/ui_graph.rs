@@ -14,10 +14,10 @@ pub struct UiGraph {
 
 impl UiGraph {
     fn new(canvas: &mut UiCanvas) -> Self {
-        let mut plot = UiPlot::new(canvas.graph([0., 0., 1., 1.]));
+        let mut plot = UiPlot::new(canvas.chart([1., 1.]));
         plot.lim(256);
 
-        plot.graph_mut().ylim(-0.1, 1.1);
+        plot.chart_mut().ylim(-0.1, 1.1);
 
         Self {
             plot,

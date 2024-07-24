@@ -1,6 +1,7 @@
 use essay_ecs::prelude::ResMut;
+use essay_plot::api::renderer::Canvas;
 use essay_plot::artist::PathStyle;
-use essay_plot::api::{Path, Canvas, PathCode, Point};
+use essay_plot::api::{Path, PathCode, Point};
 use ui_graphics::ui_canvas::UiCanvas;
 
 pub fn ui_panel(mut renderer: ResMut<UiCanvas>) {

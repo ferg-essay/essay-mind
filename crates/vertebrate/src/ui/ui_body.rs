@@ -4,6 +4,7 @@ use essay_ecs::prelude::*;
 use essay_plot::artist::{PathStyle, Markers};
 use essay_plot::artist::paths::Unit;
 use essay_plot::prelude::*;
+use renderer::Canvas;
 
 use crate::util as util;
 

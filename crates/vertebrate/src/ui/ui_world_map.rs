@@ -1,9 +1,9 @@
-use driver::Drawable;
 use essay_ecs::prelude::*;
 use essay_graphics::layout::{Layout, View};
 use essay_plot::{prelude::*, artist::paths};
 use essay_tensor::Tensor;
-use ui_graphics::{ui_layout::{UiLayout, UiLayoutEvent, BoxId, UiLayoutPlugin}, UiCanvas, UiCanvasPlugin};
+use renderer::{Canvas, Drawable, Event, Renderer};
+use ui_graphics::{ui_layout::{UiLayout, UiLayoutEvent, UiLayoutPlugin}, UiCanvas, UiCanvasPlugin};
 
 use crate::world::{World, OdorType, WorldPlugin};
 
@@ -96,7 +96,6 @@ pub fn draw_world(
     }
 
     // TODO: cache texture when unmodified
-
     if let Some(mut ui) = ui_canvas.renderer(ui_world.clip().clone()) {
         let circle = paths::circle().transform(&ui_world.to_canvas_scale());
         let mut xy : Vec<[f32; 2]> = Vec::new();
@@ -207,17 +206,16 @@ impl UiWorldView {
         self.pos = pos;
         self.clip = Clip::from(&self.pos);
         self.to_canvas = self.bounds.affine_to(&self.pos);
-        println!("SetCanvas: {:?}", self.to_canvas);
     }
 }
 
 impl Drawable for UiWorldView {
-    fn draw(&mut self, renderer: &mut dyn driver::Renderer, pos: &Bounds<Canvas>) {
+    fn draw(&mut self, renderer: &mut dyn Renderer) {
         // todo!()
     }
 
-    fn event(&mut self, renderer: &mut dyn driver::Renderer, event: &CanvasEvent) {
-        if let CanvasEvent::Resize(pos) = event {
+    fn event(&mut self, renderer: &mut dyn Renderer, event: &Event) {
+        if let Event::Resize(pos) = event {
             println!("Resize: {:?}", pos);
             self.set_pos(pos);
         }
@@ -262,7 +260,7 @@ impl Plugin for UiWorldPlugin {
 
             app.phase(Update, (DrawWorld, DrawItem, DrawAgent).chain());
             app.system(Update, draw_world.phase(DrawWorld));
-            app.system(PreUpdate, world_resize);
+            // app.system(PreUpdate, world_resize);
 
             // app.system(Startup, spawn_ui_world);
         }

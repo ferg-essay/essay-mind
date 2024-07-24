@@ -177,7 +177,7 @@ fn ui_eat(app: &mut App) {
         .p_item("p(food)", |w: &World, b: &Body| 0.) // if b.eat().is_sensor_food() { 1. } else { 0. })
     );
 
-    app.plugin(UiHeatmapPlugin::new((2., 0.), (1., 0.7)));
+    app.plugin(UiHeatmapPlugin::new(((2., 0.), [1., 0.7])));
 
     let colors = Colors::from(["amber", "azure", "red", "purple", "blue", "green", "olive"]);
     // food_graph(app, (0.0, 1.0), (2., 1.));
@@ -236,9 +236,9 @@ fn ui_eat_flat(app: &mut App) {
 
     let odor_colors = Colors::from(["green", "azure"]);
 
-    ui_motive(app, (2.0, 0.0), (0.5, 0.5));
+    ui_motive(app, (2.0, 0.5), (0.5, 0.5));
 
-    app.plugin(UiHomunculusPlugin::new((2.5, 0.0), (0.5, 0.5))
+    app.plugin(UiHomunculusPlugin::new((2.5, 0.5), (0.5, 0.5))
         .item(Emoji::ForkAndKnife, |m: &Motive<Eat>| m.is_active())
         .item(Emoji::DirectHit, |m: &Motive<Seek>| m.is_active())
         .item(Emoji::NoEntry, |m: &Motive<Avoid>| m.is_active())
@@ -248,14 +248,14 @@ fn ui_eat_flat(app: &mut App) {
     );
     // app.plugin(UiCameraPlugin::new((2., 1.), (0.5, 0.5)));
 
-    app.plugin(UiAttentionPlugin::new((2.0, 0.5), (0.5, 0.5))
+    app.plugin(UiAttentionPlugin::new((2.0, 0.), (0.5, 0.5))
         .colors(odor_colors)
         // .item("v", |p: &Phototaxis| p.value())
         .item(|ob: &OlfactoryBulb| ob.value_pair(OdorType::FoodA))
         .item(|ob: &OlfactoryBulb| ob.value_pair(OdorType::FoodB))
     );
 
-    app.plugin(UiHeatmapPlugin::new((2.0, 1.5), (1.0, 0.5)));
+    app.plugin(UiHeatmapPlugin::new(((2.0, -0.5), [1.0, 0.5])));
     /*
         .colors(odor_colors)
         // .item("v", |p: &Phototaxis| p.value())
@@ -278,7 +278,7 @@ fn ui_chemotaxis(app: &mut App) {
         .p_item("p(food)", |w: &World, b: &Body| 0.) // if b.eat().is_sensor_food() { 1. } else { 0. })
     );
 
-    app.plugin(UiHeatmapPlugin::new((2., 0.), (1., 0.7)));
+    app.plugin(UiHeatmapPlugin::new(((2., 0.), [1., 0.7])));
 
     let colors = Colors::from(["amber", "azure", "red", "purple", "blue", "green", "olive"]);
     // food_graph(app, (0.0, 1.0), (2., 1.));
@@ -315,7 +315,7 @@ fn ui_phototaxis(app: &mut App) {
         .p_item("p(light)", |w: &World, b: &Body| w.light(b.pos()))
     );
 
-    app.plugin(UiHeatmapPlugin::new((2., 0.), (1., 0.7)));
+    app.plugin(UiHeatmapPlugin::new(((2., 0.), [1., 0.7])));
 
     // food_graph(&mut app, (0.0, 1.0), (2., 1.));
     let colors = Colors::from(["amber", "sky", "olive", "red", "purple", "blue"]);

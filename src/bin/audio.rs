@@ -1,7 +1,7 @@
 use std::{collections::VecDeque, fs};
 
 use audio::AudioReader;
-use essay_plot::{api::JoinStyle, artist::{ColorMaps, Norm, Norms}, graph::{Figure, Graph}};
+use essay_plot::{api::JoinStyle, artist::{ColorMaps, Norm, Norms}, chart::{Figure, Chart}};
 use essay_tensor::{array::stack, init::linspace, signal::rfft_norm, tensor::TensorVec, Tensor};
 
 pub fn main() {
@@ -56,7 +56,7 @@ fn audio_work() {
 
     let mut figure = Figure::new();
 
-    let mut graph = figure.graph([1., 1.]);
+    let mut graph = figure.chart([1., 1.]);
 
     let is_graph = false;
     let nfft = 512;
@@ -104,10 +104,10 @@ fn audio_work() {
     //let subfft = fft.subslice(1, subfft.len() - 1);
     if is_graph {
         graph.plot_y(&subslice).join_style(JoinStyle::Bevel);
-        let mut graph2 = figure.graph([0., 1., 1., 2.]);
+        let mut graph2 = figure.chart((0., 1., 1., 2.));
         graph2.plot_y(subfft).join_style(JoinStyle::Bevel);
 
-        let mut graph3 = figure.graph([0., 2., 1., 3.]);
+        let mut graph3 = figure.chart((0., 2., 1., 3.));
         graph3.plot_y(&rms).join_style(JoinStyle::Bevel);
     }
     //graph2.specgram(slice).color_map(ColorMaps::BlueWhite2);
@@ -122,11 +122,11 @@ fn audio_work() {
         //graph.specgram(slice);
         //graph.specgram(slice).nfft(1024).overlap(3 * 256);
         //graph.ylim(0., 400.).specgram(&slice).nfft(2048).overlap(3 * 512);
-        let mut graph2 = figure.graph([0., 1., 1., 2.]);
+        let mut graph2 = figure.chart((0., 1., 1., 2.));
         let minmax = graph_fft(&mut graph2, &fft_vec2, None);
         //graph2.specgram(slice2).nfft(nfft).overlap(overlap);
 
-        let mut graph3 = figure.graph([0., 2., 1., 3.]);
+        let mut graph3 = figure.chart((0., 2., 1., 3.));
         graph_fft(&mut graph3, &fft_vec3, None);
         //graph3.specgram(slice3).nfft(nfft3).overlap(overlap3);
 
@@ -197,7 +197,7 @@ fn audio_display() {
     let n = 1;
 
     {
-        let mut graph = figure.graph([0., 0., 1., 1.]);
+        let mut graph = figure.chart((0., 0., 1., 1.));
         let reader = AudioReader::read(path1);
         let value = Tensor::from(reader.as_vec());
     
@@ -210,7 +210,7 @@ fn audio_display() {
     }
 
     {
-        let mut graph = figure.graph([1., 0., 2., 1.]);
+        let mut graph = figure.chart((1., 0., 2., 1.));
         let reader = AudioReader::read(path2);
         let value = Tensor::from(reader.as_vec());
     
@@ -223,7 +223,7 @@ fn audio_display() {
     }
 
     {
-        let mut graph = figure.graph([0., 1., 1., 2.]);
+        let mut graph = figure.chart((0., 1., 1., 2.));
         let reader = AudioReader::read(path3);
         let value = Tensor::from(reader.as_vec());
     
@@ -236,7 +236,7 @@ fn audio_display() {
     }
 
     {
-        let mut graph = figure.graph([1., 1., 2., 2.]);
+        let mut graph = figure.chart((1., 1., 2., 2.));
         let reader = AudioReader::read(path4);
         let value = Tensor::from(reader.as_vec());
     
@@ -315,7 +315,7 @@ fn avg_fft(tensor: &Tensor, nfft: usize, n: usize) -> Tensor {
     stack(fft_vec4, 1)
 }
 
-fn graph_fft(graph: &mut Graph, tensor: &Tensor, minmax: Option<(f32, f32)>) -> (f32, f32) {
+fn graph_fft(chart: &mut Chart, tensor: &Tensor, minmax: Option<(f32, f32)>) -> (f32, f32) {
     let mut norm = Norm::from(Norms::Ln);
     norm.set_bounds(&tensor);
     let (min, max) = (norm.min(), norm.max());
@@ -334,7 +334,7 @@ fn graph_fft(graph: &mut Graph, tensor: &Tensor, minmax: Option<(f32, f32)>) -> 
     let ymax = ms * 1.0e-3 * tensor.rows() as f32;
 
     //graph.grid_color(tensor).color_map(ColorMaps::BlueOrange).norm(norm);
-    graph.image(tensor).color_map(ColorMaps::BlueOrange).norm(norm).extent([0., 0., xmax, ymax]);
+    chart.image(tensor).color_map(ColorMaps::BlueOrange).norm(norm).extent([xmax, ymax]);
     //graph.image(tensor);
 
     (min, max)

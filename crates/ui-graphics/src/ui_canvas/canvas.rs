@@ -1,5 +1,6 @@
 use super::{wgpu_canvas::WgpuCanvas, screen::ScreenApi};
-use essay_plot::api::{Path, Canvas, PathOpt, Clip, driver::Renderer};
+use essay_plot::api::renderer::{Canvas, Renderer};
+use essay_plot::api::{Path, PathOpt, Clip};
 use essay_plot::wgpu::PlotCanvas;
 
 pub struct CanvasState {
@@ -108,7 +109,7 @@ impl RendererApi for EssayRenderer<'_> {
         let mut renderer = self.state.plot_renderer.renderer(
             &mut self.state.wgpu_canvas.device,
             &mut self.state.wgpu_canvas.queue,
-            &self.view,
+            Some(&self.view),
         );
 
         renderer.draw_path(path, style, &Clip::None).unwrap();

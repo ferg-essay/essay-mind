@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 
 use essay_ecs::{core::{Component, ResMut, Res}, app::{event::InEvent, Plugin, App, Update, PreUpdate}};
-use essay_plot::api::{Bounds, Canvas, Clip, TextStyle, VertAlign, Point, Coord, HorizAlign};
+use essay_plot::api::{renderer::Canvas, Bounds, Clip, Coord, HorizAlign, Point, TextStyle, VertAlign};
 use mind_ecs::PostTick;
 use ui_graphics::{ui_layout::{BoxId, UiLayout, UiLayoutEvent, UiLayoutPlugin}, UiCanvas, UiCanvasPlugin};
 

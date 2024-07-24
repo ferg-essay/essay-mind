@@ -1,4 +1,4 @@
-use essay_plot::{api::{driver::Renderer, Clip, Point, TextStyle}, artist::PathStyle};
+use essay_plot::{api::{renderer::Renderer, Clip, Point, TextStyle}, artist::PathStyle};
 
 
 #[derive(Clone, Copy, Debug)]

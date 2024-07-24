@@ -1,9 +1,9 @@
-use essay_plot::api::CanvasEvent;
+use essay_plot::api::renderer::Event;
 
 use super::canvas::{CanvasState, RendererApi};
 
 pub trait ScreenApi {
-    fn event(&mut self, canvas: &CanvasState, event: &CanvasEvent);
+    fn event(&mut self, canvas: &CanvasState, event: &Event);
     
     fn tick(&mut self);
 

@@ -1,6 +1,6 @@
-use driver::Drawable;
 use essay_ecs::prelude::*;
 use essay_plot::prelude::*;
+use renderer::Canvas;
 
 use crate::ui_canvas::UiWindowEvent;
 
