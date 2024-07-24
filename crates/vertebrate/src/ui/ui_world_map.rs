@@ -3,7 +3,7 @@ use essay_graphics::layout::{Layout, View};
 use essay_plot::{prelude::*, artist::paths};
 use essay_tensor::Tensor;
 use renderer::{Canvas, Drawable, Event, Renderer};
-use ui_graphics::{ui_layout::{UiLayout, UiLayoutEvent, UiLayoutPlugin}, UiCanvas, UiCanvasPlugin};
+use ui_graphics::{ui_layout::UiLayoutPlugin, UiCanvas, UiCanvasPlugin};
 
 use crate::world::{World, OdorType, WorldPlugin};
 
@@ -19,7 +19,7 @@ pub struct UiWorld {
 }
 
 impl UiWorld {
-    pub fn new(view: View<UiWorldView>, width: usize, height: usize) -> Self {
+    fn new(view: View<UiWorldView>, width: usize, height: usize) -> Self {
         let mut values = Vec::new();
 
         values.resize_with(width * height, || WorldCell::Empty);
@@ -62,18 +62,6 @@ impl UiWorld {
 }
 
 impl Coord for UiWorld {}
-
-
-pub fn world_resize(
-    mut ui_world: ResMut<UiWorld>, 
-    ui_layout: Res<UiLayout>,
-    mut read: InEvent<UiLayoutEvent>
-) {
-    //for _ in read.iter() {
-    //    let id = ui_world.id;
-    //    ui_world.set_pos(ui_layout.get_box(id));
-    //}
-}
 
 pub fn draw_world(
     world: Res<World>, 
@@ -210,13 +198,13 @@ impl UiWorldView {
 }
 
 impl Drawable for UiWorldView {
-    fn draw(&mut self, renderer: &mut dyn Renderer) {
+    fn draw(&mut self, _renderer: &mut dyn Renderer) -> renderer::Result<()> {
         // todo!()
+        Ok(())
     }
 
-    fn event(&mut self, renderer: &mut dyn Renderer, event: &Event) {
+    fn event(&mut self, _renderer: &mut dyn Renderer, event: &Event) {
         if let Event::Resize(pos) = event {
-            println!("Resize: {:?}", pos);
             self.set_pos(pos);
         }
     }

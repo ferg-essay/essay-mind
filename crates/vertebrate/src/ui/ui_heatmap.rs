@@ -1,10 +1,9 @@
 use essay_ecs::prelude::*;
 use essay_graphics::layout::Layout;
 use essay_plot::{
-    api::{renderer::Canvas, Bounds}, 
+    api::Bounds, 
     artist::{ColorMaps, GridColor, GridColorOpt}, 
     chart::Chart, 
-    prelude::Point
 };
 use essay_tensor::Tensor;
 use mind_ecs::PostTick;

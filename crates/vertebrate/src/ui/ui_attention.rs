@@ -108,7 +108,7 @@ impl AttentionDraw {
 }
 
 impl Drawable for AttentionDraw {
-    fn draw(&mut self, renderer: &mut dyn Renderer) {
+    fn draw(&mut self, renderer: &mut dyn Renderer) -> renderer::Result<()> {
         let mut style = PathStyle::new();
         style.line_width(1.);
 
@@ -116,8 +116,10 @@ impl Drawable for AttentionDraw {
             style.face_color(item.color.set_alpha(item.value));
             style.edge_color(self.colors.map(item.attend));
 
-            renderer.draw_path(&path, &style, &Clip::None).unwrap();
+            renderer.draw_path(&path, &style, &Clip::None)?;
         }
+
+        Ok(())
     }
 
     fn event(&mut self, _renderer: &mut dyn Renderer, event: &Event) {

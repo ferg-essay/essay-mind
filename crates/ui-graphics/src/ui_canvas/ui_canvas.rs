@@ -3,7 +3,7 @@ use std::time::Duration;
 
 use essay_ecs::prelude::*;
 use essay_graphics::layout::{Layout, View};
-use essay_plot::api::renderer::{Canvas, Drawable, Event, Renderer};
+use essay_plot::api::renderer::{self, Canvas, Drawable, Event, Renderer};
 use essay_plot::artist::PathStyle;
 use essay_plot::api::{Bounds, FontStyle, FontTypeId, TextStyle};
 use essay_plot::api::{Point, Path, Clip};
@@ -397,7 +397,8 @@ impl UiView {
 }
 
 impl Drawable for UiView {
-    fn draw(&mut self, _renderer: &mut dyn Renderer) {
+    fn draw(&mut self, _renderer: &mut dyn Renderer) -> renderer::Result<()> {
+        Ok(())
     }
 
     fn event(&mut self, _renderer: &mut dyn Renderer, _event: &Event) {

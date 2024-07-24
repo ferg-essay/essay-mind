@@ -2,13 +2,24 @@ use std::time::Duration;
 
 use essay_plot::api::{Colors, Point};
 use vertebrate::{
-    body::{Body, BodyEatPlugin, BodyPlugin}, core_motive::{
-        eat::{CoreEatingPlugin, Eat, FoodSearch, Sated}, wake::Sleep, CoreExplorePlugin, CoreWakePlugin, Dwell, Motive, MotiveTrait, Roam, Wake
-    }, hab_taxis::{
+    body::{Body, BodyEatPlugin, BodyPlugin}, 
+    core_motive::{
+        eat::{CoreEatingPlugin, Eat, FoodSearch, Sated}, 
+        wake::Sleep, CoreExplorePlugin, CoreWakePlugin, Dwell, Motive, MotiveTrait, Roam, Wake
+    }, 
+    hab_taxis::{
         chemotaxis::{Avoid, Chemotaxis, Seek}, klinotaxis::KlinotaxisPlugin, phototaxis::Phototaxis
-    }, hind_motor::{HindEat, HindEatPlugin, HindLevyPlugin, HindMovePlugin}, hind_sense::lateral_line::LateralLinePlugin, mid_motor::{tectum::TectumPlugin, MidMotorPlugin}, olfactory_bulb::{ObEvent, OlfactoryBulb, OlfactoryPlugin}, teg_motor::TegSeekPlugin, ui::{
-        ui_attention::UiAttentionPlugin, ui_body::{UiBodyPlugin, UiBodyTrailPlugin}, ui_heatmap::UiHeatmapPlugin, ui_camera::UiCameraPlugin, ui_emoji::Emoji, ui_graph::UiGraphPlugin, ui_homunculus::UiHomunculusPlugin, ui_motive::UiMotivePlugin, ui_peptide::UiPeptidePlugin, ui_table::UiTablePlugin, ui_world_map::UiWorldPlugin
-    }, util::{Seconds, Ticks}, world::{
+    }, 
+    hind_motor::{HindEat, HindEatPlugin, HindLevyPlugin, HindMovePlugin}, 
+    hind_sense::lateral_line::LateralLinePlugin, 
+    mid_motor::{tectum::TectumPlugin, MidMotorPlugin}, 
+    olfactory_bulb::{ObEvent, OlfactoryBulb, OlfactoryPlugin}, 
+    ui::{
+        ui_attention::UiAttentionPlugin, 
+        ui_body::{UiBodyPlugin, UiBodyTrailPlugin}, ui_heatmap::UiHeatmapPlugin, ui_emoji::Emoji, ui_graph::UiGraphPlugin, ui_homunculus::UiHomunculusPlugin, ui_motive::UiMotivePlugin, ui_peptide::UiPeptidePlugin, ui_table::UiTablePlugin, ui_world_map::UiWorldPlugin
+    }, 
+    util::{Seconds, Ticks}, 
+    world::{
         OdorType, World, WorldPlugin
     }
 };
@@ -63,6 +74,7 @@ pub struct Dummy;
 impl MotiveTrait for Dummy {}
 
 
+#[allow(unused)]
 fn dwell_eat(
     mut dwell: ResMut<Motive<Dwell>>,
     eat: Res<HindEat>,
@@ -72,6 +84,8 @@ fn dwell_eat(
     }
 }
 
+
+#[allow(unused)]
 fn dwell_olfactory(
     mut dwell: ResMut<Motive<Dwell>>,
     mut ob: InEvent<ObEvent>,
@@ -94,7 +108,7 @@ pub fn world_lateral_line() -> WorldPlugin {
 
     let h1 = h / 2 - 1;
 
-    let w1 = w / 2;
+    // let w1 = w / 2;
     // let w2 = w1;
 
     WorldPlugin::new(w, h)
@@ -110,10 +124,10 @@ pub fn world_roam(app: &mut App) {
     let w = 15;
     let h = 11;
 
-    let h1 = h / 2 - 1;
+    // let h1 = h / 2 - 1;
 
-    let w1 = w / 2;
-    let w2 = w1;
+    // let w1 = w / 2;
+    // let w2 = w1;
 
     app.plugin(
         WorldPlugin::new(w, h)
@@ -129,10 +143,10 @@ pub fn world_food_and_non_food(app: &mut App) {
     let w = 21;
     let h = 15;
 
-    let h1 = h / 2 - 1;
+    // let h1 = h / 2 - 1;
 
-    let w1 = w / 2;
-    let w2 = w1;
+    // let w1 = w / 2;
+    // let w2 = w1;
 
     app.plugin(
         WorldPlugin::new(w, h)
@@ -149,10 +163,10 @@ pub fn world_odor(app: &mut App) {
     let w = 15;
     let h = 11;
 
-    let h1 = h / 2 - 1;
+    // let h1 = h / 2 - 1;
 
-    let w1 = w / 2;
-    let w2 = w1;
+    // let w1 = w / 2;
+    // let w2 = w1;
 
     app.plugin(
         WorldPlugin::new(w, h)
@@ -165,6 +179,8 @@ pub fn world_odor(app: &mut App) {
     );
 }
 
+
+#[allow(unused)]
 fn ui_eat(app: &mut App) {
     // UiCanvasPlugin enables graphics
     app.plugin(UiCanvasPlugin::new().frame_ms(Duration::from_millis(50)));
@@ -232,7 +248,7 @@ fn ui_eat_flat(app: &mut App) {
     app.plugin(UiBodyPlugin); // ::new((0., 0.5), (0.25, 0.5)));
     app.plugin(UiBodyTrailPlugin);
 
-    let colors = Colors::from(["amber", "azure", "red", "purple", "blue", "green", "olive"]);
+    // let colors = Colors::from(["amber", "azure", "red", "purple", "blue", "green", "olive"]);
 
     let odor_colors = Colors::from(["green", "azure"]);
 
@@ -266,6 +282,7 @@ fn ui_eat_flat(app: &mut App) {
 }
 
 
+#[allow(unused)]
 fn ui_chemotaxis(app: &mut App) {
     // UiCanvasPlugin enables graphics
     app.plugin(UiCanvasPlugin::new().frame_ms(Duration::from_millis(50)));
@@ -302,7 +319,7 @@ fn ui_chemotaxis(app: &mut App) {
     app.plugin(UiMotivePlugin::new((2.5, 1.), (0.5, 1.)));
 }
 
-
+#[allow(unused)]
 fn ui_phototaxis(app: &mut App) {
     // UiCanvasPlugin enables graphics
     app.plugin(UiCanvasPlugin::new().frame_ms(Duration::from_millis(50)));
