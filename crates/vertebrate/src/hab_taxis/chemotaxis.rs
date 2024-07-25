@@ -9,7 +9,7 @@ use crate::{
     body::Body, 
     core_motive::{eat::Sated, Motive, MotiveTrait, Motives, Wake}, 
     hind_motor::{HindLevyMove, HindLevyPlugin, TurnCommand}, 
-    olfactory_bulb::{ObEvent, OlfactoryBulb}, util::{Angle, Seconds} 
+    olfactory_bulb::{ObEvent, OlfactoryBulb}, util::{Angle, Heading, Seconds} 
 };
 
 pub struct Seek;
@@ -59,7 +59,7 @@ impl Chemotaxis {
 
     pub fn update(
         &mut self, 
-        head_dir: Angle,
+        head_dir: Heading,
         hind_move: &HindLevyMove,
         taxis: &mut ResMut<Taxis>,
         seek_motive: &mut Motive<Seek>,

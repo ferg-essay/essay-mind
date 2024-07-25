@@ -2,7 +2,7 @@ use essay_ecs::prelude::*;
 use mind_ecs::Tick;
 use crate::body::{Body, BodyAction, BodyPlugin};
 use crate::core_motive::{Motive, Wake};
-use crate::util::{Angle, Command, DecayValue, HalfLife, Seconds, Ticks};
+use crate::util::{Angle, Command, DecayValue, HalfLife, Seconds, Ticks, Turn};
 
 ///
 /// HindMove represents MRRN/PRRN of the reticulospinal areas, in mammals
@@ -228,9 +228,9 @@ impl HindMove {
         if forward <= 0. {
             Action::none()
         } else if left > 0. {
-            Action::new(BodyAction::Roam, 0.2, forward, Angle::unit(-0.25 * left))
+            Action::new(BodyAction::Roam, 0.2, forward, Turn::unit(-0.25 * left))
         } else {
-            Action::new(BodyAction::Roam, 0.2, forward, Angle::unit(0.25 * right))
+            Action::new(BodyAction::Roam, 0.2, forward, Turn::unit(0.25 * right))
         }
     }
 }
@@ -317,11 +317,11 @@ struct Action {
     kind: BodyAction,
     time: f32,
     speed: f32,
-    turn: Angle,
+    turn: Turn,
 }
 
 impl Action {
-    fn new(kind: BodyAction, time: impl Into<Seconds>, speed: f32, turn: Angle) -> Self {
+    fn new(kind: BodyAction, time: impl Into<Seconds>, speed: f32, turn: Turn) -> Self {
         Self {
             kind,
             time: time.into().0,
@@ -331,7 +331,7 @@ impl Action {
     }
 
     fn none() -> Self {
-        Action::new(BodyAction::None, 0., 0., Angle::Unit(0.))
+        Action::new(BodyAction::None, 0., 0., Turn::Unit(0.))
     }
 
     fn pre_update(&mut self) {

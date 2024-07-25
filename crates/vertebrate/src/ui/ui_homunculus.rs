@@ -11,10 +11,10 @@ use essay_plot::{
 
 use ui_graphics::{UiCanvas, ui_canvas::UiRender};
 use crate::{
-    body::Body, hind_motor::HindLevyMove, mid_motor::tectum::TectumMap, hab_taxis::Taxis 
+    body::Body, hab_taxis::Taxis, hind_motor::HindLevyMove, mid_motor::tectum::TectumMap, util::Turn 
 };
 use crate::ui::ui_world_map::UiWorldPlugin;
-use crate::util::Angle;
+use crate::util::{Angle, Heading};
 
 use super::ui_emoji::Emoji;
 
@@ -88,8 +88,8 @@ pub fn ui_homunculus_draw(
 }
 
 struct UiHomunculusView {
-    body_head_dir: Angle,
-    body_turn: Angle,
+    body_head_dir: Heading,
+    body_turn: Turn,
 
     left_delta: f32,
     right_delta: f32,
@@ -134,8 +134,8 @@ impl UiHomunculusView {
         outer_dir.set_head(false);
 
         Self {
-            body_head_dir: Angle::Unit(0.),
-            body_turn: Angle::Unit(0.),
+            body_head_dir: Heading::Unit(0.),
+            body_turn: Turn::Unit(0.),
 
             next_emoji: Emoji::Crab,
             approach_values: Vec::new(),
@@ -609,7 +609,7 @@ impl HeadDir {
     }
 }
 
-fn head_dir_vec(n: usize, dir: Angle, value: f32) -> Vec<f32> {
+fn head_dir_vec(n: usize, dir: Heading, value: f32) -> Vec<f32> {
     let da = 1. / n as f32;
     let mut vec = Vec::new();
 
@@ -626,7 +626,7 @@ fn head_dir_vec(n: usize, dir: Angle, value: f32) -> Vec<f32> {
     vec
 }
 
-fn approach_vec(n: usize, dir: Angle, value: f32) -> Vec<f32> {
+fn approach_vec(n: usize, dir: Heading, value: f32) -> Vec<f32> {
     let da = 1. / n as f32;
     let mut vec = Vec::new();
 

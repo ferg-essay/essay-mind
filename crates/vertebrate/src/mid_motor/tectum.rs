@@ -3,7 +3,7 @@ use essay_tensor::Tensor;
 use mind_ecs::PreTick;
 
 use crate::{
-    striatum::striatum::{Sense, StriatumId, StriatumSnr, StriatumStn}, util::{Angle, DecayValue}
+    striatum::striatum::{Sense, StriatumId, StriatumSnr, StriatumStn}, util::{Angle, DecayValue, Heading}
 };
 
 use super::nucleus_isthmi::NucleusIsthmi;
@@ -299,10 +299,10 @@ impl TectumMap {
         }
     }
 
-    pub fn neg(&mut self, dir: Angle, value: f32) {
+    pub fn neg(&mut self, dir: Heading, value: f32) {
         let da = 0.2 / Self::N as f32;
-        let d1 = Angle::unit(dir.to_unit() + da);
-        let d2 = Angle::unit(dir.to_unit() - da);
+        let d1 = Heading::unit(dir.to_unit() + da);
+        let d2 = Heading::unit(dir.to_unit() - da);
 
         //let i = (Self::N as f32 * dir.to_unit()).floor() as usize;
         //self.neg_map[i].set_max(value);

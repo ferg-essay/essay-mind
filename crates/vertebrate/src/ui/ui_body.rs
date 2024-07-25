@@ -6,8 +6,6 @@ use essay_plot::artist::paths::Unit;
 use essay_plot::prelude::*;
 use renderer::Canvas;
 
-use crate::util as util;
-
 use mind_ecs::PostTick;
 use ui_graphics::UiCanvas;
 use crate::body::Body;
@@ -28,22 +26,25 @@ fn draw_body(
 
         let transform = world.to_canvas().matmul(&transform);
 
-        let head_len = 0.3;
-        let turn = util::Angle::Unit(body.turn().to_unit_zero() * 0.5);
-
-        let tail_pt = Point(
-            - 0.1 - turn.sin() * head_len, 
-            - turn.cos() * head_len,
-        );
+        let middle_len = 0.5 * body.middle_len();
+        let head_len = 0.5 * (body.len() - middle_len);
+        // let turn = body.turn().to_unit() * 0.5;
+        let turn = body.turn();
+        let (dy, dx) = turn.sin_cos();
 
         let head_pt = Point(
-            0.1 + turn.sin() * head_len, 
-            - turn.cos() * head_len,
+            middle_len + dx * head_len,
+            dy * head_len, 
         );
 
-        let body = Path::<Unit>::move_to(tail_pt.0, tail_pt.1)
-            .line_to(-0.1, 0.)
-            .line_to(0.1, 0.)
+        let tail_pt = Point(
+            - middle_len - dx * head_len,
+            dy * head_len, 
+        );
+
+        let body_path = Path::<Unit>::move_to(tail_pt.0, tail_pt.1)
+            .line_to(- middle_len, 0.0)
+            .line_to(middle_len, 0.0)
             .line_to(head_pt.0, head_pt.1)
             .to_path()
             .transform(&transform);
@@ -54,13 +55,19 @@ fn draw_body(
         style.cap_style(CapStyle::Round);
         style.color(color);
 
-        ui.draw_path(&body, &style);
+        ui.draw_path(&body_path, &style);
 
-        let head = Markers::TriLeft.get_path()
-            .rotate::<Canvas>(turn.to_radians() + TAU * 0.75)
-            .scale::<Canvas>(0.10, 0.10)
-            .translate::<Canvas>(head_pt.0, head_pt.1)
-            .transform(&transform);
+        let head_pt = body.head_pos();
+
+        let transform = Affine2d::eye()
+            .rotate(turn.to_radians() + TAU * 0.75)
+            .scale(0.10, 0.10)
+            .translate(head_pt.0, head_pt.1)
+            .compose(&world.to_canvas());
+
+        let head = Markers::TriLeft.get_path().transform(&transform);
+        //    .transform(&transform);
+        // let transform = world.to_canvas().matmul(&transform);
 
         style.color("red");
         style.line_width(3.);

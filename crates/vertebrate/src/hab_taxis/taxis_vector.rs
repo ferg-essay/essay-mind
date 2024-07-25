@@ -1,24 +1,24 @@
-use crate::util::{Angle, DecayValue, DirVector, HalfLife};
+use crate::util::{Angle, DecayValue, DirVector, HalfLife, Heading};
 
 
 pub struct GoalVector {
-    dir: Angle,
+    dir: Heading,
     value: DecayValue,
 }
 
 impl GoalVector {
     pub fn new(half_life: impl Into<HalfLife>) -> Self {
         Self {
-            dir: Angle::Unit(0.),
+            dir: Heading::Unit(0.),
             value: DecayValue::new(half_life),
         }
     }
 
-    pub fn avoid(&mut self, dir: Angle, gradient: f32) {
+    pub fn avoid(&mut self, dir: Heading, gradient: f32) {
         self.value.update();
 
         if gradient > 0. {
-            let reverse_dir = Angle::Unit(dir.to_unit() + 0.5);
+            let reverse_dir = Heading::Unit(dir.to_unit() + 0.5);
 
             self.add_vector(reverse_dir, gradient);
             //self.dir_gradient(reverse_dir).set_max(gradient);
@@ -30,11 +30,11 @@ impl GoalVector {
         }
     }
 
-    pub fn approach(&mut self, dir: Angle, gradient: f32) {
+    pub fn approach(&mut self, dir: Heading, gradient: f32) {
         self.value.update();
 
         if gradient < 0. {
-            let reverse_dir = Angle::Unit((dir.to_unit() + 0.5) % 1.);
+            let reverse_dir = Heading::Unit((dir.to_unit() + 0.5) % 1.);
 
             self.add_vector(reverse_dir, - gradient);
         } else if gradient > 0. {
@@ -42,7 +42,7 @@ impl GoalVector {
         }
     }
 
-    pub fn add_vector(&mut self, dir: Angle, value: f32) {
+    pub fn add_vector(&mut self, dir: Heading, value: f32) {
         // let dt = (dir.to_unit() - self.dir.to_unit()).abs();
 
         if self.value.value() < value { // || dt > 0.25 {
@@ -53,7 +53,7 @@ impl GoalVector {
         }
     }
 
-    pub fn set_vector(&mut self, dir: Angle, value: f32) {
+    pub fn set_vector(&mut self, dir: Heading, value: f32) {
         self.dir = dir;
         self.value.set(value);
     }

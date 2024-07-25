@@ -1,13 +1,13 @@
-use super::Angle;
+use super::{Angle, Heading};
 
 #[derive(Clone, Copy, Debug)]
 pub struct DirVector {
-    dir: Angle,
+    dir: Heading,
     value: f32,
 }
 
 impl DirVector {
-    pub fn new(dir: Angle, value: f32) -> Self {
+    pub fn new(dir: Heading, value: f32) -> Self {
         Self {
             dir,
             value
@@ -17,7 +17,7 @@ impl DirVector {
     #[inline]
     pub fn zero() -> Self {
         Self {
-            dir: Angle::Unit(0.),
+            dir: Heading::Unit(0.),
             value: 0.,
         }
     }
@@ -33,7 +33,7 @@ impl DirVector {
     }
 
     #[inline]
-    pub fn dir(&self) -> Angle {
+    pub fn dir(&self) -> Heading {
         self.dir
     }
 
@@ -67,17 +67,17 @@ impl DirVector {
         self.dir.sin()
     }
 
-    pub fn to_ego(&self, head_dir: Angle) -> DirVector {
+    pub fn to_ego(&self, head_dir: Heading) -> DirVector {
         Self {
-            dir: Angle::Unit(self.dir().to_unit() - head_dir.to_unit()),
+            dir: Heading::Unit(self.dir().to_unit() - head_dir.to_unit()),
             value: self.value
         }
     }
 
     #[inline]
-    pub fn to_approach(&self, head_dir: Angle) -> DirVector {
+    pub fn to_approach(&self, head_dir: Heading) -> DirVector {
         Self {
-            dir: Angle::Unit(self.dir().to_unit() - head_dir.to_unit()),
+            dir: Heading::Unit(self.dir().to_unit() - head_dir.to_unit()),
             value: self.value
         }
     }

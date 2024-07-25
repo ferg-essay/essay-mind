@@ -1,4 +1,4 @@
-use crate::util::{Angle, DecayValue, DirVector, HalfLife};
+use crate::util::{Angle, DecayValue, DirVector, HalfLife, Heading};
 
 use super::GoalVector;
 
@@ -67,7 +67,7 @@ impl HabenulaSeekItem {
         self.short_average.add(value);
     }
 
-    pub fn update(&mut self, head_dir: Angle) {
+    pub fn update(&mut self, head_dir: Heading) {
         let gradient = self.short_gradient();
         self.goal_vector.approach(head_dir, gradient);
     }

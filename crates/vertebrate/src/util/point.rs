@@ -1,4 +1,6 @@
-use std::{f32::consts::TAU, ops::{Add, Mul, Sub}};
+use std::{f32::consts::{PI, TAU}, ops::{Add, Mul, Sub}};
+
+use essay_graphics::api;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Point(pub f32, pub f32);
@@ -61,6 +63,11 @@ impl Point {
     #[inline]
     pub fn angle_to(&self, pos: Point) -> Angle {
         Angle::Rad((pos.x() - self.x()).atan2(pos.y() - self.y()))
+    }
+
+    #[inline]
+    pub fn heading_to(&self, pos: Point) -> Heading {
+        Heading::Rad((pos.x() - self.x()).atan2(pos.y() - self.y()))
     }
 
     #[inline]
@@ -127,6 +134,12 @@ impl Mul<Point> for f32 {
     }
 }
 
+impl Into<api::Point> for Point {
+    fn into(self) -> api::Point {
+        api::Point(self.0, self.1)
+    }
+}
+
 // angle in [0., 1.]
 #[derive(Clone, Copy, Debug)]
 pub enum Angle {
@@ -140,8 +153,8 @@ impl Angle {
     pub fn to_radians(&self) -> f32 {
         match self {
             Angle::Rad(rad) => (*rad + TAU) % TAU,
-            Angle::Deg(deg) => ((90. - deg).to_radians() + TAU) % TAU,
-            Angle::Unit(unit) => ((1.25 - unit) * TAU) % TAU,
+            Angle::Deg(deg) => (deg.to_radians() + TAU) % TAU,
+            Angle::Unit(unit) => (unit * TAU) % TAU,
         }
     }
 
@@ -164,8 +177,12 @@ impl Angle {
     }
 
     #[inline]
-    pub fn to_turn(&self) -> f32 {
-        (self.to_unit() + 0.5) % 1. - 0.5
+    pub fn to_turn(&self) -> Turn {
+        match self {
+            Angle::Rad(rad) => Turn::Rad(*rad),
+            Angle::Deg(deg) => Turn::Deg(*deg),
+            Angle::Unit(unit) => Turn::Unit(*unit),
+        }
     }
 
     #[inline]
@@ -221,6 +238,187 @@ impl Sub<Angle> for Angle {
 }
 
 impl PartialEq for Angle {
+    fn eq(&self, other: &Self) -> bool {
+        self.to_unit() == other.to_unit()
+    }
+}
+
+/// heading in [0., 1.]
+/// Heading::Unit is clockwise with 0 as north
+/// Heading::Deg is clockwise with 0 as north
+/// Heading::Rad is counter-clockwise with 0 as east
+#[derive(Clone, Copy, Debug)]
+pub enum Heading {
+    Rad(f32),
+    Deg(f32),
+    Unit(f32),
+}
+
+impl Heading {
+    #[inline]
+    pub fn to_radians(&self) -> f32 {
+        match self {
+            Heading::Rad(rad) => (*rad + TAU) % TAU,
+            Heading::Deg(deg) => ((90. - deg).to_radians() + TAU) % TAU,
+            Heading::Unit(unit) => ((1.25 - unit) * TAU) % TAU,
+        }
+    }
+
+    #[inline]
+    pub fn to_degrees(&self) -> f32 {
+        match self {
+            Heading::Rad(rad) => (rad.to_degrees() + 360.) % 360.,
+            Heading::Deg(deg) => (*deg + 360.) % 360.,
+            Heading::Unit(unit) => (unit * 360. + 360.) % 360.,
+        }
+    }
+
+    #[inline]
+    pub fn to_unit(&self) -> f32 {
+        match self {
+            Heading::Rad(rad) => (rad.to_degrees() / 360. + 1.) % 1.,
+            Heading::Deg(deg) => (deg / 360. + 1.) % 1.,
+            Heading::Unit(unit) => (*unit + 1.) % 1.,
+        }
+    }
+
+    #[inline]
+    pub fn to_turn(&self) -> f32 {
+        (self.to_unit() + 0.5) % 1. - 0.5
+    }
+
+    #[inline]
+    pub fn to_unit_zero(&self) -> f32 {
+        match self {
+            Heading::Rad(rad) => (1.5 - rad / TAU) % 1. - 0.5,
+            Heading::Deg(deg) => (deg / 360. + 1.5) % 1. - 0.5,
+            Heading::Unit(unit) => (unit + 1.5) % 1. - 0.5,
+        }
+    }
+
+    #[inline]
+    pub fn cos(&self) -> f32 {
+        self.to_radians().cos()
+    }
+
+    #[inline]
+    pub fn sin(&self) -> f32 {
+        self.to_radians().sin()
+    }
+
+    #[inline]
+    pub fn sin_cos(&self) -> (f32, f32) {
+        self.to_radians().sin_cos()
+    }
+
+    #[inline]
+    pub fn unit(dir: f32) -> Heading {
+        Self::Unit((dir + 1.) % 1.)
+    }
+}
+
+impl From<f32> for Heading {
+    fn from(value: f32) -> Self {
+        Heading::Rad(value)
+    }
+}
+
+impl Add<Angle> for Heading {
+    type Output = Heading;
+
+    fn add(self, rhs: Angle) -> Self::Output {
+        Heading::unit(self.to_unit() + rhs.to_unit())
+    }
+}
+
+impl Add<Turn> for Heading {
+    type Output = Heading;
+
+    fn add(self, rhs: Turn) -> Self::Output {
+        Heading::unit(self.to_unit() + rhs.to_unit())
+    }
+}
+
+impl Sub<Angle> for Heading {
+    type Output = Heading;
+
+    fn sub(self, rhs: Angle) -> Self::Output {
+        Heading::unit(self.to_unit() - rhs.to_unit())
+    }
+}
+
+impl Sub<Heading> for Heading {
+    type Output = Angle;
+
+    fn sub(self, rhs: Heading) -> Self::Output {
+        Angle::unit(self.to_unit() - rhs.to_unit())
+    }
+}
+
+impl PartialEq for Heading {
+    fn eq(&self, other: &Self) -> bool {
+        self.to_unit() == other.to_unit()
+    }
+}
+
+// turn in [-0.5, 0.5]
+#[derive(Clone, Copy, Debug)]
+pub enum Turn {
+    Rad(f32),
+    Deg(f32),
+    Unit(f32),
+}
+
+impl Turn {
+    #[inline]
+    pub fn to_radians(&self) -> f32 {
+        match self {
+            Turn::Rad(rad) => (*rad + TAU + PI) % TAU - PI,
+            Turn::Deg(deg) => ((360. - deg).to_radians() + TAU + PI) % TAU - PI,
+            Turn::Unit(unit) => ((1. - unit) * TAU + PI) % TAU - PI,
+        }
+    }
+
+    #[inline]
+    pub fn to_degrees(&self) -> f32 {
+        match self {
+            Turn::Rad(rad) => (90. - rad.to_degrees() + 360. + 180.) % 360. - 180.,
+            Turn::Deg(deg) => (*deg + 360. + 180.) % 360. - 180.,
+            Turn::Unit(unit) => (unit * 360. + 360. + 180.) % 360. - 180.,
+        }
+    }
+
+    #[inline]
+    pub fn to_unit(&self) -> f32 {
+        match self {
+            Turn::Rad(rad) => (1.25 - rad.to_degrees() / 360.) % 1. - 0.5,
+            Turn::Deg(deg) => (deg / 360. + 1.5) % 1. - 0.5,
+            Turn::Unit(unit) => (*unit + 1.5) % 1. - 0.5,
+        }
+    }
+
+    #[inline]
+    pub fn cos(&self) -> f32 {
+        self.to_radians().cos()
+    }
+
+    #[inline]
+    pub fn sin(&self) -> f32 {
+        self.to_radians().sin()
+    }
+
+    #[inline]
+    pub fn sin_cos(&self) -> (f32, f32) {
+        self.to_radians().sin_cos()
+    }
+
+    #[inline]
+    pub fn unit(dir: f32) -> Turn {
+        Self::Unit((dir + 1.) % 1.)
+    }
+}
+
+impl PartialEq for Turn {
     fn eq(&self, other: &Self) -> bool {
         self.to_unit() == other.to_unit()
     }
@@ -286,10 +484,10 @@ impl From<(Point, Point)> for Line {
 mod test {
     use std::f32::consts::TAU;
 
-    use super::{Angle, Point};
+    use super::{Angle, Heading, Point};
 
     #[test]
-    fn unit_angle() {
+    fn angle_unit() {
         assert_feq(Angle::Unit(0.).to_radians(), 0.25 * TAU);
         assert_feq(Angle::Unit(0.25).to_radians(), 1e-6);
         assert_feq(Angle::Unit(0.5).to_radians(), 0.75 * TAU);
@@ -297,7 +495,7 @@ mod test {
     }
 
     #[test]
-    fn unit_sincos() {
+    fn angle_unit_sincos() {
         assert_feq(Angle::Unit(0.).sin(), 1.);
         assert_feq(Angle::Unit(0.25).sin(), 0.);
         assert_feq(Angle::Unit(0.5).sin(), -1.);
@@ -315,11 +513,45 @@ mod test {
     }
 
     #[test]
-    fn deg_angle() {
+    fn angle_deg() {
         assert_feq(Angle::Deg(0.).to_radians(), 0.25 * TAU);
         assert_feq(Angle::Deg(90.).to_radians(), 1e-6);
         assert_feq(Angle::Deg(180.).to_radians(), 0.75 * TAU);
         assert_feq(Angle::Deg(270.).to_radians(), 0.5 * TAU);
+    }
+
+    #[test]
+    fn heading_unit() {
+        assert_feq(Heading::Unit(0.).to_radians(), 0.25 * TAU);
+        assert_feq(Heading::Unit(0.25).to_radians(), 1e-6);
+        assert_feq(Heading::Unit(0.5).to_radians(), 0.75 * TAU);
+        assert_feq(Heading::Unit(0.75).to_radians(), 0.5 * TAU);
+    }
+
+    #[test]
+    fn heading_unit_sincos() {
+        assert_feq(Heading::Unit(0.).sin(), 1.);
+        assert_feq(Heading::Unit(0.25).sin(), 0.);
+        assert_feq(Heading::Unit(0.5).sin(), -1.);
+        assert_feq(Heading::Unit(0.75).sin(), 0.);
+
+        assert_feq(Heading::Unit(0.).cos(), 0.);
+        assert_feq(Heading::Unit(0.25).cos(), 1.);
+        assert_feq(Heading::Unit(0.5).cos(), 0.);
+        assert_feq(Heading::Unit(0.75).cos(), -1.);
+
+        assert_feq2(Heading::Unit(0.).sin_cos(), (1., 0.));
+        assert_feq2(Heading::Unit(0.25).sin_cos(), (0., 1.));
+        assert_feq2(Heading::Unit(0.5).sin_cos(), (-1., 0.));
+        assert_feq2(Heading::Unit(0.75).sin_cos(), (0., -1.));
+    }
+
+    #[test]
+    fn heading_deg() {
+        assert_feq(Heading::Deg(0.).to_radians(), 0.25 * TAU);
+        assert_feq(Heading::Deg(90.).to_radians(), 1e-6);
+        assert_feq(Heading::Deg(180.).to_radians(), 0.75 * TAU);
+        assert_feq(Heading::Deg(270.).to_radians(), 0.5 * TAU);
     }
 
     #[test]

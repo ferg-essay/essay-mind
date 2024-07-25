@@ -8,7 +8,7 @@ use mind_ecs::Tick;
 use crate::{
     body::Body, 
     hind_motor::{HindLevyMove, TurnCommand}, 
-    util::{Angle, DecayValue, DirVector, HalfLife, Seconds}, 
+    util::{Angle, DecayValue, DirVector, HalfLife, Heading, Seconds}, 
     world::World
 };
 
@@ -51,7 +51,7 @@ impl Phototaxis {
         self.goal_vector.to_vector()
     }
 
-    pub fn update(&mut self, value: f32, head_dir: Angle) {
+    pub fn update(&mut self, value: f32, head_dir: Heading) {
         self.value = value;
 
         self.average.update();

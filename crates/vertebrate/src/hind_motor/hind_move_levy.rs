@@ -2,7 +2,7 @@ use essay_ecs::prelude::*;
 use mind_ecs::Tick;
 use crate::body::{Body, BodyAction, BodyPlugin};
 use crate::core_motive::{Motive, Wake};
-use crate::util::{Angle, DecayValue, DirVector, Command, Seconds, Ticks};
+use crate::util::{Command, DecayValue, DirVector, Seconds, Ticks, Turn};
 use util::random::{random_normal, random_pareto, random_uniform};
 
 ///
@@ -341,12 +341,12 @@ impl HindLevyMove {
 
         if move_command == MoveCommand::Stop {
             if wake.is_active() {
-                Action::new(BodyAction::None, 0.25, 0., Angle::unit(0.))
+                Action::new(BodyAction::None, 0.25, 0., Turn::unit(0.))
             } else {
-                Action::new(BodyAction::Sleep, 1., 0., Angle::unit(0.))
+                Action::new(BodyAction::Sleep, 1., 0., Turn::unit(0.))
             }
         } else if self.sleep.is_active() {
-            Action::new(BodyAction::Sleep, 1., 0., Angle::unit(0.))
+            Action::new(BodyAction::Sleep, 1., 0., Turn::unit(0.))
         } else if self.is_last_turn {
             self.is_last_turn = false;
 
@@ -391,7 +391,7 @@ impl HindLevyMove {
 
         let len = move_command.run_len();
 
-        Action::new(move_command.body(), len, speed, Angle::Unit(0.))
+        Action::new(move_command.body(), len, speed, Turn::Unit(0.))
     }
 
     ///
@@ -418,7 +418,7 @@ impl HindLevyMove {
 
         // semi-brownian
         if random_uniform() <= p_left {
-            let turn = Angle::unit(- turn.to_unit());
+            let turn = Turn::unit(- turn.to_unit());
 
             Action::new(move_command.body(), len, speed, turn)
         } else {
@@ -493,15 +493,15 @@ impl MoveCommand {
         }
     }
 
-    fn turn(&self) -> Angle {
+    fn turn(&self) -> Turn {
         match self {
             MoveCommand::SeekRoam => turn_angle(60., 30.),
             MoveCommand::SeekDwell => turn_angle(60., 30.),
             MoveCommand::Avoid => turn_angle(90., 30.),
             MoveCommand::Roam => turn_angle(30., 30.),
             MoveCommand::Dwell => turn_angle(60., 60.),
-            MoveCommand::Stop => Angle::unit(0.),
-            MoveCommand::Sleep => Angle::unit(0.),
+            MoveCommand::Stop => Turn::unit(0.),
+            MoveCommand::Sleep => Turn::unit(0.),
         }
     }
 
@@ -518,8 +518,8 @@ impl MoveCommand {
     }
 }
 
-fn turn_angle(mean: f32, std: f32) -> Angle {
-    Angle::Deg(mean + (random_normal() * std).clamp(-2. * std, 2. * std))
+fn turn_angle(mean: f32, std: f32) -> Turn {
+    Turn::Deg(mean + (random_normal() * std).clamp(-2. * std, 2. * std))
 }
 
 #[derive(Clone, Copy, Debug)] // , Event)]
@@ -606,11 +606,11 @@ struct Action {
     kind: BodyAction,
     time: f32,
     speed: f32,
-    turn: Angle,
+    turn: Turn,
 }
 
 impl Action {
-    fn new(kind: BodyAction, time: impl Into<Seconds>, speed: f32, turn: Angle) -> Self {
+    fn new(kind: BodyAction, time: impl Into<Seconds>, speed: f32, turn: Turn) -> Self {
         Self {
             kind,
             time: time.into().0,
@@ -620,7 +620,7 @@ impl Action {
     }
 
     fn none() -> Self {
-        Action::new(BodyAction::None, 0., 0., Angle::Unit(0.))
+        Action::new(BodyAction::None, 0., 0., Turn::Unit(0.))
     }
 
     fn pre_update(&mut self) {

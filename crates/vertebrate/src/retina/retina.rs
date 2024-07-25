@@ -12,7 +12,7 @@ use essay_tensor::Tensor;
 use mind_ecs::Tick;
 use image::Pixel;
 
-use crate::{body::Body, util, util::Angle, world::{World, WorldCell}};
+use crate::{body::Body, util::{self, Angle, Heading}, world::{World, WorldCell}};
 
 pub struct Retina {
     size: u32,
@@ -84,7 +84,7 @@ impl Retina {
         assert!(self.form_id.is_some());
     }
 
-    fn draw(&mut self, pos: Point, dir: Angle, eye_angle: Angle) -> Tensor {
+    fn draw(&mut self, pos: Point, dir: Heading, eye_angle: Angle) -> Tensor {
         let camera = camera(pos, dir, eye_angle);
 
         let mut draw = RetinaDraw {
@@ -410,7 +410,7 @@ fn retina_update(
 
 
 
-fn camera(pos: Point, dir: Angle, eye_angle: Angle) -> Matrix4 {
+fn camera(pos: Point, dir: Heading, eye_angle: Angle) -> Matrix4 {
     let mut camera = Matrix4::eye();
 
     camera = camera.translate(- pos.x(), -0.2, pos.y());

@@ -2,7 +2,11 @@ use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}};
 use mind_ecs::Tick;
 
 use crate::{
-    body::Body, hind_motor::{HindLevyMove, TurnCommand}, mid_motor::tectum::TectumMap, util::{Angle, DirVector, Line, Point}, world::World
+    body::Body, 
+    hind_motor::{HindLevyMove, TurnCommand}, 
+    mid_motor::tectum::TectumMap, 
+    util::{Angle, DirVector, Heading, Line, Point}, 
+    world::World
 };
 
 fn _dist_point_line(
@@ -19,7 +23,7 @@ fn _dist_point_line(
 
 struct SenseArc {
     point: Point,
-    dir: Angle,
+    dir: Heading,
 
     left: f32, 
     right: f32, 
@@ -29,7 +33,7 @@ struct SenseArc {
 }
 
 impl SenseArc {
-    fn new(point: impl Into<Point>, dir: impl Into<Angle>) -> Self {
+    fn new(point: impl Into<Point>, dir: impl Into<Heading>) -> Self {
         //let dir1 = Point::from(dir.into().sin_cos());
         //let dir2 = Point(dir1.1, - dir1.0);
 
@@ -129,7 +133,7 @@ impl SenseArc {
         let vector = Line(v.into(), w.into());
         let proj = vector.projection(self.point);
 
-        DirVector::new(self.point.angle_to(proj), self.point.dist(proj))
+        DirVector::new(self.point.heading_to(proj), self.point.dist(proj))
     }
 }
 
