@@ -1,25 +1,16 @@
 use std::time::Duration;
 
-use essay_plot::api::{Colors, Point};
+use essay_graphics::api;
+use essay_plot::api::{Angle, Colors, Point};
 use vertebrate::{
-    body::{Body, BodyEatPlugin, BodyPlugin}, 
-    core_motive::{
+    body::{Body, BodyEatPlugin, BodyPlugin}, core_motive::{
         eat::{CoreEatingPlugin, Eat, FoodSearch, Sated}, 
         wake::Sleep, CoreExplorePlugin, CoreWakePlugin, Dwell, Motive, MotiveTrait, Roam, Wake
-    }, 
-    hab_taxis::{
+    }, hab_taxis::{
         chemotaxis::{Avoid, Chemotaxis, Seek}, klinotaxis::KlinotaxisPlugin, phototaxis::Phototaxis
-    }, 
-    hind_motor::{HindEat, HindEatPlugin, HindLevyPlugin, HindMovePlugin}, 
-    hind_sense::lateral_line::LateralLinePlugin, 
-    mid_motor::{tectum::TectumPlugin, MidMotorPlugin}, 
-    olfactory_bulb::{ObEvent, OlfactoryBulb, OlfactoryPlugin}, 
-    ui::{
-        ui_attention::UiAttentionPlugin, 
-        ui_body::{UiBodyPlugin, UiBodyTrailPlugin}, ui_heatmap::UiHeatmapPlugin, ui_emoji::Emoji, ui_graph::UiGraphPlugin, ui_homunculus::UiHomunculusPlugin, ui_motive::UiMotivePlugin, ui_peptide::UiPeptidePlugin, ui_table::UiTablePlugin, ui_world_map::UiWorldPlugin
-    }, 
-    util::{Seconds, Ticks}, 
-    world::{
+    }, hind_motor::{HindEat, HindEatPlugin, HindLevyPlugin, HindMovePlugin}, hind_sense::lateral_line::LateralLinePlugin, mid_motor::{tectum::TectumPlugin, MidMotorPlugin}, olfactory_bulb::{ObEvent, OlfactoryBulb, OlfactoryPlugin}, retina::RetinaPlugin, ui::{
+        ui_attention::UiAttentionPlugin, ui_body::{UiBodyPlugin, UiBodyTrailPlugin}, ui_camera::UiCameraPlugin, ui_emoji::Emoji, ui_graph::UiGraphPlugin, ui_heatmap::UiHeatmapPlugin, ui_homunculus::UiHomunculusPlugin, ui_motive::UiMotivePlugin, ui_peptide::UiPeptidePlugin, ui_table::UiTablePlugin, ui_world_map::UiWorldPlugin
+    }, util::{self, Seconds, Ticks}, world::{
         OdorType, World, WorldPlugin
     }
 };
@@ -37,7 +28,8 @@ pub fn main() {
     );
     //world_food_and_non_food(&mut app);
 
-    app.plugin(BodyPlugin::new().cast_period(Seconds(0.2).max(Ticks(7))));
+    // app.plugin(BodyPlugin::new().cast_period(Seconds(0.2).max(Ticks(7))));
+    app.plugin(BodyPlugin::new());
     app.plugin(BodyEatPlugin);
 
     app.plugin(HindLevyPlugin);
@@ -49,11 +41,16 @@ pub fn main() {
         .odor(OdorType::FoodB)
     );
 
+    app.plugin(RetinaPlugin::new()
+        .fov(util::Angle::Deg(120.))
+        .eye_angle(util::Angle::Deg(70.))
+    );
+
     app.plugin(TectumPlugin::new().striatum());
     // app.plugin(ChemotaxisPlugin);
     // app.plugin(TegSeekPlugin::<OlfactoryBulb, FoodSearch>::new());
     app.plugin(KlinotaxisPlugin::<OlfactoryBulb, FoodSearch>::new());
-    app.plugin(LateralLinePlugin);
+    // app.plugin(LateralLinePlugin);
 
     app.plugin(MidMotorPlugin);
 
@@ -66,6 +63,7 @@ pub fn main() {
     //app.system(Tick, dwell_eat);
     //ui_chemotaxis(&mut app);
     ui_eat_flat(&mut app);
+    app.plugin(UiCameraPlugin::new((2., -1.), (0.5, 0.5)).fov(Angle::Deg(120.)));
 
     app.run();
 }
@@ -262,7 +260,7 @@ fn ui_eat_flat(app: &mut App) {
         .item(Emoji::Footprints, |m: &Motive<Roam>| m.is_active())
         .item(Emoji::FaceSleeping, |m: &Motive<Sleep>| m.is_active())
     );
-    // app.plugin(UiCameraPlugin::new((2., 1.), (0.5, 0.5)));
+    //app.plugin(UiCameraPlugin::new((2., -1.), (0.5, 0.5)).fov(Angle::Deg(120.)));
 
     app.plugin(UiAttentionPlugin::new((2.0, 0.), (0.5, 0.5))
         .colors(odor_colors)
@@ -271,7 +269,7 @@ fn ui_eat_flat(app: &mut App) {
         .item(|ob: &OlfactoryBulb| ob.value_pair(OdorType::FoodB))
     );
 
-    app.plugin(UiHeatmapPlugin::new(((2.0, -0.5), [1.0, 0.5])));
+    // app.plugin(UiHeatmapPlugin::new(((2.0, -0.5), [1.0, 0.5])));
     /*
         .colors(odor_colors)
         // .item("v", |p: &Phototaxis| p.value())

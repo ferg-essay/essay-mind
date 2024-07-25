@@ -6,21 +6,26 @@ use essay_plot::api::{
 use essay_tensor::Tensor;
 use ui_graphics::{UiCanvas, UiCanvasPlugin};
 
-use crate::{body::Body, world::{World, WorldCell, WorldPlugin}};
+use crate::{body::Body, retina, world::{World, WorldCell, WorldPlugin}};
 
 struct UiCamera {
-    _view: View<UiCameraView>,
+    view: View<UiCameraView>,
 
-    form_id: Option<FormId>,
+    fov: Angle,
 }
 
 impl UiCamera {
     fn new(view: View<UiCameraView>) -> Self {
         Self {
-            _view: view,
-
-            form_id: None,
+            view,
+            fov: Angle::Deg(90.),
         }
+    }
+
+    fn fov(&mut self, angle: impl Into<Angle>) -> &mut Self {
+        self.fov = angle.into();
+
+        self
     }
 
     //fn pos(&self) -> Bounds<Canvas> {
@@ -35,6 +40,7 @@ fn startup_camera(
 ) {
     let mut renderer = canvas.renderer_viewless();
 
+    /*
     let mut form = Form::new();
 
     form.texture(renderer.create_texture_rgba8(&texture_colors(&[
@@ -100,8 +106,11 @@ fn startup_camera(
             }
         }
     }
+    */
 
-    camera.form_id = Some(renderer.create_form(&form));
+    camera.view.write(|v| {
+        v.form_id = Some(retina::world_form(&mut renderer, &world))
+    });
 }
 
 fn wall(form: &mut Form, p0: impl Into<Point>, p1: impl Into<Point>, v: f32) {
@@ -153,8 +162,29 @@ fn floor(form: &mut Form, p0: impl Into<Point>, p1: impl Into<Point>, v: f32) {
 fn draw_camera(
     mut canvas: ResMut<UiCanvas>,
     body: Res<Body>,
-    ui_camera: Res<UiCamera>,
+    mut ui_camera: ResMut<UiCamera>,
 ) {
+    let mut camera = Matrix4::eye();
+
+    let body_pos = body.pos();
+    let head_pos = body.head_pos();
+
+    let body_dir = body.dir();
+    let head_dir = body.head_dir();
+
+    // camera = camera.translate(- body_pos.x(), -0.2, body_pos.y());
+    camera = camera.translate(- head_pos.x(), -0.2, head_pos.y());
+    camera = camera.rot_xz(Angle::Unit(- head_dir.to_unit()));
+    // camera = self.mat.matmul(&camera);
+
+    //let fov = 120.0f32;
+    let fov = ui_camera.fov.to_radians_arc();
+    camera = camera.projection(fov, 1., 0.01, 100.);
+
+    ui_camera.view.write(|v| {
+        v.camera = camera;
+    });
+    /*
     if let Some(mut renderer) = canvas.renderer_draw() {
         if let Some(form_id) = ui_camera.form_id {
             let mut camera = Matrix4::eye();
@@ -166,8 +196,8 @@ fn draw_camera(
             // camera = self.mat.matmul(&camera);
 
             //let fov = 120.0f32;
-            let fov = 90.0f32;
-            camera = camera.projection(fov.to_radians(), 1., 0.1, 100.);
+            let fov = ui_camera.fov.to_radians_arc();
+            camera = camera.projection(fov, 1., 0.1, 100.);
 
             // let pos = ui_camera.pos();
             let pos = renderer.pos();
@@ -180,27 +210,38 @@ fn draw_camera(
             renderer.draw_form(form_id, &camera, &Clip::Bounds(pos.p0(), pos.p1())).unwrap();
         }
     }
+    */
 }
 
 struct UiCameraView {
-    // cube: CubeView,
-    is_dirty: bool,
+    form_id: Option<FormId>,
+    camera: Matrix4,
 }
 
 impl UiCameraView {
     fn new() -> Self {
         Self {
             // cube: cube_view(),
-            is_dirty: true,
+            camera: Matrix4::eye(),
+            form_id: None,
         }
     }
 }
 
 impl Drawable for UiCameraView {
-    fn draw(&mut self, _renderer: &mut dyn Renderer) -> renderer::Result<()> {
+    fn draw(&mut self, renderer: &mut dyn Renderer) -> renderer::Result<()> {
         // self.cube.draw(renderer, pos);
-        if self.is_dirty {
-            self.is_dirty = false;
+        if let Some(form_id) = self.form_id {
+            let pos = renderer.pos();
+
+            let bounds = renderer.extent();
+            let to = Matrix4::view_to_canvas_unit(&pos, bounds);
+    
+            let camera = to.matmul(&self.camera);
+
+            // renderer.draw_form(form_id, &camera, &Clip::Bounds(pos.p0(), pos.p1())).unwrap();
+
+            renderer.draw_form(form_id, &camera, &Clip::Bounds(pos.p0(), pos.p1()))?;            
         }
 
         Ok(())
@@ -213,6 +254,7 @@ impl Drawable for UiCameraView {
 
 pub struct UiCameraPlugin {
     bounds: Bounds::<Layout>,
+    fov: Angle,
 }
 
 impl UiCameraPlugin {
@@ -222,7 +264,14 @@ impl UiCameraPlugin {
 
         Self {
             bounds: Bounds::new(xy, (xy.0 + wh.0, xy.1 + wh.1)),
+            fov: Angle::Deg(90.),
         }
+    }
+
+    pub fn fov(mut self, fov: impl Into<Angle>) -> Self {
+        self.fov = fov.into();
+
+        self
     }
 }
 
@@ -239,7 +288,8 @@ impl Plugin for UiCameraPlugin {
 
             // let box_id = app.resource_mut::<UiLayout>().add_box(self.bounds.clone());
             
-            let ui_camera = UiCamera::new(view);
+            let mut ui_camera = UiCamera::new(view);
+            ui_camera.fov(self.fov);
             app.insert_resource(ui_camera);
 
             app.system(Startup, startup_camera);

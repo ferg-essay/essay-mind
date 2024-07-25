@@ -3302,6 +3302,7 @@ dependencies = [
  "essay-graphics",
  "essay-plot",
  "essay-tensor",
+ "image",
  "log",
  "mind-ecs",
  "mind-macros",

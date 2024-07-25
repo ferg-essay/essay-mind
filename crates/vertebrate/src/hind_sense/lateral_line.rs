@@ -149,7 +149,7 @@ fn update_lateral_line(
 ) {
     // let Point(x, y) = body.pos();
 
-    let mut sense = SenseArc::new(body.pos_head(), body.dir());
+    let mut sense = SenseArc::new(body.head_pos(), body.dir());
 
     let world = world.get();
     let tectum = tectum.get_mut();

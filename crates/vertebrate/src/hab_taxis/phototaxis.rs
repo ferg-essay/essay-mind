@@ -86,7 +86,7 @@ fn update_phototaxis(
     mut phototaxis: ResMut<Phototaxis>,
     mut taxis: ResMut<Taxis>,
 ) {
-    let light = world.light(body.pos_head());
+    let light = world.light(body.head_pos());
 
     // TODO: negative light is an error value
     if light >= 0.0 {

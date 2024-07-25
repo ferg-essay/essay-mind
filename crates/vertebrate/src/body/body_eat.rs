@@ -69,7 +69,7 @@ impl BodyEat {
 
         self.is_eating.update();
 
-        let is_food = world.is_food(body.pos_head());
+        let is_food = world.is_food(body.head_pos());
         self.set_food_zone(is_food);
 
         if self.is_eating() && self.is_food_zone() {

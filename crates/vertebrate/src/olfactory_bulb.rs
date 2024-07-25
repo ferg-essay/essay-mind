@@ -144,7 +144,7 @@ fn update_olfactory(
 
     olf_bulb.pre_update();
 
-    for (odor, vector) in world.odors_by_head(body.pos_head()) {
+    for (odor, vector) in world.odors_by_head(body.head_pos()) {
         let index = *olf_bulb.odor_map.get(&odor).unwrap();
 
         let vector = vector.to_ego(body.head_dir());

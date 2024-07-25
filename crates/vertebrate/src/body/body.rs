@@ -73,7 +73,7 @@ impl Body {
     }
 
     #[inline]
-    pub fn pos_head(&self) -> Point {
+    pub fn head_pos(&self) -> Point {
         let Point(x, y) = self.pos;
 
         let cast = Angle::unit(self.cast_pos.sin() * self.cast_angle.to_unit());
@@ -205,7 +205,7 @@ impl Body {
         self.cast_pos = self.cast_pos + self.cast_delta;
 
         // head location
-        let head = self.pos_head();
+        let head = self.head_pos();
 
         // sensor ahead and to the side
         let sensor_left = (head.0 + dx * 0.1 - dy * 0.1, head.1 + dy * 0.1 + dx * 0.1);
@@ -385,7 +385,7 @@ mod test {
         assert_eq!(Point(0.5, 0.5), app.eval(|x: Res<Body>| x.pos()));
         assert_eq!(Angle::unit(0.0), app.eval(|x: Res<Body>| x.dir()));
         assert_eq!(Angle::unit(0.0), app.eval(|x: Res<Body>| x.head_dir()));
-        assert_eq!(Point(0.4999999, 1.), app.eval(|x: Res<Body>| x.pos_head()));
+        assert_eq!(Point(0.4999999, 1.), app.eval(|x: Res<Body>| x.head_pos()));
         assert_eq!(false, app.eval(|x: Res<Body>| x.is_moving()));
         assert_eq!(false, app.eval(|x: Res<Body>| x.is_collide_left()));
         assert_eq!(false, app.eval(|x: Res<Body>| x.is_collide_right()));
@@ -411,7 +411,7 @@ mod test {
         assert_eq!(Point(0.5, 0.5), app.eval(|x: Res<Body>| x.pos()));
         assert_eq!(Angle::unit(0.0), app.eval(|x: Res<Body>| x.dir()));
         assert_eq!(Angle::unit(0.0), app.eval(|x: Res<Body>| x.head_dir()));
-        assert_eq!(Point(0.4999999, 1.), app.eval(|x: Res<Body>| x.pos_head()));
+        assert_eq!(Point(0.4999999, 1.), app.eval(|x: Res<Body>| x.head_pos()));
         assert_eq!(false, app.eval(|x: Res<Body>| x.is_moving()));
         assert_eq!(false, app.eval(|x: Res<Body>| x.is_collide_left()));
         assert_eq!(false, app.eval(|x: Res<Body>| x.is_collide_right()));
@@ -441,7 +441,7 @@ mod test {
         assert_eq!(Point(0.49999997, 0.55), app.eval(|x: Res<Body>| x.pos()));
         assert_eq!(Angle::unit(0.0), app.eval(|x: Res<Body>| x.dir()));
         assert_eq!(Angle::unit(0.0), app.eval(|x: Res<Body>| x.head_dir()));
-        assert_eq!(Point(0.49999988, 1.05), app.eval(|x: Res<Body>| x.pos_head()));
+        assert_eq!(Point(0.49999988, 1.05), app.eval(|x: Res<Body>| x.head_pos()));
         assert_eq!(true, app.eval(|x: Res<Body>| x.is_moving()));
         assert_eq!(false, app.eval(|x: Res<Body>| x.is_collide_left()));
         assert_eq!(false, app.eval(|x: Res<Body>| x.is_collide_right()));
@@ -454,7 +454,7 @@ mod test {
         assert_eq!(Point(0.49999994, 0.6), app.eval(|x: Res<Body>| x.pos()));
         assert_eq!(Angle::unit(0.0), app.eval(|x: Res<Body>| x.dir()));
         assert_eq!(Angle::unit(0.0), app.eval(|x: Res<Body>| x.head_dir()));
-        assert_eq!(Point(0.49999985, 1.1), app.eval(|x: Res<Body>| x.pos_head()));
+        assert_eq!(Point(0.49999985, 1.1), app.eval(|x: Res<Body>| x.head_pos()));
         assert_eq!(true, app.eval(|x: Res<Body>| x.is_moving()));
         assert_eq!(false, app.eval(|x: Res<Body>| x.is_collide_left()));
         assert_eq!(false, app.eval(|x: Res<Body>| x.is_collide_right()));
@@ -469,7 +469,7 @@ mod test {
         assert_eq!(Point(0.49999985, 0.9999998), app.eval(|x: Res<Body>| x.pos()));
         assert_eq!(Angle::unit(0.0), app.eval(|x: Res<Body>| x.dir()));
         assert_eq!(Angle::unit(0.0), app.eval(|x: Res<Body>| x.head_dir()));
-        assert_eq!(Point(0.49999976, 1.4999998), app.eval(|x: Res<Body>| x.pos_head()));
+        assert_eq!(Point(0.49999976, 1.4999998), app.eval(|x: Res<Body>| x.head_pos()));
         assert_eq!(false, app.eval(|x: Res<Body>| x.is_moving()));
         assert_eq!(false, app.eval(|x: Res<Body>| x.is_collide_left()));
         assert_eq!(false, app.eval(|x: Res<Body>| x.is_collide_right()));
