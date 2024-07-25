@@ -1,15 +1,10 @@
 use essay_ecs::prelude::*;
 use essay_graphics::layout::{Layout, View};
-use essay_plot::{
-    api::{renderer::{self, Canvas, Drawable, Event, Renderer}, Bounds, Clip, Color}, 
-    artist::{ColorMaps, GridColor, GridColorOpt}, 
-};
+use essay_plot::api::{renderer::{self, Canvas, Drawable, Event, Renderer}, Bounds, Clip, Color};
 use essay_tensor::Tensor;
 use mind_ecs::PostTick;
 use ui_graphics::UiCanvas;
-use crate::{retina::{Retina, RetinaPlugin}, world::World};
-use crate::body::Body;
-use crate::ui::ui_world_map::UiWorldPlugin;
+use crate::retina::{Retina, RetinaPlugin};
 
 struct UiRetina {
     view: View<RetinaView>,

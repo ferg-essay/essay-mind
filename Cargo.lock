@@ -3306,6 +3306,7 @@ dependencies = [
  "log",
  "mind-ecs",
  "mind-macros",
+ "pollster",
  "test-log",
  "ui-graphics",
  "util",

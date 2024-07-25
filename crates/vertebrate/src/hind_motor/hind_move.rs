@@ -2,7 +2,7 @@ use essay_ecs::prelude::*;
 use mind_ecs::Tick;
 use crate::body::{Body, BodyAction, BodyPlugin};
 use crate::core_motive::{Motive, Wake};
-use crate::util::{Angle, Command, DecayValue, HalfLife, Seconds, Ticks, Turn};
+use crate::util::{Command, DecayValue, HalfLife, Seconds, Ticks, Turn};
 
 ///
 /// HindMove represents MRRN/PRRN of the reticulospinal areas, in mammals

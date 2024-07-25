@@ -60,7 +60,7 @@ fn draw_body(
         let head_pt = body.head_pos();
 
         let transform = Affine2d::eye()
-            .rotate(turn.to_radians() + TAU * 0.75)
+            .rotate(body.head_dir().to_radians() + TAU * 0.0)
             .scale(0.10, 0.10)
             .translate(head_pt.0, head_pt.1)
             .compose(&world.to_canvas());

@@ -1,16 +1,25 @@
 use std::time::Duration;
 
-use essay_graphics::api;
 use essay_plot::api::{Angle, Colors, Point};
 use vertebrate::{
     body::{Body, BodyEatPlugin, BodyPlugin}, core_motive::{
         eat::{CoreEatingPlugin, Eat, FoodSearch, Sated}, 
         wake::Sleep, CoreExplorePlugin, CoreWakePlugin, Dwell, Motive, MotiveTrait, Roam, Wake
-    }, hab_taxis::{
+    }, 
+    hab_taxis::{
         chemotaxis::{Avoid, Chemotaxis, Seek}, klinotaxis::KlinotaxisPlugin, phototaxis::Phototaxis
-    }, hind_motor::{HindEat, HindEatPlugin, HindLevyPlugin, HindMovePlugin}, hind_sense::lateral_line::LateralLinePlugin, mid_motor::{tectum::TectumPlugin, MidMotorPlugin}, olfactory_bulb::{ObEvent, OlfactoryBulb, OlfactoryPlugin}, retina::RetinaPlugin, ui::{
-        ui_attention::UiAttentionPlugin, ui_body::{UiBodyPlugin, UiBodyTrailPlugin}, ui_camera::UiCameraPlugin, ui_emoji::Emoji, ui_graph::UiGraphPlugin, ui_heatmap::UiHeatmapPlugin, ui_homunculus::UiHomunculusPlugin, ui_motive::UiMotivePlugin, ui_peptide::UiPeptidePlugin, ui_retina::UiRetinaPlugin, ui_table::UiTablePlugin, ui_world_map::UiWorldPlugin
-    }, util::{self, Seconds, Ticks}, world::{
+    }, 
+    hind_motor::{HindEat, HindEatPlugin, HindLevyPlugin, HindMovePlugin}, 
+    mid_motor::{tectum::TectumPlugin, MidMotorPlugin}, 
+    olfactory_bulb::{ObEvent, OlfactoryBulb, OlfactoryPlugin}, retina::RetinaPlugin, 
+    ui::{
+        ui_attention::UiAttentionPlugin, 
+        ui_body::{UiBodyPlugin, UiBodyTrailPlugin}, 
+        ui_camera::UiCameraPlugin, ui_emoji::Emoji, ui_graph::UiGraphPlugin, ui_heatmap::UiHeatmapPlugin, 
+        ui_homunculus::UiHomunculusPlugin, ui_motive::UiMotivePlugin, ui_peptide::UiPeptidePlugin, ui_retina::UiRetinaPlugin, 
+        ui_table::UiTablePlugin, ui_world_map::UiWorldPlugin
+    }, 
+    util::{self}, world::{
         OdorType, World, WorldPlugin
     }
 };
@@ -197,7 +206,7 @@ fn ui_eat(app: &mut App) {
     let colors = Colors::from(["amber", "azure", "red", "purple", "blue", "green", "olive"]);
     // food_graph(app, (0.0, 1.0), (2., 1.));
 
-    app.plugin(UiGraphPlugin::new((0.0, 1.0), (2., 1.))
+    app.plugin(UiGraphPlugin::new(((0.0, 1.0), [2., 1.]))
         .colors(colors.clone())
         //.item("v", |tx: &Chemotaxis| tx.value().clamp(0., 1.))
         //.item("gr", |tx: &Chemotaxis| 0.5 * (tx.gradient() + 1.))
@@ -299,7 +308,7 @@ fn ui_chemotaxis(app: &mut App) {
     let colors = Colors::from(["amber", "azure", "red", "purple", "blue", "green", "olive"]);
     // food_graph(app, (0.0, 1.0), (2., 1.));
 
-    app.plugin(UiGraphPlugin::new((0.0, 1.0), (2., 1.))
+    app.plugin(UiGraphPlugin::new(((0.0, 1.0), [2., 1.]))
         .colors(colors.clone())
         .item("v", |tx: &Chemotaxis| tx.value().clamp(0., 1.))
         .item("gr", |tx: &Chemotaxis| 0.5 * (tx.gradient() + 1.))
@@ -336,7 +345,7 @@ fn ui_phototaxis(app: &mut App) {
     // food_graph(&mut app, (0.0, 1.0), (2., 1.));
     let colors = Colors::from(["amber", "sky", "olive", "red", "purple", "blue"]);
 
-    app.plugin(UiGraphPlugin::new((0.0, 1.0), (2., 1.))
+    app.plugin(UiGraphPlugin::new(((0.0, 1.0), [2., 1.]))
         .colors(colors.clone())
         .item("v", |p: &Phototaxis| p.value())
         .item("avg", |p: &Phototaxis| p.average())

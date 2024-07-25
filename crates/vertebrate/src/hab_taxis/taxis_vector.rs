@@ -1,4 +1,4 @@
-use crate::util::{Angle, DecayValue, DirVector, HalfLife, Heading};
+use crate::util::{DecayValue, DirVector, HalfLife, Heading};
 
 
 pub struct GoalVector {

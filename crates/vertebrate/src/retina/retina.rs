@@ -17,7 +17,8 @@ use crate::{body::Body, util::{self, Angle, Heading}, world::{World, WorldCell}}
 pub struct Retina {
     size: u32,
     wgpu: WgpuHardcopy,
-    surface_id: SurfaceId,
+    id_left: SurfaceId,
+    id_right: SurfaceId,
     form_id: Option<FormId>,
 
     fov: Angle,
@@ -34,14 +35,16 @@ pub struct Retina {
 }
 
 impl Retina {
+    pub const HEIGHT : f32 = 0.3;
+
     fn new(size: u32) -> Self {
         let mut wgpu = WgpuHardcopy::new(size, size);
-        let id = wgpu.add_surface();
 
         Self {
             size,
+            id_left: wgpu.add_surface(),
+            id_right: wgpu.add_surface(),
             wgpu,
-            surface_id: id,
             form_id: None,
             fov: Angle::Deg(90.),
             eye_angle: Angle::Deg(90.),
@@ -77,14 +80,35 @@ impl Retina {
             form_id: None,
         };
 
-        self.wgpu.draw(self.surface_id, &mut startup);
+        self.wgpu.draw(&mut startup);
 
         self.form_id = startup.form_id;
 
         assert!(self.form_id.is_some());
     }
 
-    fn draw(&mut self, pos: Point, dir: Heading, eye_angle: Angle) -> Tensor {
+    fn draw_and_load(&mut self, body: &Body) {
+        let util::Point(x, y) = body.head_pos();
+    
+        let eye_left = self.eye_angle;
+        // let eye_left = Angle::Unit(0.);
+        let eye_right = Angle::Unit(- eye_left.to_unit());
+    
+        self.draw(Point(x, y), body.head_dir(), eye_left);
+        self.wgpu.copy_into_buffer(self.id_left);
+        self.draw(Point(x, y), body.head_dir(), eye_right);
+        self.wgpu.copy_into_buffer(self.id_right);
+        self.data_left = Some(self.read(self.id_left));
+        self.data_right = Some(self.read(self.id_right));
+    
+        // retina.data_left = Some(retina.draw(Point(x, y), body.head_dir(), eye_left));
+        // retina.data_right = Some(retina.draw(Point(x, y), body.head_dir(), eye_right));
+    
+        // retina.data_left = Some(retina.draw(Point(x, y), body.head_dir(), eye_left));
+        // retina.data_right = Some(retina.draw(Point(x, y), body.head_dir(), eye_right));
+    }
+    
+    fn draw(&mut self, pos: Point, dir: Heading, eye_angle: Angle) {
         let camera = camera(pos, dir, eye_angle);
 
         let mut draw = RetinaDraw {
@@ -92,7 +116,9 @@ impl Retina {
             camera,
         };
     
-        self.wgpu.draw(self.surface_id, &mut draw);
+        self.wgpu.draw(&mut draw);
+
+        /*
         self.wgpu.read_into(self.surface_id, |buf| {
             let mut vec = Vec::<f32>::new();
 
@@ -102,7 +128,43 @@ impl Retina {
 
             Tensor::from(vec).reshape([self.size as usize, self.size as usize])
         })
+        */
     }
+
+    fn read(&mut self, id: SurfaceId) -> Tensor {
+        self.wgpu.read_into(id, |buf| {
+            let mut vec = Vec::<f32>::new();
+
+            for p in buf.pixels() {
+                vec.push(p.to_luma().0[0] as f32 / 255.);
+            }
+
+            Tensor::from(vec).reshape([self.size as usize, self.size as usize])
+        })
+    }
+
+    /*
+    async fn draw_async(&mut self, pos: Point, dir: Heading, eye_angle: Angle) -> Tensor {
+        let camera = camera(pos, dir, eye_angle);
+
+        let mut draw = RetinaDraw {
+            form_id: self.form_id.unwrap(),
+            camera,
+        };
+    
+        self.wgpu.draw(&mut draw);
+
+        self.wgpu.read_into_async(self.id_left, |buf| {
+            let mut vec = Vec::<f32>::new();
+
+            for p in buf.pixels() {
+                vec.push(p.to_luma().0[0] as f32 / 255.);
+            }
+
+            Tensor::from(vec).reshape([self.size as usize, self.size as usize])
+        }).await
+    }
+    */
 }
 
 struct RetinaStartup<'a> {
@@ -112,73 +174,6 @@ struct RetinaStartup<'a> {
 
 impl Drawable for RetinaStartup<'_> {
     fn draw(&mut self, renderer: &mut dyn Renderer) -> renderer::Result<()> {
-        /*
-        let mut form = Form::new();
-        
-        form.texture(renderer.create_texture_rgba8(&texture_colors(&[
-            Color::from((0x00, 0x40, 0x40)),
-            Color::from((0x00, 0x10, 0x10)),
-            Color::from((0x00, 0x20, 0x20)),
-            Color::from((0x00, 0x20, 0x30)),
-            Color::from((0xc0, 0xc0, 0xc0)),
-    
-            Color::from((0xd0, 0xd0, 0xd0)),
-            Color::from("green"),
-            Color::from("green"),
-            Color::from("green"),
-            Color::from("green"),
-        ])));
-    
-        let (width, height) = self.world.extent();
-    
-        let c_n = 0.05;
-        let c_s = 0.15;
-        let c_e = 0.25;
-        let c_w = 0.35;
-    
-        let c_gl = 0.45;
-        let c_gd = 0.55;
-        let c_food = 0.65;
-    
-        for y in 0..height {
-            wall(&mut form, (0., y as f32), (0., y as f32 + 1.), c_n);
-    
-            wall(&mut form, (width as f32, y as f32), (width as f32, y as f32 + 1.), c_s);
-        }
-    
-        for x in 0..width {
-            wall(&mut form, (x as f32, 0.), (x as f32 + 1., 0.), c_e);
-    
-            wall(&mut form, (x as f32, height as f32), (x as f32 + 1., height as f32), c_w);
-            //wall(&mut form, (x as f32, 1.), (x as f32 + 1., 1.), 0.9);
-        }
-    
-        for j in 0..height {
-            for i in 0..width {
-                match self.world[(i, j)] {
-                    WorldCell::Food => {
-                        floor(&mut form, (i as f32, j as f32), (i as f32 + 1., j as f32 + 1.), c_food);                    
-                    },
-                    WorldCell::Wall => {
-                        wall(&mut form, (i as f32, j as f32), (i as f32, j as f32 + 1.), c_n);                    
-                        wall(&mut form, (i as f32 + 1., j as f32), (i as f32 + 1., j as f32 + 1.), c_s);                    
-                        wall(&mut form, (i as f32, j as f32), (i as f32 + 1., j as f32), c_e);                    
-                        wall(&mut form, (i as f32, j as f32 + 1.), (i as f32 + 1., j as f32 + 1.), c_w);                    
-                    },
-                    WorldCell::Empty => {
-                        if (i + j) % 2 == 0 {
-                            floor(&mut form, (i as f32, j as f32), (i as f32 + 1., j as f32 + 1.), c_gl);                    
-                        } else {
-                            floor(&mut form, (i as f32, j as f32), (i as f32 + 1., j as f32 + 1.), c_gd);                    
-    
-                        }
-                    },
-                    WorldCell::FloorLight => {},
-                    WorldCell::FloorDark => {},
-                }
-            }
-        }
-        */
     
         self.form_id = Some(world_form(renderer, self.world));
 
@@ -377,14 +372,20 @@ fn retina_update(
     body: Res<Body>,
     mut retina: ResMut<Retina>
 ) {
+    retina.draw_and_load(body.get());
+    /* 
     let util::Point(x, y) = body.head_pos();
 
     let eye_left = retina.eye_angle;
     // let eye_left = Angle::Unit(0.);
     let eye_right = Angle::Unit(- eye_left.to_unit());
 
+    let start = Instant::now();
     retina.data_left = Some(retina.draw(Point(x, y), body.head_dir(), eye_left));
+    println!("TIme {:?}", start.elapsed());
     retina.data_right = Some(retina.draw(Point(x, y), body.head_dir(), eye_right));
+    println!("  TIme2 {:?}", start.elapsed());
+    */
 
     let light_left = if let Some(tensor) = &retina.data_left {
         tensor.reduce_mean(())[0]
@@ -414,7 +415,7 @@ fn retina_update(
 fn camera(pos: Point, dir: Heading, eye_angle: Angle) -> Matrix4 {
     let mut camera = Matrix4::eye();
 
-    camera = camera.translate(- pos.x(), -0.2, pos.y());
+    camera = camera.translate(- pos.x(), - Retina::HEIGHT, pos.y());
     camera = camera.rot_xz(api::Angle::Unit(- dir.to_unit()));
 
     camera = camera.rot_xz(api::Angle::Unit(eye_angle.to_unit()));

@@ -1,6 +1,7 @@
 use std::{cell::RefCell, any::type_name};
 
 use essay_ecs::prelude::*;
+use essay_graphics::layout::Layout;
 use essay_plot::prelude::*;
 
 use mind_ecs::{PostTick, PreTick};
@@ -46,8 +47,7 @@ pub fn ui_plot_update(
 pub struct BodyPlot;
 
 pub struct UiGraphPlugin {
-    xy: Point,
-    wh: Point,
+    _pos: Bounds<Layout>,
 
     colors: Vec<Color>,
 
@@ -55,10 +55,9 @@ pub struct UiGraphPlugin {
 }
 
 impl UiGraphPlugin {
-    pub fn new(xy: impl Into<Point>, wh: impl Into<Point>) -> Self {
+    pub fn new(pos: impl Into<Bounds<Layout>>) -> Self {
         Self {
-            xy: xy.into(),
-            wh: wh.into(),
+            _pos: pos.into(),
             colors: Vec::new(),
             items: Vec::new(),
         }

@@ -9,7 +9,7 @@ use crate::{
     body::Body, 
     core_motive::{eat::Sated, Motive, MotiveTrait, Motives, Wake}, 
     hind_motor::{HindLevyMove, HindLevyPlugin, TurnCommand}, 
-    olfactory_bulb::{ObEvent, OlfactoryBulb}, util::{Angle, Heading, Seconds} 
+    olfactory_bulb::{ObEvent, OlfactoryBulb}, util::{Heading, Seconds} 
 };
 
 pub struct Seek;

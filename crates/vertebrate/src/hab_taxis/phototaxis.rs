@@ -8,7 +8,7 @@ use mind_ecs::Tick;
 use crate::{
     body::Body, 
     hind_motor::{HindLevyMove, TurnCommand}, 
-    util::{Angle, DecayValue, DirVector, HalfLife, Heading, Seconds}, 
+    util::{DecayValue, DirVector, HalfLife, Heading, Seconds}, 
     world::World
 };
 

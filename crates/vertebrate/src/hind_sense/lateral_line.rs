@@ -5,7 +5,7 @@ use crate::{
     body::Body, 
     hind_motor::{HindLevyMove, TurnCommand}, 
     mid_motor::tectum::TectumMap, 
-    util::{Angle, DirVector, Heading, Line, Point}, 
+    util::{DirVector, Heading, Line, Point}, 
     world::World
 };
 

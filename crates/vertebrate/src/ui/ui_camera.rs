@@ -1,12 +1,11 @@
 use essay_ecs::{app::{App, Plugin, Startup, Update}, core::{Res, ResMut}};
 use essay_graphics::layout::{Layout, View};
 use essay_plot::api::{
-    form::{Form, FormId, Matrix4}, renderer::{self, Drawable, Event, Renderer}, Angle, Bounds, Clip, Color, Point
+    form::{FormId, Matrix4}, renderer::{self, Drawable, Event, Renderer}, Angle, Bounds, Clip,
 };
-use essay_tensor::Tensor;
 use ui_graphics::{UiCanvas, UiCanvasPlugin};
 
-use crate::{body::Body, retina, world::{World, WorldCell, WorldPlugin}};
+use crate::{body::Body, retina::{self, Retina}, util::Point, world::{World, WorldPlugin}};
 
 struct UiCamera {
     view: View<UiCameraView>,
@@ -112,7 +111,7 @@ fn startup_camera(
         v.form_id = Some(retina::world_form(&mut renderer, &world))
     });
 }
-
+/*
 fn wall(form: &mut Form, p0: impl Into<Point>, p1: impl Into<Point>, v: f32) {
     let Point(x0, z0) = p0.into();
     let Point(x1, z1) = p1.into();
@@ -158,22 +157,22 @@ fn floor(form: &mut Form, p0: impl Into<Point>, p1: impl Into<Point>, v: f32) {
     form.triangle([vert[0], vert[1], vert[3]]);
     form.triangle([vert[3], vert[2], vert[0]]);
 }
-
+*/
 fn draw_camera(
-    mut canvas: ResMut<UiCanvas>,
+    // mut canvas: ResMut<UiCanvas>,
     body: Res<Body>,
     mut ui_camera: ResMut<UiCamera>,
 ) {
     let mut camera = Matrix4::eye();
 
-    let body_pos = body.pos();
+    // let body_pos = body.pos();
     let head_pos = body.head_pos();
 
-    let body_dir = body.dir();
+    // let body_dir = body.dir();
     let head_dir = body.head_dir();
 
     // camera = camera.translate(- body_pos.x(), -0.2, body_pos.y());
-    camera = camera.translate(- head_pos.x(), -0.2, head_pos.y());
+    camera = camera.translate(- head_pos.x(), - Retina::HEIGHT, head_pos.y());
     camera = camera.rot_xz(Angle::Unit(- head_dir.to_unit()));
     // camera = self.mat.matmul(&camera);
 
@@ -299,7 +298,7 @@ impl Plugin for UiCameraPlugin {
         }
     }
 }
-
+/*
 fn texture_colors(colors: &[Color]) -> Tensor<u8> {
     let mut vec = Vec::<[u8; 4]>::new();
 
@@ -312,3 +311,4 @@ fn texture_colors(colors: &[Color]) -> Tensor<u8> {
 
     Tensor::from(vec).reshape([colors.len() * size, size, 4])
 }
+    */

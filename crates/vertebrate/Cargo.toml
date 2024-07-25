@@ -23,6 +23,7 @@ mind-macros = { path = "../macros"  }
 mind-ecs = { path = "../ecs"  }
 util = { path = "../util"  }
 test-log = { path = "../test-log" }
+pollster = "0.3"
 
 [lib]
 doctest = false
