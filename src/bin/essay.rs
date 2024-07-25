@@ -9,7 +9,7 @@ use vertebrate::{
     }, hab_taxis::{
         chemotaxis::{Avoid, Chemotaxis, Seek}, klinotaxis::KlinotaxisPlugin, phototaxis::Phototaxis
     }, hind_motor::{HindEat, HindEatPlugin, HindLevyPlugin, HindMovePlugin}, hind_sense::lateral_line::LateralLinePlugin, mid_motor::{tectum::TectumPlugin, MidMotorPlugin}, olfactory_bulb::{ObEvent, OlfactoryBulb, OlfactoryPlugin}, retina::RetinaPlugin, ui::{
-        ui_attention::UiAttentionPlugin, ui_body::{UiBodyPlugin, UiBodyTrailPlugin}, ui_camera::UiCameraPlugin, ui_emoji::Emoji, ui_graph::UiGraphPlugin, ui_heatmap::UiHeatmapPlugin, ui_homunculus::UiHomunculusPlugin, ui_motive::UiMotivePlugin, ui_peptide::UiPeptidePlugin, ui_table::UiTablePlugin, ui_world_map::UiWorldPlugin
+        ui_attention::UiAttentionPlugin, ui_body::{UiBodyPlugin, UiBodyTrailPlugin}, ui_camera::UiCameraPlugin, ui_emoji::Emoji, ui_graph::UiGraphPlugin, ui_heatmap::UiHeatmapPlugin, ui_homunculus::UiHomunculusPlugin, ui_motive::UiMotivePlugin, ui_peptide::UiPeptidePlugin, ui_retina::UiRetinaPlugin, ui_table::UiTablePlugin, ui_world_map::UiWorldPlugin
     }, util::{self, Seconds, Ticks}, world::{
         OdorType, World, WorldPlugin
     }
@@ -43,7 +43,7 @@ pub fn main() {
 
     app.plugin(RetinaPlugin::new()
         .fov(util::Angle::Deg(120.))
-        .eye_angle(util::Angle::Deg(70.))
+        .eye_angle(util::Angle::Deg(60.))
     );
 
     app.plugin(TectumPlugin::new().striatum());
@@ -64,6 +64,7 @@ pub fn main() {
     //ui_chemotaxis(&mut app);
     ui_eat_flat(&mut app);
     app.plugin(UiCameraPlugin::new((2., -1.), (0.5, 0.5)).fov(Angle::Deg(120.)));
+    app.plugin(UiRetinaPlugin::new(((0., -1.), [0.5, 0.5])));
 
     app.run();
 }

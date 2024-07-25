@@ -380,6 +380,7 @@ fn retina_update(
     let util::Point(x, y) = body.head_pos();
 
     let eye_left = retina.eye_angle;
+    // let eye_left = Angle::Unit(0.);
     let eye_right = Angle::Unit(- eye_left.to_unit());
 
     retina.data_left = Some(retina.draw(Point(x, y), body.head_dir(), eye_left));
@@ -415,12 +416,12 @@ fn camera(pos: Point, dir: Heading, eye_angle: Angle) -> Matrix4 {
 
     camera = camera.translate(- pos.x(), -0.2, pos.y());
     camera = camera.rot_xz(api::Angle::Unit(- dir.to_unit()));
-    camera = camera.rot_xz(api::Angle::Unit(eye_angle.to_unit()));
-    // camera = self.mat.matmul(&camera);
 
+    camera = camera.rot_xz(api::Angle::Unit(eye_angle.to_unit()));
+    
     //let fov = 120.0f32;
     let fov = 120.0f32;
-    camera = camera.projection(fov.to_radians(), 1., 0.1, 100.);
+    camera = camera.projection(fov.to_radians(), 1., 0.01, 100.);
 
     camera
 }
