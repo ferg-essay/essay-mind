@@ -1,4 +1,4 @@
-use essay_plot::{api::{renderer::Renderer, Clip, Point, TextStyle}, artist::PathStyle};
+use essay_plot::{api::{renderer::{Renderer, Result}, Point, TextStyle}, artist::PathStyle};
 
 
 #[derive(Clone, Copy, Debug)]
@@ -159,7 +159,7 @@ pub trait SymbolDraw {
         pos: Point, 
         style: &PathStyle,
         text_style: &mut TextStyle
-    );
+    ) -> Result<()>;
 }
 
 impl SymbolDraw for Emoji {
@@ -169,7 +169,7 @@ impl SymbolDraw for Emoji {
         pos: Point, 
         style: &PathStyle,
         text_style: &mut TextStyle
-    ) {
-        ui.draw_text(pos, self.code(), 0., style, text_style).unwrap();
+    ) -> Result<()> {
+        ui.draw_text(pos, self.code(), 0., style, text_style)
     }
 }

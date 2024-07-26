@@ -18,7 +18,7 @@ fn draw_body(
     world: Res<UiWorld>, 
     mut ui_canvas: ResMut<UiCanvas>
 ) {
-    if let Some(mut ui) = ui_canvas.renderer(Clip::None) {
+    if let Some(mut ui) = ui_canvas.renderer() {
         let mut style = PathStyle::new();
         let transform = Affine2d::eye()
             .rotate(body.dir().to_radians())

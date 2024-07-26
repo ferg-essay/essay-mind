@@ -105,7 +105,7 @@ pub fn ui_peptide_draw(
     ui_peptide: ResMut<UiPeptide>, 
     mut ui: ResMut<UiCanvas>
 ) {
-    if let Some(mut ui_render) = ui.renderer(Clip::None) {
+    if let Some(mut ui_render) = ui.renderer() {
         let to_canvas = &ui_peptide.to_canvas();
         let y_min = 0.1;
         let x_margin = 0.2;

@@ -1,6 +1,6 @@
 use essay_ecs::prelude::*;
 use essay_graphics::layout::{Layout, View};
-use essay_plot::api::{renderer::{self, Canvas, Drawable, Event, Renderer}, Bounds, Clip, Color};
+use essay_plot::api::{renderer::{self, Canvas, Drawable, Event, Renderer}, Bounds, Color};
 use essay_tensor::Tensor;
 use mind_ecs::PostTick;
 use ui_graphics::UiCanvas;

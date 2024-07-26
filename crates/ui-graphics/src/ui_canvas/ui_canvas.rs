@@ -2,13 +2,16 @@ use std::ops::{Deref, DerefMut};
 use std::time::Duration;
 
 use essay_ecs::prelude::*;
-use essay_graphics::layout::{Layout, View};
-use essay_plot::api::renderer::{self, Canvas, Drawable, Event, Renderer};
+use essay_graphics::{
+    api::{
+        renderer::{Canvas, Drawable, Event, Renderer, Result},
+        Point, Path, Bounds, Color, ImageId,
+    },
+    layout::{Layout, View},
+};
 use essay_plot::artist::PathStyle;
-use essay_plot::api::{Bounds, FontStyle, FontTypeId, TextStyle};
-use essay_plot::api::{Point, Path, Clip};
+use essay_plot::api::{FontStyle, FontTypeId, TextStyle};
 use essay_plot::chart::{Chart, ChartBuilder};
-use essay_plot::prelude::{ImageId, Color};
 use essay_plot::wgpu::{PlotCanvas, PlotRenderer};
 use essay_tensor::Tensor;
 use winit::event_loop::EventLoop;
@@ -86,7 +89,7 @@ impl UiCanvas {
         self.layout.get_layout_mut().view(pos, view)
     }
 
-    pub fn renderer<'a>(&'a mut self, clip: Clip) -> Option<UiRender<'a>> {
+    pub fn renderer<'a>(&'a mut self) -> Option<UiRender<'a>> {
         match &self.view {
             Some(view) => {
                 Some(UiRender::new(self.canvas.renderer(
@@ -360,14 +363,14 @@ impl<'a> UiRender<'a> {
 impl<'a> Deref for UiRender<'a> {
     type Target = dyn Renderer + 'a;
 
+    #[inline]
     fn deref(&self) -> &Self::Target {
         &self.renderer
     }
 }
 
 impl<'a> DerefMut for UiRender<'a> {
-    // type Target = dyn Renderer + 'a;
-
+    #[inline]
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.renderer
     }
@@ -391,7 +394,7 @@ impl UiView {
 }
 
 impl Drawable for UiView {
-    fn draw(&mut self, _renderer: &mut dyn Renderer) -> renderer::Result<()> {
+    fn draw(&mut self, _renderer: &mut dyn Renderer) -> Result<()> {
         Ok(())
     }
 
@@ -473,8 +476,4 @@ fn ui_canvas_window(
 #[derive(Event)]
 pub enum UiWindowEvent {
     Resized(u32, u32),
-}
-
-#[derive(Event)]
-pub enum UiMouseEvent {
 }

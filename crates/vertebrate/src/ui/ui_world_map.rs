@@ -84,7 +84,7 @@ pub fn draw_world(
     }
 
     // TODO: cache texture when unmodified
-    if let Some(mut ui) = ui_canvas.renderer(ui_world.clip().clone()) {
+    if let Some(mut ui) = ui_canvas.renderer() {
         let circle = paths::circle().transform(&ui_world.to_canvas_scale());
         let mut xy : Vec<[f32; 2]> = Vec::new();
         let mut sizes : Vec<[f32; 2]> = Vec::new();

@@ -2,7 +2,9 @@ use essay_ecs::{app::{App, Plugin, Startup}, core::{Res, ResMut}};
 use essay_graphics::api;
 use essay_plot::{
     api::{
-        form::{Form, FormId, Matrix4}, renderer::{self, Canvas, Drawable, Event, Renderer}, Bounds, Clip, Color, Point 
+        form::{Form, FormId, Matrix4}, 
+        renderer::{self, Canvas, Drawable, Event, Renderer, Result}, 
+        Bounds, Color, Point 
     },
     wgpu::{wgpu::hardcopy::SurfaceId, WgpuHardcopy},
 };
@@ -95,11 +97,6 @@ impl Retina {
     }
 
     fn draw_and_load(&mut self, body: &Body) {
-        // let util::Point(x, y) = body.head_pos();
-    
-        // let eye_left = self.eye_angle;
-        // let eye_right = Angle::Unit(- eye_left.to_unit());
-    
         let (left, right) = self.wgpu.draw_and_read(self.id_left, 
             &mut DoubleDrawable {
                 width: self.width as f32,
@@ -135,84 +132,7 @@ impl Retina {
 
         self.data_left = Some(left);
         self.data_right = Some(right);
-        
-        /*
-        self.draw(Point(x, y), body.head_dir(), eye_left);
-        self.wgpu.copy_into_buffer(self.id_left);
-        self.draw(Point(x, y), body.head_dir(), eye_right);
-        self.wgpu.copy_into_buffer(self.id_right);
-        self.data_left = Some(self.read(self.id_left));
-        self.data_right = Some(self.read(self.id_right));
-        */
-    
-        // retina.data_left = Some(retina.draw(Point(x, y), body.head_dir(), eye_left));
-        // retina.data_right = Some(retina.draw(Point(x, y), body.head_dir(), eye_right));
-    
-        // retina.data_left = Some(retina.draw(Point(x, y), body.head_dir(), eye_left));
-        // retina.data_right = Some(retina.draw(Point(x, y), body.head_dir(), eye_right));
     }
-    
-    fn _draw(&mut self, _pos: Point, _dir: Heading, _eye_angle: Angle) {
-        // let camera = camera(pos, dir, eye_angle);
-
-        //let mut draw = RetinaDraw {
-        //    form_id: self.form_id.unwrap(),
-        //    camera,
-        //}//;
-
-
-    
-        //self.wgpu.draw(&mut |r| {
-        //    Ok(())
-        //}//);
-
-        /*
-        self.wgpu.read_into(self.surface_id, |buf| {
-            let mut vec = Vec::<f32>::new();
-
-            for p in buf.pixels() {
-                vec.push(p.to_luma().0[0] as f32 / 255.);
-            }
-
-            Tensor::from(vec).reshape([self.size as usize, self.size as usize])
-        })
-        */
-    }
-
-    fn _read(&mut self, id: SurfaceId) -> Tensor {
-        self.wgpu.read_into(id, |buf| {
-            let mut vec = Vec::<f32>::new();
-
-            for p in buf.pixels() {
-                vec.push(p.to_luma().0[0] as f32 / 255.);
-            }
-
-            Tensor::from(vec).reshape([self.size as usize, self.size as usize])
-        })
-    }
-
-    /*
-    async fn draw_async(&mut self, pos: Point, dir: Heading, eye_angle: Angle) -> Tensor {
-        let camera = camera(pos, dir, eye_angle);
-
-        let mut draw = RetinaDraw {
-            form_id: self.form_id.unwrap(),
-            camera,
-        };
-    
-        self.wgpu.draw(&mut draw);
-
-        self.wgpu.read_into_async(self.id_left, |buf| {
-            let mut vec = Vec::<f32>::new();
-
-            for p in buf.pixels() {
-                vec.push(p.to_luma().0[0] as f32 / 255.);
-            }
-
-            Tensor::from(vec).reshape([self.size as usize, self.size as usize])
-        }).await
-    }
-    */
 }
 
 struct RetinaStartup<'a> {
@@ -221,7 +141,7 @@ struct RetinaStartup<'a> {
 }
 
 impl Drawable for RetinaStartup<'_> {
-    fn draw(&mut self, _renderer: &mut dyn Renderer) -> renderer::Result<()> {
+    fn draw(&mut self, _renderer: &mut dyn Renderer) -> Result<()> {
         Ok(())
     }
 
@@ -420,22 +340,7 @@ fn retina_update(
     body: Res<Body>,
     mut retina: ResMut<Retina>
 ) {
-    // let start = Instant::now();
     retina.draw_and_load(body.get());
-    // println!("Retina {:?}", start.elapsed());
-    /* 
-    let util::Point(x, y) = body.head_pos();
-
-    let eye_left = retina.eye_angle;
-    // let eye_left = Angle::Unit(0.);
-    let eye_right = Angle::Unit(- eye_left.to_unit());
-
-    let start = Instant::now();
-    retina.data_left = Some(retina.draw(Point(x, y), body.head_dir(), eye_left));
-    println!("TIme {:?}", start.elapsed());
-    retina.data_right = Some(retina.draw(Point(x, y), body.head_dir(), eye_right));
-    println!("  TIme2 {:?}", start.elapsed());
-    */
 
     let light_left = if let Some(tensor) = &retina.data_left {
         tensor.reduce_mean(())[0]
@@ -483,7 +388,6 @@ impl Drawable for DoubleDrawable {
         let pos = Bounds::<Canvas>::from([self.size, self.size]);
 
         renderer.draw_with(&pos, &mut RetinaDraw {
-            pos: pos.clone(),
             form_id: self.form_id,
             camera: left_camera,
         })?;
@@ -496,7 +400,6 @@ impl Drawable for DoubleDrawable {
         let pos = Bounds::<Canvas>::from(((self.size, 0.), [self.size, self.size]));
 
         renderer.draw_with(&pos, &mut RetinaDraw {
-            pos: pos.clone(),
             form_id: self.form_id,
             camera: right_camera,
         })?;
@@ -506,7 +409,6 @@ impl Drawable for DoubleDrawable {
 }
 
 struct RetinaDraw {
-    pos: Bounds<Canvas>,
     form_id: FormId,
     camera: Matrix4,
 }
