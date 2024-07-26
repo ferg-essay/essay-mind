@@ -1,16 +1,16 @@
-use std::{collections::VecDeque, fs};
+use std::collections::VecDeque;
 
 use audio::AudioReader;
 use essay_plot::{api::JoinStyle, artist::{ColorMaps, Norm, Norms}, chart::{Figure, Chart}};
-use essay_tensor::{array::stack, init::linspace, signal::rfft_norm, tensor::TensorVec, Tensor};
+use essay_tensor::{array::stack, signal::rfft_norm, tensor::TensorVec, Tensor};
 
 pub fn main() {
     audio_display();
 }
 
-fn audio_work() {
+fn _audio_work() {
     //let path = "assets/audio/clips/my.ogg";
-    let path = "assets/audio/clips/bed.ogg";
+    // let path = "assets/audio/clips/bed.ogg";
     //let path = "assets/audio/clips/sfx_coin_single1.wav";
     //let path = "assets/audio/clips/violin_b4.ogg";
     //let path = "assets/audio/clips/shy.ogg";
@@ -44,7 +44,7 @@ fn audio_work() {
     //let path = "/Users/ferg/wsp/assets/audio/natural/1093_ex1_1_Applause_big_room.wav";
     //let path = "/Users/ferg/wsp/assets/audio/natural/1093_ex1_1_Rhythmic_applause.wav";
     //let path = "/Users/ferg/wsp/assets/audio/natural/1093_ex1_1_Sparrows_large_excited_group.wav";
-    let path = "/Users/ferg/wsp/game/assets/audio/sounds/sadeghi-snake.wav";
+    //let path = "/Users/ferg/wsp/game/assets/audio/sounds/sadeghi-snake.wav";
     let path = "/Users/ferg/wsp/game/assets/audio/sounds/sadeghi-water.wav";
     //let path = "/Users/ferg/wsp/game/assets/audio/sounds/sadeghi-crowd.wav";
     //let path = "/Users/ferg/wsp/game/assets/audio/sounds/sadeghi-bird.wav";
@@ -62,22 +62,22 @@ fn audio_work() {
     let nfft = 512;
     let overlap = 256;
 
-    let nfft3 = 512;
-    let overlap3 = 256;
+    // let nfft3 = 512;
+    // let overlap3 = 256;
 
-    let mut slice = values.clone();
+    let slice = values.clone();
     //let mut slice = average_n(&slice, 2);
     // slice = values.subslice(8000, 512);
     let n = 4;
-    let mut slice2 = average_n(&slice, 1);
-    let mut slice3 = average_n(&slice, 2 * n * n);
-    let mut slice4 = average_n(&slice, n * n * n);
+    // let mut slice2 = _average_n(&slice, 1);
+    // let mut slice3 = _average_n(&slice, 2 * n * n);
+    // let mut slice4 = _average_n(&slice, n * n * n);
 
     // let chunk = nfft;
-    let n_avg = n * n * n;
-    let fft_vec2 = avg_fft(&slice, nfft, n);
+    // let n_avg = n * n * n;
+    // let fft_vec2 = avg_fft(&slice, nfft, n);
     let fft_vec3 = avg_fft(&slice, nfft, 4 * n * n);
-    let fft_vec4 = avg_fft(&slice, nfft, n * n * n);
+    // let fft_vec4 = avg_fft(&slice, nfft, n * n * n);
     /*
     let mut vec_4 = AvgFft::new(n_avg, nfft);
     let mut offset = 0;
@@ -91,13 +91,13 @@ fn audio_work() {
     let fft_vec4 = stack(fft_vec4, 1);
     */
 
-    let rms = rms_n(&slice, 128);
+    let rms = _rms_n(&slice, 128);
     // let mut slice3 = slice2.clone();
 
     let subslice = slice.clone();
     //let subslice = slice.subslice(19000, 1024);
     let fft = rfft_norm(&subslice, ());
-    let fft2 = rfft_norm(&slice2, ());
+    // let fft2 = rfft_norm(&slice2, ());
     // let fft = fft.log(10.);
     
     let subfft = fft.clone();
@@ -122,8 +122,8 @@ fn audio_work() {
         //graph.specgram(slice);
         //graph.specgram(slice).nfft(1024).overlap(3 * 256);
         //graph.ylim(0., 400.).specgram(&slice).nfft(2048).overlap(3 * 512);
-        let mut graph2 = figure.chart((0., 1., 1., 2.));
-        let minmax = graph_fft(&mut graph2, &fft_vec2, None);
+        // let mut graph2 = figure.chart((0., 1., 1., 2.));
+        // let minmax = graph_fft(&mut graph2, &fft_vec2, None);
         //graph2.specgram(slice2).nfft(nfft).overlap(overlap);
 
         let mut graph3 = figure.chart((0., 2., 1., 3.));
@@ -163,13 +163,13 @@ fn audio_display() {
     //let path = "/Users/ferg/wsp/assets/audio/human/American-English/Consonants/shy.wav";
     // let path = "assets/audio/American-English/Consonants/sigh.wav";
     //let path = "assets/audio/American-English/Conventions/new.wav";
-    let path1 = "/Users/ferg/wsp/assets/audio/human/American-English/Narrative/narrative6.wav";
+    //let path1 = "/Users/ferg/wsp/assets/audio/human/American-English/Narrative/narrative6.wav";
     //let path = "assets/audio/American-English/Vowels/bode.wav";
     //let path1 = "/Users/ferg/wsp/assets/audio/human/American-English/Vowels/booed.wav";
     //let path = "assets/audio/American-English/Vowels/bead.wav";
     //let path = "assets/audio/American-English/Vowels/bayed.wav";
-    let path1 = "/Users/ferg/wsp/assets/audio/human/American-English/Vowels/bud.wav";
-    let path3 = "/Users/ferg/wsp/assets/audio/steps/leaves02.ogg";
+    //let path1 = "/Users/ferg/wsp/assets/audio/human/American-English/Vowels/bud.wav";
+    //let path3 = "/Users/ferg/wsp/assets/audio/steps/leaves02.ogg";
     //let path1 = "/Users/ferg/wsp/assets/audio/animal/cat-meow-14536.ogg";
     let path2 = "/Users/ferg/wsp/assets/audio/natural/2500_ex1_1_Fire2.wav";
     let path1 = "/Users/ferg/wsp/assets/audio/natural/2500_ex1_1_Frogs3.wav";
@@ -193,7 +193,7 @@ fn audio_display() {
     let mut figure = Figure::new();
 
     let nfft = 256;
-    let overlap = 256;
+    // let overlap = 256;
     let n = 1;
 
     {
@@ -252,7 +252,7 @@ fn audio_display() {
 
 }
 
-fn rms_n(value: &Tensor, n: usize) -> Tensor {
+fn _rms_n(value: &Tensor, n: usize) -> Tensor {
     let len = value.len();
 
     let mut vec : Vec<f32> = Vec::new();
@@ -261,12 +261,12 @@ fn rms_n(value: &Tensor, n: usize) -> Tensor {
     let mut j = 0;
 
     while j + n <= len {
-        let mut avg = 0.;
+        // let mut avg = 0.;
         let mut v = 0.;
 
         for i in 0..n {
             let v0 = value[i + j];
-            avg += v0;
+            // avg += v0;
             v += v0 * v0;
         }
 
@@ -279,7 +279,7 @@ fn rms_n(value: &Tensor, n: usize) -> Tensor {
     Tensor::from(vec)
 }
 
-fn average_n(value: &Tensor, n: usize) -> Tensor {
+fn _average_n(value: &Tensor, n: usize) -> Tensor {
     let len = value.len();
 
     let mut vec : Vec<f32> = Vec::new();

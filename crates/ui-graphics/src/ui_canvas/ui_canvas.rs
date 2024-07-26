@@ -142,23 +142,6 @@ impl UiCanvas {
 
             renderer.flush();
         }
-
-        /*
-        if let Some(view) = &self.view {
-            let mut plot_renderer = PlotRenderer::new(
-                &mut self.canvas, 
-                &self.wgpu.device, 
-                Some(&self.wgpu.queue), 
-                Some(&view.view)
-            );
-
-            //canvas.clear_screen(&view);
-    
-            plot_renderer.draw_path(path, style, &Clip::None).unwrap();
-
-            plot_renderer.flush(&Clip::None);
-        }
-        */
     }
 
     pub fn draw_text(
@@ -173,8 +156,6 @@ impl UiCanvas {
                 &self.wgpu.queue, 
                 Some(&view.view)
             );
-
-            //canvas.clear_screen(&view);
 
             let style = PathStyle::new();
     

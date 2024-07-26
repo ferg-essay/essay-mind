@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use essay_plot::api::{Angle, Colors, Point};
+use essay_plot::api::{Colors, Point};
 use vertebrate::{
     body::{Body, BodyEatPlugin, BodyPlugin}, core_motive::{
         eat::{CoreEatingPlugin, Eat, FoodSearch, Sated}, 
@@ -15,7 +15,7 @@ use vertebrate::{
     ui::{
         ui_attention::UiAttentionPlugin, 
         ui_body::{UiBodyPlugin, UiBodyTrailPlugin}, 
-        ui_camera::UiCameraPlugin, ui_emoji::Emoji, ui_graph::UiGraphPlugin, ui_heatmap::UiHeatmapPlugin, 
+        ui_emoji::Emoji, ui_graph::UiGraphPlugin, ui_heatmap::UiHeatmapPlugin, 
         ui_homunculus::UiHomunculusPlugin, ui_motive::UiMotivePlugin, ui_peptide::UiPeptidePlugin, ui_retina::UiRetinaPlugin, 
         ui_table::UiTablePlugin, ui_world_map::UiWorldPlugin
     }, 

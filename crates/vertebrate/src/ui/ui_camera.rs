@@ -1,7 +1,7 @@
 use essay_ecs::{app::{App, Plugin, Startup, Update}, core::{Res, ResMut}};
 use essay_graphics::layout::{Layout, View};
 use essay_plot::api::{
-    form::{FormId, Matrix4}, renderer::{Result, Drawable, Renderer}, Angle, Bounds, Clip,
+    form::{FormId, Matrix4}, renderer::{Result, Drawable, Renderer}, Angle, Bounds,
 };
 use ui_graphics::{UiCanvas, UiCanvasPlugin};
 

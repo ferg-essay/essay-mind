@@ -108,7 +108,7 @@ impl Drawable for MotiveView {
                 style.color(color_map.map(value));
             }
 
-            item.emoji.draw(renderer, pos, &style, &mut text_style);
+            item.emoji.draw(renderer, pos, &style, &mut text_style)?;
         }
 
         Ok(())
