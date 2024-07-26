@@ -116,7 +116,7 @@ impl Drawable for AttentionDraw {
             style.face_color(item.color.set_alpha(item.value));
             style.edge_color(self.colors.map(item.attend));
 
-            renderer.draw_path(&path, &style, &Clip::None)?;
+            renderer.draw_path(&path, &style)?;
         }
 
         Ok(())

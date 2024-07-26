@@ -1,6 +1,6 @@
 use super::{wgpu_canvas::WgpuCanvas, screen::ScreenApi};
 use essay_plot::api::renderer::{Canvas, Renderer};
-use essay_plot::api::{Path, PathOpt, Clip};
+use essay_plot::api::{Path, PathOpt};
 use essay_plot::wgpu::PlotCanvas;
 
 pub struct CanvasState {
@@ -112,7 +112,7 @@ impl RendererApi for EssayRenderer<'_> {
             Some(&self.view),
         );
 
-        renderer.draw_path(path, style, &Clip::None).unwrap();
-        renderer.flush(&Clip::None);
+        renderer.draw_path(path, style).unwrap();
+        renderer.flush();
     }
 }

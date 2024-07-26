@@ -513,7 +513,7 @@ struct RetinaDraw {
 
 impl Drawable for RetinaDraw {
     fn draw(&mut self, renderer: &mut dyn Renderer) -> renderer::Result<()> {
-        renderer.draw_form(self.form_id, &self.camera, &Clip::Bounds(self.pos.p0(), self.pos.p1()))
+        renderer.draw_form(self.form_id, &self.camera)
     }
 }
 

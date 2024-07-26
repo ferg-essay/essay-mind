@@ -240,7 +240,7 @@ impl Drawable for UiCameraView {
 
             // renderer.draw_form(form_id, &camera, &Clip::Bounds(pos.p0(), pos.p1())).unwrap();
 
-            renderer.draw_form(form_id, &camera, &Clip::Bounds(pos.p0(), pos.p1()))?;            
+            renderer.draw_form(form_id, &camera)?;            
         }
 
         Ok(())

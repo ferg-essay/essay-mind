@@ -203,7 +203,7 @@ impl Drawable for UiHomunculusView {
         style.edge_color("black");
         style.face_color(self.colors.map(0.5));
 
-        ui.draw_path(&paths.outline, &style, &Clip::None)?;
+        ui.draw_path(&paths.outline, &style)?;
 
         style.edge_color(self.colors.map(1.));
         style.face_color(self.colors.map(1.));
@@ -213,7 +213,7 @@ impl Drawable for UiHomunculusView {
 
             style.edge_color(color);
             style.face_color(color);
-            ui.draw_path(&paths.ss_ul, &style, &Clip::None)?;
+            ui.draw_path(&paths.ss_ul, &style)?;
         }
 
         if self.right_delta != 0.5 {
@@ -221,15 +221,15 @@ impl Drawable for UiHomunculusView {
 
             style.edge_color(color);
             style.face_color(color);
-            ui.draw_path(&paths.ss_ur, &style, &Clip::None)?;
+            ui.draw_path(&paths.ss_ur, &style)?;
         }
 
         if self.is_collide_left { 
-            ui.draw_path(&paths.ss_ul, &style, &Clip::None)?;
+            ui.draw_path(&paths.ss_ul, &style)?;
         }
 
         if self.is_collide_right { 
-            ui.draw_path(&paths.ss_ur, &style, &Clip::None)?;
+            ui.draw_path(&paths.ss_ur, &style)?;
         }
 
         style.edge_color(self.colors.map(0.2));
@@ -241,18 +241,18 @@ impl Drawable for UiHomunculusView {
         let turn_right = turn.clamp(0.5, 1.) * 2. - 1.;
 
         if 0. < turn_left && turn_left < 1. {
-            ui.draw_path(&paths.mo_lr, &style, &Clip::None)?;
+            ui.draw_path(&paths.mo_lr, &style)?;
         }
 
         if turn_right > 0. {
-            ui.draw_path(&paths.mo_ll, &style, &Clip::None)?;
+            ui.draw_path(&paths.mo_ll, &style)?;
         }
 
         if self.forward_delta != 0.5 {
             let color = self.colors.map(self.forward_delta);
             style.edge_color(color);
             style.face_color(color);
-            ui.draw_path(&paths.u_turn, &style, &Clip::None)?;
+            ui.draw_path(&paths.u_turn, &style)?;
         }
 
         let n = self.head_dir.paths.len();
@@ -280,9 +280,7 @@ impl Drawable for UiHomunculusView {
         text_style.size(14.);
         text_style.font(self.emoji.unwrap());
 
-        ui.draw_text(self.emoji_pos, state.code(), 0., &path_style, &text_style, &Clip::None)?;
-
-        Ok(())
+        ui.draw_text(self.emoji_pos, state.code(), 0., &path_style, &text_style)
     }
 
     fn event(&mut self, ui: &mut dyn Renderer, event: &Event) {
@@ -575,7 +573,7 @@ impl HeadDir {
 
         for (path, value) in self.paths.iter().zip(values) {
             style.color(self.colors.map(*value));
-            ui.draw_path(path, &style, &Clip::None)?;
+            ui.draw_path(path, &style)?;
         }
 
         Ok(())

@@ -52,7 +52,7 @@ pub fn main() {
 
     app.plugin(RetinaPlugin::new()
         .fov(util::Angle::Deg(90.))
-        .eye_angle(util::Angle::Deg(60.))
+        .eye_angle(util::Angle::Deg(45.))
     );
 
     app.plugin(TectumPlugin::new().striatum());
@@ -72,8 +72,8 @@ pub fn main() {
     //app.system(Tick, dwell_eat);
     //ui_chemotaxis(&mut app);
     ui_eat_flat(&mut app);
-    app.plugin(UiCameraPlugin::new((2., -1.), (0.5, 0.5)).fov(Angle::Deg(90.)));
-    app.plugin(UiRetinaPlugin::new(((0., -1.), [0.5, 0.5])));
+    // app.plugin(UiCameraPlugin::new((2., -1.), (0.5, 0.5)).fov(Angle::Deg(90.)));
+    app.plugin(UiRetinaPlugin::new(((2.0, 0.0), [0.5, 0.5])));
 
     app.run();
 }
@@ -272,7 +272,7 @@ fn ui_eat_flat(app: &mut App) {
     );
     //app.plugin(UiCameraPlugin::new((2., -1.), (0.5, 0.5)).fov(Angle::Deg(120.)));
 
-    app.plugin(UiAttentionPlugin::new((2.0, 0.), (0.5, 0.5))
+    app.plugin(UiAttentionPlugin::new((2.5, 0.), (0.5, 0.5))
         .colors(odor_colors)
         // .item("v", |p: &Phototaxis| p.value())
         .item(|ob: &OlfactoryBulb| ob.value_pair(OdorType::FoodA))

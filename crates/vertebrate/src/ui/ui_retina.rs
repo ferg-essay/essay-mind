@@ -135,14 +135,12 @@ impl Drawable for RetinaView {
             self.left_vertices.clone(), 
             self.left_colors.clone(), 
             self.left_triangles.clone(), 
-            &Clip::None
         )?;
 
         renderer.draw_triangles(
             self.right_vertices.clone(), 
             self.right_colors.clone(), 
             self.right_triangles.clone(), 
-            &Clip::None
         )?;
         
         Ok(())

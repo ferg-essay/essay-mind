@@ -66,7 +66,7 @@ impl UiCanvas {
                 Some(&view.view)
             );
 
-            self.layout.get_layout_mut().draw(&mut renderer);
+            self.layout.get_layout_mut().draw(&mut renderer).unwrap();
         }
     }
 
@@ -93,7 +93,7 @@ impl UiCanvas {
                     &self.wgpu.device,
                     &self.wgpu.queue,
                     Some(&view.view)    
-                ), clip))
+                )))
             },
             None => None
         }
@@ -135,9 +135,9 @@ impl UiCanvas {
 
     pub fn draw_path(&mut self, path: &Path<Canvas>, style: &PathStyle) {
         if let Some(mut renderer) = self.plot_renderer() {
-            renderer.draw_path(path, style, &Clip::None).unwrap();
+            renderer.draw_path(path, style).unwrap();
 
-            renderer.flush(&Clip::None);
+            renderer.flush();
         }
 
         /*
@@ -175,9 +175,9 @@ impl UiCanvas {
 
             let style = PathStyle::new();
     
-            plot_renderer.draw_text(xy.into(), text, 0., &style, text_style, &Clip::None).unwrap();
+            plot_renderer.draw_text(xy.into(), text, 0., &style, text_style).unwrap();
 
-            plot_renderer.flush(&Clip::None);
+            plot_renderer.flush();
         }
     }
 
@@ -211,8 +211,8 @@ impl UiCanvas {
 
             //let style = PathStyle::new();
     
-            plot_renderer.draw_image_ref(pos, image, &Clip::None).unwrap();
-            plot_renderer.flush(&Clip::None);
+            plot_renderer.draw_image_ref(pos, image).unwrap();
+            plot_renderer.flush();
         }
     }
 
@@ -222,7 +222,6 @@ impl UiCanvas {
         xy: impl Into<Tensor>,
         sizes: impl Into<Tensor>,
         colors: &Vec<Color>,
-        clip: &Clip,
     ) {
         if let Some(view) = &self.view {
             let mut plot_renderer = self.canvas.renderer(
@@ -240,10 +239,9 @@ impl UiCanvas {
                 &sizes.into(), 
                 &color,
                 &style,
-                &Clip::None,
             ).unwrap();
 
-            plot_renderer.flush(clip);
+            plot_renderer.flush();
         }
     }
 
@@ -288,19 +286,17 @@ impl UiCanvas {
 
 pub struct UiRender<'a> {
     renderer: PlotRenderer<'a>,
-    clip: Clip,
 }
 
 impl<'a> UiRender<'a> {
-    fn new(renderer: PlotRenderer<'a>, clip: Clip) -> Self {
+    fn new(renderer: PlotRenderer<'a>) -> Self {
         Self {
             renderer,
-            clip
         }
     }
 
     pub fn draw_path(&mut self, path: &Path<Canvas>, style: &PathStyle) {
-        self.renderer.draw_path(path, style, &Clip::None).unwrap();
+        self.renderer.draw_path(path, style).unwrap();
 
         // self.renderer.flush(&seClip::None);
     }
@@ -321,7 +317,6 @@ impl<'a> UiRender<'a> {
             &sizes.into(), 
             &color,
             &style,
-            &Clip::None,
         ).unwrap();
 
         // plot_renderer.flush(clip);
@@ -342,16 +337,15 @@ impl<'a> UiRender<'a> {
             0., 
             path_style, 
             text_style, 
-            &Clip::None
         ).unwrap();
     }
 
     pub fn draw_image(&mut self, pos: &Bounds<Canvas>, image: ImageId) {
-        self.renderer.draw_image_ref(pos, image, &Clip::None).unwrap();
+        self.renderer.draw_image_ref(pos, image).unwrap();
     }
 
     pub fn flush(&mut self) {
-        self.renderer.flush(&self.clip);
+        self.renderer.flush();
     }
 
     pub fn font(&mut self, family: &str) -> FontTypeId {

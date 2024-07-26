@@ -170,6 +170,6 @@ impl SymbolDraw for Emoji {
         style: &PathStyle,
         text_style: &mut TextStyle
     ) {
-        ui.draw_text(pos, self.code(), 0., style, text_style, &Clip::None).unwrap();
+        ui.draw_text(pos, self.code(), 0., style, text_style).unwrap();
     }
 }
