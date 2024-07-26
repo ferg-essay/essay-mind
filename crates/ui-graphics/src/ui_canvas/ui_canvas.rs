@@ -8,11 +8,11 @@ use essay_graphics::{
         Point, Path, Bounds, Color, ImageId,
     },
     layout::{Layout, View},
+    wgpu::{PlotCanvas, PlotRenderer},
 };
 use essay_plot::artist::PathStyle;
 use essay_plot::api::{FontStyle, FontTypeId, TextStyle};
 use essay_plot::chart::{Chart, ChartBuilder};
-use essay_plot::wgpu::{PlotCanvas, PlotRenderer};
 use essay_tensor::Tensor;
 use winit::event_loop::EventLoop;
 
