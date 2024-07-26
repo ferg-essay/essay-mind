@@ -1,4 +1,4 @@
-use super::{ticks::HalfLife, Angle, DecayValue, DirVector, Heading};
+use super::{ticks::HalfLife, DecayValue, DirVector, Heading};
 
 
 pub struct DirGradient {

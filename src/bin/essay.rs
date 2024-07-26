@@ -51,7 +51,7 @@ pub fn main() {
     );
 
     app.plugin(RetinaPlugin::new()
-        .fov(util::Angle::Deg(120.))
+        .fov(util::Angle::Deg(90.))
         .eye_angle(util::Angle::Deg(60.))
     );
 
@@ -72,7 +72,7 @@ pub fn main() {
     //app.system(Tick, dwell_eat);
     //ui_chemotaxis(&mut app);
     ui_eat_flat(&mut app);
-    app.plugin(UiCameraPlugin::new((2., -1.), (0.5, 0.5)).fov(Angle::Deg(120.)));
+    app.plugin(UiCameraPlugin::new((2., -1.), (0.5, 0.5)).fov(Angle::Deg(90.)));
     app.plugin(UiRetinaPlugin::new(((0., -1.), [0.5, 0.5])));
 
     app.run();

@@ -56,9 +56,9 @@ pub trait SeekInput : Send + Sync + 'static {
     fn seek_dir(&self) -> Option<DirVector>;
 }
 
-pub trait TegOutput {
-
-}
+// pub trait TegOutput {
+//
+// }
 
 
 pub struct TegSeekPlugin<I: SeekInput, M: MotiveTrait> {

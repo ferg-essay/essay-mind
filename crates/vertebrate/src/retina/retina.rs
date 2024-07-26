@@ -2,9 +2,7 @@ use essay_ecs::{app::{App, Plugin, Startup}, core::{Res, ResMut}};
 use essay_graphics::api;
 use essay_plot::{
     api::{
-        form::{Form, FormId, Matrix4}, 
-        renderer::{self, Drawable, Event, Renderer}, 
-        Clip, Color, Point, 
+        form::{Form, FormId, Matrix4}, renderer::{self, Canvas, Drawable, Event, Renderer}, Bounds, Clip, Color, Point 
     },
     wgpu::{wgpu::hardcopy::SurfaceId, WgpuHardcopy},
 };
@@ -12,13 +10,14 @@ use essay_tensor::Tensor;
 use mind_ecs::Tick;
 use image::Pixel;
 
-use crate::{body::Body, util::{self, Angle, Heading}, world::{World, WorldCell}};
+use crate::{body::Body, util::{Angle, Heading}, world::{World, WorldCell}};
 
 pub struct Retina {
+    width: u32,
     size: u32,
     wgpu: WgpuHardcopy,
     id_left: SurfaceId,
-    id_right: SurfaceId,
+    _id_right: SurfaceId,
     form_id: Option<FormId>,
 
     fov: Angle,
@@ -38,12 +37,15 @@ impl Retina {
     pub const HEIGHT : f32 = 0.3;
 
     fn new(size: u32) -> Self {
-        let mut wgpu = WgpuHardcopy::new(size, size);
+        let width = (2 * size).max(64);
+
+        let mut wgpu = WgpuHardcopy::new(width, size);
 
         Self {
+            width,
             size,
             id_left: wgpu.add_surface(),
-            id_right: wgpu.add_surface(),
+            _id_right: wgpu.add_surface(),
             wgpu,
             form_id: None,
             fov: Angle::Deg(90.),
@@ -80,7 +82,12 @@ impl Retina {
             form_id: None,
         };
 
-        self.wgpu.draw(&mut startup);
+        let mut renderer = self.wgpu.renderer_viewless();
+
+        startup.event(
+            &mut renderer, 
+            &Event::Resize(Bounds::from([self.size as f32, self.size as f32]))
+        );
 
         self.form_id = startup.form_id;
 
@@ -88,18 +95,55 @@ impl Retina {
     }
 
     fn draw_and_load(&mut self, body: &Body) {
-        let util::Point(x, y) = body.head_pos();
+        // let util::Point(x, y) = body.head_pos();
     
-        let eye_left = self.eye_angle;
-        // let eye_left = Angle::Unit(0.);
-        let eye_right = Angle::Unit(- eye_left.to_unit());
+        // let eye_left = self.eye_angle;
+        // let eye_right = Angle::Unit(- eye_left.to_unit());
     
+        let (left, right) = self.wgpu.draw_and_read(self.id_left, 
+            &mut DoubleDrawable {
+                width: self.width as f32,
+                size: self.size as f32,
+                form_id: self.form_id.unwrap(),
+                eye_angle: self.eye_angle,
+                head_pos: body.head_pos().into(),
+                head_dir: body.head_dir(),
+                fov: self.fov,
+            }, |buf| {
+                let mut vec = Vec::<f32>::new();
+
+                for j in 0..self.size {
+                    for i in 0..self.size {
+                        vec.push(buf.get_pixel(i, j).to_luma().0[0] as f32 / 255.);
+                    }
+                }
+
+                let left = Tensor::from(vec).reshape([self.size as usize, self.size as usize]);
+
+                let mut vec = Vec::<f32>::new();
+                for j in 0..self.size {
+                    for i in self.size..2 * self.size {
+                        vec.push(buf.get_pixel(i, j).to_luma().0[0] as f32 / 255.);
+                    }
+                }
+
+                let right = Tensor::from(vec).reshape([self.size as usize, self.size as usize]);
+
+                (left, right)
+            }
+        );
+
+        self.data_left = Some(left);
+        self.data_right = Some(right);
+        
+        /*
         self.draw(Point(x, y), body.head_dir(), eye_left);
         self.wgpu.copy_into_buffer(self.id_left);
         self.draw(Point(x, y), body.head_dir(), eye_right);
         self.wgpu.copy_into_buffer(self.id_right);
         self.data_left = Some(self.read(self.id_left));
         self.data_right = Some(self.read(self.id_right));
+        */
     
         // retina.data_left = Some(retina.draw(Point(x, y), body.head_dir(), eye_left));
         // retina.data_right = Some(retina.draw(Point(x, y), body.head_dir(), eye_right));
@@ -108,15 +152,19 @@ impl Retina {
         // retina.data_right = Some(retina.draw(Point(x, y), body.head_dir(), eye_right));
     }
     
-    fn draw(&mut self, pos: Point, dir: Heading, eye_angle: Angle) {
-        let camera = camera(pos, dir, eye_angle);
+    fn _draw(&mut self, _pos: Point, _dir: Heading, _eye_angle: Angle) {
+        // let camera = camera(pos, dir, eye_angle);
 
-        let mut draw = RetinaDraw {
-            form_id: self.form_id.unwrap(),
-            camera,
-        };
+        //let mut draw = RetinaDraw {
+        //    form_id: self.form_id.unwrap(),
+        //    camera,
+        //}//;
+
+
     
-        self.wgpu.draw(&mut draw);
+        //self.wgpu.draw(&mut |r| {
+        //    Ok(())
+        //}//);
 
         /*
         self.wgpu.read_into(self.surface_id, |buf| {
@@ -131,7 +179,7 @@ impl Retina {
         */
     }
 
-    fn read(&mut self, id: SurfaceId) -> Tensor {
+    fn _read(&mut self, id: SurfaceId) -> Tensor {
         self.wgpu.read_into(id, |buf| {
             let mut vec = Vec::<f32>::new();
 
@@ -173,14 +221,14 @@ struct RetinaStartup<'a> {
 }
 
 impl Drawable for RetinaStartup<'_> {
-    fn draw(&mut self, renderer: &mut dyn Renderer) -> renderer::Result<()> {
-    
-        self.form_id = Some(world_form(renderer, self.world));
-
+    fn draw(&mut self, _renderer: &mut dyn Renderer) -> renderer::Result<()> {
         Ok(())
     }
 
-    fn event(&mut self, _renderer: &mut dyn Renderer, _event: &Event) {
+    fn event(&mut self, renderer: &mut dyn Renderer, event: &Event) {
+        if let Event::Resize(_pos) = event {
+            self.form_id = Some(world_form(renderer, self.world));
+        }
     }
 }
 
@@ -372,7 +420,9 @@ fn retina_update(
     body: Res<Body>,
     mut retina: ResMut<Retina>
 ) {
+    // let start = Instant::now();
     retina.draw_and_load(body.get());
+    // println!("Retina {:?}", start.elapsed());
     /* 
     let util::Point(x, y) = body.head_pos();
 
@@ -411,8 +461,64 @@ fn retina_update(
 }
 
 
+struct DoubleDrawable {
+    width: f32,
+    size: f32,
+    form_id: FormId,
+    head_pos: Point,
+    head_dir: Heading,
+    eye_angle: Angle,
+    fov: Angle,
+}
 
-fn camera(pos: Point, dir: Heading, eye_angle: Angle) -> Matrix4 {
+impl Drawable for DoubleDrawable {
+    fn draw(&mut self, renderer: &mut dyn Renderer) -> renderer::Result<()> {
+        //let x0 = - self.size / self.width;
+        let x0 = -(self.width - self.size) / self.width;
+        let dw = 2. * self.size / self.width;
+        let left_camera = camera(self.head_pos, self.head_dir, self.eye_angle, self.fov)
+            .scale(self.size / self.width, 1., 1.)
+            .translate(x0, 0., 0.);
+
+        let pos = Bounds::<Canvas>::from([self.size, self.size]);
+
+        renderer.draw_with(&pos, &mut RetinaDraw {
+            pos: pos.clone(),
+            form_id: self.form_id,
+            camera: left_camera,
+        })?;
+
+        let eye_angle = Angle::Unit(- self.eye_angle.to_unit());
+        let right_camera = camera(self.head_pos, self.head_dir, eye_angle, self.fov)
+            .scale(self.size / self.width, 1., 1.)
+            .translate(x0 + dw, 0., 0.);
+
+        let pos = Bounds::<Canvas>::from(((self.size, 0.), [self.size, self.size]));
+
+        renderer.draw_with(&pos, &mut RetinaDraw {
+            pos: pos.clone(),
+            form_id: self.form_id,
+            camera: right_camera,
+        })?;
+
+        Ok(())
+    }
+}
+
+struct RetinaDraw {
+    pos: Bounds<Canvas>,
+    form_id: FormId,
+    camera: Matrix4,
+}
+
+impl Drawable for RetinaDraw {
+    fn draw(&mut self, renderer: &mut dyn Renderer) -> renderer::Result<()> {
+        renderer.draw_form(self.form_id, &self.camera, &Clip::Bounds(self.pos.p0(), self.pos.p1()))
+    }
+}
+
+
+fn camera(pos: Point, dir: Heading, eye_angle: Angle, fov: Angle) -> Matrix4 {
     let mut camera = Matrix4::eye();
 
     camera = camera.translate(- pos.x(), - Retina::HEIGHT, pos.y());
@@ -421,26 +527,9 @@ fn camera(pos: Point, dir: Heading, eye_angle: Angle) -> Matrix4 {
     camera = camera.rot_xz(api::Angle::Unit(eye_angle.to_unit()));
     
     //let fov = 120.0f32;
-    let fov = 120.0f32;
     camera = camera.projection(fov.to_radians(), 1., 0.01, 100.);
 
     camera
-}
-
-struct RetinaDraw {
-    form_id: FormId,
-    camera: Matrix4,
-}
-
-impl Drawable for RetinaDraw {
-    fn draw(&mut self, renderer: &mut dyn Renderer) -> renderer::Result<()> {
-        renderer.draw_form(self.form_id, &self.camera, &Clip::None)?;
-
-        Ok(())
-    }
-
-    fn event(&mut self, _renderer: &mut dyn Renderer, _event: &Event) {
-    }
 }
 
 pub struct RetinaPlugin {

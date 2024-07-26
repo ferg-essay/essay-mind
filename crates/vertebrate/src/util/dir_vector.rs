@@ -1,4 +1,4 @@
-use super::{Angle, Heading};
+use super::Heading;
 
 #[derive(Clone, Copy, Debug)]
 pub struct DirVector {
