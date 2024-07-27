@@ -9,7 +9,7 @@ use util::random::{random_normal, random_pareto, random_uniform};
 /// HindMove represents hindbrain motor areas, particularly reticulospinal
 /// areas (R.rs).
 /// 
-/// Zebrafish R.rs contains Brownian search oscillators as well as 
+/// Zebrafish R.rs contains Brownian search oscillators (ARTR) as well as 
 /// stimulus-response escape neurons (giant Mauthner cells).
 /// 
 /// HindMove actions have a time length that they execute, and will ignore
@@ -676,7 +676,12 @@ mod test {
     use essay_ecs::core::Res;
     use mind_ecs::MindApp;
 
-    use crate::{body::{Body, BodyPlugin}, hind_motor::{HindLevyMove, HindLevyPlugin}, util::Point, world::WorldPlugin};
+    use crate::{
+        body::{Body, BodyPlugin}, 
+        hind_motor::{HindLevyMove, HindLevyPlugin}, 
+        util::Point, 
+        world::WorldPlugin
+    };
 
     #[test]
     fn test_default() {

@@ -37,6 +37,7 @@ pub struct Body {
 
     collide_left: bool,
     collide_right: bool,
+    collide_forward: bool,
 }
 
 impl Body {
@@ -63,6 +64,7 @@ impl Body {
 
             collide_left: false,
             collide_right: false,
+            collide_forward: false,
         }
     }
 
@@ -148,6 +150,11 @@ impl Body {
     }
 
     #[inline]
+    pub fn is_collide_forward(&self) -> bool {
+        self.collide_forward
+    }
+
+    #[inline]
     pub fn is_collide_left(&self) -> bool {
         self.collide_left
     }
@@ -213,29 +220,36 @@ impl Body {
 
         let Point(mut x, mut y) = self.pos;
 
-        let (dy, dx) = self.dir.sin_cos();
-
         // head casting
         self.cast_pos = self.cast_pos + self.cast_delta;
 
-        // head location
         let head = self.head_pos();
 
-        // sensor ahead and to the side
-        let sensor_left = (head.0 + dx * 0.1 - dy * 0.1, head.1 + dy * 0.1 + dx * 0.1);
+        let s = 0.1;
+        let (dy, dx) = self.dir.sin_cos();
+        let (dy, dx) = (s * dy, s * dx);
+
+        let sensor_forward = (head.0 + dx, head.1 + dy);
+        self.collide_forward = world.is_collide(sensor_forward);
+
+        let (dy, dx) = (0.707 * dy, 0.707 * dx);
+
+        // sensor 45 deg to the side
+        let sensor_left = (head.0 + dx - dy, head.1 + dy + dx);
         self.collide_left = world.is_collide(sensor_left);
 
-        let sensor_right = (head.0 + dx * 0.1 + dy * 0.1, head.1 + dy * 0.1 - dx * 0.1);
+        let sensor_right = (head.0 + dx + dy, head.1 + dy - dx);
         self.collide_right = world.is_collide(sensor_right);
+
+        let prev = self.pos;
 
         x = (1. - speed) * x + speed * head.0;
         y = (1. - speed) * y + speed * head.1;
 
-        if ! world.is_collide((x, y)) {
-            self.pos = Point(x, y);
-        } else if ! self.collide_left && ! self.collide_right {
-            self.collide_left = true;
-            self.collide_right = true;
+        self.pos = Point(x, y);
+
+        if world.is_collide(self.pos()) || world.is_collide(self.head_pos()) {
+            self.pos = prev;
         }
     }
 }

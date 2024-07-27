@@ -11,7 +11,9 @@ use essay_plot::{
 
 use ui_graphics::{UiCanvas, ui_canvas::UiRender};
 use crate::{
-    body::Body, hab_taxis::Taxis, hind_motor::HindLevyMove, mid_motor::tectum::TectumMap, util::Turn 
+    body::Body, hab_taxis::Taxis, hind_motor::HindLevyMove, 
+    tectum::TectumMap,
+    util::Turn 
 };
 use crate::ui::ui_world_map::UiWorldPlugin;
 use crate::util::{Angle, Heading};
@@ -49,26 +51,26 @@ impl UiHomunculus {
 pub fn ui_homunculus_draw(
     mut ui_homunculus: ResMut<UiHomunculus>,
     body: Res<Body>,
-    hind_taxis: Res<HindLevyMove>,
+    hind_move: Res<HindLevyMove>,
     taxis: Res<Taxis>,
     tectum: Res<TectumMap>,
 ) {
     let next_emoji = ui_homunculus.next_emoji;
 
-    let mut left_delta = hind_taxis.get_left_delta();
-    if body.is_collide_left() { 
-        left_delta = 1.;
-    }
 
-    let mut right_delta = hind_taxis.get_right_delta();
-    if body.is_collide_right() { 
-        right_delta = 1.;
-    }
+    let mo_forward = hind_move.get_forward_delta();
+    let turn = body.turn().to_unit(); // (body.turn().to_unit() + 0.5) % 1.;
+    let mo_right = turn.clamp(0., 0.5) * 2.;
+    let mo_left = - turn.clamp(-0.5, 0.) * 2.;
 
     let approach_dir = taxis.approach_dir();
     let value = approach_dir.value();
     let n = UiHomunculus::N_DIR;
     let approach_values = approach_vec(n, body.head_dir(), value);
+
+    let ss_fwd = if body.is_collide_forward() { 1. } else { 0. };
+    let ss_left = if body.is_collide_left() { 1. } else { 0. };
+    let ss_right = if body.is_collide_left() { 1. } else { 0. };
 
     ui_homunculus.view.write(|v| {
         v.body_turn = body.turn();
@@ -76,11 +78,13 @@ pub fn ui_homunculus_draw(
 
         v.next_emoji = next_emoji;
 
-        v.left_delta = left_delta;
-        v.right_delta = right_delta;
-        v.forward_delta = hind_taxis.get_forward_delta();
-        v.is_collide_left = body.is_collide_left();
-        v.is_collide_right = body.is_collide_right();
+        v.mo_left = mo_left;
+        v.mo_right = mo_right;
+        v.mo_forward = mo_forward;
+
+        v.ss_forward = ss_fwd;
+        v.ss_head_left = ss_left;
+        v.ss_head_right = ss_right;
 
         v.tectum_values = tectum.values();
         v.approach_values = approach_values;
@@ -91,12 +95,13 @@ struct UiHomunculusView {
     body_head_dir: Heading,
     body_turn: Turn,
 
-    left_delta: f32,
-    right_delta: f32,
-    forward_delta: f32,
+    ss_forward: f32,
+    ss_head_left: f32,
+    ss_head_right: f32,
 
-    is_collide_left: bool,
-    is_collide_right: bool,
+    mo_forward: f32,
+    mo_left: f32,
+    mo_right: f32,
 
     next_emoji: Emoji,
 
@@ -116,6 +121,7 @@ struct UiHomunculusView {
     emoji_pos: Point,
 
     colors: ColorMap,
+    motor_colors: ColorMap,
     emoji: Option<FontTypeId>,
 }
 
@@ -141,12 +147,13 @@ impl UiHomunculusView {
             approach_values: Vec::new(),
             tectum_values: Vec::new(),
 
-            left_delta: 0.,
-            right_delta: 0.,
-            forward_delta: 0.,
+            ss_forward: 0.,
+            ss_head_left: 0.,
+            ss_head_right: 0.,
 
-            is_collide_left: false,
-            is_collide_right: false,
+            mo_left: 0.,
+            mo_right: 0.,
+            mo_forward: 0.,
 
             bounds: Bounds::unit(),
             pos: Bounds::zero(),
@@ -161,6 +168,7 @@ impl UiHomunculusView {
             emoji_pos: Point(0., 0.),
 
             colors: sensorimotor_colormap(),
+            motor_colors: motor_colormap(),
             emoji: None,
         }
     }
@@ -195,64 +203,57 @@ impl UiHomunculusView {
 
 impl Drawable for UiHomunculusView {
     fn draw(&mut self, ui: &mut dyn Renderer) -> renderer::Result<()> {
-        let turn = self.body_turn.to_unit(); // (body.turn().to_unit() + 0.5) % 1.;
-
         let paths = &self.paths_canvas;
 
         let mut style = PathStyle::new();
-        style.edge_color("black");
-        style.face_color(self.colors.map(0.5));
+        style.color(self.colors.map(0.5));
 
         ui.draw_path(&paths.outline, &style)?;
 
-        style.edge_color(self.colors.map(1.));
-        style.face_color(self.colors.map(1.));
+        if self.ss_forward > 0. { 
+            let color = self.colors.map(self.ss_forward);
 
-        if self.left_delta != 0.5 {
-            let color = self.colors.map(self.left_delta);
+            style.color(color);
 
-            style.edge_color(color);
-            style.face_color(color);
+            ui.draw_path(&paths.ss_fwd, &style)?;
+        }
+
+        if self.ss_head_left > 0. { 
+            let color = self.colors.map(self.ss_head_left);
+
+            style.color(color);
+
             ui.draw_path(&paths.ss_ul, &style)?;
         }
 
-        if self.right_delta != 0.5 {
-            let color = self.colors.map(self.right_delta);
+        if self.ss_head_right > 0. { 
+            let color = self.colors.map(self.ss_head_right);
 
-            style.edge_color(color);
-            style.face_color(color);
+            style.color(color);
+
             ui.draw_path(&paths.ss_ur, &style)?;
         }
 
-        if self.is_collide_left { 
-            ui.draw_path(&paths.ss_ul, &style)?;
+        if self.mo_forward > 0. {
+            style.color(self.motor_colors.map(self.mo_forward));
+
+            ui.draw_path(&paths.mo_tail, &style)?;
         }
 
-        if self.is_collide_right { 
-            ui.draw_path(&paths.ss_ur, &style)?;
+        if self.mo_left > 0. {
+            let color = self.colors.map(self.mo_left);
+
+            style.color(color);
+            // style.face_color(color);
+            ui.draw_path(&paths.ss_ll, &style)?;
         }
 
-        style.edge_color(self.colors.map(0.2));
-        style.face_color(self.colors.map(0.2));
-        style.edge_color("dark green");
-        style.face_color("dark green");
+        if self.mo_right > 0. {
+            let color = self.colors.map(self.mo_right);
 
-        let turn_left = turn.clamp(0., 0.5) * 2.;
-        let turn_right = turn.clamp(0.5, 1.) * 2. - 1.;
-
-        if 0. < turn_left && turn_left < 1. {
-            ui.draw_path(&paths.mo_lr, &style)?;
-        }
-
-        if turn_right > 0. {
-            ui.draw_path(&paths.mo_ll, &style)?;
-        }
-
-        if self.forward_delta != 0.5 {
-            let color = self.colors.map(self.forward_delta);
-            style.edge_color(color);
-            style.face_color(color);
-            ui.draw_path(&paths.u_turn, &style)?;
+            style.color(color);
+            // style.face_color(color);
+            ui.draw_path(&paths.ss_lr, &style)?;
         }
 
         let n = self.head_dir.paths.len();
@@ -280,7 +281,15 @@ impl Drawable for UiHomunculusView {
         text_style.size(14.);
         text_style.font(self.emoji.unwrap());
 
-        ui.draw_text(self.emoji_pos, state.code(), 0., &path_style, &text_style)
+        ui.draw_text(self.emoji_pos, state.code(), 0., &path_style, &text_style)?;
+
+        let mut style = PathStyle::new();
+        style.edge_color("black");
+        style.face_color(Color::none());
+
+        ui.draw_path(&paths.outline, &style)?;
+
+        Ok(())
     }
 
     fn event(&mut self, ui: &mut dyn Renderer, event: &Event) {
@@ -312,6 +321,17 @@ fn sensorimotor_colormap() -> ColorMap {
     ColorMap::from(ColorMaps::BlueOrange)
 }
 
+fn motor_colormap() -> ColorMap {
+    ColorMap::from([
+        (0., Color::white()),
+        (0.25, Color::from("azure")),
+        (0.5, Color::from_hsv(0.8, 0.9, 0.4)),
+        (0.75, Color::from("orange")),
+        // (1., Color::from("tomato")),
+        (1., Color::from("red")),
+    ])
+}
+
 fn _avoid_colormap() -> ColorMap {
     ColorMap::from(ColorMaps::WhiteRed)
 }
@@ -324,6 +344,8 @@ fn approach_colormap() -> ColorMap {
 struct UiHomunculusPath<C: Coord> {
     outline: Path<C>,
 
+    ss_fwd: Path<C>,
+
     ss_ul: Path<C>,
     ss_ur: Path<C>,
     ss_ll: Path<C>,
@@ -333,6 +355,7 @@ struct UiHomunculusPath<C: Coord> {
     mo_ur: Path<C>,
     mo_ll: Path<C>,
     mo_lr: Path<C>,
+    mo_tail: Path<C>,
 
     u_turn: Path<C>,
 }
@@ -345,6 +368,7 @@ impl<C: Coord> UiHomunculusPath<C> {
         UiHomunculusPath {
             outline: outline(0),
 
+            ss_fwd: corner_fwd(0),
             ss_ul: corner_ul(0),
             ss_ur: corner_ur(0),
             ss_ll: corner_ll(0),
@@ -352,10 +376,11 @@ impl<C: Coord> UiHomunculusPath<C> {
 
             mo_ul: corner_ul(1),
             mo_ur: corner_ur(1),
-            mo_ll: corner_ll(1),
-            mo_lr: corner_lr(1),
+            mo_ll: corner_ll(0),
+            mo_lr: corner_lr(0),
+            mo_tail: corner_tail(1),
 
-            u_turn: u_turn(1),
+            u_turn: corner_fwd(1),
         }
     }
 
@@ -363,6 +388,7 @@ impl<C: Coord> UiHomunculusPath<C> {
         UiHomunculusPath {
             outline: self.outline.transform(to_canvas),
 
+            ss_fwd: self.ss_fwd.transform(to_canvas),
             ss_ul: self.ss_ul.transform(to_canvas),
             ss_ur: self.ss_ur.transform(to_canvas),
             ss_ll: self.ss_ll.transform(to_canvas),
@@ -372,6 +398,7 @@ impl<C: Coord> UiHomunculusPath<C> {
             mo_ur: self.mo_ur.transform(to_canvas),
             mo_ll: self.mo_ll.transform(to_canvas),
             mo_lr: self.mo_lr.transform(to_canvas),
+            mo_tail: self.mo_tail.transform(to_canvas),
 
             u_turn: self.u_turn.transform(to_canvas),
         }
@@ -379,6 +406,37 @@ impl<C: Coord> UiHomunculusPath<C> {
 }
 
 impl Coord for UiHomunculus {}
+
+fn outline(i: usize) -> Path::<Unit> {
+    let w = UiHomunculusPath::<Unit>::W;
+    let h = UiHomunculusPath::<Unit>::H;
+    let w0 = i as f32 * w;
+
+    Path::<Unit>::move_to(0.5, w0)
+        //.bezier2_to((1. - w1, 1. - w1), (1. - w1, 0.75))
+        .line_to(1. - w0, h)
+        .line_to(0.5, 1. - w0)
+        //.bezier2_to((1. - w0, 1. - w0),(0.5, 1. - w0))
+        .line_to(w0, h)
+        .close_poly(0.5, w0).into()
+}
+
+fn corner_fwd(i: usize) -> Path::<Unit> {
+    let w = UiHomunculusPath::<Unit>::W;
+    let h = UiHomunculusPath::<Unit>::H;
+    let w0 = i as f32 * w;
+    let h0 = 1. - w0;
+
+    let p = 0.6;
+
+    let x0 = p * 0.5 + (1. - p) * w0;
+    let h1 = p * h0 + (1. - p) * h;
+
+    Path::<Unit>::move_to(0.5, h0)
+        //.bezier2_to((0. + w0, 1. - w0), (0. - w0, 0.75))
+        .line_to(x0, h1)
+        .close_poly(1. - x0, h1).into()
+}
 
 fn corner_ul(i: usize) -> Path::<Unit> {
     let w = UiHomunculusPath::<Unit>::W;
@@ -440,30 +498,16 @@ fn corner_lr(i: usize) -> Path::<Unit> {
         .close_poly(0.5, w0).into()
 }
 
-fn outline(i: usize) -> Path::<Unit> {
+fn corner_tail(i: usize) -> Path::<Unit> {
     let w = UiHomunculusPath::<Unit>::W;
     let h = UiHomunculusPath::<Unit>::H;
     let w0 = i as f32 * w;
+    let h0 = w0;
 
-    Path::<Unit>::move_to(0.5, w0)
-        //.bezier2_to((1. - w1, 1. - w1), (1. - w1, 0.75))
-        .line_to(1. - w0, h)
-        .line_to(0.5, 1. - w0)
-        //.bezier2_to((1. - w0, 1. - w0),(0.5, 1. - w0))
-        .line_to(w0, h)
-        .close_poly(0.5, w0).into()
-}
+    let p = 0.6;
 
-fn u_turn(i: usize) -> Path::<Unit> {
-    let w = UiHomunculusPath::<Unit>::W;
-    let h = UiHomunculusPath::<Unit>::H;
-    let w0 = i as f32 * w;
-    let h0 = 1. - w0;
-
-    let p = 0.7;
-
-    let x0 = p * 0.5 + (1. - p) * w0;
-    let h1 = p * h0 + (1. - p) * h;
+    let x0 = (1. - p) * 0.5 + p * w0;
+    let h1 = (1. - p) * h0 + p * h;
 
     Path::<Unit>::move_to(0.5, h0)
         //.bezier2_to((0. + w0, 1. - w0), (0. - w0, 0.75))

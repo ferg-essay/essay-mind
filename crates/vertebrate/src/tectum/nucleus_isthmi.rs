@@ -11,8 +11,8 @@ use super::tectum::ActionId;
 
 pub struct NucleusIsthmi {
     actions: Vec<AttentionItem>,
-    decay: f32,
-    threshold: f32,
+    _decay: f32,
+    _threshold: f32,
 }
 
 impl NucleusIsthmi {
@@ -22,8 +22,8 @@ impl NucleusIsthmi {
     pub fn new() -> Self {
         Self {
             actions: Vec::new(),
-            decay: Self::DECAY,
-            threshold: Self::THRESHOLD,
+            _decay: Self::DECAY,
+            _threshold: Self::THRESHOLD,
         }
     }
 
@@ -37,34 +37,34 @@ impl NucleusIsthmi {
         self.actions.push(AttentionItem::new(id, name.as_ref()));
     }
 
-    pub fn action_copy(&mut self, id: ActionId, value: f32) {
+    pub fn _action_copy(&mut self, id: ActionId, value: f32) {
         assert!(0. <= value && value <= 1.);
 
-        self.actions[id.i()].action = value;
+        self.actions[id.i()]._action = value;
     }
 
-    pub fn update(&mut self, target: &mut dyn Attention) {
+    pub fn _update(&mut self, target: &mut dyn _Attention) {
         for item in &mut self.actions {
-            let action = item.action;
-            item.action = item.action * self.decay;
+            let action = item._action;
+            item._action = item._action * self._decay;
 
-            if item.action < self.threshold {
-                item.action = 0.;
+            if item._action < self._threshold {
+                item._action = 0.;
             }
 
-            target.attend(item.id, action);
+            target.attend(item._id, action);
         }
     }
 }
 
-pub trait Attention {
+pub trait _Attention {
     fn attend(&mut self, id: ActionId, value: f32);
 }
 
 pub struct AttentionItem {
-    id: ActionId,
+    _id: ActionId,
     _name: String,
-    action: f32,
+    _action: f32,
 }
 
 impl AttentionItem {
@@ -73,9 +73,9 @@ impl AttentionItem {
         name: &str,
     ) -> AttentionItem {
         Self {
-            id,
+            _id: id,
             _name: String::from(name),
-            action: 0.,
+            _action: 0.,
         }
     }
 }

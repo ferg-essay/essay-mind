@@ -1,4 +1,4 @@
-use crate::{FftWindow};
+use crate::FftWindow;
 
 
 #[derive(Debug)]
@@ -11,7 +11,7 @@ pub struct Harmonic {
 pub struct Point(usize, f32);
 
 #[derive(Debug, Clone)]
-pub struct Freq {
+pub struct _Freq {
     pub freq: f32,
     pub power: f32,
 }

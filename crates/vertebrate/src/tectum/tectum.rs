@@ -10,16 +10,16 @@ use super::nucleus_isthmi::NucleusIsthmi;
 
 pub struct TectumLocomotionStn {
     seek: TectumStnTurn,
-    away: TectumStnTurn,
-    away_odor: TectumStnTurn,
+    _away: TectumStnTurn,
+    _away_odor: TectumStnTurn,
 }
 
 impl TectumLocomotionStn {
     fn new(plugin: &TectumPlugin) -> Self {
         let mut locomotion = Self {
             seek: TectumStnTurn::new(plugin),
-            away: TectumStnTurn::new(plugin),
-            away_odor: TectumStnTurn::new(plugin),
+            _away: TectumStnTurn::new(plugin),
+            _away_odor: TectumStnTurn::new(plugin),
         };
 
         locomotion.seek.add_indirect(Turn::Left);
@@ -27,22 +27,22 @@ impl TectumLocomotionStn {
         locomotion
     }
 
-    pub fn seek(&mut self) -> &mut TectumStnTurn {
+    pub fn _seek(&mut self) -> &mut TectumStnTurn {
         &mut self.seek
     }
 
-    pub fn away(&mut self) -> &mut TectumStnTurn {
-        &mut self.away
+    pub fn _away(&mut self) -> &mut TectumStnTurn {
+        &mut self._away
     }
 
-    pub fn away_odor(&mut self) -> &mut TectumStnTurn {
-        &mut self.away_odor
+    pub fn _away_odor(&mut self) -> &mut TectumStnTurn {
+        &mut self._away_odor
     }
 
-    pub fn update(&mut self) {
-        self.seek.update();
-        self.away.update();
-        self.away_odor.update();
+    pub fn _update(&mut self) {
+        self.seek._update();
+        self._away._update();
+        self._away_odor._update();
     }
 }
 
@@ -52,8 +52,8 @@ pub struct TectumStnTurn {
     striatum: StriatumStn,
     ach_attention: Option<NucleusIsthmi>,
 
-    last_action: Option<ActionId>,
-    last_default: Option<ActionId>,
+    _last_action: Option<ActionId>,
+    _last_default: Option<ActionId>,
 }
 
 impl TectumStnTurn {
@@ -74,8 +74,8 @@ impl TectumStnTurn {
             actions_i: TectumStnActions::new(),
             striatum,
             ach_attention,
-            last_action: None,
-            last_default: None,
+            _last_action: None,
+            _last_default: None,
         };
 
         turn.add_action(Turn::Left, "turn-left");
@@ -112,73 +112,73 @@ impl TectumStnTurn {
         }
     }
 
-    pub fn turn(&mut self, turn: Turn, value: f32) {
+    pub fn _turn(&mut self, turn: Turn, value: f32) {
         let action = &mut self.actions_d.actions[turn.id().i()];
 
-        action.value = value;
+        action._value = value;
 
-        let id_d = action.id_s;
+        let id_d = action._id_s;
 
         self.striatum.direct_mut().sense(id_d, Sense::High);
         self.striatum.dopamine_mut().effort(1.);
     }
 
-    pub fn action(&self) -> Option<Turn> {
-        if let Some(action) = &self.last_action {
-            Some(self.actions_d.actions[action.i()].turn)
+    pub fn _action(&self) -> Option<Turn> {
+        if let Some(action) = &self._last_action {
+            Some(self.actions_d.actions[action.i()]._turn)
         } else {
             None
         }
     }
 
-    pub fn indirect(&self) -> bool {
-        if let Some(_) = &self.last_default {
+    pub fn _indirect(&self) -> bool {
+        if let Some(_) = &self._last_default {
             true
         } else {
             false
         }
     }
 
-    pub fn action_copy(&mut self, turn: Turn) {
-        let id_d = self.actions_d.actions[turn.id().i()].id_s;
+    pub fn _action_copy(&mut self, turn: Turn) {
+        let id_d = self.actions_d.actions[turn.id().i()]._id_s;
 
         let value = 1.;
 
         self.striatum.direct_mut().attend(id_d, Sense::High);
 
         if let Some(ach_attention) = &mut self.ach_attention {
-            ach_attention.action_copy(turn.id(), value);
+            ach_attention._action_copy(turn.id(), value);
         }
     }
 
-    fn update(&mut self) {
-        self.last_action = None;
+    fn _update(&mut self) {
+        self._last_action = None;
 
         self.striatum.update(
             &mut self.actions_d, 
             &mut self.actions_i
         );
 
-        let best_d = self.actions_d.best_action();
-        let best_i = self.actions_i.best_action();
+        let best_d = self.actions_d._best_action();
+        let best_i = self.actions_i._best_action();
 
         // TODO: softmax
-        self.last_action = best_d;
-        self.last_default = best_i;
+        self._last_action = best_d;
+        self._last_default = best_i;
     }
 
-    pub fn default(&mut self) {
+    pub fn _default(&mut self) {
         self.striatum.indirect_mut().sense(Sense::Top);
         if self.actions_i.actions.len() > 0 {
-            self.actions_i.actions[0].value = 1.;
+            self.actions_i.actions[0]._value = 1.;
         }
     }
 
-    pub fn cost(&mut self) {
+    pub fn _cost(&mut self) {
         self.striatum.dopamine_mut().cost(Self::COST);
     }
 
-    pub fn effort(&mut self) {
+    pub fn _effort(&mut self) {
         self.striatum.dopamine_mut().effort(1.);
     }
 }
@@ -194,24 +194,24 @@ impl TectumStnActions {
         }
     }
 
-    fn best_action(&mut self) -> Option<ActionId> {
+    fn _best_action(&mut self) -> Option<ActionId> {
         let mut best_sense = 0.;
         //let mut second = 0.;
         let mut best = None;
 
         for item in &mut self.actions {
-            let value = item.value;
-            item.value = 0.; // sense may also be leaky-accumulative
+            let value = item._value;
+            item._value = 0.; // sense may also be leaky-accumulative
             let snr = item.snr;
             item.snr = 0.;
 
-            let noise = 1. + random() * 0.01;
-            let scaled_sense = value * item.ach * snr * noise;
+            let noise = 1. + _random() * 0.01;
+            let scaled_sense = value * item._ach * snr * noise;
 
             if best_sense < scaled_sense {
                 //second = best_sense;
                 best_sense = scaled_sense;
-                best = Some(item.id);
+                best = Some(item._id);
             }
         }
 
@@ -227,27 +227,27 @@ impl StriatumSnr for TectumStnActions {
     }
 }
 
-fn random() -> f32 {
+fn _random() -> f32 {
     Tensor::random_uniform([1], ())[0]
 }
 
 struct TectumAction {
-    id: ActionId,
-    id_s: StriatumId,
-    turn: Turn,
-    value: f32,
-    ach: f32,
+    _id: ActionId,
+    _id_s: StriatumId,
+    _turn: Turn,
+    _value: f32,
+    _ach: f32,
     snr: f32,
 }
 
 impl TectumAction {
     fn new(id: ActionId, id_s: StriatumId, turn: Turn) -> Self {
         Self {
-            id,
-            id_s,
-            turn,
-            value: 0.,
-            ach: 1.,
+            _id: id,
+            _id_s: id_s,
+            _turn: turn,
+            _value: 0.,
+            _ach: 1.,
             snr: 1.,
         }
     }

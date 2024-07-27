@@ -39,8 +39,8 @@ fn ui_retina_update(
 
 fn fill_colors(data: Tensor) -> Tensor<u32> {
     assert_eq!(data.rank(), 2);
-    assert_eq!(data.rows(), 16);
-    assert_eq!(data.cols(), 16);
+    assert_eq!(data.rows(), Retina::SIZE);
+    assert_eq!(data.cols(), Retina::SIZE);
 
     let mut colors = Vec::<u32>::new();
 
@@ -66,13 +66,11 @@ struct RetinaView {
 }
 
 impl RetinaView {
-    const SIZE : usize = 16;
-
     fn new() -> Self {
-        let (vertices, triangles) = build_grid(Self::SIZE, &Bounds::from([100., 100.]));
+        let (vertices, triangles) = build_grid(Retina::SIZE, &Bounds::from([100., 100.]));
 
         let mut colors = Vec::<u32>::new();
-        colors.resize(4 * Self::SIZE * Self::SIZE, Color::black().to_rgba());
+        colors.resize(4 * Retina::SIZE * Retina::SIZE, Color::black().to_rgba()); 
         let colors = Tensor::from(colors);
         
         Self {
@@ -157,14 +155,14 @@ impl Drawable for RetinaView {
 
             let pos_left = Bounds::<Canvas>::from(((pos.xmin(), y0), [s, s]));
 
-            let (vertices, triangles) = build_grid(Self::SIZE, &pos_left);
+            let (vertices, triangles) = build_grid(Retina::SIZE, &pos_left);
             
             self.left_vertices = vertices;
             self.left_triangles = triangles;
 
             let pos_right = Bounds::<Canvas>::from(((pos.xmin() + s + 5., y0), [s, s]));
 
-            let (vertices, triangles) = build_grid(Self::SIZE, &pos_right);
+            let (vertices, triangles) = build_grid(Retina::SIZE, &pos_right);
             
             self.right_vertices = vertices;
             self.right_triangles = triangles;

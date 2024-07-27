@@ -11,7 +11,7 @@ pub struct UiChart {
 impl UiChart {
     pub const LIM: usize = 100;
 
-    pub(crate) fn new(chart: Chart) -> Self {
+    pub(crate) fn _new(chart: Chart) -> Self {
         Self {
             chart,
         }

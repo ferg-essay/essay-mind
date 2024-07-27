@@ -1,3 +1,4 @@
+pub mod tectum;
 pub mod body;
 pub mod core_motive;
 pub mod hind_sense;

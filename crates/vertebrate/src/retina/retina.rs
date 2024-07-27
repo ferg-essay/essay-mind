@@ -37,6 +37,7 @@ pub struct Retina {
 
 impl Retina {
     pub const HEIGHT : f32 = 0.3;
+    pub const SIZE : usize = 8;
 
     fn new(size: u32) -> Self {
         let width = (2 * size).max(64);
@@ -76,6 +77,22 @@ impl Retina {
 
     pub fn data_right(&self) -> Option<Tensor> {
         self.data_right.clone()
+    }
+
+    pub fn light_left(&self) -> f32 {
+        self.light_left
+    }
+
+    pub fn light_right(&self) -> f32 {
+        self.light_right
+    }
+
+    pub fn brighten_left(&self) -> f32 {
+        self.brighten_left
+    }
+
+    pub fn brighten_right(&self) -> f32 {
+        self.brighten_right
     }
 
     fn startup(&mut self, world: &World) {
@@ -354,15 +371,15 @@ fn retina_update(
         0.
     };
 
-    retina.brighten_left = light_left - retina.light_left;
-    retina.brighten_right = light_right - retina.light_right;
+    retina.brighten_left = (light_left - retina.light_left) / light_left.max(0.01);
+    retina.brighten_right = (light_right - retina.light_right) / light_right.max(0.01);
     retina.light_left = light_left;
     retina.light_right = light_right;
 
-    println!("Avg {:.2}({:.2}) {:.2}({:.2})", 
-        retina.light_left, retina.brighten_left, 
-        retina.light_right, retina.brighten_right
-    );
+    // println!("Avg {:.2}({:.2}) {:.2}({:.2})", 
+    //    retina.light_left, retina.brighten_left, 
+    //    retina.light_right, retina.brighten_right
+    //);
 }
 
 
@@ -443,10 +460,16 @@ pub struct RetinaPlugin {
 impl RetinaPlugin {
     pub fn new() -> Self {
         Self {
-            size: 16,
+            size: Retina::SIZE as u32,
             fov: Angle::Deg(90.),
             eye_angle: Angle::Deg(90.),
         }
+    }
+
+    pub fn size(self, _size: u32) -> Self {
+        // self.size = size;
+
+        self
     }
 
     pub fn fov(mut self, fov: Angle) -> Self {

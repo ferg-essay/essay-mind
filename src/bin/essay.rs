@@ -10,8 +10,9 @@ use vertebrate::{
         chemotaxis::{Avoid, Chemotaxis, Seek}, klinotaxis::KlinotaxisPlugin, phototaxis::Phototaxis
     }, 
     hind_motor::{HindEat, HindEatPlugin, HindLevyPlugin, HindMovePlugin}, 
-    mid_motor::{tectum::TectumPlugin, MidMotorPlugin}, 
+    mid_motor::MidMotorPlugin, 
     olfactory_bulb::{ObEvent, OlfactoryBulb, OlfactoryPlugin}, retina::RetinaPlugin, 
+    tectum::{TectumLoomingPlugin, TectumPlugin}, 
     ui::{
         ui_attention::UiAttentionPlugin, 
         ui_body::{UiBodyPlugin, UiBodyTrailPlugin}, 
@@ -51,11 +52,13 @@ pub fn main() {
     );
 
     app.plugin(RetinaPlugin::new()
-        .fov(util::Angle::Deg(90.))
+        .size(4)
+        .fov(util::Angle::Deg(120.))
         .eye_angle(util::Angle::Deg(45.))
     );
 
     app.plugin(TectumPlugin::new().striatum());
+    app.plugin(TectumLoomingPlugin::new());
     // app.plugin(ChemotaxisPlugin);
     // app.plugin(TegSeekPlugin::<OlfactoryBulb, FoodSearch>::new());
     app.plugin(KlinotaxisPlugin::<OlfactoryBulb, FoodSearch>::new());

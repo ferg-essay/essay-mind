@@ -1,8 +1,8 @@
-use core::{f32::consts::PI};
+use core::f32::consts::PI;
 use core::ops;
 use crate::{AudioBuffer, BezierSpline};
 use rand::Rng;
-use crate::ui_symphonia::{AudioReader};
+use crate::ui_symphonia::AudioReader;
 
 pub trait AudioSource: Iterator<Item = f32> + Send {
     fn reset(&mut self, sample: Option<u32>);
@@ -861,7 +861,7 @@ impl<const N: usize> AudioFilter for BandPassChebyshev<N> {
 // # jitter
 //
 
-struct Jitter {
+struct _Jitter {
     sample: usize,
     update_period: usize,
 
@@ -877,7 +877,7 @@ struct Jitter {
     next_update: usize,
 }
 
-impl AudioFilter for Jitter {
+impl AudioFilter for _Jitter {
     fn reset(&mut self, sample: Option<u32>) {
         if let Some(sample) = sample {
             self.update_period = sample as usize / 8;
