@@ -1,7 +1,7 @@
 use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}, prelude::Event};
 use mind_ecs::Tick;
 
-use crate::{core_motive::{Dwell, Motive, Wake}, hind_motor::{HindEat, HindLevyMove}, util::Command};
+use crate::{core_motive::{Dwell, Motive, Wake}, hind_motor::{HindEat, HindLevyMove, HindLevyPlugin}, util::Command};
 
 pub struct MidMotor {
     commands: Command<MidMotorEvent>,
@@ -124,6 +124,8 @@ pub struct MidMotorPlugin;
 
 impl Plugin for MidMotorPlugin {
     fn build(&self, app: &mut App) {
+        assert!(app.contains_plugin::<HindLevyPlugin>(), "MidMotor requires HindLevy");
+
         app.init_resource::<MidMotor>();
         app.event::<MidMotorEvent>();
 

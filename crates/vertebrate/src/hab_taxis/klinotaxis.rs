@@ -11,7 +11,7 @@ use crate::{
     body::Body, 
     core_motive::{Motive, MotiveTrait, Motives}, 
     hab_taxis::chemotaxis::{Avoid, Seek}, 
-    hind_motor::{HindMove, HindMovePlugin}, 
+    hind_motor::{_HindMove, _HindMovePlugin}, 
     striatum::{Gate, StriatumGate}, 
     teg_motor::SeekInput, 
     util::{DecayValue, Seconds}
@@ -181,7 +181,7 @@ impl<I: SeekInput, M: MotiveTrait> KlinotaxisPlugin<I, M> {
 
 fn update_seek<I: SeekInput, M: MotiveTrait>(
     mut seek: ResMut<Klinotaxis<I>>,
-    hind_move: ResMut<HindMove>,
+    hind_move: ResMut<_HindMove>,
     input: Res<I>,
     motive: Res<Motive<M>>,
     tick: Res<AppTick>,
@@ -237,7 +237,7 @@ fn update_seek<I: SeekInput, M: MotiveTrait>(
 
 impl<I: SeekInput, M: MotiveTrait> Plugin for KlinotaxisPlugin<I, M> {
     fn build(&self, app: &mut App) {
-        assert!(app.contains_plugin::<HindMovePlugin>(), "TegSeek requires HindMovePlugin");
+        assert!(app.contains_plugin::<_HindMovePlugin>(), "TegSeek requires HindMovePlugin");
         assert!(app.contains_resource::<I>(), "TegSeek requires resource {}", type_name::<I>());
         
         let seek = Klinotaxis::<I>::new();

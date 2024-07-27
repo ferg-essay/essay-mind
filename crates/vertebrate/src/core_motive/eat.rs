@@ -1,6 +1,6 @@
 use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}};
 use mind_ecs::Tick;
-use crate::{body::BodyEat, mid_motor::MidMotor, util::{DecayValue, Seconds}};
+use crate::{body::BodyEat, mid_motor::{MidMotor, MidMotorPlugin}, util::{DecayValue, Seconds}};
 
 use super::{motive::{Motive, MotiveTrait, Motives}, timeout::Timeout, Dwell, Wake};
 
@@ -87,6 +87,8 @@ pub struct CoreEatingPlugin;
 
 impl Plugin for CoreEatingPlugin {
     fn build(&self, app: &mut App) {
+        assert!(app.contains_plugin::<MidMotorPlugin>(), "CoreEating requires MidMotor");
+
         let feeding = CoreEat::new();
         app.insert_resource(feeding);
 

@@ -1,7 +1,7 @@
 use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}};
 use mind_ecs::Tick;
 
-use crate::{hind_motor::HindEat, mid_motor::MidMotor, util::Seconds};
+use crate::{hind_motor::HindEat, mid_motor::{MidMotor, MidMotorPlugin}, util::Seconds};
 
 use super::{motive::{Motive, MotiveTrait, Motives}, Wake};
 
@@ -38,6 +38,8 @@ pub struct CoreExplorePlugin;
 
 impl Plugin for CoreExplorePlugin {
     fn build(&self, app: &mut App) {
+        assert!(app.contains_plugin::<MidMotorPlugin>(), "CoreExplore requires MidMotor");
+
         Motives::insert::<Roam>(app, Seconds(1.));
         Motives::insert::<Dwell>(app, Seconds(4.));
 

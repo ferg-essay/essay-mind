@@ -7,7 +7,7 @@ use std::{any::type_name, marker::PhantomData};
 use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}};
 use mind_ecs::{AppTick, Tick};
 
-use crate::{core_motive::{Motive, MotiveTrait, Motives}, hab_taxis::chemotaxis::{Avoid, Seek}, hind_motor::{HindMove, HindMovePlugin}, striatum::{Gate, Striatum2, StriatumGate}, util::{DecayValue, DirVector, Seconds}};
+use crate::{core_motive::{Motive, MotiveTrait, Motives}, hab_taxis::chemotaxis::{Avoid, Seek}, hind_motor::{_HindMove, _HindMovePlugin}, striatum::{Gate, Striatum2, StriatumGate}, util::{DecayValue, DirVector, Seconds}};
 
 pub struct TegSeek<I: SeekInput> {
     ltd_buildup: DecayValue,
@@ -77,7 +77,7 @@ impl<I: SeekInput, M: MotiveTrait> TegSeekPlugin<I, M> {
 
 fn update_seek<I: SeekInput, M: MotiveTrait>(
     mut seek: ResMut<TegSeek<I>>,
-    hind_move: ResMut<HindMove>,
+    hind_move: ResMut<_HindMove>,
     input: Res<I>,
     motive: Res<Motive<M>>,
     tick: Res<AppTick>,
@@ -119,7 +119,7 @@ fn update_seek<I: SeekInput, M: MotiveTrait>(
 
 impl<I: SeekInput, M: MotiveTrait> Plugin for TegSeekPlugin<I, M> {
     fn build(&self, app: &mut App) {
-        assert!(app.contains_plugin::<HindMovePlugin>(), "TegSeek requires HindMovePlugin");
+        assert!(app.contains_plugin::<_HindMovePlugin>(), "TegSeek requires HindMovePlugin");
         assert!(app.contains_resource::<I>(), "TegSeek requires resource {}", type_name::<I>());
         
         let seek = TegSeek::<I>::new();

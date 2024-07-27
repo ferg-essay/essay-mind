@@ -11,7 +11,7 @@ use essay_plot::{
 
 use ui_graphics::{UiCanvas, ui_canvas::UiRender};
 use crate::{
-    body::Body, hab_taxis::Taxis, hind_motor::HindLevyMove, 
+    body::Body, hab_taxis::Taxis, hind_motor::{HindLevyMove, HindLocomotion}, 
     tectum::TectumMap,
     util::Turn 
 };
@@ -51,26 +51,17 @@ impl UiHomunculus {
 pub fn ui_homunculus_draw(
     mut ui_homunculus: ResMut<UiHomunculus>,
     body: Res<Body>,
-    hind_move: Res<HindLevyMove>,
+    // hind_levy: Res<HindLevyMove>,
+    hind_move: Res<HindLocomotion>,
     taxis: Res<Taxis>,
     tectum: Res<TectumMap>,
 ) {
     let next_emoji = ui_homunculus.next_emoji;
 
-
-    let mo_forward = hind_move.get_forward_delta();
-    let turn = body.turn().to_unit(); // (body.turn().to_unit() + 0.5) % 1.;
-    let mo_right = turn.clamp(0., 0.5) * 2.;
-    let mo_left = - turn.clamp(-0.5, 0.) * 2.;
-
     let approach_dir = taxis.approach_dir();
     let value = approach_dir.value();
     let n = UiHomunculus::N_DIR;
     let approach_values = approach_vec(n, body.head_dir(), value);
-
-    let ss_fwd = if body.is_collide_forward() { 1. } else { 0. };
-    let ss_left = if body.is_collide_left() { 1. } else { 0. };
-    let ss_right = if body.is_collide_left() { 1. } else { 0. };
 
     ui_homunculus.view.write(|v| {
         v.body_turn = body.turn();
@@ -78,13 +69,15 @@ pub fn ui_homunculus_draw(
 
         v.next_emoji = next_emoji;
 
-        v.mo_left = mo_left;
-        v.mo_right = mo_right;
-        v.mo_forward = mo_forward;
+        v.mo_freeze = hind_move.is_freeze();
 
-        v.ss_forward = ss_fwd;
-        v.ss_head_left = ss_left;
-        v.ss_head_right = ss_right;
+        v.mo_forward = hind_move.mo_forward();
+        v.mo_left = hind_move.mo_left();
+        v.mo_right = hind_move.mo_right();
+
+        v.ss_forward = hind_move.ss_forward();
+        v.ss_head_left = hind_move.ss_left();
+        v.ss_head_right = hind_move.ss_right();
 
         v.tectum_values = tectum.values();
         v.approach_values = approach_values;
@@ -98,6 +91,8 @@ struct UiHomunculusView {
     ss_forward: f32,
     ss_head_left: f32,
     ss_head_right: f32,
+
+    mo_freeze: bool,
 
     mo_forward: f32,
     mo_left: f32,
@@ -150,6 +145,8 @@ impl UiHomunculusView {
             ss_forward: 0.,
             ss_head_left: 0.,
             ss_head_right: 0.,
+
+            mo_freeze: false,
 
             mo_left: 0.,
             mo_right: 0.,
@@ -234,26 +231,34 @@ impl Drawable for UiHomunculusView {
             ui.draw_path(&paths.ss_ur, &style)?;
         }
 
-        if self.mo_forward > 0. {
-            style.color(self.motor_colors.map(self.mo_forward));
+        if self.mo_freeze {
+            style.color(Color::black());
 
             ui.draw_path(&paths.mo_tail, &style)?;
-        }
-
-        if self.mo_left > 0. {
-            let color = self.colors.map(self.mo_left);
-
-            style.color(color);
-            // style.face_color(color);
             ui.draw_path(&paths.ss_ll, &style)?;
-        }
-
-        if self.mo_right > 0. {
-            let color = self.colors.map(self.mo_right);
-
-            style.color(color);
-            // style.face_color(color);
             ui.draw_path(&paths.ss_lr, &style)?;
+        } else {
+            if self.mo_forward > 0. {
+                style.color(self.motor_colors.map(self.mo_forward));
+
+                ui.draw_path(&paths.mo_tail, &style)?;
+            }
+
+            if self.mo_left > 0. {
+                let color = self.colors.map(self.mo_left);
+
+                style.color(color);
+
+                ui.draw_path(&paths.ss_ll, &style)?;
+            }
+
+            if self.mo_right > 0. {
+                let color = self.colors.map(self.mo_right);
+
+                style.color(color);
+
+                ui.draw_path(&paths.ss_lr, &style)?;
+            }
         }
 
         let n = self.head_dir.paths.len();

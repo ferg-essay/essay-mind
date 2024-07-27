@@ -60,7 +60,7 @@ impl Body {
             dir: Heading::Unit(0.),
             cast_pos: Angle::Unit(0.),
 
-            action: Action::new(BodyAction::None, 0., Turn::Unit(0.)),
+            action: Action::none(),
 
             collide_left: false,
             collide_right: false,
@@ -139,15 +139,15 @@ impl Body {
         self.cast_angle = cast_angle.into();
     }
 
-    #[inline]
-    pub fn action_kind(&self) -> BodyAction {
-        self.action.kind
-    }
+    //#[inline]
+    //pub fn action_kind(&self) -> BodyAction {
+    //    self.action.kind
+    //}
 
-    #[inline]
-    pub fn is_moving(&self) -> bool {
-        self.action.kind != BodyAction::None
-    }
+    //#[inline]
+    //pub fn is_moving(&self) -> bool {
+    //    self.action.kind != BodyAction::None
+    //}
 
     #[inline]
     pub fn is_collide_forward(&self) -> bool {
@@ -165,20 +165,20 @@ impl Body {
     }
 
     #[inline]
-    pub fn action(&mut self, kind: BodyAction, speed: f32, turn: Turn) {
-        self.action = Action::new(kind, speed, turn);
+    pub fn action(&mut self, speed: f32, turn: Turn, tick_factor: f32, timeout: impl Into<Seconds>) {
+        self.action = Action::new(speed, turn, tick_factor, timeout);
     }
 
     #[inline]
     pub fn stop(&mut self) {
         if self.action.speed > 0. {
-            self.action(BodyAction::None, 0., Turn::Unit(0.))
+            self.action = Action::none();
         }
     }
 
     #[inline]
     pub fn stop_action(&mut self, kind: BodyAction) {
-        self.action(kind, 0., Turn::Unit(0.))
+        self.action = Action::none();
     }
 
     pub fn eat(&mut self) {
@@ -201,11 +201,13 @@ impl Body {
     pub fn update(&mut self, world: &World) {
         self.action.update();
 
-        let speed = self.speed() / Ticks::TICKS_PER_SECOND as f32;
+        let tick_factor = self.action.tick_factor / Ticks::TICKS_PER_SECOND as f32;
+
+        let speed = self.action.speed * tick_factor;
 
         let mut dir = self.dir.to_unit();
-        let turn = self.turn().to_unit();
-        dir += turn / Ticks::TICKS_PER_SECOND as f32;
+        let turn = self.action.turn.to_unit() * tick_factor;
+        dir += turn;
 
         // random noise into direction
         if speed > 0. && random_uniform() < self.noise_threshold {
@@ -276,32 +278,40 @@ fn body_update(
 
 #[derive(Clone, Debug)]
 struct Action {
-    kind: BodyAction,
     speed: f32,
     turn: Turn,
-    timeout: usize,
+    tick_factor: f32,
+    timeout: Seconds,
 }
 
 impl Action {
-    fn new(kind: BodyAction, speed: f32, turn: Turn) -> Self {
+    fn new(speed: f32, turn: Turn, tick_factor: f32, timeout: impl Into<Seconds>) -> Self {
         assert!(-1. <= speed && speed <= 1.);
 
         Self {
-            kind,
             speed,
             turn,
-            timeout: Ticks::TICKS_PER_SECOND,
+            tick_factor,
+            timeout: timeout.into(),
+        }
+    }
+
+    fn none() -> Self {
+        Self {
+            speed: 0.,
+            turn: Turn::Unit(0.),
+            tick_factor: 1.,
+            timeout: Seconds(60.),
         }
     }
 
     fn update(&mut self) {
-        if self.timeout > 0 {
-            self.timeout -= 1;
+        if self.timeout.v() > 1.0e-3 {
+            self.timeout = Seconds(self.timeout.v() - 1. / Ticks::TICKS_PER_SECOND as f32);
         } else {
-            self.kind = BodyAction::None;
             self.speed = 0.;
             self.turn = Turn::unit(0.);
-            self.timeout = 0x1000;
+            self.timeout = Seconds(60.);
         }
     }
 }
@@ -398,7 +408,7 @@ mod test {
 
     use crate::{
         body::BodyAction, 
-        util::{Heading, Point, Ticks, Turn}, 
+        util::{Heading, Point, Seconds, Ticks, Turn}, 
         world::{World, WorldPlugin}
     };
 
@@ -418,12 +428,12 @@ mod test {
         assert_eq!(Heading::unit(0.0), app.eval(|x: Res<Body>| x.dir()));
         assert_eq!(Heading::unit(0.0), app.eval(|x: Res<Body>| x.head_dir()));
         assert_eq!(Point(0.4999999, 1.), app.eval(|x: Res<Body>| x.head_pos()));
-        assert_eq!(false, app.eval(|x: Res<Body>| x.is_moving()));
+        // assert_eq!(false, app.eval(|x: Res<Body>| x.is_moving()));
         assert_eq!(false, app.eval(|x: Res<Body>| x.is_collide_left()));
         assert_eq!(false, app.eval(|x: Res<Body>| x.is_collide_right()));
         assert_eq!(0., app.eval(|x: Res<Body>| x.speed()));
         assert_eq!(Turn::unit(0.), app.eval(|x: Res<Body>| x.turn()));
-        assert_eq!(BodyAction::None, app.eval(|x: Res<Body>| x.action_kind()));
+        // assert_eq!(BodyAction::None, app.eval(|x: Res<Body>| x.action_kind()));
     }
 
     #[test]
@@ -444,12 +454,12 @@ mod test {
         assert_eq!(Heading::unit(0.0), app.eval(|x: Res<Body>| x.dir()));
         assert_eq!(Heading::unit(0.0), app.eval(|x: Res<Body>| x.head_dir()));
         assert_eq!(Point(0.4999999, 1.), app.eval(|x: Res<Body>| x.head_pos()));
-        assert_eq!(false, app.eval(|x: Res<Body>| x.is_moving()));
+        // assert_eq!(false, app.eval(|x: Res<Body>| x.is_moving()));
         assert_eq!(false, app.eval(|x: Res<Body>| x.is_collide_left()));
         assert_eq!(false, app.eval(|x: Res<Body>| x.is_collide_right()));
         assert_eq!(0., app.eval(|x: Res<Body>| x.speed()));
         assert_eq!(Turn::unit(0.), app.eval(|x: Res<Body>| x.turn()));
-        assert_eq!(BodyAction::None, app.eval(|x: Res<Body>| x.action_kind()));
+        // assert_eq!(BodyAction::None, app.eval(|x: Res<Body>| x.action_kind()));
     }
 
     #[test]
@@ -465,7 +475,7 @@ mod test {
         assert_eq!(Point(0.5, 0.5), app.eval(|x: Res<Body>| x.pos()));
 
         app.eval(|mut x: ResMut<Body>| {
-            x.action(BodyAction::Roam, 1., Turn::unit(0.));
+            x.action(1., Turn::unit(0.), 1., Seconds(1.));
         });
         
         app.tick();
@@ -474,12 +484,12 @@ mod test {
         assert_eq!(Heading::unit(0.0), app.eval(|x: Res<Body>| x.dir()));
         assert_eq!(Heading::unit(0.0), app.eval(|x: Res<Body>| x.head_dir()));
         assert_eq!(Point(0.49999988, 1.05), app.eval(|x: Res<Body>| x.head_pos()));
-        assert_eq!(true, app.eval(|x: Res<Body>| x.is_moving()));
+        // assert_eq!(true, app.eval(|x: Res<Body>| x.is_moving()));
         assert_eq!(false, app.eval(|x: Res<Body>| x.is_collide_left()));
         assert_eq!(false, app.eval(|x: Res<Body>| x.is_collide_right()));
         assert_eq!(1., app.eval(|x: Res<Body>| x.speed()));
         assert_eq!(Turn::unit(0.), app.eval(|x: Res<Body>| x.turn()));
-        assert_eq!(BodyAction::Roam, app.eval(|x: Res<Body>| x.action_kind()));
+        // assert_eq!(BodyAction::Roam, app.eval(|x: Res<Body>| x.action_kind()));
         
         app.tick();
 
@@ -487,12 +497,12 @@ mod test {
         assert_eq!(Heading::unit(0.0), app.eval(|x: Res<Body>| x.dir()));
         assert_eq!(Heading::unit(0.0), app.eval(|x: Res<Body>| x.head_dir()));
         assert_eq!(Point(0.49999985, 1.1), app.eval(|x: Res<Body>| x.head_pos()));
-        assert_eq!(true, app.eval(|x: Res<Body>| x.is_moving()));
+        // assert_eq!(true, app.eval(|x: Res<Body>| x.is_moving()));
         assert_eq!(false, app.eval(|x: Res<Body>| x.is_collide_left()));
         assert_eq!(false, app.eval(|x: Res<Body>| x.is_collide_right()));
         assert_eq!(1., app.eval(|x: Res<Body>| x.speed()));
         assert_eq!(Turn::unit(0.), app.eval(|x: Res<Body>| x.turn()));
-        assert_eq!(BodyAction::Roam, app.eval(|x: Res<Body>| x.action_kind()));
+        // assert_eq!(BodyAction::Roam, app.eval(|x: Res<Body>| x.action_kind()));
 
         for _ in 0..Ticks::TICKS_PER_SECOND - 1 {
             app.tick();
@@ -502,11 +512,11 @@ mod test {
         assert_eq!(Heading::unit(0.0), app.eval(|x: Res<Body>| x.dir()));
         assert_eq!(Heading::unit(0.0), app.eval(|x: Res<Body>| x.head_dir()));
         assert_eq!(Point(0.49999976, 1.4999998), app.eval(|x: Res<Body>| x.head_pos()));
-        assert_eq!(false, app.eval(|x: Res<Body>| x.is_moving()));
+        // assert_eq!(false, app.eval(|x: Res<Body>| x.is_moving()));
         assert_eq!(false, app.eval(|x: Res<Body>| x.is_collide_left()));
         assert_eq!(false, app.eval(|x: Res<Body>| x.is_collide_right()));
         assert_eq!(0., app.eval(|x: Res<Body>| x.speed()));
         assert_eq!(Turn::unit(0.), app.eval(|x: Res<Body>| x.turn()));
-        assert_eq!(BodyAction::None, app.eval(|x: Res<Body>| x.action_kind()));
+        // assert_eq!(BodyAction::None, app.eval(|x: Res<Body>| x.action_kind()));
     }
 }

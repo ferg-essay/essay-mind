@@ -11,7 +11,7 @@ use crate::util::{Command, DecayValue, HalfLife, Seconds, Ticks, Turn};
 /// Turns are encoded by braking the left or the right. Braking both stops
 /// the animal.
 /// 
-pub struct HindMove {
+pub struct _HindMove {
     commands: Command<MoveCommand>,
 
     next_action: ActionKind,
@@ -26,7 +26,7 @@ pub struct HindMove {
     sleep: DecayValue,
 }
 
-impl HindMove {
+impl _HindMove {
     const HALF_LIFE : f32 = 0.2;
 
     fn new() -> Self {
@@ -191,7 +191,7 @@ impl HindMove {
         }
 
         if self.action.is_active() {
-            body.action(self.action.kind, self.action.speed, self.action.turn);
+            body.action(self.action.speed, self.action.turn, 1., 1.);
         }
     }
 
@@ -235,7 +235,7 @@ impl HindMove {
     }
 }
 
-impl Default for HindMove {
+impl Default for _HindMove {
     fn default() -> Self {
         Self::new()
     }
@@ -352,7 +352,7 @@ impl Action {
 fn update_hind_move(
     mut body: ResMut<Body>, 
     wake: Res<Motive<Wake>>,
-    mut hind_move: ResMut<HindMove>, 
+    mut hind_move: ResMut<_HindMove>, 
 ) {
     //hind_move.pre_update();
 
@@ -361,13 +361,13 @@ fn update_hind_move(
     hind_move.update(body.get_mut(), wake.get());
 }
 
-pub struct HindMovePlugin;
+pub struct _HindMovePlugin;
 
-impl Plugin for HindMovePlugin {
+impl Plugin for _HindMovePlugin {
     fn build(&self, app: &mut App) {
         assert!(app.contains_plugin::<BodyPlugin>(), "HindMovePlugin requires BodyPlugin");
 
-        app.init_resource::<HindMove>();
+        app.init_resource::<_HindMove>();
 
         app.system(Tick, update_hind_move);
     }
@@ -378,14 +378,14 @@ mod test {
     use essay_ecs::core::Res;
     use mind_ecs::MindApp;
 
-    use crate::{body::{Body, BodyPlugin}, hind_motor::HindMovePlugin, util::Point, world::WorldPlugin};
+    use crate::{body::{Body, BodyPlugin}, hind_motor::_HindMovePlugin, util::Point, world::WorldPlugin};
 
     #[test]
     fn test_default() {
         let mut app = MindApp::test();
         app.plugin(WorldPlugin::new(7, 13));
         app.plugin(BodyPlugin::new());
-        app.plugin(HindMovePlugin);
+        app.plugin(_HindMovePlugin);
 
         assert_eq!(Point(0.5, 0.5), app.eval(|x: Res<Body>| x.pos()));
 

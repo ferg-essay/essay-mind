@@ -5,6 +5,8 @@ use crate::core_motive::{Motive, Wake};
 use crate::util::{Command, DecayValue, DirVector, Seconds, Ticks, Turn};
 use util::random::{random_normal, random_pareto, random_uniform};
 
+use super::move_hind::{Action, ActionKind};
+
 ///
 /// HindMove represents hindbrain motor areas, particularly reticulospinal
 /// areas (R.rs).
@@ -22,7 +24,7 @@ use util::random::{random_normal, random_pareto, random_uniform};
 /// is a wall next to the first. An open area is 0.0.
 /// 
 /// 
-pub struct HindLevyMove {
+pub struct LevyWalk {
     move_commands: Command<MoveCommand>,
     turn_commands: Command<TurnCommand>,
 
@@ -47,7 +49,7 @@ pub struct HindLevyMove {
     is_last_turn: bool,
 }
 
-impl HindLevyMove {
+impl LevyWalk {
     const HALF_LIFE : f32 = 0.2;
 
     const _TURN_MEAN : f32 = 60.;
@@ -56,7 +58,7 @@ impl HindLevyMove {
     const UTURN_MEAN : f32 = 160.;
     const UTURN_STD : f32 = 15.;
 
-    fn new() -> Self {
+    pub(super) fn new() -> Self {
         Self {
             move_commands: Command::new(),
             turn_commands: Command::new(),
@@ -118,7 +120,7 @@ impl HindLevyMove {
 
     #[inline]
     pub fn is_stop(&self) -> bool {
-        self.next_action == ActionKind::Stop
+        self.next_action == ActionKind::None
     }
 
     ///
@@ -195,6 +197,7 @@ impl HindLevyMove {
     }
 
     fn move_command(&mut self, event: &MoveCommand) {
+        /*
         match event {
             // explore/speed modes
             MoveCommand::SeekRoam => {
@@ -226,6 +229,7 @@ impl HindLevyMove {
                 //self.random_walk.stop();
             }
         }
+        */
     }
 
     fn update_turn_commands(&mut self) {
@@ -235,6 +239,7 @@ impl HindLevyMove {
     }
 
     fn turn_command(&mut self, event: TurnCommand) {
+        /*
         match event {
             // collision/escape - strong avoid events
             TurnCommand::StrongAvoidLeft => {
@@ -285,6 +290,7 @@ impl HindLevyMove {
                 self.next_action = self.next_action.avoid_right();
             }
         }
+        */
     }
 
     fn add_avoid(&mut self, avoid_dir: DirVector) {
@@ -316,6 +322,7 @@ impl HindLevyMove {
         body: &mut Body,
         wake: &Motive<Wake>,
     ) {
+        /*
         self.action.pre_update();
 
         if self.next_action.is_curtail() {
@@ -328,6 +335,7 @@ impl HindLevyMove {
         }
 
         body.action(self.action.speed, self.action.turn, 1., Seconds(1.));
+        */
     }
 
     ///
@@ -337,6 +345,7 @@ impl HindLevyMove {
         &mut self,
         wake: &Motive<Wake>,
     ) -> Action {
+        /*
         let move_command = self.get_move();
 
         if move_command == MoveCommand::Stop {
@@ -356,9 +365,13 @@ impl HindLevyMove {
 
             self.action_turn(move_command)
         }
+        */
+        todo!()
     }
 
     fn get_move(&self) -> MoveCommand {
+        todo!();
+        /*
         if self.next_action == ActionKind::Stop {
             MoveCommand::Stop
         } else if self.avoid.is_active() {
@@ -378,7 +391,25 @@ impl HindLevyMove {
         } else {
             MoveCommand::Stop
         }
+        */
     }
+
+    pub(super) fn next_action(&mut self) -> Action {
+
+        // semi-brownian
+        if random_uniform() <= 0.5 {
+            Action::new(ActionKind::Roam, 0.5, Turn::Deg(0.), Seconds(1.), 1.)
+        } else if random_uniform() <= 0.5 {
+            let turn = Turn::Deg(-30.);
+
+            Action::new(ActionKind::Roam, 0.5, turn, Seconds(1.), 1.)
+        } else {
+            let turn = Turn::Deg(30.);
+
+            Action::new(ActionKind::Roam, 0.5, turn, Seconds(1.), 1.)
+        }
+    }
+
 
     ///
     /// "run" is a straight movement in a run and tumble search
@@ -391,7 +422,7 @@ impl HindLevyMove {
 
         let len = move_command.run_len();
 
-        Action::new(move_command.body(), len, speed, Turn::Unit(0.))
+        Action::new(move_command.kind(), speed, Turn::Unit(0.), Seconds(len as f32), 1.)
     }
 
     ///
@@ -420,14 +451,14 @@ impl HindLevyMove {
         if random_uniform() <= p_left {
             let turn = Turn::unit(- turn.to_unit());
 
-            Action::new(move_command.body(), len, speed, turn)
+            Action::new(move_command.kind(), speed, turn, Seconds(len as f32), 1.)
         } else {
-            Action::new(move_command.body(), len, speed, turn)
+            Action::new(move_command.kind(), speed, turn, Seconds(len as f32), 1.)
         }
     }
 }
 
-impl Default for HindLevyMove {
+impl Default for LevyWalk {
     fn default() -> Self {
         Self::new()
     }
@@ -505,7 +536,8 @@ impl MoveCommand {
         }
     }
 
-    fn body(&self) -> BodyAction {
+    fn kind(&self) -> ActionKind {
+        /*
         match self {
             MoveCommand::SeekRoam => BodyAction::Seek,
             MoveCommand::SeekDwell => BodyAction::Seek,
@@ -514,6 +546,17 @@ impl MoveCommand {
             MoveCommand::Dwell => BodyAction::Dwell,
             MoveCommand::Sleep => BodyAction::Sleep,
             MoveCommand::Stop => BodyAction::None,
+        }
+        */
+
+        match self {
+            MoveCommand::SeekRoam => ActionKind::Roam,
+            MoveCommand::SeekDwell => ActionKind::Roam,
+            MoveCommand::Avoid => ActionKind::Roam,
+            MoveCommand::Roam => ActionKind::Roam,
+            MoveCommand::Dwell => ActionKind::Roam,
+            MoveCommand::Sleep => ActionKind::Roam,
+            MoveCommand::Stop => ActionKind::None,
         }
     }
 }
@@ -538,21 +581,10 @@ pub enum TurnCommand {
     AvoidUTurn,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
-enum ActionKind {
-    None,
-    Stop,
-    Roam,
-    Seek,
-    StrongAvoidLeft,
-    StrongAvoidRight,
-    StrongAvoidBoth,
-}
-
 impl ActionKind {
     fn pre_update(&self) -> Self {
         match self {
-            ActionKind::Stop => ActionKind::Stop,
+            ActionKind::None => ActionKind::None,
             _ => ActionKind::Roam,
         }
     }
@@ -572,6 +604,7 @@ impl ActionKind {
         }
     }
 
+    /*
     fn avoid_left(&self) -> Self {
         match self {
             ActionKind::StrongAvoidLeft => ActionKind::StrongAvoidLeft,
@@ -599,49 +632,13 @@ impl ActionKind {
             _ => false,
         }
     }
-}
-
-#[derive(Clone, Debug)]
-struct Action {
-    kind: BodyAction,
-    time: f32,
-    speed: f32,
-    turn: Turn,
-}
-
-impl Action {
-    fn new(kind: BodyAction, time: impl Into<Seconds>, speed: f32, turn: Turn) -> Self {
-        Self {
-            kind,
-            time: time.into().0,
-            speed,
-            turn,
-        }
-    }
-
-    fn none() -> Self {
-        Action::new(BodyAction::None, 0., 0., Turn::Unit(0.))
-    }
-
-    fn pre_update(&mut self) {
-        self.time -= Ticks(1).to_seconds();
-    }
-
-    fn curtail(&mut self) {
-        if self.turn.to_unit() == 0. {
-            self.time = 0.;
-        }
-    }
-
-    fn is_active(&self) -> bool {
-        self.time >= 1.0e-6
-    }
+    */
 }
 
 fn update_hind_move(
     mut body: ResMut<Body>, 
     wake: Res<Motive<Wake>>,
-    mut hind_move: ResMut<HindLevyMove>, 
+    mut hind_move: ResMut<LevyWalk>, 
 ) {
     hind_move.pre_update();
 
@@ -659,64 +656,4 @@ fn update_hind_move(
     hind_move.update(body.get_mut(), wake.get());
 }
 
-pub struct HindLevyPlugin;
-
-impl Plugin for HindLevyPlugin {
-    fn build(&self, app: &mut App) {
-        assert!(app.contains_plugin::<BodyPlugin>(), "HindMovePlugin requires BodyPlugin");
-
-        app.init_resource::<HindLevyMove>();
-
-        app.system(Tick, update_hind_move);
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use essay_ecs::core::Res;
-    use mind_ecs::MindApp;
-
-    use crate::{
-        body::{Body, BodyPlugin}, 
-        hind_motor::{HindLevyMove, HindLevyPlugin}, 
-        util::Point, 
-        world::WorldPlugin
-    };
-
-    #[test]
-    fn test_default() {
-        let mut app = MindApp::test();
-        app.plugin(WorldPlugin::new(7, 13));
-        app.plugin(BodyPlugin::new());
-        app.plugin(HindLevyPlugin);
-
-        assert_eq!(Point(0.5, 0.5), app.eval(|x: Res<Body>| x.pos()));
-
-        for _ in 0..100 {
-            app.tick();
-        }
-
-        assert_eq!(Point(0.5, 0.5), app.eval(|x: Res<Body>| x.pos()));
-    }
-
-    #[test]
-    fn roam() {
-        let mut app = MindApp::new();
-        app.plugin(WorldPlugin::new(7, 13));
-        app.plugin(BodyPlugin::new());
-        app.plugin(HindLevyPlugin);
-
-        assert_eq!(Point(0.5, 0.5), app.eval(|x: Res<Body>| x.pos()));
-        app.eval(|x: Res<HindLevyMove>| x.roam());
-        assert_eq!(Point(0.5, 0.5), app.eval(|x: Res<Body>| x.pos()));
-
-        app.tick();
-        assert_eq!(Point(0.5, 0.5), app.eval(|x: Res<Body>| x.pos()));
-        app.tick();
-        assert_eq!(Point(0.49996704, 0.525), app.eval(|x: Res<Body>| x.pos()));
-        app.tick();
-        assert_eq!(Point(0.49990112, 0.5499999), app.eval(|x: Res<Body>| x.pos()));
-
-        // TODO: randomness issues with testing
-    }
-}
+pub struct LevyWalkPlugin;

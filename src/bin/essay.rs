@@ -9,7 +9,7 @@ use vertebrate::{
     hab_taxis::{
         chemotaxis::{Avoid, Chemotaxis, Seek}, klinotaxis::KlinotaxisPlugin, phototaxis::Phototaxis
     }, 
-    hind_motor::{HindEat, HindEatPlugin, HindLevyPlugin, HindMovePlugin}, 
+    hind_motor::{HindEat, HindEatPlugin, HindLevyPlugin, HindMovePlugin, _HindMovePlugin}, 
     mid_motor::MidMotorPlugin, 
     olfactory_bulb::{ObEvent, OlfactoryBulb, OlfactoryPlugin}, retina::RetinaPlugin, 
     tectum::{TectumLoomingPlugin, TectumPlugin}, 
@@ -42,7 +42,8 @@ pub fn main() {
     app.plugin(BodyPlugin::new());
     app.plugin(BodyEatPlugin);
 
-    app.plugin(HindLevyPlugin);
+    //app.plugin(HindLevyPlugin);
+    //app.plugin(_HindMovePlugin);
     app.plugin(HindMovePlugin);
     app.plugin(HindEatPlugin);
 
@@ -61,15 +62,15 @@ pub fn main() {
     app.plugin(TectumLoomingPlugin::new());
     // app.plugin(ChemotaxisPlugin);
     // app.plugin(TegSeekPlugin::<OlfactoryBulb, FoodSearch>::new());
-    app.plugin(KlinotaxisPlugin::<OlfactoryBulb, FoodSearch>::new());
+    //app.plugin(KlinotaxisPlugin::<OlfactoryBulb, FoodSearch>::new());
     // app.plugin(LateralLinePlugin);
 
-    app.plugin(MidMotorPlugin);
+    //app.plugin(MidMotorPlugin);
 
     app.plugin(CoreWakePlugin::new());
-    app.plugin(CoreExplorePlugin);
+    // app.plugin(CoreExplorePlugin);
     // app.plugin(CorePeptidesPlugin);
-    app.plugin(CoreEatingPlugin);
+    // app.plugin(CoreEatingPlugin);
 
     // app.system(Tick, dwell_olfactory);
     //app.system(Tick, dwell_eat);
