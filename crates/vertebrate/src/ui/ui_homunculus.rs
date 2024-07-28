@@ -329,8 +329,10 @@ fn sensorimotor_colormap() -> ColorMap {
 fn motor_colormap() -> ColorMap {
     ColorMap::from([
         (0., Color::white()),
-        (0.25, Color::from("azure")),
-        (0.5, Color::from_hsv(0.8, 0.9, 0.4)),
+        // (0.25, Color::from("azure")),
+        //(0.25, Color::from("azure")),
+        (0.5, Color::from_hsv(0.66, 0.98, 0.65)), // "cobalt blue" 
+        (0.51, Color::from_hsv(0.8, 0.9, 0.4)),
         (0.75, Color::from("orange")),
         // (1., Color::from("tomato")),
         (1., Color::from("red")),

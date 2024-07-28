@@ -327,7 +327,7 @@ impl HindLevyMove {
             self.next_action = ActionKind::None;
         }
 
-        body.action(self.action.speed, self.action.turn, 1., Seconds(1.));
+        body.action(self.action.speed, self.action.turn, Seconds(1.));
     }
 
     ///

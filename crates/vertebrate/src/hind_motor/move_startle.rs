@@ -1,12 +1,14 @@
-use crate::body::Body;
+use crate::{body::Body, util::{Seconds, Turn}};
 
-pub struct Mauthner {
+use super::move_hind::{Action, ActionKind};
+
+pub struct Startle {
     ss_forward: f32,
     ss_left: f32,
     ss_right: f32,
 }
 
-impl Mauthner {
+impl Startle {
     pub(super) fn new() -> Self {
         Self {
             ss_forward: 0.,
@@ -43,5 +45,17 @@ impl Mauthner {
 
     pub(super) fn ss_right(&self) -> f32 {
         self.ss_right
+    }
+    
+    pub(super) fn next_action(&self) -> Option<Action> {
+        if self.ss_forward > 0.5 {
+            Some(Action::new(ActionKind::Startle, 1., Turn::Unit(0.5), Seconds(2.0)))
+        } else if self.ss_left > 0.5 {
+            Some(Action::new(ActionKind::Startle, 1., Turn::Unit(0.25), Seconds(1.0)))
+        } else if self.ss_right > 0.5 {
+            Some(Action::new(ActionKind::Startle, 1., Turn::Unit(-0.25), Seconds(1.0)))
+        } else {
+            None
+        }
     }
 }

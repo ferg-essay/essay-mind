@@ -1,13 +1,13 @@
-use essay_ecs::{app::{App, Plugin}, core::ResMut};
+use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}};
 use mind_ecs::Tick;
 
-use crate::{body::{Body, BodyPlugin}, util::{Seconds, Ticks, Turn}};
+use crate::{body::{Body, BodyPlugin}, core_motive::{Motive, Wake}, util::{Seconds, Ticks, Turn}};
 
-use super::{move_search::LevyWalk, move_startle::Mauthner};
+use super::{move_search::LevyWalk, move_startle::Startle};
 
 pub struct HindLocomotion {
     search: Option<LevyWalk>,
-    startle: Option<Mauthner>,
+    startle: Option<Startle>,
 
     action: Action,
     
@@ -47,7 +47,7 @@ impl HindLocomotion {
         }
     }
 
-    fn update(&mut self, body: &mut Body) {
+    fn update(&mut self, body: &mut Body, wake: &Motive<Wake>) {
         self.clear();
 
         self.action.update();
@@ -58,6 +58,16 @@ impl HindLocomotion {
             self.ss_forward = startle.ss_forward().max(self.ss_forward);
             self.ss_left = startle.ss_left().max(self.ss_left);
             self.ss_right = startle.ss_right().max(self.ss_right);
+
+            if self.action.allow_startle() {
+                if let Some(action) = startle.next_action() {
+                    self.action = action;
+                }
+            }
+        }
+
+        if ! wake.is_active() {
+            return;
         }
 
         if let Some(search) = &mut self.search {
@@ -67,9 +77,32 @@ impl HindLocomotion {
         }
 
         if self.action.is_active() {
-            let Action { speed, turn, time, factor, .. } = self.action;
+            let Action { speed, turn, timeout, elapsed, .. } = self.action;
 
-            body.action(speed, turn, factor, time);
+            // println!("Turn {:?} {:?}", self.action.kind, turn);
+
+            let turn_per_tick = Turn::Unit(turn.to_unit() / timeout.ticks().max(1) as f32);
+
+            body.action(
+                speed, 
+                turn_per_tick,
+                Ticks(timeout.ticks() - elapsed.ticks())
+            );
+
+            self.mo_forward = speed;
+            let turn = turn.to_unit();
+
+            let turn_value = match self.action.kind {
+                ActionKind::Startle => 0.5 + 2. * turn.abs(),
+                _ => (2. * turn.abs()).min(0.49),
+            };
+
+            if turn < -1.0e-3 {
+                self.mo_left = turn_value;
+            } else if turn > 1.0e-3 {
+                self.mo_right = turn_value;
+
+            }
         }
     }
 
@@ -128,33 +161,49 @@ impl HindLocomotion {
 #[derive(Clone, Debug)]
 pub(super) struct Action {
     kind: ActionKind,
-    factor: f32,
-    time: f32,
     speed: f32,
     turn: Turn,
+    timeout: Ticks,
+    elapsed: Ticks,
 }
 
 impl Action {
-    pub(super) fn new(kind: ActionKind, speed: f32, turn: Turn, time: impl Into<Seconds>, factor: f32) -> Self {
+    pub(super) fn new(kind: ActionKind, speed: f32, turn: Turn, time: impl Into<Ticks>) -> Self {
+        let timeout = time.into();
+        let time = timeout.ticks();
+
         Self {
             kind,
-            time: time.into().0,
-            factor,
             speed,
             turn,
+            timeout,
+            elapsed: Ticks(0),
         }
     }
 
     pub(super) fn none() -> Self {
-        Action::new(ActionKind::None, 0.,Turn::Unit(0.), 1., 0.)
+        Action::new(ActionKind::None, 0., Turn::Unit(0.), Seconds(1.))
     }
 
     fn update(&mut self) {
-        self.time -= 1. / Ticks::TICKS_PER_SECOND as f32;
+        self.elapsed = Ticks(self.elapsed.ticks() + 1);
     }
 
     fn is_active(&self) -> bool {
-        self.time >= 1.0e-6
+        self.elapsed.ticks() < self.timeout.ticks()
+    }
+
+    fn allow_startle(&self) -> bool {
+        if ! self.is_active() {
+            return true;
+        } else {
+            match self.kind {
+                ActionKind::None => true,
+                ActionKind::Roam => true,
+                ActionKind::Seek => true,
+                ActionKind::Startle => false,
+            }
+        }
     }
 }
 
@@ -163,13 +212,15 @@ pub(super) enum ActionKind {
     None,
     Roam,
     Seek,
+    Startle,
 }
 
 fn update_hind_move(
     mut hind_move: ResMut<HindLocomotion>,
-    mut body: ResMut<Body>
+    mut body: ResMut<Body>,
+    wake: Res<Motive<Wake>>,
 ) {
-    hind_move.update(body.get_mut());
+    hind_move.update(body.get_mut(), wake.get());
 }
 
 pub struct HindMovePlugin;
@@ -180,7 +231,7 @@ impl Plugin for HindMovePlugin {
 
         let mut hind_move = HindLocomotion::new();
         hind_move.search = Some(LevyWalk::new());
-        hind_move.startle = Some(Mauthner::new());
+        hind_move.startle = Some(Startle::new());
 
         app.insert_resource(hind_move);
 

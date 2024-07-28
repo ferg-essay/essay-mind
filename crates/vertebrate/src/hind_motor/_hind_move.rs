@@ -191,7 +191,7 @@ impl _HindMove {
         }
 
         if self.action.is_active() {
-            body.action(self.action.speed, self.action.turn, 1., 1.);
+            body.action(self.action.speed, self.action.turn, Seconds(1.));
         }
     }
 

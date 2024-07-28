@@ -398,15 +398,15 @@ impl LevyWalk {
 
         // semi-brownian
         if random_uniform() <= 0.5 {
-            Action::new(ActionKind::Roam, 0.5, Turn::Deg(0.), Seconds(1.), 1.)
+            Action::new(ActionKind::Roam, 0.5, Turn::Deg(0.), Seconds(1.))
         } else if random_uniform() <= 0.5 {
             let turn = Turn::Deg(-30.);
 
-            Action::new(ActionKind::Roam, 0.5, turn, Seconds(1.), 1.)
+            Action::new(ActionKind::Roam, 0.5, turn, Seconds(1.))
         } else {
             let turn = Turn::Deg(30.);
 
-            Action::new(ActionKind::Roam, 0.5, turn, Seconds(1.), 1.)
+            Action::new(ActionKind::Roam, 0.5, turn, Seconds(1.))
         }
     }
 
@@ -422,7 +422,7 @@ impl LevyWalk {
 
         let len = move_command.run_len();
 
-        Action::new(move_command.kind(), speed, Turn::Unit(0.), Seconds(len as f32), 1.)
+        Action::new(move_command.kind(), speed, Turn::Unit(0.), Seconds(len as f32))
     }
 
     ///
@@ -451,9 +451,9 @@ impl LevyWalk {
         if random_uniform() <= p_left {
             let turn = Turn::unit(- turn.to_unit());
 
-            Action::new(move_command.kind(), speed, turn, Seconds(len as f32), 1.)
+            Action::new(move_command.kind(), speed, turn, Seconds(len as f32))
         } else {
-            Action::new(move_command.kind(), speed, turn, Seconds(len as f32), 1.)
+            Action::new(move_command.kind(), speed, turn, Seconds(len as f32))
         }
     }
 }

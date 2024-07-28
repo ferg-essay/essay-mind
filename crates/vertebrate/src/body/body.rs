@@ -165,8 +165,8 @@ impl Body {
     }
 
     #[inline]
-    pub fn action(&mut self, speed: f32, turn: Turn, tick_factor: f32, timeout: impl Into<Seconds>) {
-        self.action = Action::new(speed, turn, tick_factor, timeout);
+    pub fn action(&mut self, speed: f32, turn_per_tick: Turn, timeout: impl Into<Ticks>) {
+        self.action = Action::new(speed, turn_per_tick, timeout);
     }
 
     #[inline]
@@ -192,7 +192,7 @@ impl Body {
 
     #[inline]
     pub fn turn(&self) -> Turn {
-        self.action.turn
+        Turn::Unit(4. * self.action.turn.to_unit())
     }
 
     ///
@@ -201,13 +201,10 @@ impl Body {
     pub fn update(&mut self, world: &World) {
         self.action.update();
 
-        let tick_factor = self.action.tick_factor / Ticks::TICKS_PER_SECOND as f32;
-
-        let speed = self.action.speed * tick_factor;
+        let speed = self.action.speed;
 
         let mut dir = self.dir.to_unit();
-        let turn = self.action.turn.to_unit() * tick_factor;
-        dir += turn;
+        dir += self.action.turn.to_unit();
 
         // random noise into direction
         if speed > 0. && random_uniform() < self.noise_threshold {
@@ -280,19 +277,19 @@ fn body_update(
 struct Action {
     speed: f32,
     turn: Turn,
-    tick_factor: f32,
-    timeout: Seconds,
+    timeout: Ticks,
 }
 
 impl Action {
-    fn new(speed: f32, turn: Turn, tick_factor: f32, timeout: impl Into<Seconds>) -> Self {
+    fn new(speed: f32, turn: Turn, timeout: impl Into<Ticks>) -> Self {
         assert!(-1. <= speed && speed <= 1.);
 
+        let ticks = timeout.into();
+
         Self {
-            speed,
+            speed: speed / Ticks::TICKS_PER_SECOND as f32,
             turn,
-            tick_factor,
-            timeout: timeout.into(),
+            timeout: ticks,
         }
     }
 
@@ -300,18 +297,17 @@ impl Action {
         Self {
             speed: 0.,
             turn: Turn::Unit(0.),
-            tick_factor: 1.,
-            timeout: Seconds(60.),
+            timeout: Ticks(1000),
         }
     }
 
     fn update(&mut self) {
-        if self.timeout.v() > 1.0e-3 {
-            self.timeout = Seconds(self.timeout.v() - 1. / Ticks::TICKS_PER_SECOND as f32);
+        if self.timeout.ticks() > 0 {
+            self.timeout = Ticks(self.timeout.ticks() - 1);
         } else {
             self.speed = 0.;
             self.turn = Turn::unit(0.);
-            self.timeout = Seconds(60.);
+            self.timeout = Ticks(1000);
         }
     }
 }
@@ -475,7 +471,7 @@ mod test {
         assert_eq!(Point(0.5, 0.5), app.eval(|x: Res<Body>| x.pos()));
 
         app.eval(|mut x: ResMut<Body>| {
-            x.action(1., Turn::unit(0.), 1., Seconds(1.));
+            x.action(1., Turn::unit(0.), Seconds(1.));
         });
         
         app.tick();
