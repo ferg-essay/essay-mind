@@ -7,6 +7,8 @@ use util::random::{random_normal, random_pareto, random_uniform};
 
 use super::move_hind::{Action, ActionKind};
 
+// Karpenko et al 2020 - ARTR oscillator 20s period
+
 ///
 /// HindMove represents hindbrain motor areas, particularly reticulospinal
 /// areas (R.rs).
@@ -24,7 +26,7 @@ use super::move_hind::{Action, ActionKind};
 /// is a wall next to the first. An open area is 0.0.
 /// 
 /// 
-pub struct LevyWalk {
+pub struct OscillatorArs {
     move_commands: Command<MoveCommand>,
     turn_commands: Command<TurnCommand>,
 
@@ -49,7 +51,7 @@ pub struct LevyWalk {
     is_last_turn: bool,
 }
 
-impl LevyWalk {
+impl OscillatorArs {
     const HALF_LIFE : f32 = 0.2;
 
     const _TURN_MEAN : f32 = 60.;
@@ -410,6 +412,17 @@ impl LevyWalk {
         }
     }
 
+    pub(super) fn next_turn(&mut self) -> Option<Turn> {
+        // semi-brownian
+        if random_uniform() <= 0.5 {
+            Some(Turn::Deg(0.))
+        } else if random_uniform() <= 0.5 {
+            Some(Turn::Deg(-30.))
+        } else {
+            Some(Turn::Deg(30.))
+        }
+    }
+
 
     ///
     /// "run" is a straight movement in a run and tumble search
@@ -458,7 +471,7 @@ impl LevyWalk {
     }
 }
 
-impl Default for LevyWalk {
+impl Default for OscillatorArs {
     fn default() -> Self {
         Self::new()
     }
@@ -638,7 +651,7 @@ impl ActionKind {
 fn update_hind_move(
     mut body: ResMut<Body>, 
     wake: Res<Motive<Wake>>,
-    mut hind_move: ResMut<LevyWalk>, 
+    mut hind_move: ResMut<OscillatorArs>, 
 ) {
     hind_move.pre_update();
 

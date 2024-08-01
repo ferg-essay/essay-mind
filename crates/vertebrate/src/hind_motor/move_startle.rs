@@ -2,13 +2,13 @@ use crate::{body::Body, util::{Seconds, Turn}};
 
 use super::move_hind::{Action, ActionKind};
 
-pub struct Startle {
+pub struct StartleMrs {
     ss_forward: f32,
     ss_left: f32,
     ss_right: f32,
 }
 
-impl Startle {
+impl StartleMrs {
     pub(super) fn new() -> Self {
         Self {
             ss_forward: 0.,

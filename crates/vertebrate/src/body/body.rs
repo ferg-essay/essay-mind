@@ -41,6 +41,8 @@ pub struct Body {
 }
 
 impl Body {
+    const MID_LEN : f32 = 0.2;
+
     pub fn new(pos: Point) -> Self {
         let mut noise_threshold = 0.2;
 
@@ -48,9 +50,11 @@ impl Body {
             noise_threshold = 0.;
         }
 
+        let body_len = 0.8;
+
         Self {
-            body_len: 1.,
-            middle_len: 0.2,
+            body_len,
+            middle_len: Self::MID_LEN * body_len,
 
             cast_angle: Angle::Unit(0.),
             cast_delta: Angle::Unit(0.),
@@ -224,7 +228,7 @@ impl Body {
 
         let head = self.head_pos();
 
-        let s = 0.1;
+        let s = 0.1 * self.len();
         let (dy, dx) = self.dir.sin_cos();
         let (dy, dx) = (s * dy, s * dx);
 

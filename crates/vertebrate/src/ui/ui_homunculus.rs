@@ -11,7 +11,7 @@ use essay_plot::{
 
 use ui_graphics::{UiCanvas, ui_canvas::UiRender};
 use crate::{
-    body::Body, hab_taxis::Taxis, hind_motor::{HindLevyMove, HindLocomotion}, 
+    body::Body, hab_taxis::Taxis, hind_motor::{HindLevyMove, HindMove}, 
     tectum::TectumMap,
     util::Turn 
 };
@@ -52,7 +52,7 @@ pub fn ui_homunculus_draw(
     mut ui_homunculus: ResMut<UiHomunculus>,
     body: Res<Body>,
     // hind_levy: Res<HindLevyMove>,
-    hind_move: Res<HindLocomotion>,
+    hind_move: Res<HindMove>,
     taxis: Res<Taxis>,
     tectum: Res<TectumMap>,
 ) {

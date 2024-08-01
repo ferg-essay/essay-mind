@@ -1,7 +1,7 @@
 use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}};
 use mind_ecs::Tick;
 
-use crate::{retina::{Retina, RetinaPlugin}, util::{DecayValue, Seconds}};
+use crate::{hind_motor::HindMove, retina::{Retina, RetinaPlugin}, util::{DecayValue, Seconds, Turn}};
 
 struct Looming {
     threshold: f32,
@@ -45,7 +45,11 @@ impl Looming {
     }
 }
 
-fn looming_update(mut looming: ResMut<Looming>, retina: Res<Retina>) {
+fn looming_update(
+    mut looming: ResMut<Looming>, 
+    retina: Res<Retina>,
+    mut hind_move: ResMut<HindMove>
+) {
     looming.update();
 
     looming.dim_left.add((- retina.brighten_left()).max(0.));
@@ -56,6 +60,7 @@ fn looming_update(mut looming: ResMut<Looming>, retina: Res<Retina>) {
     looming.light_mid.add(0.5 * (retina.light_left() + retina.light_right()));
 
     if looming.is_looming() {
+        /*
         println!("Loom ({:.3}, {:.3}) {:.2} {:.2}({:.2}), {:.2}({:.2}))", 
             looming.dim_left.value(), 
             looming.dim_right.value(), 
@@ -65,6 +70,19 @@ fn looming_update(mut looming: ResMut<Looming>, retina: Res<Retina>) {
             retina.light_right() - looming.light_right.value(),
             retina.light_right() - looming.light_mid.value(),
         );
+        */
+
+        let light_mid = looming.light_mid.value();
+        let left_dim = retina.light_left() - light_mid;
+        let right_dim = retina.light_right() - light_mid;
+
+        if light_mid * 0.1 < left_dim - right_dim {
+            hind_move.optic().escape(Turn::Unit(-0.12));
+        } else if light_mid * 0.1 < right_dim - left_dim {
+            hind_move.optic().escape(Turn::Unit(0.12));
+        } else {
+            hind_move.optic().u_turn();
+        }
     }
 }
 

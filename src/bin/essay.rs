@@ -3,7 +3,7 @@ use std::time::Duration;
 use essay_plot::api::{Colors, Point};
 use vertebrate::{
     body::{Body, BodyEatPlugin, BodyPlugin}, core_motive::{
-        eat::{CoreEatingPlugin, Eat, FoodSearch, Sated}, 
+        eat::{Eat, FoodSearch, Sated}, 
         wake::Sleep, CoreExplorePlugin, CoreWakePlugin, Dwell, Motive, MotiveTrait, Roam, Wake
     }, 
     hab_taxis::{

@@ -1,5 +1,5 @@
 mod move_hind;
-mod move_search;
+mod move_oscillator;
 mod move_startle;
 
 mod _hind_move;
@@ -11,7 +11,7 @@ pub use _hind_move::{
 };
 
 pub use move_hind::{
-    HindLocomotion,
+    HindMove,
     HindMovePlugin,
 };
 
