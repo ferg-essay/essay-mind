@@ -13,6 +13,7 @@ pub use _hind_move::{
 pub use move_hind::{
     HindMove,
     HindMovePlugin,
+    MoveKind,
 };
 
 pub use hind_move_levy::{

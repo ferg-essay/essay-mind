@@ -5,7 +5,7 @@ use crate::core_motive::{Motive, Wake};
 use crate::util::{Command, DecayValue, DirVector, Seconds, Ticks, Turn};
 use util::random::{random_normal, random_pareto, random_uniform};
 
-use super::move_hind::{Action, ActionKind};
+use super::move_hind::{Action, MoveKind};
 
 // Karpenko et al 2020 - ARTR oscillator 20s period
 
@@ -30,7 +30,7 @@ pub struct OscillatorArs {
     move_commands: Command<MoveCommand>,
     turn_commands: Command<TurnCommand>,
 
-    next_action: ActionKind,
+    next_action: MoveKind,
     action: Action,
 
     avoid: DecayValue,
@@ -66,7 +66,7 @@ impl OscillatorArs {
             turn_commands: Command::new(),
 
             action: Action::none(),
-            next_action: ActionKind::Roam,
+            next_action: MoveKind::Roam,
 
             avoid: DecayValue::new(Self::HALF_LIFE),
             roam: DecayValue::new(Self::HALF_LIFE),
@@ -122,7 +122,7 @@ impl OscillatorArs {
 
     #[inline]
     pub fn is_stop(&self) -> bool {
-        self.next_action == ActionKind::None
+        self.next_action == MoveKind::None
     }
 
     ///
@@ -400,15 +400,15 @@ impl OscillatorArs {
 
         // semi-brownian
         if random_uniform() <= 0.5 {
-            Action::new(ActionKind::Roam, 0.5, Turn::Deg(0.), Seconds(1.))
+            Action::new(MoveKind::Roam, 0.5, Turn::Deg(0.), Seconds(1.))
         } else if random_uniform() <= 0.5 {
             let turn = Turn::Deg(-30.);
 
-            Action::new(ActionKind::Roam, 0.5, turn, Seconds(1.))
+            Action::new(MoveKind::Roam, 0.5, turn, Seconds(1.))
         } else {
             let turn = Turn::Deg(30.);
 
-            Action::new(ActionKind::Roam, 0.5, turn, Seconds(1.))
+            Action::new(MoveKind::Roam, 0.5, turn, Seconds(1.))
         }
     }
 
@@ -549,7 +549,7 @@ impl MoveCommand {
         }
     }
 
-    fn kind(&self) -> ActionKind {
+    fn kind(&self) -> MoveKind {
         /*
         match self {
             MoveCommand::SeekRoam => BodyAction::Seek,
@@ -563,13 +563,13 @@ impl MoveCommand {
         */
 
         match self {
-            MoveCommand::SeekRoam => ActionKind::Roam,
-            MoveCommand::SeekDwell => ActionKind::Roam,
-            MoveCommand::Avoid => ActionKind::Roam,
-            MoveCommand::Roam => ActionKind::Roam,
-            MoveCommand::Dwell => ActionKind::Roam,
-            MoveCommand::Sleep => ActionKind::Roam,
-            MoveCommand::Stop => ActionKind::None,
+            MoveCommand::SeekRoam => MoveKind::Roam,
+            MoveCommand::SeekDwell => MoveKind::Roam,
+            MoveCommand::Avoid => MoveKind::Roam,
+            MoveCommand::Roam => MoveKind::Roam,
+            MoveCommand::Dwell => MoveKind::Roam,
+            MoveCommand::Sleep => MoveKind::Roam,
+            MoveCommand::Stop => MoveKind::None,
         }
     }
 }
@@ -594,25 +594,25 @@ pub enum TurnCommand {
     AvoidUTurn,
 }
 
-impl ActionKind {
+impl MoveKind {
     fn pre_update(&self) -> Self {
         match self {
-            ActionKind::None => ActionKind::None,
-            _ => ActionKind::Roam,
+            MoveKind::None => MoveKind::None,
+            _ => MoveKind::Roam,
         }
     }
 
     fn explore(&self) -> Self {
         match self {
-            ActionKind::None => ActionKind::Roam,
+            MoveKind::None => MoveKind::Roam,
             _ => *self,
         }
     }
 
     fn seek(&self) -> Self {
         match self {
-            ActionKind::None => ActionKind::Seek,
-            ActionKind::Roam => ActionKind::Seek,
+            MoveKind::None => MoveKind::Seek,
+            MoveKind::Roam => MoveKind::Seek,
             _ => *self,
         }
     }

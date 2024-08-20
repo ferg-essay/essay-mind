@@ -78,6 +78,7 @@ pub fn main() {
     ui_eat_flat(&mut app);
     // app.plugin(UiCameraPlugin::new((2., -1.), (0.5, 0.5)).fov(Angle::Deg(90.)));
     app.plugin(UiRetinaPlugin::new(((2.0, 0.0), [0.5, 0.5])));
+    //app.plugin(UiRetinaPlugin::new(((1.5, -1.0), [1., 1.])));
 
     app.run();
 }

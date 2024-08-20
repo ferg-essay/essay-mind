@@ -11,7 +11,7 @@ use essay_plot::{
 
 use ui_graphics::{UiCanvas, ui_canvas::UiRender};
 use crate::{
-    body::Body, hab_taxis::Taxis, hind_motor::{HindLevyMove, HindMove}, 
+    body::Body, hab_taxis::Taxis, hind_motor::{HindLevyMove, HindMove, MoveKind}, 
     tectum::TectumMap,
     util::Turn 
 };
@@ -56,7 +56,18 @@ pub fn ui_homunculus_draw(
     taxis: Res<Taxis>,
     tectum: Res<TectumMap>,
 ) {
-    let next_emoji = ui_homunculus.next_emoji;
+    let mut next_emoji = ui_homunculus.next_emoji;
+    
+    match hind_move.action_kind() {
+        MoveKind::None => {},
+        MoveKind::Roam => { next_emoji = Emoji::Footprints; },
+        MoveKind::Seek => { next_emoji = Emoji::DirectHit; },
+        MoveKind::Escape(_) | MoveKind::UTurn(_) => { 
+            next_emoji = Emoji::NoEntry; }
+        MoveKind::Startle => {
+            next_emoji = Emoji::FaceOpenMouth;
+        }
+    }
 
     let approach_dir = taxis.approach_dir();
     let value = approach_dir.value();

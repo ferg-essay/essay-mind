@@ -189,18 +189,15 @@ impl HindMove {
             }
         }
 
-        if self.action.is_active() {
-            self.send_action(body);
-            return;
-        } else if ! wake.is_active() {
+        if ! wake.is_active() {
             return;
         }
 
         let mut turn = Turn::Unit(0.);
-        let mut kind = ActionKind::None;
+        let mut kind = MoveKind::None;
         
         // TODO: should be driven by outside
-        kind = ActionKind::Roam;
+        kind = MoveKind::Roam;
 
         // ARTR in ARS r3 has lowest-priority turn
         if let Some(oscillator) = &mut self.oscillator_r3 {
@@ -214,8 +211,14 @@ impl HindMove {
             kind = optic_kind;
         }
 
-        if let Some(action) = kind.action(turn) {
-            self.action = action;
+        // if self.action.is_active() {
+        //    println!("Cmp {:?} {:?}", self.action.kind, kind);
+        // }
+        if self.action.allow_override(kind) {
+            if let Some(action) = kind.action(turn) {
+                self.action = action;
+                // println!("  New {:?}", kind);
+            }
         }
 
         if self.action.is_active() {
@@ -240,7 +243,9 @@ impl HindMove {
         let turn = turn.to_unit();
 
         let turn_value = match self.action.kind {
-            ActionKind::Startle => 0.5 + 2. * turn.abs(),
+            MoveKind::Startle => 0.5 + 2. * turn.abs(),
+            MoveKind::Escape(_) => 0.75,
+            MoveKind::UTurn(_) => 0.75,
             _ => (2. * turn.abs()).min(0.49),
         };
 
@@ -273,6 +278,30 @@ impl HindMove {
     #[inline]
     pub fn optic(&mut self) -> &mut OpticMid {
         &mut self.optic_mid
+    }
+
+    //
+    // UI updates
+    //
+
+    #[inline]
+    pub fn action_kind(&self) -> MoveKind {
+        self.action.kind
+    }
+
+    #[inline]
+    pub fn set_ss_forward(&mut self, value: f32) {
+        self.ss_forward = self.ss_forward.max(value);
+    }
+
+    #[inline]
+    pub fn set_ss_left(&mut self, value: f32) {
+        self.ss_left = self.ss_left.max(value);
+    }
+
+    #[inline]
+    pub fn set_ss_right(&mut self, value: f32) {
+        self.ss_right = self.ss_right.max(value);
     }
 
     //
@@ -327,15 +356,18 @@ impl SensorArs {
 
 pub struct OpticMid {
     escape: DecayValue,
-    escape_kind: ActionKind,
+    escape_kind: MoveKind,
     u_turn: DecayValue,
 }
 
 impl OpticMid {
     fn new() -> Self {
+        let mut escape = DecayValue::new(Ticks(1));
+        escape.set_threshold(0.4);
+
         Self {
-            escape: DecayValue::new(Ticks(1)),
-            escape_kind: ActionKind::None,
+            escape,
+            escape_kind: MoveKind::None,
             u_turn: DecayValue::new(Ticks(1)),
         }
     }
@@ -347,18 +379,18 @@ impl OpticMid {
 
     pub fn escape(&mut self, turn: Turn) {
         self.escape.set_max(1.);
-        self.escape_kind = ActionKind::Escape(turn);
+        self.escape_kind = MoveKind::Escape(turn);
     }
 
-    pub fn u_turn(&mut self) {
-        self.u_turn.set_max(1.);
+    pub fn u_turn(&mut self, turn: Turn) {
+        self.escape.set_max(1.);
+        self.escape_kind = MoveKind::UTurn(turn);
     }
 
-    fn action(&self) -> Option<ActionKind> {
+    fn action(&self) -> Option<MoveKind> {
         if self.escape.is_active() {
+            // println!("Escape {:?}", self.escape_kind);
             Some(self.escape_kind)
-        } else if self.u_turn.is_active() {
-            Some(ActionKind::UTurn)
         } else {
             None
         }
@@ -407,12 +439,12 @@ impl TurnMyLgi {
 
 #[derive(Clone, Debug)]
 pub(super) struct ActionPair {
-    kind: ActionKind,
+    kind: MoveKind,
     turn: Turn,
 }
 
 impl ActionPair {
-    pub(super) fn new(kind: ActionKind, turn: Turn) -> Self {
+    pub(super) fn new(kind: MoveKind, turn: Turn) -> Self {
         Self {
             kind,
             turn
@@ -423,7 +455,7 @@ impl ActionPair {
 
 #[derive(Clone, Debug)]
 pub(super) struct Action {
-    kind: ActionKind,
+    kind: MoveKind,
     speed: f32,
     turn: Turn,
     timeout: Ticks,
@@ -431,7 +463,7 @@ pub(super) struct Action {
 }
 
 impl Action {
-    pub(super) fn new(kind: ActionKind, speed: f32, turn: Turn, time: impl Into<Ticks>) -> Self {
+    pub(super) fn new(kind: MoveKind, speed: f32, turn: Turn, time: impl Into<Ticks>) -> Self {
         let timeout = time.into();
 
         Self {
@@ -444,7 +476,7 @@ impl Action {
     }
 
     pub(super) fn none() -> Self {
-        Action::new(ActionKind::None, 0., Turn::Unit(0.), Seconds(1.))
+        Action::new(MoveKind::None, 0., Turn::Unit(0.), Seconds(1.))
     }
 
     fn update(&mut self) {
@@ -460,52 +492,70 @@ impl Action {
             return true;
         } else {
             match self.kind {
-                ActionKind::None => true,
-                ActionKind::Roam => true,
-                ActionKind::Seek => true,
-                ActionKind::UTurn => false,
-                ActionKind::Escape(_) => false,
-                ActionKind::Startle => false,
+                MoveKind::None => true,
+                MoveKind::Roam => true,
+                MoveKind::Seek => true,
+                MoveKind::UTurn(_) => false,
+                MoveKind::Escape(_) => false,
+                MoveKind::Startle => false,
+            }
+        }
+    }
+
+    fn allow_override(&self, next: MoveKind) -> bool {
+        if ! self.is_active() {
+            return true;
+        } else {
+            match self.kind {
+                MoveKind::Roam | MoveKind::Seek => {
+                    match next {
+                        MoveKind::UTurn(_) | MoveKind::Escape(_) | MoveKind::Startle => {
+                            true
+                        },
+                        _ => false,
+                    }
+                },
+                _ => false,
             }
         }
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub(super) enum ActionKind {
+pub enum MoveKind {
     None,
     Roam,
     Seek,
     Escape(Turn),
-    UTurn,
+    UTurn(Turn),
     Startle,
 }
 
-impl ActionKind {
+impl MoveKind {
     fn speed(&self) -> f32 {
         match self {
-            ActionKind::None => 0.,
-            ActionKind::Roam => 0.5,
-            ActionKind::Seek => 0.5,
-            ActionKind::Escape(_) => 0.75,
-            ActionKind::UTurn => 0.55,
-            ActionKind::Startle => 1.0,
+            MoveKind::None => 0.,
+            MoveKind::Roam => 0.5,
+            MoveKind::Seek => 0.5,
+            MoveKind::Escape(_) => 0.75,
+            MoveKind::UTurn(_) => 0.75,
+            MoveKind::Startle => 1.0,
         }
     }
 
     fn action(&self, turn: Turn) -> Option<Action> {
         match self {
-            ActionKind::None => None,
-            ActionKind::Roam | ActionKind::Seek => {
+            MoveKind::None => None,
+            MoveKind::Roam | MoveKind::Seek => {
                 Some(Action::new(*self, 0.5, turn, Seconds(1.)))
             }
-            ActionKind::Escape(turn) => {
+            MoveKind::Escape(turn) => {
                 Some(Action::new(*self, 0.75, *turn, Seconds(1.)))
             }
-            ActionKind::UTurn => {
-                Some(Action::new(*self, 0.55, Turn::Unit(0.25), Seconds(2.)))
+            MoveKind::UTurn(turn) => {
+                Some(Action::new(*self, 0.75, *turn, Seconds(2.)))
             }
-            ActionKind::Startle => {
+            MoveKind::Startle => {
                 Some(Action::new(*self, 1., Turn::Unit(0.12), Seconds(1.)))
             }
         }

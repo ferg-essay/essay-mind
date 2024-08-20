@@ -14,9 +14,12 @@ struct Looming {
 }
 
 impl Looming {
-    const THRESHOLD : f32 = 0.02;
+    const THRESHOLD : f32 = 0.022;
     const DIM_TIME : Seconds = Seconds(0.2);
     const AVG_TIME : Seconds = Seconds(1.);
+
+    const TURN : f32 = 0.20;
+    const U_TURN : f32 = 0.40;
 
     fn new() -> Self {
         Self {
@@ -73,15 +76,26 @@ fn looming_update(
         */
 
         let light_mid = looming.light_mid.value();
-        let left_dim = retina.light_left() - light_mid;
-        let right_dim = retina.light_right() - light_mid;
+        let left_dim = -(retina.light_left() - light_mid);
+        let right_dim = -(retina.light_right() - light_mid);
+        //let left_dim = retina.light_left() - light_mid;
+        //let right_dim = retina.light_right() - light_mid;
+        let sum = left_dim.max(0.) + right_dim.max(0.);
 
-        if light_mid * 0.1 < left_dim - right_dim {
-            hind_move.optic().escape(Turn::Unit(-0.12));
-        } else if light_mid * 0.1 < right_dim - left_dim {
-            hind_move.optic().escape(Turn::Unit(0.12));
+        // println!("turn sum {:?} left {:?} right {:?}", sum, left_dim, right_dim);
+        if sum * 0.75 < left_dim {
+            hind_move.optic().escape(Turn::Unit(Looming::TURN));
+            hind_move.set_ss_left(0.75);
+        } else if sum * 0.75 < right_dim {
+            hind_move.optic().escape(Turn::Unit(-Looming::TURN));
+            hind_move.set_ss_right(0.75);
         } else {
-            hind_move.optic().u_turn();
+            if left_dim < right_dim {
+                hind_move.optic().u_turn(Turn::Unit(-Looming::U_TURN));
+            } else {
+                hind_move.optic().u_turn(Turn::Unit(Looming::U_TURN));
+            }
+            hind_move.set_ss_forward(0.75);
         }
     }
 }
