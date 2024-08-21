@@ -107,7 +107,7 @@ pub struct HindMove {
     optic_mid: OpticMid,
 
     // r1 ARS/ARRN - sensory integration
-    sensor_r1: SensorArs,
+    _sensor_r1: SensorArs,
 
     // r3 ARTR/HBO - hindbrain oscillator - random walk
     oscillator_r3: Option<OscillatorArs>,
@@ -117,11 +117,11 @@ pub struct HindMove {
 
     // r5/r6 MRS/MRRN - Zebrafish MiD2
     // mammal LPGi
-    forward_r5: ForwardMrs,
+    _forward_r5: ForwardMrs,
 
     // r5/r6 - Zebrafish RoV3, MiV1, MiV2
     // mammal Gi
-    turn_r6: TurnMrs,
+    _turn_r6: TurnMrs,
 
     action: Action,
     
@@ -146,14 +146,14 @@ impl HindMove {
         Self {
             optic_mid: OpticMid::new(),
 
-            sensor_r1: SensorArs::new(),
+            _sensor_r1: SensorArs::new(),
 
             oscillator_r3: None,
 
             startle_r4: None,
 
-            forward_r5: ForwardMrs::new(),
-            turn_r6: TurnMrs::new(),
+            _forward_r5: ForwardMrs::new(),
+            _turn_r6: TurnMrs::new(),
 
             action: Action::none(),
 
@@ -194,10 +194,9 @@ impl HindMove {
         }
 
         let mut turn = Turn::Unit(0.);
-        let mut kind = MoveKind::None;
         
-        // TODO: should be driven by outside
-        kind = MoveKind::Roam;
+        // TODO: should be driven by outside such as H.sum
+        let mut kind = MoveKind::Roam;
 
         // ARTR in ARS r3 has lowest-priority turn
         if let Some(oscillator) = &mut self.oscillator_r3 {
@@ -407,11 +406,11 @@ impl ForwardMrs {
     }
 }
 
-struct AvoidMrrn {
+struct _AvoidMrrn {
 }
 
-impl AvoidMrrn {
-    fn new() -> Self {
+impl _AvoidMrrn {
+    fn _new() -> Self {
         Self {
         }
     }
@@ -427,24 +426,24 @@ impl TurnMrs {
     }
 }
 
-struct TurnMyLgi {
+struct _TurnMyLgi {
 }
 
-impl TurnMyLgi {
-    fn new() -> Self {
+impl _TurnMyLgi {
+    fn _new() -> Self {
         Self {
         }
     }
 }
 
 #[derive(Clone, Debug)]
-pub(super) struct ActionPair {
+pub(super) struct _ActionPair {
     kind: MoveKind,
     turn: Turn,
 }
 
-impl ActionPair {
-    pub(super) fn new(kind: MoveKind, turn: Turn) -> Self {
+impl _ActionPair {
+    pub(super) fn _new(kind: MoveKind, turn: Turn) -> Self {
         Self {
             kind,
             turn
@@ -532,7 +531,7 @@ pub enum MoveKind {
 }
 
 impl MoveKind {
-    fn speed(&self) -> f32 {
+    fn _speed(&self) -> f32 {
         match self {
             MoveKind::None => 0.,
             MoveKind::Roam => 0.5,

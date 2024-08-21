@@ -314,7 +314,7 @@ impl ActionKind {
 
 #[derive(Clone, Debug)]
 struct Action {
-    kind: BodyAction,
+    _kind: BodyAction,
     time: f32,
     speed: f32,
     turn: Turn,
@@ -323,7 +323,7 @@ struct Action {
 impl Action {
     fn new(kind: BodyAction, time: impl Into<Seconds>, speed: f32, turn: Turn) -> Self {
         Self {
-            kind,
+            _kind: kind,
             time: time.into().0,
             speed,
             turn,

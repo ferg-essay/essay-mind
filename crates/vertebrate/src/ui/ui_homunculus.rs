@@ -11,7 +11,7 @@ use essay_plot::{
 
 use ui_graphics::{UiCanvas, ui_canvas::UiRender};
 use crate::{
-    body::Body, hab_taxis::Taxis, hind_motor::{HindLevyMove, HindMove, MoveKind}, 
+    body::Body, hab_taxis::Taxis, hind_motor::{HindMove, MoveKind}, 
     tectum::TectumMap,
     util::Turn 
 };

@@ -13,7 +13,7 @@ impl Rand32 {
 
     /// New random generator with random seed
     pub fn new() -> Self {
-        Self(next_u64())
+        Self(next_u64_local())
     }
 
     #[inline]
@@ -61,7 +61,7 @@ impl Rand64 {
 
     /// New random generator with random seed
     pub fn new() -> Self {
-        Self(next_u64() as u128)
+        Self(next_u64_local() as u128)
     }
 
     #[inline]
@@ -108,15 +108,15 @@ pub fn random() -> f32 {
 
 #[inline]
 pub fn random_uniform() -> f32 {
-    next_u32() as f32 / u32::MAX as f32
+    next_u32_local() as f32 / u32::MAX as f32
 }
 
 #[inline]
 pub fn random_normal() -> f32 {
     // let mut rng = rand::thread_rng();
 
-    let rng_a = next_u64() as f64 / u64::MAX as f64;
-    let rng_b = next_u64() as f64 / u64::MAX as f64;
+    let rng_a = next_u64_local() as f64 / u64::MAX as f64;
+    let rng_b = next_u64_local() as f64 / u64::MAX as f64;
 
     // TODO: save 2nd random variable to reduce next_u64 call
 
@@ -141,12 +141,12 @@ pub fn random_seed(seed: u64) {
     SEED.store(seed, Ordering::Release);
 }
 
-fn next_u64() -> u64 {
+fn next_u64_local() -> u64 {
     LOCAL_RNG.with(|x| { x.borrow_mut().next() })
 }
 
 #[inline]
-fn next_u32() -> u32 {
+fn next_u32_local() -> u32 {
     LOCAL_RNG.with(|x| { (x.borrow_mut().next() >> 32) as u32 })
 }
 

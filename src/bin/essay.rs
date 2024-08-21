@@ -4,13 +4,12 @@ use essay_plot::api::{Colors, Point};
 use vertebrate::{
     body::{Body, BodyEatPlugin, BodyPlugin}, core_motive::{
         eat::{Eat, FoodSearch, Sated}, 
-        wake::Sleep, CoreExplorePlugin, CoreWakePlugin, Dwell, Motive, MotiveTrait, Roam, Wake
+        wake::Sleep, CoreWakePlugin, Dwell, Motive, MotiveTrait, Roam, Wake
     }, 
     hab_taxis::{
-        chemotaxis::{Avoid, Chemotaxis, Seek}, klinotaxis::KlinotaxisPlugin, phototaxis::Phototaxis
+        chemotaxis::{Avoid, Chemotaxis, Seek}, phototaxis::Phototaxis
     }, 
-    hind_motor::{HindEat, HindEatPlugin, HindLevyPlugin, HindMovePlugin, _HindMovePlugin}, 
-    mid_motor::MidMotorPlugin, 
+    hind_motor::{HindEat, HindEatPlugin, HindMovePlugin}, 
     olfactory_bulb::{ObEvent, OlfactoryBulb, OlfactoryPlugin}, retina::RetinaPlugin, 
     tectum::{TectumLoomingPlugin, TectumPlugin}, 
     ui::{

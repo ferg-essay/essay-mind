@@ -181,7 +181,7 @@ impl Body {
     }
 
     #[inline]
-    pub fn stop_action(&mut self, kind: BodyAction) {
+    pub fn stop_action(&mut self, _kind: BodyAction) {
         self.action = Action::none();
     }
 
@@ -407,7 +407,6 @@ mod test {
     use mind_ecs::MindApp;
 
     use crate::{
-        body::BodyAction, 
         util::{Heading, Point, Seconds, Ticks, Turn}, 
         world::{World, WorldPlugin}
     };
