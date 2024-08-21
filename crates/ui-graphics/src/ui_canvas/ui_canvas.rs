@@ -294,7 +294,7 @@ impl<'a> UiRender<'a> {
     ) {
         let color: Tensor<u32> = colors.iter().map(|c| c.to_rgba()).collect();
         let style = PathStyle::new();
-    
+
         self.renderer.draw_markers(
             path, 
             &xy.into(), 

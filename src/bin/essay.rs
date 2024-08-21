@@ -12,8 +12,7 @@ use vertebrate::{
         chemotaxis::{Avoid, Chemotaxis, Seek}, 
         phototaxis::Phototaxis
     }, 
-    hind_motor::HindEat, 
-    olfactory_bulb::{ObEvent, OlfactoryBulb}, 
+    olfactory_bulb::OlfactoryBulb, 
     ui::{
         ui_attention::UiAttentionPlugin, 
         ui_body::{UiBodyPlugin, UiBodyTrailPlugin}, 
@@ -32,7 +31,7 @@ use vertebrate::{
         OdorType, World, WorldPlugin
     }
 };
-use essay_ecs::{app::event::InEvent, core::{Res, ResMut}, prelude::App};
+use essay_ecs::prelude::App;
 use mind_ecs::TickSchedulePlugin;
 use ui_graphics::UiCanvasPlugin;
 
@@ -55,8 +54,7 @@ pub fn main() {
     animal.retina()
         .size(7)
         .fov(util::Angle::Deg(120.))
-        .eye_angle(util::Angle::Deg(45.))
-        .enable(true);
+        .eye_angle(util::Angle::Deg(45.));
 
     animal.build(&mut app);
 

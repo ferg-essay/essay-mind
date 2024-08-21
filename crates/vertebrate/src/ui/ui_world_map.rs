@@ -12,7 +12,6 @@ use crate::world::WorldCell;
 #[derive(Component)]
 pub struct UiWorld {
     view: View<UiWorldView>,
-    // pos: Bounds<Canvas>,
     width: usize,
     height: usize,
     image: Option<ImageId>,
@@ -37,8 +36,8 @@ impl UiWorld {
         self.view.read(|v| v.pos.clone())    
     }
 
-    fn bounds(&self) -> Bounds<Canvas> {
-        self.view.read(|v| v.pos.clone())    
+    fn bounds(&self) -> Bounds<UiWorld> {
+        self.view.read(|v| v.bounds.clone())    
     }
 
     pub fn to_canvas(&self) -> Affine2d {
@@ -85,7 +84,7 @@ pub fn draw_world(
 
     // TODO: cache texture when unmodified
     if let Some(mut ui) = ui_canvas.renderer() {
-        let circle = paths::circle().transform(&ui_world.to_canvas_scale());
+        let circle: Path<Canvas> = paths::circle().transform(&ui_world.to_canvas_scale());
         let mut xy : Vec<[f32; 2]> = Vec::new();
         let mut sizes : Vec<[f32; 2]> = Vec::new();
         let mut colors : Vec<Color> = Vec::new();
@@ -100,7 +99,7 @@ pub fn draw_world(
         let xy = ui_world.to_canvas().transform(&Tensor::from(xy));
 
         if xy.len() > 0 {
-            ui.draw_markers(&circle, xy, sizes, &colors); // , &ui_world.clip());
+            ui.draw_markers(&circle, xy, sizes, &colors);
         }
 
         if let Some(image) = &ui_world.image {
