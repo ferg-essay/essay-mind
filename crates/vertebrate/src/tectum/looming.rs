@@ -1,7 +1,8 @@
 use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}};
+use log::warn;
 use mind_ecs::Tick;
 
-use crate::{hind_motor::HindMove, retina::{Retina, RetinaPlugin}, util::{DecayValue, Seconds, Turn}};
+use crate::{hind_motor::HindMove, retina::Retina, util::{DecayValue, Seconds, Turn}};
 
 struct Looming {
     threshold: f32,
@@ -112,7 +113,10 @@ impl TectumLoomingPlugin {
 
 impl Plugin for TectumLoomingPlugin {
     fn build(&self, app: &mut App) {
-        assert!(app.contains_plugin::<RetinaPlugin>(), "Looming requires Retina");
+        if ! app.contains_resource::<Retina>() {
+            warn!("Looming requires Retina");
+            return;
+        }
 
         app.insert_resource(Looming::new());
 

@@ -4,7 +4,7 @@ use essay_plot::api::{renderer::{self, Canvas, Drawable, Event, Renderer}, Bound
 use essay_tensor::Tensor;
 use mind_ecs::PostTick;
 use ui_graphics::UiCanvas;
-use crate::retina::{Retina, RetinaPlugin};
+use crate::retina::Retina;
 
 struct UiRetina {
     view: View<RetinaView>,
@@ -39,8 +39,8 @@ fn ui_retina_update(
 
 fn fill_colors(data: Tensor) -> Tensor<u32> {
     assert_eq!(data.rank(), 2);
-    assert_eq!(data.rows(), Retina::SIZE);
-    assert_eq!(data.cols(), Retina::SIZE);
+    // assert_eq!(data.rows(), Retina::SIZE);
+    // assert_eq!(data.cols(), Retina::SIZE);
 
     let mut colors = Vec::<u32>::new();
 
@@ -56,6 +56,8 @@ fn fill_colors(data: Tensor) -> Tensor<u32> {
 }
 
 struct RetinaView {
+    size: usize,
+
     left_vertices: Tensor,
     left_triangles: Tensor<u32>,
     left_colors: Tensor<u32>,
@@ -66,14 +68,16 @@ struct RetinaView {
 }
 
 impl RetinaView {
-    fn new() -> Self {
-        let (vertices, triangles) = build_grid(Retina::SIZE, &Bounds::from([100., 100.]));
+    fn new(size: usize) -> Self {
+        let (vertices, triangles) = build_grid(size, &Bounds::from([100., 100.]));
 
         let mut colors = Vec::<u32>::new();
-        colors.resize(4 * Retina::SIZE * Retina::SIZE, Color::black().to_rgba()); 
+        colors.resize(4 * size * size, Color::black().to_rgba()); 
         let colors = Tensor::from(colors);
         
         Self {
+            size: size,
+
             left_vertices: vertices.clone(),
             left_triangles: triangles.clone(),
             left_colors: colors.clone(),
@@ -155,14 +159,14 @@ impl Drawable for RetinaView {
 
             let pos_left = Bounds::<Canvas>::from(((pos.xmin(), y0), [s, s]));
 
-            let (vertices, triangles) = build_grid(Retina::SIZE, &pos_left);
+            let (vertices, triangles) = build_grid(self.size, &pos_left);
             
             self.left_vertices = vertices;
             self.left_triangles = triangles;
 
             let pos_right = Bounds::<Canvas>::from(((pos.xmin() + s + 5., y0), [s, s]));
 
-            let (vertices, triangles) = build_grid(Retina::SIZE, &pos_right);
+            let (vertices, triangles) = build_grid(self.size, &pos_right);
             
             self.right_vertices = vertices;
             self.right_triangles = triangles;
@@ -184,9 +188,11 @@ impl UiRetinaPlugin {
 
 impl Plugin for UiRetinaPlugin {
     fn build(&self, app: &mut App) {
-        if app.contains_plugin::<RetinaPlugin>() {
+        if app.contains_resource::<Retina>() {
+            let size = app.get_resource::<Retina>().unwrap().get_size();
+
             if let Some(ui_canvas) = app.get_mut_resource::<UiCanvas>() {
-                let view = ui_canvas.view(&self.pos, RetinaView::new());
+                let view = ui_canvas.view(&self.pos, RetinaView::new(size));
 
                 app.insert_resource(UiRetina::new(view));
 

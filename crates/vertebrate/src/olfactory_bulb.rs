@@ -251,7 +251,7 @@ impl OlfactoryPlugin {
         }
     }
 
-    pub fn odor(mut self, odor: OdorType) -> Self {
+    pub fn odor(&mut self, odor: OdorType) -> &mut Self {
         self.odors.push(odor);
 
         self

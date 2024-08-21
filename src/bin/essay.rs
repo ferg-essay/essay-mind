@@ -2,24 +2,33 @@ use std::time::Duration;
 
 use essay_plot::api::{Colors, Point};
 use vertebrate::{
-    body::{Body, BodyEatPlugin, BodyPlugin}, core_motive::{
+    body::Body, 
+    builder::AnimalBuilder, 
+    core_motive::{
         eat::{Eat, FoodSearch, Sated}, 
-        wake::Sleep, CoreWakePlugin, Dwell, Motive, MotiveTrait, Roam, Wake
+        wake::Sleep, Dwell, Motive, MotiveTrait, Roam, Wake
     }, 
     hab_taxis::{
-        chemotaxis::{Avoid, Chemotaxis, Seek}, phototaxis::Phototaxis
+        chemotaxis::{Avoid, Chemotaxis, Seek}, 
+        phototaxis::Phototaxis
     }, 
-    hind_motor::{HindEat, HindEatPlugin, HindMovePlugin}, 
-    olfactory_bulb::{ObEvent, OlfactoryBulb, OlfactoryPlugin}, retina::RetinaPlugin, 
-    tectum::{TectumLoomingPlugin, TectumPlugin}, 
+    hind_motor::HindEat, 
+    olfactory_bulb::{ObEvent, OlfactoryBulb}, 
     ui::{
         ui_attention::UiAttentionPlugin, 
         ui_body::{UiBodyPlugin, UiBodyTrailPlugin}, 
-        ui_emoji::Emoji, ui_graph::UiGraphPlugin, ui_heatmap::UiHeatmapPlugin, 
-        ui_homunculus::UiHomunculusPlugin, ui_motive::UiMotivePlugin, ui_peptide::UiPeptidePlugin, ui_retina::UiRetinaPlugin, 
-        ui_table::UiTablePlugin, ui_world_map::UiWorldPlugin
+        ui_emoji::Emoji, 
+        ui_graph::UiGraphPlugin, 
+        ui_heatmap::UiHeatmapPlugin, 
+        ui_homunculus::UiHomunculusPlugin, 
+        ui_motive::UiMotivePlugin, 
+        ui_peptide::UiPeptidePlugin, 
+        ui_retina::UiRetinaPlugin, 
+        ui_table::UiTablePlugin, 
+        ui_world_map::UiWorldPlugin
     }, 
-    util::{self}, world::{
+    util::{self}, 
+    world::{
         OdorType, World, WorldPlugin
     }
 };
@@ -32,52 +41,27 @@ pub fn main() {
 
     app.plugin(TickSchedulePlugin::new().ticks(2));
 
-    app.plugin(world_lateral_line()
-        .food(3, 7)
+    app.plugin(world_roam(21, 15)
+        .food_odor_r(5, 5, 4, OdorType::FoodA)
+        .odor_r(15, 5, 4, OdorType::FoodA)
     );
-    //world_food_and_non_food(&mut app);
 
-    // app.plugin(BodyPlugin::new().cast_period(Seconds(0.2).max(Ticks(7))));
-    app.plugin(BodyPlugin::new());
-    app.plugin(BodyEatPlugin);
+    let mut animal = AnimalBuilder::new();
 
-    //app.plugin(HindLevyPlugin);
-    //app.plugin(_HindMovePlugin);
-    app.plugin(HindMovePlugin);
-    app.plugin(HindEatPlugin);
-
-    app.plugin(OlfactoryPlugin::new()
+    animal.olfactory()
         .odor(OdorType::FoodA)
-        .odor(OdorType::FoodB)
-    );
+        .odor(OdorType::FoodB);
 
-    app.plugin(RetinaPlugin::new()
-        .size(4)
+    animal.retina()
+        .size(7)
         .fov(util::Angle::Deg(120.))
         .eye_angle(util::Angle::Deg(45.))
-    );
+        .enable(true);
 
-    app.plugin(TectumPlugin::new().striatum());
-    app.plugin(TectumLoomingPlugin::new());
-    // app.plugin(ChemotaxisPlugin);
-    // app.plugin(TegSeekPlugin::<OlfactoryBulb, FoodSearch>::new());
-    //app.plugin(KlinotaxisPlugin::<OlfactoryBulb, FoodSearch>::new());
-    // app.plugin(LateralLinePlugin);
+    animal.build(&mut app);
 
-    //app.plugin(MidMotorPlugin);
-
-    app.plugin(CoreWakePlugin::new());
-    // app.plugin(CoreExplorePlugin);
-    // app.plugin(CorePeptidesPlugin);
-    // app.plugin(CoreEatingPlugin);
-
-    // app.system(Tick, dwell_olfactory);
-    //app.system(Tick, dwell_eat);
-    //ui_chemotaxis(&mut app);
     ui_eat_flat(&mut app);
-    // app.plugin(UiCameraPlugin::new((2., -1.), (0.5, 0.5)).fov(Angle::Deg(90.)));
     app.plugin(UiRetinaPlugin::new(((2.0, 0.0), [0.5, 0.5])));
-    //app.plugin(UiRetinaPlugin::new(((1.5, -1.0), [1., 1.])));
 
     app.run();
 }
@@ -132,23 +116,8 @@ pub fn world_lateral_line() -> WorldPlugin {
         //.floor((w2, 0), (w - w2, h), FloorType::Dark)
 }
 
-pub fn world_roam(app: &mut App) {
-    let w = 15;
-    let h = 11;
-
-    // let h1 = h / 2 - 1;
-
-    // let w1 = w / 2;
-    // let w2 = w1;
-
-    app.plugin(
-        WorldPlugin::new(w, h)
-        //.wall(((w - 1) / 2, 0), (2, h1))
-        //.wall(((w - 1) / 2, h - h1), (2, h1))
-        //.floor((0, 0), (w1, h), FloorType::Light)
-        //.floor((w2, 0), (w - w2, h), FloorType::Dark)
-        .food_odor_r(5, 5, 4, OdorType::FoodA)
-    );
+pub fn world_roam(w: usize, h: usize) -> WorldPlugin {
+    WorldPlugin::new(w, h)
 }
 
 pub fn world_food_and_non_food(app: &mut App) {

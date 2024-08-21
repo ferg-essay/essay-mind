@@ -71,6 +71,10 @@ impl Retina {
         self
     }
 
+    pub fn get_size(&self) -> usize {
+        self.size as usize
+    }
+
     pub fn data_left(&self) -> Option<Tensor> {
         self.data_left.clone()
     }
@@ -455,6 +459,8 @@ pub struct RetinaPlugin {
     size: u32,
     fov: Angle,
     eye_angle: Angle,
+
+    is_enable: bool,
 }
 
 impl RetinaPlugin {
@@ -463,22 +469,30 @@ impl RetinaPlugin {
             size: Retina::SIZE as u32,
             fov: Angle::Deg(90.),
             eye_angle: Angle::Deg(90.),
+
+            is_enable: true,
         }
     }
 
-    pub fn size(self, _size: u32) -> Self {
-        // self.size = size;
+    pub fn enable(&mut self, is_enable: bool) -> &mut Self {
+        self.is_enable = is_enable;
 
         self
     }
 
-    pub fn fov(mut self, fov: Angle) -> Self {
+    pub fn size(&mut self, size: u32) -> &mut Self {
+        self.size = size;
+
+        self
+    }
+
+    pub fn fov(&mut self, fov: Angle) -> &mut Self {
         self.fov = fov;
 
         self
     }
 
-    pub fn eye_angle(mut self, angle: Angle) -> Self {
+    pub fn eye_angle(&mut self, angle: Angle) -> &mut Self {
         self.eye_angle = angle;
 
         self
@@ -487,6 +501,10 @@ impl RetinaPlugin {
 
 impl Plugin for RetinaPlugin {
     fn build(&self, app: &mut App) {
+        if ! self.is_enable {
+            return;
+        }
+
         let mut retina = Retina::new(self.size);
         retina.fov = self.fov;
         retina.eye_angle = self.eye_angle;
