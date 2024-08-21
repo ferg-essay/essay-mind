@@ -1,9 +1,10 @@
-use essay_ecs::app::App;
+use essay_ecs::{app::App, core::{Res, ResMut}};
+use mind_ecs::Tick;
 
 use crate::{
     body::{BodyEatPlugin, BodyPlugin}, 
-    core_motive::CoreWakePlugin, 
-    hind_motor::{HindEatPlugin, HindMovePlugin}, 
+    core_motive::{CoreWakePlugin, Dwell, Motive}, 
+    hind_motor::{HindEat, HindEatPlugin, HindMovePlugin}, 
     olfactory_bulb::OlfactoryPlugin, 
     retina::RetinaPlugin, 
     tectum::{TectumLoomingPlugin, TectumPlugin},
@@ -18,6 +19,8 @@ pub struct AnimalBuilder {
 
     olfactory: OlfactoryPlugin,
     retina: RetinaPlugin,
+
+    dwell: Option<DwellMode>,
 }
 
 impl AnimalBuilder {
@@ -31,6 +34,8 @@ impl AnimalBuilder {
 
             olfactory: OlfactoryPlugin::new(),
             retina: RetinaPlugin::new(),
+
+            dwell: None,
         }
     }
 
@@ -40,6 +45,10 @@ impl AnimalBuilder {
 
     pub fn retina(&mut self) -> &mut RetinaPlugin {
         &mut self.retina
+    }
+
+    pub fn dwell(&mut self, dwell: DwellMode) {
+        self.dwell = Some(dwell);
     }
 
     pub fn build(self, app: &mut App) {
@@ -68,7 +77,29 @@ impl AnimalBuilder {
         // app.plugin(CorePeptidesPlugin);
         // app.plugin(CoreEatingPlugin);
 
-        // app.system(Tick, dwell_olfactory);
-        //app.system(Tick, dwell_eat);
+        for dwell in &self.dwell {
+            match dwell {
+                DwellMode::Eat => {
+                    app.system(Tick, dwell_eat);
+                }
+            }
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum DwellMode {
+    Eat,
+}
+
+///
+/// Set the Dwell motive if the animal is eating
+/// 
+fn dwell_eat(
+    mut dwell: ResMut<Motive<Dwell>>,
+    eat: Res<HindEat>,
+) {
+    if eat.is_eat() {
+        dwell.set_max(1.);
     }
 }

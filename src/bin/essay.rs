@@ -69,35 +69,6 @@ pub fn main() {
 pub struct Dummy;
 impl MotiveTrait for Dummy {}
 
-
-#[allow(unused)]
-fn dwell_eat(
-    mut dwell: ResMut<Motive<Dwell>>,
-    eat: Res<HindEat>,
-) {
-    if eat.is_eat() {
-        dwell.set_max(1.);
-    }
-}
-
-
-#[allow(unused)]
-fn dwell_olfactory(
-    mut dwell: ResMut<Motive<Dwell>>,
-    mut ob: InEvent<ObEvent>,
-) {
-    for event in ob.iter() {
-        match event {
-            ObEvent::Odor(_odor, _vector) => {
-                dwell.set_max(1.);
-            },
-        }
-    }
-
-    //dwell.add(1.);
-    //dwell.set_max(1.);
-}
-
 pub fn world_lateral_line() -> WorldPlugin {
     let w = 15;
     let h = 11;
