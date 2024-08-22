@@ -9,13 +9,13 @@ use super::tectum::ActionId;
 /// Guided Prey-Catching. Curr Biol. 2019 Jun 3
 ///
 
-pub struct NucleusIsthmi {
+pub struct TectumAttention {
     actions: Vec<AttentionItem>,
     _decay: f32,
     _threshold: f32,
 }
 
-impl NucleusIsthmi {
+impl TectumAttention {
     pub const DECAY : f32 = 0.75;
     pub const THRESHOLD : f32 = 0.1;
 

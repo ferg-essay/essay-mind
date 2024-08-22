@@ -42,6 +42,7 @@ fn update_forage(
     mut forage: ResMut<Forage>,
     body_eat: Res<BodyEat>,
     mid_move: Res<MidMove>,
+    hind_eat: Res<HindEat>,
     mut motive_eat: ResMut<Motive<Eat>>,
     mut dwell: ResMut<Motive<Dwell>>,
     mut foraging: ResMut<Motive<Forage>>,
@@ -54,7 +55,12 @@ fn update_forage(
 
     forage.pre_update();
 
-    if ! wake.is_active() || sated.is_active() {
+    if ! wake.is_active() {
+        return;
+    } else if sated.is_active() {
+        // TODO: roam not strictly justified, but w/o this the animal remains 
+        // paused at the food
+        mid_move.roam();
         return;
     }
 
@@ -76,11 +82,17 @@ fn update_forage(
 
         if ! forage.is_eat_timeout() {
             motive_eat.set_max(1.);
-            mid_move.eat();
+            hind_eat.eat();
         }
     } else {
         foraging.set_max(1.);
-    }
+
+        //roam.set_max(wake.value());
+        //if dwell.is_active() {
+        //    mid_move.dwell();
+        //} else if roam.is_active() {
+            mid_move.roam();
+        }
 }
 pub struct Eat;
 impl MotiveTrait for Eat {}
@@ -97,7 +109,7 @@ impl MotiveTrait for Roam {}
 pub struct Dwell;
 impl MotiveTrait for Dwell {}
 
-fn update_roam(
+fn _update_roam(
     mut roam: ResMut<Motive<Roam>>,
     mut dwell: ResMut<Motive<Dwell>>,
     hind_eat: Res<HindEat>,
@@ -113,13 +125,12 @@ fn update_roam(
         dwell.set_max(wake.value());
     } else {
         roam.set_max(wake.value());
+        if dwell.is_active() {
+            mid_move.dwell();
+        } else if roam.is_active() {
+            mid_move.roam();
+        }   
     }
-
-    if dwell.is_active() {
-        mid_move.dwell();
-    } else if roam.is_active() {
-        mid_move.roam();
-    }   
 }
 
 pub struct MotiveForagePlugin;
@@ -139,7 +150,7 @@ impl Plugin for MotiveForagePlugin {
         Motives::insert::<Dwell>(app, Seconds(4.));
 
         app.system(Tick, update_forage);
-        app.system(Tick, update_roam);
+        // app.system(Tick, update_roam);
     }
 }
 

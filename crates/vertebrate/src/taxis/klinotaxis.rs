@@ -220,9 +220,9 @@ fn update_seek<I: SeekInput, M: MotiveTrait>(
                 if seek.is_left_turn() && seek.is_right_turn() {
 
                 } else if seek.is_right_turn() {
-                    hind_move.turn(0.25);
+                    hind_move.turn(Turn::Unit(0.25));
                 } else if seek.is_left_turn() {
-                    hind_move.turn(- 0.25);
+                    hind_move.turn(Turn::Unit(- 0.25));
                 }
             }
         }
@@ -232,7 +232,7 @@ fn update_seek<I: SeekInput, M: MotiveTrait>(
 impl<I: SeekInput, M: MotiveTrait> Plugin for KlinotaxisPlugin<I, M> {
     fn build(&self, app: &mut App) {
         assert!(app.contains_plugin::<HindMovePlugin>(), "Klinotaxis requires HindMovePlugin");
-        assert!(app.contains_resource::<I>(), "TegSeek requires resource {}", type_name::<I>());
+        assert!(app.contains_resource::<I>(), "Klinotaxis requires resource {}", type_name::<I>());
         
         let seek = Klinotaxis::<I>::new();
         app.insert_resource(seek);
