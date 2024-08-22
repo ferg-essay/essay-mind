@@ -1,12 +1,12 @@
 use super::Heading;
 
 #[derive(Clone, Copy, Debug)]
-pub struct DirVector {
+pub struct EgoVector {
     dir: Heading,
     value: f32,
 }
 
-impl DirVector {
+impl EgoVector {
     pub fn new(dir: Heading, value: f32) -> Self {
         Self {
             dir,
@@ -67,7 +67,7 @@ impl DirVector {
         self.dir.sin()
     }
 
-    pub fn to_ego(&self, head_dir: Heading) -> DirVector {
+    pub fn to_ego(&self, head_dir: Heading) -> EgoVector {
         Self {
             dir: Heading::Unit(self.dir().to_unit() - head_dir.to_unit()),
             value: self.value
@@ -75,14 +75,14 @@ impl DirVector {
     }
 
     #[inline]
-    pub fn to_approach(&self, head_dir: Heading) -> DirVector {
+    pub fn to_approach(&self, head_dir: Heading) -> EgoVector {
         Self {
             dir: Heading::Unit(self.dir().to_unit() - head_dir.to_unit()),
             value: self.value
         }
     }
 
-    pub(crate) fn scale(&self, diff: f32) -> DirVector {
+    pub(crate) fn scale(&self, diff: f32) -> EgoVector {
         Self {
             dir: self.dir,
             value: self.value * diff,
@@ -90,7 +90,7 @@ impl DirVector {
     }
 
     #[inline]
-    pub fn max(&self, avoid_dir: DirVector) -> DirVector {
+    pub fn max(&self, avoid_dir: EgoVector) -> EgoVector {
         if self.value() < avoid_dir.value() {
             avoid_dir
         } else {

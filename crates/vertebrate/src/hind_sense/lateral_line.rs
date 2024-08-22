@@ -5,7 +5,7 @@ use crate::{
     body::Body, 
     hind_move::{HindLevyMove, TurnCommand}, 
     tectum::TectumMap, 
-    util::{DirVector, Heading, Line, Point}, 
+    util::{EgoVector, Heading, Line, Point}, 
     world::World
 };
 
@@ -100,7 +100,7 @@ impl SenseArc {
         }
     }
 
-    fn sense_dist(&self, pos: impl Into<Point>) -> DirVector {
+    fn sense_dist(&self, pos: impl Into<Point>) -> EgoVector {
         let pos = pos.into();
         let ll = Point(pos.0.floor(), pos.1.floor());
 
@@ -109,7 +109,7 @@ impl SenseArc {
         self.sense_square(ll)
     }
         
-    pub fn sense_square(&self, square_ll: impl Into<Point>) -> DirVector {
+    pub fn sense_square(&self, square_ll: impl Into<Point>) -> EgoVector {
             let ll = square_ll.into();
 
         let vector = self.dir_to(ll, (ll.0, ll.1 + 1.));
@@ -129,15 +129,15 @@ impl SenseArc {
         vector
     }
 
-    fn dir_to(&self, v: impl Into<Point>, w: impl Into<Point>) -> DirVector {
+    fn dir_to(&self, v: impl Into<Point>, w: impl Into<Point>) -> EgoVector {
         let vector = Line(v.into(), w.into());
         let proj = vector.projection(self.point);
 
-        DirVector::new(self.point.heading_to(proj), self.point.dist(proj))
+        EgoVector::new(self.point.heading_to(proj), self.point.dist(proj))
     }
 }
 
-fn best_vector(a: DirVector, b: DirVector) -> DirVector {
+fn best_vector(a: EgoVector, b: EgoVector) -> EgoVector {
     if a.value() < b.value() {
         a
     } else {
@@ -184,7 +184,7 @@ impl Plugin for LateralLinePlugin {
 
 #[cfg(test)]
 mod test {
-    use crate::{hind_sense::lateral_line::SenseArc, util::DirVector};
+    use crate::{hind_sense::lateral_line::SenseArc, util::EgoVector};
 
     #[test]
     fn test_square() {
@@ -259,7 +259,7 @@ mod test {
         assert_deq(dir, 0.375, 2.0f32.sqrt().recip());
     }
 
-    fn assert_deq(a: DirVector, angle: f32, value: f32) {
+    fn assert_deq(a: EgoVector, angle: f32, value: f32) {
         assert!(
             (a.value() - value).abs() < 1e-6 
             && (a.dir().to_unit() - angle).abs() < 1.0e-6,

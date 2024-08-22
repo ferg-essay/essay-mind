@@ -7,7 +7,7 @@ use crate::util::{Seconds, Ticks};
 
 use super::motive::{Motive, MotiveTrait, Motives};
 
-pub struct Wake {
+pub struct Sleep {
     circadian: Circadian,
 
     state: CircadianState,
@@ -15,7 +15,7 @@ pub struct Wake {
     active_wake: AtomicBool,
 }
 
-impl Wake {
+impl Sleep {
     fn new(circadian: Circadian) -> Self {
         Self {
             circadian,
@@ -53,7 +53,7 @@ impl Wake {
     }
 }
 
-pub struct Circadian {
+struct Circadian {
     /// number of ticks in the wake phase
     wake_ticks: usize, 
     /// number of ticks in the sleep phase
@@ -116,13 +116,13 @@ impl Default for Circadian {
 
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub enum CircadianState {
+enum CircadianState {
     Sleep,
     Wake
 }
 
-fn wake_update(
-    mut circadian: ResMut<Wake>,
+fn update_sleep(
+    mut circadian: ResMut<Sleep>,
     mut wake: ResMut<Motive<Wake>>,
     mut sleep: ResMut<Motive<Sleep>>
 ) {
@@ -138,33 +138,33 @@ fn wake_update(
     }
 }
 
-// pub struct Wake;
+pub struct Wake;
 impl MotiveTrait for Wake {}
 
-pub struct Sleep;
+// pub struct Sleep;
 impl MotiveTrait for Sleep {}
 
 pub struct MotiveSleepPlugin {
-    wake: Ticks,
-    sleep: Ticks,
+    wake_time: Ticks,
+    sleep_time: Ticks,
 }
 
 impl MotiveSleepPlugin {
     pub fn new() -> Self {
         Self {
-            wake: Circadian::WAKE_TIME.into(),
-            sleep: Circadian::SLEEP_TIME.into(),
+            wake_time: Circadian::WAKE_TIME.into(),
+            sleep_time: Circadian::SLEEP_TIME.into(),
         }
     }
 
-    pub fn wake(mut self, wake: impl Into<Ticks>) -> Self {
-        self.wake = wake.into();
+    pub fn wake_time(mut self, wake: impl Into<Ticks>) -> Self {
+        self.wake_time = wake.into();
 
         self
     }
 
-    pub fn sleep(mut self, sleep: impl Into<Ticks>) -> Self {
-        self.sleep = sleep.into();
+    pub fn sleep_time(mut self, sleep: impl Into<Ticks>) -> Self {
+        self.sleep_time = sleep.into();
 
         self
     }
@@ -175,11 +175,11 @@ impl Plugin for MotiveSleepPlugin {
         Motives::insert::<Wake>(app, Circadian::WAKE_DECAY);
         Motives::insert::<Sleep>(app, Circadian::SLEEP_DECAY);
 
-        let circadian = Circadian::new(self.wake, self.sleep);
-        let wake = Wake::new(circadian);
+        let circadian = Circadian::new(self.wake_time, self.sleep_time);
+        let sleep = Sleep::new(circadian);
 
-        app.insert_resource(wake);
+        app.insert_resource(sleep);
 
-        app.system(Tick, wake_update);
+        app.system(Tick, update_sleep);
     }
 }

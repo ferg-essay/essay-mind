@@ -1,4 +1,4 @@
-use crate::util::{DecayValue, DirVector, HalfLife, Heading};
+use crate::util::{DecayValue, EgoVector, HalfLife, Heading};
 
 
 pub struct GoalVector {
@@ -58,7 +58,7 @@ impl GoalVector {
         self.value.set(value);
     }
 
-    pub fn to_vector(&self) -> DirVector {
-        DirVector::new(self.dir, self.value.value())
+    pub fn to_vector(&self) -> EgoVector {
+        EgoVector::new(self.dir, self.value.value())
     }
 }

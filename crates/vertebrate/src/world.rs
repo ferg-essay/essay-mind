@@ -3,7 +3,7 @@ use std::ops::{Index, IndexMut};
 
 use essay_ecs::prelude::*;
 
-use crate::util::{Point, Angle, DirVector};
+use crate::util::{Point, Angle, EgoVector};
 
 #[derive(Component)]
 pub struct World {
@@ -111,7 +111,7 @@ impl World {
         &self.odors
     }
 
-    pub fn odors_by_head(&self, point: Point) -> Vec<(OdorType, DirVector)> {
+    pub fn odors_by_head(&self, point: Point) -> Vec<(OdorType, EgoVector)> {
         let mut odors = Vec::new();
 
         for odor in &self.odors {
@@ -121,7 +121,7 @@ impl World {
                 let angle = point.heading_to(odor.pos());
                 let value = 0.5 / dist.max(0.5);
 
-                odors.push((odor.odor(), DirVector::new(angle, value)));
+                odors.push((odor.odor(), EgoVector::new(angle, value)));
             }
         }
         

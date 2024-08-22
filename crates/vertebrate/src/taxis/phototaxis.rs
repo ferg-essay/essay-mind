@@ -8,7 +8,7 @@ use mind_ecs::Tick;
 use crate::{
     body::Body, 
     hind_move::{HindLevyMove, TurnCommand}, 
-    util::{DecayValue, DirVector, HalfLife, Heading, Seconds}, 
+    util::{DecayValue, EgoVector, HalfLife, Heading, Seconds}, 
     world::World
 };
 
@@ -47,7 +47,7 @@ impl Phototaxis {
         self.value() - self.short_average()
     }
 
-    fn goal_vector(&self) -> DirVector {
+    fn goal_vector(&self) -> EgoVector {
         self.goal_vector.to_vector()
     }
 

@@ -1,4 +1,4 @@
-use crate::util::{DecayValue, DirVector, HalfLife, Heading};
+use crate::util::{DecayValue, EgoVector, HalfLife, Heading};
 
 use super::GoalVector;
 
@@ -51,7 +51,7 @@ impl HabenulaSeekItem {
         self.value() - self.short_average()
     }
 
-    pub fn goal_vector(&self) -> DirVector {
+    pub fn goal_vector(&self) -> EgoVector {
         self.goal_vector.to_vector()
     }
 

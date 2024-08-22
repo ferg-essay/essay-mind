@@ -6,8 +6,8 @@ use crate::{
     body::{BodyEatPlugin, BodyPlugin}, 
     hind_eat::{HindEat, HindEatPlugin}, 
     hind_move::HindMovePlugin, 
-    mid_move::{MidMovePlugin, TegSeekPlugin}, 
-    motive::{Dwell, FoodSearch, Motive, MotiveForagePlugin, MotiveSleepPlugin}, 
+    mid_move::{MidMovePlugin, MidSeekPlugin}, 
+    motive::{Dwell, Forage, Motive, MotiveForagePlugin, MotiveSleepPlugin}, 
     olfactory_bulb::{OlfactoryBulb, OlfactoryPlugin}, 
     retina::RetinaPlugin, 
     taxis::klinotaxis::KlinotaxisPlugin, 
@@ -101,7 +101,7 @@ impl AnimalBuilder {
                 warn!("Tegmentum seek requires eating");
             }
 
-            app.plugin(TegSeekPlugin::<OlfactoryBulb, FoodSearch>::new());
+            app.plugin(MidSeekPlugin::<OlfactoryBulb, Forage>::new());
         }
 
         if self.is_mid_klinotaxis {
@@ -109,7 +109,7 @@ impl AnimalBuilder {
                 warn!("Tegmentum klinotaxis requires eating");
             }
 
-            app.plugin(KlinotaxisPlugin::<OlfactoryBulb, FoodSearch>::new());
+            app.plugin(KlinotaxisPlugin::<OlfactoryBulb, Forage>::new());
         }
             // app.plugin(LateralLinePlugin);
 

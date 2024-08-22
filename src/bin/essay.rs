@@ -5,8 +5,8 @@ use vertebrate::{
     body::Body, 
     builder::AnimalBuilder, 
     motive::{
-        Eat, FoodSearch, Sated, 
-        wake::Sleep, Dwell, Motive, MotiveTrait, Roam, Wake
+        Eat, Forage, Sated, 
+        Wake, Dwell, Motive, MotiveTrait, Roam, Sleep
     }, 
     taxis::{
         chemotaxis::{Avoid, Chemotaxis, Seek}, 
@@ -185,7 +185,7 @@ fn ui_motive(app: &mut App, xy: impl Into<Point>, wh: impl Into<Point>) {
         .item(Emoji::ForkAndKnife, |m: &Motive<Eat>| m.value())
         .item(Emoji::Pig, |m: &Motive<Sated>| m.value())
         .item(Emoji::Candy, |m: &Motive<Dummy>| m.value())
-        .item(Emoji::Cheese, |m: &Motive<FoodSearch>| m.value())
+        .item(Emoji::Cheese, |m: &Motive<Forage>| m.value())
         .item(Emoji::Lemon, |m: &Motive<Dummy>| m.value())
         .item(Emoji::Salt, |m: &Motive<Dummy>| m.value())
         // .item(Emoji::FaceAstonished, |m: &Motive<Hunger>| m.value())
@@ -212,7 +212,7 @@ fn ui_eat_flat(app: &mut App) {
         .item(Emoji::NoEntry, |m: &Motive<Avoid>| m.is_active())
         .item(Emoji::MagnifyingGlassLeft, |m: &Motive<Dwell>| m.is_active())
         .item(Emoji::Footprints, |m: &Motive<Roam>| m.is_active())
-        .item(Emoji::FaceSleeping, |m: &Motive<Sleep>| m.is_active())
+        .item(Emoji::FaceSleeping, |m: &Motive<Wake>| m.is_active())
     );
     //app.plugin(UiCameraPlugin::new((2., -1.), (0.5, 0.5)).fov(Angle::Deg(120.)));
 

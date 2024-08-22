@@ -1,19 +1,24 @@
-use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}};
+use essay_ecs::{
+    app::{App, Plugin}, 
+    core::{Res, ResMut}
+};
 use mind_ecs::Tick;
 use crate::{
-    body::BodyEat, hind_eat::HindEat, mid_move::{MidMove, MidMovePlugin}, util::{DecayValue, Seconds}
+    body::BodyEat, 
+    hind_eat::HindEat, 
+    mid_move::{MidMove, MidMovePlugin}, 
+    util::{DecayValue, Seconds}
 };
 
 use super::{
-    motive::{Motive, MotiveTrait, Motives}, 
-    Wake
+    Motive, MotiveTrait, Motives, Wake
 };
 
-struct CoreEat {
+pub struct Forage {
     timeout: DecayValue,
 }
 
-impl CoreEat {
+impl Forage {
     fn new() -> Self {
         Self {
             timeout: DecayValue::new(2.),
@@ -33,21 +38,21 @@ impl CoreEat {
     }
 }
 
-fn update_eat(
-    mut eat: ResMut<CoreEat>,
+fn update_forage(
+    mut forage: ResMut<Forage>,
     body_eat: Res<BodyEat>,
+    mid_move: Res<MidMove>,
     mut motive_eat: ResMut<Motive<Eat>>,
-    wake: Res<Motive<Wake>>,
     mut dwell: ResMut<Motive<Dwell>>,
+    mut foraging: ResMut<Motive<Forage>>,
     mut sated: ResMut<Motive<Sated>>,
-    mut food_seek: ResMut<Motive<FoodSearch>>,
-    mid_motor: Res<MidMove>,
+    wake: Res<Motive<Wake>>,
 ) {
     if body_eat.glucose() > 0.75 || body_eat.glucose() > 0.25 && sated.is_active() {
         sated.set_max(1.);
     }
 
-    eat.pre_update();
+    forage.pre_update();
 
     if ! wake.is_active() || sated.is_active() {
         return;
@@ -55,10 +60,10 @@ fn update_eat(
 
     // TODO: H.l food zone should be distinct from body_eat.
     if body_eat.is_food_zone() {
-        food_seek.clear();
+        foraging.clear();
 
         // activate eating
-        eat.add_eat();
+        forage.add_eat();
 
         if body_eat.is_eating() {
             // eating sets dwell mode (5HT)
@@ -69,12 +74,12 @@ fn update_eat(
             }
         }
 
-        if ! eat.is_eat_timeout() {
+        if ! forage.is_eat_timeout() {
             motive_eat.set_max(1.);
-            mid_motor.eat();
+            mid_move.eat();
         }
     } else {
-        food_seek.set_max(1.);
+        foraging.set_max(1.);
     }
 }
 pub struct Eat;
@@ -83,8 +88,8 @@ impl MotiveTrait for Eat {}
 pub struct Sated;
 impl MotiveTrait for Sated {}
 
-pub struct FoodSearch;
-impl MotiveTrait for FoodSearch {}
+// pub struct Forage;
+impl MotiveTrait for Forage {}
 
 pub struct Roam;
 impl MotiveTrait for Roam {}
@@ -123,17 +128,17 @@ impl Plugin for MotiveForagePlugin {
     fn build(&self, app: &mut App) {
         assert!(app.contains_plugin::<MidMovePlugin>(), "MotiveForage requires MidMove");
 
-        let feeding = CoreEat::new();
+        let feeding = Forage::new();
         app.insert_resource(feeding);
 
         Motives::insert::<Eat>(app, Seconds(1.));
-        Motives::insert::<FoodSearch>(app, Seconds(0.1));
+        Motives::insert::<Forage>(app, Seconds(0.1));
         Motives::insert::<Sated>(app, Seconds(5.));
 
         Motives::insert::<Roam>(app, Seconds(1.));
         Motives::insert::<Dwell>(app, Seconds(4.));
 
-        app.system(Tick, update_eat);
+        app.system(Tick, update_forage);
         app.system(Tick, update_roam);
     }
 }

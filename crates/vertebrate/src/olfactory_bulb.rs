@@ -11,7 +11,7 @@ use crate::{
     body::Body, 
     mid_move::SeekInput, 
     pallidum::basal_forebrain::{AttendId, AttendValue, BasalForebrain}, 
-    util::{Angle, DirVector}, 
+    util::{Angle, EgoVector}, 
     world::{OdorType, World}
 };
 
@@ -58,7 +58,7 @@ impl OlfactoryBulb {
         }
     }
 
-    fn update_odor(&mut self, index: usize, vector: DirVector) {
+    fn update_odor(&mut self, index: usize, vector: EgoVector) {
         self.glomerules[index].odor(vector);
 
         let attend_id = self.glomerules[index].attend_id;
@@ -124,7 +124,7 @@ impl OlfactoryBulb {
 }
 
 impl SeekInput for OlfactoryBulb {
-    fn seek_dir(&self) -> Option<DirVector> {
+    fn seek_dir(&self) -> Option<EgoVector> {
         for id in &self.active_odors {
             let glom = &self.glomerules[id.0];
 
@@ -192,7 +192,7 @@ impl OdorItem {
 
 struct Glomerule {
     odor: OdorType,
-    vector: DirVector,
+    vector: EgoVector,
     attend_id: AttendId,
     attend: f32,
 }
@@ -203,7 +203,7 @@ impl Glomerule {
     fn new(odor: OdorType, attend_id: AttendId) -> Self {
         Self {
             odor,
-            vector: DirVector::zero(),
+            vector: EgoVector::zero(),
             attend_id,
             attend: 1.,
         }
@@ -224,14 +224,14 @@ impl Glomerule {
     }
 
     fn pre_update(&mut self) {
-        self.vector = DirVector::zero();
+        self.vector = EgoVector::zero();
     }
 
     fn set_attend(&mut self, attend: f32) {
         self.attend = attend;
     }
 
-    fn odor(&mut self, vector: DirVector) {
+    fn odor(&mut self, vector: EgoVector) {
         self.vector = vector;
     }
 
@@ -241,7 +241,7 @@ impl Glomerule {
 
 #[derive(Clone, Copy, Debug, Event)]
 pub enum ObEvent {
-    Odor(OdorType, DirVector),
+    Odor(OdorType, EgoVector),
 }
 
 pub struct OlfactoryPlugin {

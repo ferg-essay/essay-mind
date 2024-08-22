@@ -70,6 +70,11 @@ impl DecayValue {
     }
 
     #[inline]
+    pub fn is_active(&self) -> bool {
+        self.value() >= self.threshold
+    }
+
+    #[inline]
     pub fn value(&self) -> f32 {
         self.value
     }
@@ -114,11 +119,6 @@ impl DecayValue {
         let decay = self.decay.powi(delta_ticks as i32);
 
         self.value = (self.value - self.rest_value) * decay + self.rest_value;
-    }
-
-    #[inline]
-    pub fn is_active(&self) -> bool {
-        self.value() >= self.threshold
     }
 }
 

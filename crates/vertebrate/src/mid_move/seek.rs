@@ -12,7 +12,7 @@ use crate::{
     motive::{Motive, MotiveTrait, Motives}, 
     striatum::{Gate, Striatum2, StriatumGate}, 
     taxis::chemotaxis::{Avoid, Seek}, 
-    util::{DecayValue, DirVector, Seconds, Turn}
+    util::{DecayValue, EgoVector, Seconds, Turn}
 };
 
 pub struct TegSeek<I: SeekInput> {
@@ -59,15 +59,15 @@ impl<I: SeekInput> TegSeek<I> {
 }
 
 pub trait SeekInput : Send + Sync + 'static {
-    fn seek_dir(&self) -> Option<DirVector>;
+    fn seek_dir(&self) -> Option<EgoVector>;
 }
 
-pub struct TegSeekPlugin<I: SeekInput, M: MotiveTrait> {
+pub struct MidSeekPlugin<I: SeekInput, M: MotiveTrait> {
     _striatum: Striatum2,
     marker: PhantomData<(I, M)>,
 }
 
-impl<I: SeekInput, M: MotiveTrait> TegSeekPlugin<I, M> {
+impl<I: SeekInput, M: MotiveTrait> MidSeekPlugin<I, M> {
     pub fn new() -> Self {
         Self {
             _striatum: Striatum2::default(),
@@ -109,20 +109,20 @@ fn update_seek<I: SeekInput, M: MotiveTrait>(
     }
 }
 
-impl<I: SeekInput, M: MotiveTrait> Plugin for TegSeekPlugin<I, M> {
+impl<I: SeekInput, M: MotiveTrait> Plugin for MidSeekPlugin<I, M> {
     fn build(&self, app: &mut App) {
-        assert!(app.contains_plugin::<HindMovePlugin>(), "TegSeek requires HindMovePlugin");
-        assert!(app.contains_resource::<I>(), "TegSeek requires resource {}", type_name::<I>());
+        assert!(app.contains_plugin::<HindMovePlugin>(), "MidSeek requires HindMovePlugin");
+        assert!(app.contains_resource::<I>(), "MidSeek requires resource {}", type_name::<I>());
         
         let seek = TegSeek::<I>::new();
         app.insert_resource(seek);
-
-        app.system(Tick, update_seek::<I, M>);
 
         Motives::insert::<Seek>(app, Seconds(0.2));
         Motives::insert::<Avoid>(app, Seconds(0.2));
 
         StriatumGate::<SeekGate<I>>::init(app);
+
+        app.system(Tick, update_seek::<I, M>);
     }
 }
 

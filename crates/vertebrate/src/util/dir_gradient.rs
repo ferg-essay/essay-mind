@@ -1,4 +1,4 @@
-use super::{ticks::HalfLife, DecayValue, DirVector, Heading};
+use super::{ticks::HalfLife, DecayValue, EgoVector, Heading};
 
 
 pub struct DirGradient {
@@ -22,7 +22,7 @@ impl DirGradient {
         self.gradient.update();
     }
 
-    pub fn to_vector(&self) -> DirVector {
-        DirVector::new(self.dir, self.gradient.value())
+    pub fn to_vector(&self) -> EgoVector {
+        EgoVector::new(self.dir, self.gradient.value())
     }
 }

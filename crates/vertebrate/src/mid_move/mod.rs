@@ -1,5 +1,5 @@
-mod move_mid;
-mod teg_seek;
+mod mid_move;
+mod seek;
 
-pub use move_mid::{MidMove, MidMovePlugin};
-pub use teg_seek::{TegSeek, SeekInput, TegSeekPlugin};
+pub use mid_move::{MidMove, MidMovePlugin};
+pub use seek::{TegSeek, SeekInput, MidSeekPlugin};

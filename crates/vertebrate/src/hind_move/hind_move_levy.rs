@@ -2,7 +2,7 @@ use essay_ecs::prelude::*;
 use mind_ecs::Tick;
 use crate::body::{Body, BodyAction, BodyPlugin};
 use crate::motive::{Motive, Wake};
-use crate::util::{Command, DecayValue, DirVector, Seconds, Ticks, Turn};
+use crate::util::{Command, DecayValue, EgoVector, Seconds, Ticks, Turn};
 use util::random::{random_normal, random_pareto, random_uniform};
 
 ///
@@ -287,7 +287,7 @@ impl HindLevyMove {
         }
     }
 
-    fn add_avoid(&mut self, avoid_dir: DirVector) {
+    fn add_avoid(&mut self, avoid_dir: EgoVector) {
         if avoid_dir.value() > 0.05 {
             let offset = 2. * avoid_dir.sin(); // * avoid_dir.value();
 
@@ -298,7 +298,7 @@ impl HindLevyMove {
         }
     }
 
-    fn add_approach(&mut self, approach_dir: DirVector) {
+    fn add_approach(&mut self, approach_dir: EgoVector) {
         if approach_dir.value() > 0.01 {
             let offset = 2. * approach_dir.dx(); // * approach_dir.value();
 
@@ -532,8 +532,8 @@ pub enum TurnCommand {
     AvoidLeft(f32),
     AvoidRight(f32),
     // taxis gradient
-    ApproachVector(DirVector),
-    AvoidVector(DirVector),
+    ApproachVector(EgoVector),
+    AvoidVector(EgoVector),
 
     AvoidUTurn,
 }
