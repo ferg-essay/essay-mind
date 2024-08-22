@@ -44,7 +44,6 @@ fn update_forage(
     mid_move: Res<MidMove>,
     hind_eat: Res<HindEat>,
     mut motive_eat: ResMut<Motive<Eat>>,
-    mut dwell: ResMut<Motive<Dwell>>,
     mut foraging: ResMut<Motive<Forage>>,
     mut sated: ResMut<Motive<Sated>>,
     wake: Res<Motive<Wake>>,
@@ -71,28 +70,17 @@ fn update_forage(
         // activate eating
         forage.add_eat();
 
-        if body_eat.is_eating() {
-            // eating sets dwell mode (5HT)
-            if ! sated.is_active() {
-                dwell.set_max(1.);
-            } else {
-                dwell.clear();
-            }
-        }
-
         if ! forage.is_eat_timeout() {
             motive_eat.set_max(1.);
+            // H disinhibits R.pb (cite)
             hind_eat.eat();
         }
     } else {
         foraging.set_max(1.);
 
-        //roam.set_max(wake.value());
-        //if dwell.is_active() {
-        //    mid_move.dwell();
-        //} else if roam.is_active() {
-            mid_move.roam();
-        }
+        // H.sum activation for roaming
+        mid_move.roam();
+    }
 }
 pub struct Eat;
 impl MotiveTrait for Eat {}
@@ -108,30 +96,6 @@ impl MotiveTrait for Roam {}
 
 pub struct Dwell;
 impl MotiveTrait for Dwell {}
-
-fn _update_roam(
-    mut roam: ResMut<Motive<Roam>>,
-    mut dwell: ResMut<Motive<Dwell>>,
-    hind_eat: Res<HindEat>,
-    mid_move: Res<MidMove>,
-    wake: Res<Motive<Wake>>,
-) {
-    if ! wake.is_active() {
-        return;
-    }
-
-    if hind_eat.is_eat() {
-        roam.set_max(wake.value() * 0.2);
-        dwell.set_max(wake.value());
-    } else {
-        roam.set_max(wake.value());
-        if dwell.is_active() {
-            mid_move.dwell();
-        } else if roam.is_active() {
-            mid_move.roam();
-        }   
-    }
-}
 
 pub struct MotiveForagePlugin;
 
@@ -150,16 +114,5 @@ impl Plugin for MotiveForagePlugin {
         Motives::insert::<Dwell>(app, Seconds(4.));
 
         app.system(Tick, update_forage);
-        // app.system(Tick, update_roam);
-    }
-}
-
-
-pub struct MotiveMovePlugin;
-
-impl Plugin for MotiveMovePlugin {
-    fn build(&self, app: &mut App) {
-        assert!(app.contains_plugin::<MidMovePlugin>(), "MotiveMove requires MidMove");
-
     }
 }

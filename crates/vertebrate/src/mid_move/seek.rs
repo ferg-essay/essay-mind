@@ -91,11 +91,11 @@ fn update_seek<I: SeekInput, M: MotiveTrait>(
             }
             TimeoutState::Timeout => {
                 motive_avoid.set_max(1.);
-                hind_move.forward(0.6);
+                //hind_move.forward(0.6);
 
                 let turn = dir.dir().to_turn();
 
-                hind_move.turn(Turn::Unit(- turn.to_unit()));
+                //hind_move.turn(Turn::Unit(- turn.to_unit()));
             }
         }
     }

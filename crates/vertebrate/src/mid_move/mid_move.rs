@@ -20,11 +20,6 @@ impl MidMove {
     }
 
     #[inline]
-    pub fn dwell(&self) {
-        self.commands.send(MidMoveEvent::Dwell);
-    }
-
-    #[inline]
     pub fn roam(&self) {
         self.commands.send(MidMoveEvent::Roam);
     }
@@ -65,9 +60,6 @@ impl MidMove {
                 MidMoveEvent::Seek => {
                     self.on_seek(hind_move, hind_eat);
                 }
-                MidMoveEvent::Dwell => {
-                    self.on_dwell(hind_move, hind_eat);
-                }
             }
         }
     }
@@ -91,17 +83,6 @@ impl MidMove {
         // H.stn managed transition waits for eat to stop before roam
         if hind_eat.is_stop() {
             hind_move.seek();
-        }
-    }
-
-    fn on_dwell(
-        &mut self, 
-        hind_move: &mut HindMove,
-        hind_eat: &HindEat,
-    ) {
-        // H.stn managed transition waits for eat to stop before dwell
-        if hind_eat.is_stop() {
-            hind_move.roam(); // dwell
         }
     }
 
@@ -131,7 +112,6 @@ impl Default for MidMove {
 enum MidMoveEvent {
     Eat,
     Roam,
-    Dwell,
     Seek,
 }
 

@@ -2,7 +2,7 @@ use essay_ecs::{
     app::{App, Plugin}, 
     core::{Res, ResMut}
 };
-use log::{log, Level};
+use log::info;
 use mind_ecs::Tick;
 
 use crate::{
@@ -111,7 +111,7 @@ fn update_hind_eat(
     }
 
     if ! hind_eat.is_eat_allowed(body.get()) {
-        log!(Level::Info, "eating while moving");
+        info!("eating while moving");
         return
     }
 

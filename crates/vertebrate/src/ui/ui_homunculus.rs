@@ -24,8 +24,7 @@ use super::ui_emoji::Emoji;
 pub struct UiHomunculus {
     view: View<UiHomunculusView>,
 
-    next_emoji: Emoji,
-    next_emoji_id: usize,
+    emojis: Vec<EmojiValue>,
 }
 
 impl UiHomunculus {
@@ -35,40 +34,59 @@ impl UiHomunculus {
         Self {
             view,
 
-            next_emoji: Emoji::FaceThinking,
-            next_emoji_id: usize::MAX,
+            emojis: Vec::new(),
         }
     }
 
-    fn emoji(&mut self, id: usize, emoji: Emoji) {
-        if id < self.next_emoji_id {
-            self.next_emoji = emoji;
-            self.next_emoji_id = id;
+    fn emoji(&mut self, id: usize, emoji: Emoji, is_active: bool) {
+        let value = EmojiValue { emoji, is_active };
+
+        if self.emojis.len() <= id {
+            self.emojis.resize(id + 1, value);
+        } else {
+            self.emojis[id] = value;
         }
     }
+
+    fn next_emoji(&self) -> Option<Emoji> {
+        for value in &self.emojis {
+            if value.is_active {
+                return Some(value.emoji);
+            }
+        }
+
+        None
+    }
+}
+
+#[derive(Clone)]
+struct EmojiValue {
+    emoji: Emoji,
+    is_active: bool,
 }
 
 pub fn ui_homunculus_draw(
     mut ui_homunculus: ResMut<UiHomunculus>,
     body: Res<Body>,
-    // hind_levy: Res<HindLevyMove>,
     hind_move: Res<HindMove>,
     taxis: Res<Taxis>,
     tectum: Res<TectumMap>,
 ) {
-    let mut next_emoji = ui_homunculus.next_emoji;
-    
-    match hind_move.action_kind() {
-        MoveKind::None => {},
-        MoveKind::Halt => { next_emoji = Emoji::Candy; }, // TODO:
-        MoveKind::Roam => { next_emoji = Emoji::Footprints; },
-        MoveKind::Seek => { next_emoji = Emoji::DirectHit; },
-        MoveKind::Escape(_) | MoveKind::UTurn(_) => { 
-            next_emoji = Emoji::NoEntry; }
-        MoveKind::Startle => {
-            next_emoji = Emoji::FaceOpenMouth;
+    let next_emoji = if let Some(next_emoji) = ui_homunculus.next_emoji() {
+        next_emoji
+    } else {
+        match hind_move.action_kind() {
+            MoveKind::None => { Emoji::Bandage },
+            MoveKind::Halt => { Emoji::Candy }, // TODO:
+            MoveKind::Roam => { Emoji::Footprints },
+            MoveKind::Seek => { Emoji::DirectHit },
+            MoveKind::Escape(_) | MoveKind::UTurn(_) => { 
+                Emoji::NoEntry }
+            MoveKind::Startle => {
+                Emoji::FaceOpenMouth
+            }
         }
-    }
+    };
 
     let approach_dir = taxis.approach_dir();
     let value = approach_dir.value();
@@ -761,9 +779,7 @@ impl<T: Default + Send + Sync + 'static> PluginItem for Item<T> {
 
         app.system(PostUpdate, 
             move |mut hom: ResMut<UiHomunculus>, item: Res<T>| {
-                if fun(item.get()) {
-                    hom.emoji(id, emoji);
-                }
+                hom.emoji(id, emoji, fun(item.get()));
             }
         );
     }
@@ -783,7 +799,6 @@ impl Plugin for UiHomunculusPlugin {
 
             for (i, item) in self.emoji_items.iter().enumerate() {
                 item.system(i, app);
-
             }
 
             app.system(AfterTicks, ui_homunculus_draw);

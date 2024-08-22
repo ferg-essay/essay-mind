@@ -41,7 +41,8 @@ pub fn main() {
     app.plugin(TickSchedulePlugin::new().ticks(2));
 
     app.plugin(world_roam(21, 15)
-        .food_odor_r(5, 5, 4, OdorType::FoodA)
+        // .food_odor_r(5, 5, 4, OdorType::FoodA)
+        .odor_r(5, 5, 4, OdorType::FoodA)
         .odor_r(15, 5, 4, OdorType::FoodA)
     );
 
@@ -212,7 +213,7 @@ fn ui_eat_flat(app: &mut App) {
         .item(Emoji::NoEntry, |m: &Motive<Avoid>| m.is_active())
         .item(Emoji::MagnifyingGlassLeft, |m: &Motive<Dwell>| m.is_active())
         .item(Emoji::Footprints, |m: &Motive<Roam>| m.is_active())
-        .item(Emoji::FaceSleeping, |m: &Motive<Wake>| m.is_active())
+        .item(Emoji::FaceSleeping, |m: &Motive<Wake>| ! m.is_active())
     );
     //app.plugin(UiCameraPlugin::new((2., -1.), (0.5, 0.5)).fov(Angle::Deg(120.)));
 
