@@ -2,7 +2,7 @@ use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}};
 use log::warn;
 use mind_ecs::Tick;
 
-use crate::{hind_motor::HindMove, retina::Retina, util::{DecayValue, Seconds, Turn}};
+use crate::{hind_move::HindMove, retina::Retina, util::{DecayValue, Seconds, Turn}};
 
 struct Looming {
     threshold: f32,

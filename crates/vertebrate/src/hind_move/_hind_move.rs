@@ -378,7 +378,7 @@ mod test {
     use essay_ecs::core::Res;
     use mind_ecs::MindApp;
 
-    use crate::{body::{Body, BodyPlugin}, hind_motor::_HindMovePlugin, util::Point, world::WorldPlugin};
+    use crate::{body::{Body, BodyPlugin}, hind_move::_HindMovePlugin, util::Point, world::WorldPlugin};
 
     #[test]
     fn test_default() {

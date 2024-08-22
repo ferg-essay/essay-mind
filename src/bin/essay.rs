@@ -8,7 +8,7 @@ use vertebrate::{
         eat::{Eat, FoodSearch, Sated}, 
         wake::Sleep, Dwell, Motive, MotiveTrait, Roam, Wake
     }, 
-    hab_taxis::{
+    taxis::{
         chemotaxis::{Avoid, Chemotaxis, Seek}, 
         phototaxis::Phototaxis
     }, 

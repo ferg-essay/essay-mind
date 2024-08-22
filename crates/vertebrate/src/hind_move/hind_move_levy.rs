@@ -678,7 +678,7 @@ mod test {
 
     use crate::{
         body::{Body, BodyPlugin}, 
-        hind_motor::{HindLevyMove, HindLevyPlugin}, 
+        hind_move::{HindLevyMove, HindLevyPlugin}, 
         util::Point, 
         world::WorldPlugin
     };

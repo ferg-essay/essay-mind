@@ -3,8 +3,18 @@ use log::warn;
 use mind_ecs::Tick;
 
 use crate::{
-    body::{BodyEatPlugin, BodyPlugin}, motive::{eat::{CoreEatingPlugin, FoodSearch}, 
-    CoreWakePlugin, Dwell, Motive}, hab_taxis::klinotaxis::KlinotaxisPlugin, hind_motor::{HindEat, HindEatPlugin, HindMovePlugin}, mid_motor::{MidMotor, MidMotorPlugin, TegSeekPlugin}, olfactory_bulb::{OlfactoryBulb, OlfactoryPlugin}, retina::RetinaPlugin, tectum::{TectumLoomingPlugin, TectumPlugin} 
+    body::{BodyEatPlugin, BodyPlugin}, 
+    motive::{
+        eat::{CoreEatingPlugin, FoodSearch}, 
+        CoreWakePlugin, Dwell, Motive
+    }, 
+    hind_eat::{HindEat, HindEatPlugin}, 
+    hind_move::HindMovePlugin, 
+    mid_motor::{MidMotorPlugin, TegSeekPlugin}, 
+    olfactory_bulb::{OlfactoryBulb, OlfactoryPlugin}, 
+    retina::RetinaPlugin, 
+    taxis::klinotaxis::KlinotaxisPlugin, 
+    tectum::{TectumLoomingPlugin, TectumPlugin} 
 };
 
 pub struct AnimalBuilder {

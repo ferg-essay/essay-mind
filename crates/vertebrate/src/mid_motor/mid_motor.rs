@@ -6,9 +6,7 @@ use essay_ecs::{
 use mind_ecs::Tick;
 
 use crate::{
-    motive::{Dwell, Motive, Wake}, 
-    hind_motor::{HindEat, HindMove, HindMovePlugin}, 
-    util::Command
+    hind_eat::HindEat, hind_move::{HindMove, HindMovePlugin}, motive::{Dwell, Motive, Wake}, util::Command
 };
 
 pub struct MidMotor {

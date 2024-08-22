@@ -5,14 +5,13 @@
 use std::{any::type_name, marker::PhantomData};
 
 use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}};
-use log::info;
 use mind_ecs::{AppTick, Tick};
 
 use crate::{
+    hind_move::{HindMove, HindMovePlugin},
     motive::{Motive, MotiveTrait, Motives}, 
-    hab_taxis::chemotaxis::{Avoid, Seek}, 
-    hind_motor::{HindMove, HindMovePlugin},
     striatum::{Gate, Striatum2, StriatumGate}, 
+    taxis::chemotaxis::{Avoid, Seek}, 
     util::{DecayValue, DirVector, Seconds, Turn}
 };
 

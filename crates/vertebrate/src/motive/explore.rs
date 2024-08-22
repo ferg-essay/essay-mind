@@ -1,7 +1,11 @@
 use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}};
 use mind_ecs::Tick;
 
-use crate::{hind_motor::HindEat, mid_motor::{MidMotor, MidMotorPlugin}, util::Seconds};
+use crate::{
+    hind_eat::HindEat, 
+    mid_motor::{MidMotor, MidMotorPlugin}, 
+    util::Seconds
+};
 
 use super::{motive::{Motive, MotiveTrait, Motives}, Wake};
 

@@ -3,7 +3,7 @@ use mind_ecs::Tick;
 
 use crate::{
     body::Body, 
-    hind_motor::{HindLevyMove, TurnCommand}, 
+    hind_move::{HindLevyMove, TurnCommand}, 
     tectum::TectumMap, 
     util::{DirVector, Heading, Line, Point}, 
     world::World
