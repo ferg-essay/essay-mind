@@ -9,23 +9,28 @@ use crate::{
     hind_eat::HindEat, hind_move::{HindMove, HindMovePlugin}, motive::{Dwell, Motive, Wake}, util::Command
 };
 
-pub struct MidMotor {
-    commands: Command<MidMotorEvent>,
+pub struct MidMove {
+    commands: Command<MidMoveEvent>,
 }
 
-impl MidMotor {
+impl MidMove {
     #[inline]
     pub fn eat(&self) {
-        self.commands.send(MidMotorEvent::Eat);
+        self.commands.send(MidMoveEvent::Eat);
     }
 
     #[inline]
-    pub fn explore(&self) {
-        self.commands.send(MidMotorEvent::Explore);
+    pub fn dwell(&self) {
+        self.commands.send(MidMoveEvent::Dwell);
     }
 
     #[inline]
-    fn commands(&mut self) -> Vec<MidMotorEvent> {
+    pub fn roam(&self) {
+        self.commands.send(MidMoveEvent::Roam);
+    }
+
+    #[inline]
+    fn commands(&mut self) -> Vec<MidMoveEvent> {
         self.commands.drain()
     }
 
@@ -46,15 +51,14 @@ impl MidMotor {
     ) {
         for event in self.commands() {
             match event {
-                MidMotorEvent::Eat => {
+                MidMoveEvent::Eat => {
                     self.on_eat(hind_move, hind_eat);
                 },
-                MidMotorEvent::Explore => {
-                    if dwell.is_active() {
-                        self.on_dwell(hind_move, hind_eat);
-                    } else {
-                        self.on_roam(hind_move, hind_eat);
-                    }
+                MidMoveEvent::Roam => {
+                    self.on_roam(hind_move, hind_eat);
+                }
+                MidMoveEvent::Dwell => {
+                    self.on_dwell(hind_move, hind_eat);
                 }
             }
         }
@@ -96,7 +100,7 @@ impl MidMotor {
     }
 }
 
-impl Default for MidMotor {
+impl Default for MidMove {
     fn default() -> Self {
         Self { 
             commands: Command::new(),
@@ -105,13 +109,14 @@ impl Default for MidMotor {
 }
 
 #[derive(Clone, Copy, Debug, Event)]
-enum MidMotorEvent {
+enum MidMoveEvent {
     Eat,
-    Explore,
+    Roam,
+    Dwell,
 }
 
 fn update_mid_motor(
-    mut mid_motor: ResMut<MidMotor>,
+    mut mid_motor: ResMut<MidMove>,
     hind_eat: Res<HindEat>, 
     hind_move: Res<HindMove>, 
     wake: Res<Motive<Wake>>,
@@ -126,14 +131,14 @@ fn update_mid_motor(
     }
 }
 
-pub struct MidMotorPlugin;
+pub struct MidMovePlugin;
 
-impl Plugin for MidMotorPlugin {
+impl Plugin for MidMovePlugin {
     fn build(&self, app: &mut App) {
-        assert!(app.contains_plugin::<HindMovePlugin>(), "MidMotor requires HindMove");
+        assert!(app.contains_plugin::<HindMovePlugin>(), "MidMove requires HindMove");
 
-        app.init_resource::<MidMotor>();
-        app.event::<MidMotorEvent>();
+        app.init_resource::<MidMove>();
+        app.event::<MidMoveEvent>();
 
         app.system(Tick, update_mid_motor);
     }

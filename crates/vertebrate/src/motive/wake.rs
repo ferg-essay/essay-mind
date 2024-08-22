@@ -144,12 +144,12 @@ impl MotiveTrait for Wake {}
 pub struct Sleep;
 impl MotiveTrait for Sleep {}
 
-pub struct CoreWakePlugin {
+pub struct MotiveSleepPlugin {
     wake: Ticks,
     sleep: Ticks,
 }
 
-impl CoreWakePlugin {
+impl MotiveSleepPlugin {
     pub fn new() -> Self {
         Self {
             wake: Circadian::WAKE_TIME.into(),
@@ -170,7 +170,7 @@ impl CoreWakePlugin {
     }
 }
 
-impl Plugin for CoreWakePlugin {
+impl Plugin for MotiveSleepPlugin {
     fn build(&self, app: &mut App) {
         Motives::insert::<Wake>(app, Circadian::WAKE_DECAY);
         Motives::insert::<Sleep>(app, Circadian::SLEEP_DECAY);

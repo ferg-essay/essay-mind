@@ -1,5 +1,5 @@
-mod mid_motor;
+mod move_mid;
 mod teg_seek;
 
-pub use mid_motor::{MidMotor, MidMotorPlugin};
+pub use move_mid::{MidMove, MidMovePlugin};
 pub use teg_seek::{TegSeek, SeekInput, TegSeekPlugin};

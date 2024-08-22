@@ -4,13 +4,10 @@ use mind_ecs::Tick;
 
 use crate::{
     body::{BodyEatPlugin, BodyPlugin}, 
-    motive::{
-        eat::{CoreEatingPlugin, FoodSearch}, 
-        CoreWakePlugin, Dwell, Motive
-    }, 
     hind_eat::{HindEat, HindEatPlugin}, 
     hind_move::HindMovePlugin, 
-    mid_motor::{MidMotorPlugin, TegSeekPlugin}, 
+    mid_move::{MidMovePlugin, TegSeekPlugin}, 
+    motive::{Dwell, FoodSearch, Motive, MotiveForagePlugin, MotiveSleepPlugin}, 
     olfactory_bulb::{OlfactoryBulb, OlfactoryPlugin}, 
     retina::RetinaPlugin, 
     taxis::klinotaxis::KlinotaxisPlugin, 
@@ -95,8 +92,8 @@ impl AnimalBuilder {
         // app.plugin(ChemotaxisPlugin);
 
         if self.is_motive_eating {
-            app.plugin(MidMotorPlugin);
-            app.plugin(CoreEatingPlugin);
+            app.plugin(MidMovePlugin);
+            app.plugin(MotiveForagePlugin);
         }
 
         if self.is_mid_seek {
@@ -118,7 +115,7 @@ impl AnimalBuilder {
 
         //app.plugin(MidMotorPlugin);
 
-        app.plugin(CoreWakePlugin::new());
+        app.plugin(MotiveSleepPlugin::new());
         // app.plugin(CoreExplorePlugin);
         // app.plugin(CorePeptidesPlugin);
 

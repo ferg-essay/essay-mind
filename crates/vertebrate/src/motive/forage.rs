@@ -1,8 +1,13 @@
 use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}};
 use mind_ecs::Tick;
-use crate::{body::BodyEat, mid_motor::{MidMotor, MidMotorPlugin}, util::{DecayValue, Seconds}};
+use crate::{
+    body::BodyEat, hind_eat::HindEat, mid_move::{MidMove, MidMovePlugin}, util::{DecayValue, Seconds}
+};
 
-use super::{motive::{Motive, MotiveTrait, Motives}, timeout::Timeout, Dwell, Wake};
+use super::{
+    motive::{Motive, MotiveTrait, Motives}, 
+    timeout::Timeout, Wake
+};
 
 struct CoreEat {
     _persist: Timeout,
@@ -31,20 +36,20 @@ impl CoreEat {
 }
 
 fn update_eat(
-    mut core_eat: ResMut<CoreEat>,
+    mut eat: ResMut<CoreEat>,
     body_eat: Res<BodyEat>,
-    mut eat_motive: ResMut<Motive<Eat>>,
+    mut motive_eat: ResMut<Motive<Eat>>,
     wake: Res<Motive<Wake>>,
     mut dwell: ResMut<Motive<Dwell>>,
     mut sated: ResMut<Motive<Sated>>,
     mut food_seek: ResMut<Motive<FoodSearch>>,
-    mid_motor: Res<MidMotor>,
+    mid_motor: Res<MidMove>,
 ) {
     if body_eat.glucose() > 0.75 || body_eat.glucose() > 0.25 && sated.is_active() {
         sated.set_max(1.);
     }
 
-    core_eat.pre_update();
+    eat.pre_update();
 
     if ! wake.is_active() || sated.is_active() {
         return;
@@ -55,7 +60,7 @@ fn update_eat(
         food_seek.clear();
 
         // activate eating
-        core_eat.add_eat();
+        eat.add_eat();
 
         if body_eat.is_eating() {
             // eating sets dwell mode (5HT)
@@ -66,8 +71,8 @@ fn update_eat(
             }
         }
 
-        if ! core_eat.is_eat_timeout() {
-            eat_motive.set_max(1.);
+        if ! eat.is_eat_timeout() {
+            motive_eat.set_max(1.);
             mid_motor.eat();
         }
     } else {
@@ -83,11 +88,42 @@ impl MotiveTrait for Sated {}
 pub struct FoodSearch;
 impl MotiveTrait for FoodSearch {}
 
-pub struct CoreEatingPlugin;
+pub struct Roam;
+impl MotiveTrait for Roam {}
 
-impl Plugin for CoreEatingPlugin {
+pub struct Dwell;
+impl MotiveTrait for Dwell {}
+
+fn roam_update(
+    mut roam: ResMut<Motive<Roam>>,
+    mut dwell: ResMut<Motive<Dwell>>,
+    hind_eat: Res<HindEat>,
+    mid_move: Res<MidMove>,
+    wake: Res<Motive<Wake>>,
+) {
+    if ! wake.is_active() {
+        return;
+    }
+
+    if hind_eat.is_eat() {
+        roam.set_max(wake.value() * 0.2);
+        dwell.set_max(wake.value());
+    } else {
+        roam.set_max(wake.value());
+    }
+
+    if dwell.is_active() {
+        mid_move.dwell();
+    } else if roam.is_active() {
+        mid_move.roam();
+    }   
+}
+
+pub struct MotiveForagePlugin;
+
+impl Plugin for MotiveForagePlugin {
     fn build(&self, app: &mut App) {
-        assert!(app.contains_plugin::<MidMotorPlugin>(), "CoreEating requires MidMotor");
+        assert!(app.contains_plugin::<MidMovePlugin>(), "MotiveForage requires MidMotor");
 
         let feeding = CoreEat::new();
         app.insert_resource(feeding);
@@ -97,9 +133,20 @@ impl Plugin for CoreEatingPlugin {
         Motives::insert::<Sated>(app, Seconds(5.));
 
         app.system(Tick, update_eat);
+        
+        Motives::insert::<Roam>(app, Seconds(1.));
+        Motives::insert::<Dwell>(app, Seconds(4.));
 
-        // if app.contains_resource::<OlfactoryBulb>() {
-        //    app.system(Tick, update_feeding_olfactory);
-        // }
+        app.system(Tick, roam_update);
+    }
+}
+
+
+pub struct MotiveMovePlugin;
+
+impl Plugin for MotiveMovePlugin {
+    fn build(&self, app: &mut App) {
+        assert!(app.contains_plugin::<MidMovePlugin>(), "MotiveMove requires MidMove");
+
     }
 }

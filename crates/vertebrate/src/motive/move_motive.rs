@@ -3,7 +3,7 @@ use mind_ecs::Tick;
 
 use crate::{
     hind_eat::HindEat, 
-    mid_motor::{MidMotor, MidMotorPlugin}, 
+    mid_move::{MidMove, MidMovePlugin}, 
     util::Seconds
 };
 
@@ -15,11 +15,11 @@ impl MotiveTrait for Roam {}
 pub struct Dwell;
 impl MotiveTrait for Dwell {}
 
-fn explore_update(
+fn roam_update(
     mut roam: ResMut<Motive<Roam>>,
     mut dwell: ResMut<Motive<Dwell>>,
     hind_eat: Res<HindEat>,
-    mid_move: Res<MidMotor>,
+    mid_move: Res<MidMove>,
     wake: Res<Motive<Wake>>,
 ) {
     if ! wake.is_active() {
@@ -33,20 +33,22 @@ fn explore_update(
         roam.set_max(wake.value());
     }
 
-    if roam.is_active() || dwell.is_active() {
-        mid_move.explore();
+    if dwell.is_active() {
+        mid_move.dwell();
+    } else if roam.is_active() {
+        mid_move.roam();
     }   
 }
 
-pub struct CoreExplorePlugin;
+pub struct MotiveMovePlugin;
 
-impl Plugin for CoreExplorePlugin {
+impl Plugin for MotiveMovePlugin {
     fn build(&self, app: &mut App) {
-        assert!(app.contains_plugin::<MidMotorPlugin>(), "CoreExplore requires MidMotor");
+        assert!(app.contains_plugin::<MidMovePlugin>(), "MotiveMove requires MidMove");
 
         Motives::insert::<Roam>(app, Seconds(1.));
         Motives::insert::<Dwell>(app, Seconds(4.));
 
-        app.system(Tick, explore_update);
+        app.system(Tick, roam_update);
     }
 }

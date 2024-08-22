@@ -3,7 +3,7 @@ pub mod body;
 pub mod hind_eat;
 pub mod hind_move;
 pub mod hind_sense;
-pub mod mid_motor;
+pub mod mid_move;
 pub mod motive;
 pub mod olfactory_bulb;
 pub mod pallidum;

@@ -1,4 +1,7 @@
-use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}};
+use essay_ecs::{
+    app::{App, Plugin}, 
+    core::{Res, ResMut}
+};
 use log::{log, Level};
 use mind_ecs::Tick;
 
