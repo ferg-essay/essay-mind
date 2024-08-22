@@ -4,7 +4,7 @@ use essay_plot::api::{Colors, Point};
 use vertebrate::{
     body::Body, 
     builder::AnimalBuilder, 
-    core_motive::{
+    motive::{
         eat::{Eat, FoodSearch, Sated}, 
         wake::Sleep, Dwell, Motive, MotiveTrait, Roam, Wake
     }, 
@@ -55,6 +55,8 @@ pub fn main() {
         .size(7)
         .fov(util::Angle::Deg(120.))
         .eye_angle(util::Angle::Deg(45.));
+
+    animal.seek().seek(true);
 
     animal.build(&mut app);
 

@@ -60,6 +60,7 @@ pub fn ui_homunculus_draw(
     
     match hind_move.action_kind() {
         MoveKind::None => {},
+        MoveKind::Halt => { next_emoji = Emoji::Candy; }, // TODO:
         MoveKind::Roam => { next_emoji = Emoji::Footprints; },
         MoveKind::Seek => { next_emoji = Emoji::DirectHit; },
         MoveKind::Escape(_) | MoveKind::UTurn(_) => { 

@@ -1,7 +1,7 @@
 use essay_ecs::prelude::*;
 use mind_ecs::Tick;
 use crate::body::{Body, BodyAction, BodyPlugin};
-use crate::core_motive::{Motive, Wake};
+use crate::motive::{Motive, Wake};
 use crate::util::{Command, DecayValue, DirVector, Seconds, Ticks, Turn};
 use util::random::{random_normal, random_pareto, random_uniform};
 

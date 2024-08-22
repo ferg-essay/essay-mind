@@ -1,7 +1,8 @@
 use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}};
+use log::debug;
 use mind_ecs::Tick;
 
-use crate::{body::{Body, BodyPlugin}, core_motive::{Motive, Wake}, util::{DecayValue, Seconds, Ticks, Turn}};
+use crate::{body::{Body, BodyPlugin}, motive::{Motive, Wake}, util::{DecayValue, Seconds, Ticks, Turn}};
 
 use super::{move_oscillator::OscillatorArs, move_startle::StartleMrs};
 
@@ -117,11 +118,11 @@ pub struct HindMove {
 
     // r5/r6 MRS/MRRN - Zebrafish MiD2
     // mammal LPGi
-    _forward_r5: ForwardMrs,
+    forward_r5: ForwardMrs,
 
     // r5/r6 - Zebrafish RoV3, MiV1, MiV2
     // mammal Gi
-    _turn_r6: TurnMrs,
+    turn_r6: TurnMrs,
 
     action: Action,
     
@@ -152,8 +153,8 @@ impl HindMove {
 
             startle_r4: None,
 
-            _forward_r5: ForwardMrs::new(),
-            _turn_r6: TurnMrs::new(),
+            forward_r5: ForwardMrs::new(),
+            turn_r6: TurnMrs::new(),
 
             action: Action::none(),
 
@@ -210,13 +211,15 @@ impl HindMove {
             kind = optic_kind;
         }
 
-        // if self.action.is_active() {
-        //    println!("Cmp {:?} {:?}", self.action.kind, kind);
-        // }
+        let turn_mrs = self.turn_r6.take();
+
+        if turn_mrs.to_unit() != 0. {
+            turn = turn_mrs;
+        }
+
         if self.action.allow_override(kind) {
             if let Some(action) = kind.action(turn) {
                 self.action = action;
-                // println!("  New {:?}", kind);
             }
         }
 
@@ -274,9 +277,31 @@ impl HindMove {
     // external updates
     //
 
+    ///
+    /// Optic locomotion: nMLF
+    /// 
     #[inline]
     pub fn optic(&mut self) -> &mut OpticMid {
         &mut self.optic_mid
+    }
+
+    #[inline]
+    pub fn forward(&mut self, value: f32) {
+        self.forward_r5.forward(value);
+    }
+
+    #[inline]
+    pub fn is_stop(&self) -> bool {
+        self.action.kind.is_stop()
+    }
+
+    #[inline]
+    pub fn stop(&self) {
+    }
+
+    #[inline]
+    pub fn turn(&mut self, turn: Turn) {
+        self.turn_r6.turn(turn);
     }
 
     //
@@ -396,16 +421,6 @@ impl OpticMid {
     }
 }
 
-struct ForwardMrs {
-}
-
-impl ForwardMrs {
-    fn new() -> Self {
-        Self {
-        }
-    }
-}
-
 struct _AvoidMrrn {
 }
 
@@ -416,13 +431,40 @@ impl _AvoidMrrn {
     }
 }
 
+struct ForwardMrs {
+}
+
+impl ForwardMrs {
+    fn new() -> Self {
+        Self {
+        }
+    }
+
+    fn forward(&mut self, speed: f32) {
+        debug!("Forward {:?}", speed);
+    }
+}
+
 struct TurnMrs {
+    turn: Turn
 }
 
 impl TurnMrs {
     fn new() -> Self {
         Self {
+            turn: Turn::Unit(0.),
         }
+    }
+
+    fn turn(&mut self, turn: Turn) {
+        self.turn = turn;
+    }
+
+    fn take(&mut self) -> Turn {
+        let turn = self.turn;
+        self.turn = Turn::Unit(0.);
+
+        turn
     }
 }
 
@@ -492,6 +534,7 @@ impl Action {
         } else {
             match self.kind {
                 MoveKind::None => true,
+                MoveKind::Halt => true,
                 MoveKind::Roam => true,
                 MoveKind::Seek => true,
                 MoveKind::UTurn(_) => false,
@@ -523,6 +566,7 @@ impl Action {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum MoveKind {
     None,
+    Halt,
     Roam,
     Seek,
     Escape(Turn),
@@ -531,9 +575,18 @@ pub enum MoveKind {
 }
 
 impl MoveKind {
+    fn is_stop(&self) -> bool {
+        match self {
+            MoveKind::None => true,
+            MoveKind::Halt => true,
+            _ => false
+        }
+    }
+
     fn _speed(&self) -> f32 {
         match self {
             MoveKind::None => 0.,
+            MoveKind::Halt => 0.,
             MoveKind::Roam => 0.5,
             MoveKind::Seek => 0.5,
             MoveKind::Escape(_) => 0.75,
@@ -545,6 +598,9 @@ impl MoveKind {
     fn action(&self, turn: Turn) -> Option<Action> {
         match self {
             MoveKind::None => None,
+            MoveKind::Halt => {
+                Some(Action::new(*self, 0., turn, Seconds(1.)))
+            }
             MoveKind::Roam | MoveKind::Seek => {
                 Some(Action::new(*self, 0.5, turn, Seconds(1.)))
             }

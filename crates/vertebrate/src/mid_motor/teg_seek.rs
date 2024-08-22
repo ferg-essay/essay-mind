@@ -5,9 +5,16 @@
 use std::{any::type_name, marker::PhantomData};
 
 use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}};
+use log::info;
 use mind_ecs::{AppTick, Tick};
 
-use crate::{core_motive::{Motive, MotiveTrait, Motives}, hab_taxis::chemotaxis::{Avoid, Seek}, hind_motor::{_HindMove, _HindMovePlugin}, striatum::{Gate, Striatum2, StriatumGate}, util::{DecayValue, DirVector, Seconds}};
+use crate::{
+    motive::{Motive, MotiveTrait, Motives}, 
+    hab_taxis::chemotaxis::{Avoid, Seek}, 
+    hind_motor::{HindMove, HindMovePlugin},
+    striatum::{Gate, Striatum2, StriatumGate}, 
+    util::{DecayValue, DirVector, Seconds, Turn}
+};
 
 pub struct TegSeek<I: SeekInput> {
     ltd_buildup: DecayValue,
@@ -30,7 +37,7 @@ impl<I: SeekInput> TegSeek<I> {
     fn update(&mut self, tick: &AppTick) -> bool {
         self.ltd_buildup.update_ticks(tick.ticks());
         self.ltd_decay.update_ticks(tick.ticks());
-
+        
         // avoid timeout (adenosine in striatum) with hysteresis
         let is_seek = if self.ltd_decay.value() < 0.2 {
             true
@@ -56,11 +63,6 @@ pub trait SeekInput : Send + Sync + 'static {
     fn seek_dir(&self) -> Option<DirVector>;
 }
 
-// pub trait TegOutput {
-//
-// }
-
-
 pub struct TegSeekPlugin<I: SeekInput, M: MotiveTrait> {
     _striatum: Striatum2,
     marker: PhantomData<(I, M)>,
@@ -77,7 +79,7 @@ impl<I: SeekInput, M: MotiveTrait> TegSeekPlugin<I, M> {
 
 fn update_seek<I: SeekInput, M: MotiveTrait>(
     mut seek: ResMut<TegSeek<I>>,
-    hind_move: ResMut<_HindMove>,
+    mut hind_move: ResMut<HindMove>,
     input: Res<I>,
     motive: Res<Motive<M>>,
     tick: Res<AppTick>,
@@ -89,37 +91,28 @@ fn update_seek<I: SeekInput, M: MotiveTrait>(
     }
 
     if let Some(dir) = input.seek_dir() {
+        // seek until timeout
         if seek.update(tick.get()) {
             motive_seek.set_max(1.);
         
             hind_move.forward(0.5);
 
-            let dir = dir.to_unit();
-
-            if dir < 0.5 {
-                hind_move.right_brake((4. * dir).min(1.));
-            } else {
-                hind_move.left_brake((4. * (1. - dir)).min(1.));
-            }
+            hind_move.turn(dir.dir().to_turn());
         } else {
             // avoid
             motive_avoid.set_max(1.);
             hind_move.forward(0.6);
 
-            let dir = (dir.to_unit() + 0.5) % 1.;
+            let turn = dir.dir().to_turn();
 
-            if dir < 0.5 {
-                hind_move.right_brake((4. * dir).min(1.));
-            } else {
-                hind_move.left_brake((4. * (1. - dir)).min(1.));
-            }
+            hind_move.turn(Turn::Unit(- turn.to_unit()));
         }
     }
 }
 
 impl<I: SeekInput, M: MotiveTrait> Plugin for TegSeekPlugin<I, M> {
     fn build(&self, app: &mut App) {
-        assert!(app.contains_plugin::<_HindMovePlugin>(), "TegSeek requires HindMovePlugin");
+        assert!(app.contains_plugin::<HindMovePlugin>(), "TegSeek requires HindMovePlugin");
         assert!(app.contains_resource::<I>(), "TegSeek requires resource {}", type_name::<I>());
         
         let seek = TegSeek::<I>::new();

@@ -283,8 +283,8 @@ impl Heading {
     }
 
     #[inline]
-    pub fn to_turn(&self) -> f32 {
-        (self.to_unit() + 0.5) % 1. - 0.5
+    pub fn to_turn(&self) -> Turn {
+        Turn::Unit((self.to_unit() + 0.5) % 1. - 0.5)
     }
 
     #[inline]

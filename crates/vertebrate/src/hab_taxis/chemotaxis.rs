@@ -7,7 +7,7 @@ use mind_ecs::Tick;
 
 use crate::{
     body::Body, 
-    core_motive::{eat::Sated, Motive, MotiveTrait, Motives, Wake}, 
+    motive::{eat::Sated, Motive, MotiveTrait, Motives, Wake}, 
     hind_motor::{HindLevyMove, HindLevyPlugin, TurnCommand}, 
     olfactory_bulb::{ObEvent, OlfactoryBulb}, util::{Heading, Seconds} 
 };

@@ -8,13 +8,7 @@ use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}};
 use mind_ecs::{AppTick, Tick};
 
 use crate::{
-    body::Body, 
-    core_motive::{Motive, MotiveTrait, Motives}, 
-    hab_taxis::chemotaxis::{Avoid, Seek}, 
-    hind_motor::{_HindMove, _HindMovePlugin}, 
-    striatum::{Gate, StriatumGate}, 
-    teg_motor::SeekInput, 
-    util::{DecayValue, Seconds}
+    body::Body, motive::{Motive, MotiveTrait, Motives}, hab_taxis::chemotaxis::{Avoid, Seek}, hind_motor::{_HindMove, _HindMovePlugin}, mid_motor::SeekInput, striatum::{Gate, StriatumGate}, util::{DecayValue, Seconds}
 };
 
 pub struct Klinotaxis<I: SeekInput> {

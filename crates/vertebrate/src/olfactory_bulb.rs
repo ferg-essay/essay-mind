@@ -8,7 +8,7 @@ use essay_ecs::{prelude::{Plugin, App, ResMut, Res, Event}, app::event::OutEvent
 use mind_ecs::Tick;
 
 use crate::{
-    body::Body, pallidum::basal_forebrain::{AttendId, AttendValue, BasalForebrain}, teg_motor::SeekInput, util::{Angle, DirVector}, world::{OdorType, World}
+    body::Body, mid_motor::SeekInput, pallidum::basal_forebrain::{AttendId, AttendValue, BasalForebrain}, util::{Angle, DirVector}, world::{OdorType, World}
 };
 
 pub struct OlfactoryBulb {

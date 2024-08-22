@@ -1,7 +1,15 @@
-use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}, prelude::Event};
+use essay_ecs::{
+    app::{App, Plugin}, 
+    core::{Res, ResMut}, 
+    prelude::Event
+};
 use mind_ecs::Tick;
 
-use crate::{core_motive::{Dwell, Motive, Wake}, hind_motor::{HindEat, HindLevyMove, HindLevyPlugin}, util::Command};
+use crate::{
+    motive::{Dwell, Motive, Wake}, 
+    hind_motor::{HindEat, HindMove, HindMovePlugin}, 
+    util::Command
+};
 
 pub struct MidMotor {
     commands: Command<MidMotorEvent>,
@@ -35,7 +43,7 @@ impl MidMotor {
     fn update(
         &mut self,
         dwell: &Motive<Dwell>,
-        hind_move: &HindLevyMove,
+        hind_move: &HindMove,
         hind_eat: &HindEat,
     ) {
         for event in self.commands() {
@@ -56,36 +64,36 @@ impl MidMotor {
 
     fn on_roam(
         &mut self, 
-        hind_motor: &HindLevyMove,
+        _hind_motor: &HindMove,
         hind_eat: &HindEat,
     ) {
         // H.stn managed transition waits for eat to stop before roam
         if hind_eat.is_stop() {
-            hind_motor.roam();
+            // hind_motor.roam();
         }
     }
 
     fn on_dwell(
         &mut self, 
-        hind_motor: &HindLevyMove,
+        _hind_motor: &HindMove,
         hind_eat: &HindEat,
     ) {
         // H.stn managed transition waits for eat to stop before dwell
         if hind_eat.is_stop() {
-            hind_motor.dwell();
+            // hind_motor.dwell();
         }
     }
 
     fn on_eat(
         &mut self, 
-        hind_motor: &HindLevyMove,
+        hind_move: &HindMove,
         hind_eat: &HindEat,
     ) {
         // H.stn managed transition waits for movement to stop before eat
-        if hind_motor.is_stop() {
+        if hind_move.is_stop() {
             hind_eat.eat();
         } else {
-            hind_motor.stop();
+            hind_move.stop();
         }
     }
 }
@@ -107,7 +115,7 @@ enum MidMotorEvent {
 fn update_mid_motor(
     mut mid_motor: ResMut<MidMotor>,
     hind_eat: Res<HindEat>, 
-    hind_move: Res<HindLevyMove>, 
+    hind_move: Res<HindMove>, 
     wake: Res<Motive<Wake>>,
     dwell: Res<Motive<Dwell>>,
 ) {
@@ -124,7 +132,7 @@ pub struct MidMotorPlugin;
 
 impl Plugin for MidMotorPlugin {
     fn build(&self, app: &mut App) {
-        assert!(app.contains_plugin::<HindLevyPlugin>(), "MidMotor requires HindLevy");
+        assert!(app.contains_plugin::<HindMovePlugin>(), "MidMotor requires HindMove");
 
         app.init_resource::<MidMotor>();
         app.event::<MidMotorEvent>();
