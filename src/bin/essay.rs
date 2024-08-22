@@ -5,7 +5,7 @@ use vertebrate::{
     body::Body, 
     builder::AnimalBuilder, 
     motive::{
-        forage::{Eat, FoodSearch, Sated}, 
+        Eat, FoodSearch, Sated, 
         wake::Sleep, Dwell, Motive, MotiveTrait, Roam, Wake
     }, 
     taxis::{

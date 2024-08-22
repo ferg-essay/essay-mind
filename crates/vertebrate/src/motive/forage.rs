@@ -6,18 +6,16 @@ use crate::{
 
 use super::{
     motive::{Motive, MotiveTrait, Motives}, 
-    timeout::Timeout, Wake
+    Wake
 };
 
 struct CoreEat {
-    _persist: Timeout,
     timeout: DecayValue,
 }
 
 impl CoreEat {
     fn new() -> Self {
         Self {
-            _persist: Timeout::new(Seconds(4.)),
             timeout: DecayValue::new(2.),
         }
     }
@@ -94,7 +92,7 @@ impl MotiveTrait for Roam {}
 pub struct Dwell;
 impl MotiveTrait for Dwell {}
 
-fn roam_update(
+fn update_roam(
     mut roam: ResMut<Motive<Roam>>,
     mut dwell: ResMut<Motive<Dwell>>,
     hind_eat: Res<HindEat>,
@@ -123,7 +121,7 @@ pub struct MotiveForagePlugin;
 
 impl Plugin for MotiveForagePlugin {
     fn build(&self, app: &mut App) {
-        assert!(app.contains_plugin::<MidMovePlugin>(), "MotiveForage requires MidMotor");
+        assert!(app.contains_plugin::<MidMovePlugin>(), "MotiveForage requires MidMove");
 
         let feeding = CoreEat::new();
         app.insert_resource(feeding);
@@ -132,12 +130,11 @@ impl Plugin for MotiveForagePlugin {
         Motives::insert::<FoodSearch>(app, Seconds(0.1));
         Motives::insert::<Sated>(app, Seconds(5.));
 
-        app.system(Tick, update_eat);
-        
         Motives::insert::<Roam>(app, Seconds(1.));
         Motives::insert::<Dwell>(app, Seconds(4.));
 
-        app.system(Tick, roam_update);
+        app.system(Tick, update_eat);
+        app.system(Tick, update_roam);
     }
 }
 

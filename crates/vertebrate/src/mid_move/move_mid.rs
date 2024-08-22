@@ -45,7 +45,7 @@ impl MidMove {
 
     fn update(
         &mut self,
-        dwell: &Motive<Dwell>,
+        _dwell: &Motive<Dwell>,
         hind_move: &HindMove,
         hind_eat: &HindEat,
     ) {
