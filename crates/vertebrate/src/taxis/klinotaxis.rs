@@ -8,12 +8,7 @@ use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}};
 use mind_ecs::{AppTick, Tick};
 
 use crate::{
-    body::Body, motive::{Motive, MotiveTrait, Motives}, 
-    hind_move::{_HindMove, _HindMovePlugin}, 
-    mid_move::SeekInput, 
-    striatum::{Gate, StriatumGate}, 
-    taxis::chemotaxis::{Avoid, Seek}, 
-    util::{DecayValue, Seconds}
+    body::Body, hind_move::{HindMove, HindMovePlugin}, mid_move::SeekInput, motive::{Motive, MotiveTrait, Motives}, striatum::{Gate, StriatumGate}, taxis::chemotaxis::{Avoid, Seek}, util::{DecayValue, Seconds, Turn}
 };
 
 pub struct Klinotaxis<I: SeekInput> {
@@ -180,7 +175,7 @@ impl<I: SeekInput, M: MotiveTrait> KlinotaxisPlugin<I, M> {
 
 fn update_seek<I: SeekInput, M: MotiveTrait>(
     mut seek: ResMut<Klinotaxis<I>>,
-    hind_move: ResMut<_HindMove>,
+    mut hind_move: ResMut<HindMove>,
     input: Res<I>,
     motive: Res<Motive<M>>,
     tick: Res<AppTick>,
@@ -204,14 +199,14 @@ fn update_seek<I: SeekInput, M: MotiveTrait>(
             hind_move.forward(0.5);
 
             if seek.is_moving_away() {
-                hind_move.u_turn(1.);
+                hind_move.turn(Turn::Unit(0.5));
             } else {
                 if seek.is_left_turn() && seek.is_right_turn() {
 
                 } else if seek.is_left_turn() {
-                    hind_move.left_brake(0.5);
+                    hind_move.turn(Turn::Unit(-0.25));
                 } else if seek.is_right_turn() {
-                    hind_move.right_brake(0.5);
+                    hind_move.turn(Turn::Unit(0.25));
                 }
             }
         } else {
@@ -220,14 +215,14 @@ fn update_seek<I: SeekInput, M: MotiveTrait>(
             hind_move.forward(0.6);
 
             if seek.is_moving_toward() {
-                hind_move.u_turn(1.)
+                hind_move.turn(Turn::Unit(0.5));
             } else {
                 if seek.is_left_turn() && seek.is_right_turn() {
 
                 } else if seek.is_right_turn() {
-                    hind_move.left_brake(0.5);
+                    hind_move.turn(0.25);
                 } else if seek.is_left_turn() {
-                    hind_move.right_brake(0.5);
+                    hind_move.turn(- 0.25);
                 }
             }
         }
@@ -236,7 +231,7 @@ fn update_seek<I: SeekInput, M: MotiveTrait>(
 
 impl<I: SeekInput, M: MotiveTrait> Plugin for KlinotaxisPlugin<I, M> {
     fn build(&self, app: &mut App) {
-        assert!(app.contains_plugin::<_HindMovePlugin>(), "TegSeek requires HindMovePlugin");
+        assert!(app.contains_plugin::<HindMovePlugin>(), "Klinotaxis requires HindMovePlugin");
         assert!(app.contains_resource::<I>(), "TegSeek requires resource {}", type_name::<I>());
         
         let seek = Klinotaxis::<I>::new();

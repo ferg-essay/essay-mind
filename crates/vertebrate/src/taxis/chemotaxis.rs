@@ -6,10 +6,7 @@ use essay_ecs::{prelude::{Plugin, App, ResMut, Res}, app::event::InEvent};
 use mind_ecs::Tick;
 
 use crate::{
-    body::Body, 
-    motive::{Sated, Motive, MotiveTrait, Motives, Wake}, 
-    hind_move::{HindLevyMove, HindLevyPlugin, TurnCommand}, 
-    olfactory_bulb::{ObEvent, OlfactoryBulb}, util::{Heading, Seconds} 
+    body::Body, hind_move::{HindMove, HindMovePlugin}, motive::{Motive, MotiveTrait, Motives, Sated, Wake}, olfactory_bulb::{ObEvent, OlfactoryBulb}, util::{Heading, Seconds} 
 };
 
 pub struct Seek;
@@ -60,7 +57,7 @@ impl Chemotaxis {
     pub fn update(
         &mut self, 
         head_dir: Heading,
-        hind_move: &HindLevyMove,
+        _hind_move: &HindMove,
         taxis: &mut ResMut<Taxis>,
         seek_motive: &mut Motive<Seek>,
     ) {
@@ -72,9 +69,10 @@ impl Chemotaxis {
 
         if self.habenula.value() > 0.01 || approach_ego.value() > 0.05 {
             seek_motive.set_max(1.);
-            hind_move.turn(TurnCommand::ApproachVector(approach_ego));
+            // hind_move.turn(approach_ego.turn()); // TurnCommand::ApproachVector(approach_ego));
 
             taxis.set_approach_dir(approach_vector);
+            todo!();
         }
      }
 }
@@ -83,7 +81,7 @@ fn update_chemotaxis(
     mut chemotaxis: ResMut<Chemotaxis>,
     mut ob: InEvent<ObEvent>,
     body: Res<Body>,
-    hind_move: Res<HindLevyMove>,
+    hind_move: Res<HindMove>,
     sated: Res<Motive<Sated>>,
     wake: Res<Motive<Wake>>,
     mut taxis: ResMut<Taxis>,
@@ -114,7 +112,7 @@ pub struct ChemotaxisPlugin;
 
 impl Plugin for ChemotaxisPlugin {
     fn build(&self, app: &mut App) {
-        assert!(app.contains_plugin::<HindLevyPlugin>(), "chemotaxis requires HindMovePlugin");
+        assert!(app.contains_plugin::<HindMovePlugin>(), "chemotaxis requires HindMovePlugin");
         
         assert!(app.contains_resource::<OlfactoryBulb>(), "chemotaxis requires OlfactoryBulb");
 

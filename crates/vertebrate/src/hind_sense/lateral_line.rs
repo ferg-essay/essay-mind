@@ -3,7 +3,7 @@ use mind_ecs::Tick;
 
 use crate::{
     body::Body, 
-    hind_move::{HindLevyMove, TurnCommand}, 
+    hind_move::HindMove, 
     tectum::TectumMap, 
     util::{EgoVector, Heading, Line, Point}, 
     world::World
@@ -85,18 +85,18 @@ impl SenseArc {
 
     fn update_hind_move(
         &self, 
-        hind_move: &HindLevyMove,
+        _hind_move: &HindMove,
     ) {
         if self.left > 0. {
-            hind_move.turn(TurnCommand::AvoidLeft(self.left));
+            // hind_move.turn(TurnCommand::AvoidLeft(self.left));
         }
 
         if self.right > 0. {
-            hind_move.turn(TurnCommand::AvoidRight(self.right));
+            // hind_move.turn(TurnCommand::AvoidRight(self.right));
         }
 
         if self.forward > 0.5 {
-            hind_move.turn(TurnCommand::AvoidUTurn);
+            // hind_move.turn(TurnCommand::AvoidUTurn);
         }
     }
 
@@ -149,7 +149,7 @@ fn update_lateral_line(
     body: Res<Body>,
     world: Res<World>,
     mut tectum: ResMut<TectumMap>,
-    hind_move: ResMut<HindLevyMove>,
+    hind_move: ResMut<HindMove>,
 ) {
     // let Point(x, y) = body.pos();
 

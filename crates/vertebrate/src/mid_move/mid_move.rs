@@ -30,6 +30,11 @@ impl MidMove {
     }
 
     #[inline]
+    pub fn seek(&self) {
+        self.commands.send(MidMoveEvent::Seek);
+    }
+
+    #[inline]
     fn commands(&mut self) -> Vec<MidMoveEvent> {
         self.commands.drain()
     }
@@ -46,7 +51,7 @@ impl MidMove {
     fn update(
         &mut self,
         _dwell: &Motive<Dwell>,
-        hind_move: &HindMove,
+        hind_move: &mut HindMove,
         hind_eat: &HindEat,
     ) {
         for event in self.commands() {
@@ -57,6 +62,9 @@ impl MidMove {
                 MidMoveEvent::Roam => {
                     self.on_roam(hind_move, hind_eat);
                 }
+                MidMoveEvent::Seek => {
+                    self.on_seek(hind_move, hind_eat);
+                }
                 MidMoveEvent::Dwell => {
                     self.on_dwell(hind_move, hind_eat);
                 }
@@ -66,23 +74,34 @@ impl MidMove {
 
     fn on_roam(
         &mut self, 
-        _hind_motor: &HindMove,
+        hind_move: &mut HindMove,
         hind_eat: &HindEat,
     ) {
         // H.stn managed transition waits for eat to stop before roam
         if hind_eat.is_stop() {
-            // hind_motor.roam();
+            hind_move.roam();
+        }
+    }
+
+    fn on_seek(
+        &mut self, 
+        hind_move: &mut HindMove,
+        hind_eat: &HindEat,
+    ) {
+        // H.stn managed transition waits for eat to stop before roam
+        if hind_eat.is_stop() {
+            hind_move.seek();
         }
     }
 
     fn on_dwell(
         &mut self, 
-        _hind_motor: &HindMove,
+        hind_move: &mut HindMove,
         hind_eat: &HindEat,
     ) {
         // H.stn managed transition waits for eat to stop before dwell
         if hind_eat.is_stop() {
-            // hind_motor.dwell();
+            hind_move.roam(); // dwell
         }
     }
 
@@ -113,19 +132,20 @@ enum MidMoveEvent {
     Eat,
     Roam,
     Dwell,
+    Seek,
 }
 
 fn update_mid_motor(
     mut mid_motor: ResMut<MidMove>,
     hind_eat: Res<HindEat>, 
-    hind_move: Res<HindMove>, 
+    mut hind_move: ResMut<HindMove>, 
     wake: Res<Motive<Wake>>,
     dwell: Res<Motive<Dwell>>,
 ) {
     mid_motor.pre_update();
 
     if wake.is_active() {
-        mid_motor.update(dwell.get(), hind_move.get(), hind_eat.get());
+        mid_motor.update(dwell.get(), hind_move.get_mut(), hind_eat.get());
     } else {
         mid_motor.clear();
     }

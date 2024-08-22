@@ -1,6 +1,6 @@
 use crate::{body::Body, util::{Seconds, Turn}};
 
-use super::move_hind::{Action, MoveKind};
+use super::hind_move::{Action, MoveKind};
 
 pub struct StartleMrs {
     ss_forward: f32,

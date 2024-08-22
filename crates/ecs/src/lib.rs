@@ -130,7 +130,7 @@ impl Plugin for TickSchedulePlugin {
             }
         );
 
-        app.system(First, 
+        app.system(PreTick, 
             |mut ticks: ResMut<AppTick>| {
                 ticks.update();
             }

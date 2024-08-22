@@ -1,10 +1,13 @@
 use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}};
-use log::debug;
 use mind_ecs::Tick;
 
-use crate::{body::{Body, BodyPlugin}, motive::{Motive, Wake}, util::{DecayValue, Seconds, Ticks, Turn}};
+use crate::{
+    body::{Body, BodyPlugin}, 
+    motive::{Motive, Wake}, 
+    util::{DecayValue, Seconds, Ticks, Turn}
+};
 
-use super::{move_oscillator::OscillatorArs, move_startle::StartleMrs};
+use super::{random_walk::OscillatorArs, startle::StartleMrs};
 
 //
 // Barandela et al 2023 - Lamprey early R.mrrn only from M.nmlf, DLR, MLR
@@ -23,15 +26,15 @@ use super::{move_oscillator::OscillatorArs, move_startle::StartleMrs};
 // Chen X et al 2018 - r3 R.artr. r1-2 specific turn sensor to behavior.
 //   turn RoV3, MiV1, MiV2. r1-2 R.ars.
 //   R.artr r3 correlate ipsi r5-6, CB.io and contra R.rs.a r1-2
-// Cregg et al 2020 - R.gi turn/stop from OT.i contra, H.zi ipsi, M.pot ipsi, 
-//   CB contra, C.moss bilat. R.gi also slow locomotion. Inh R.gi speeds.
+// Cregg et al 2020 - R.mrs.gi turn/stop from OT.i contra, H.zi ipsi, M.pot ipsi, 
+//   CB contra, C.moss bilat. R.mrs.gi also slow locomotion. Inh R.mrs.gi speeds.
 //   LPGi project bilaterally
 // Daghfous et al 2016 - Lamprey sustained R.rs via NMDA and Ca2+
 // Deichler et al, 2020 - OT seek to R.my; OT avoid to R.pn
 // do Carmo et al 2018 - C-start 45 deg.
 // Doykos et al 2020 - OT seek to R.pn.c; only from S.nr, C.m2, CB, H.zi
 // Dunn et al 2016 - OT.pv to M-cell, R.mc4, R.mc5/6. 
-//   Explore r3 ARTR, r4-6 R.rs.m CB.io. ARTR to R.rs.m
+//   Explore r3 ARTR, r4-6 R.mrs CB.io. ARTR to R.mrs
 //   ARTR 45% chain 5 same dir, long tail 14% 10
 //   Two state Markov p(L to L) = 86% (varies 72% to 89%)
 //   ARTR turn bias not movement initiation
@@ -47,7 +50,7 @@ use super::{move_oscillator::OscillatorArs, move_startle::StartleMrs};
 //   M-cell fire once per escape
 // Koide et al 2018 - Slow avoid to R.tsn (r1-2)
 // Marques et al 2018 - Zebrafish locomotor: J-turn, scoot, O-bend, sequence
-// Martin-Cortecero et al 2023 - OT.l whisker to R.pn.c, R.my.gi, R.7n
+// Martin-Cortecero et al 2023 - OT.l whisker to R.pn.c, R.mrs.gi, R.7n
 // Medan and Preuss 2011 - DA to M-cell disrupt PPI startle
 // Mu et al 2019 - Astrocyte suppress swimming
 // Ocana et al 2015 - Lamprey Pa to M-cell, MRRN, OT.d, M.pot
@@ -71,7 +74,7 @@ use super::{move_oscillator::OscillatorArs, move_startle::StartleMrs};
 // Wang and McLean 2014 - nMLF drive N.sp. nMLF temporally summation
 // Wee et al 2019 - Oxytocin in R.rs sufficient for escape-like
 // Wolf et al 2023 - Zebrafish ARTR with Ising model and mean-field theory.
-// Xie et al 2021 - OT pitx2 (turn) to R.my.irt, R.my.gi, R.my.pcrt
+// Xie et al 2021 - OT pitx2 (turn) to R.my.irt, R.mrs.gi, R.my.pcrt
 // Zhu and Goodhill 2023 - Zebrafish hunting R.rs gad13
 // Zwaka et al - OT bias M-cell turn - avoid barrier
 
@@ -84,9 +87,9 @@ use super::{move_oscillator::OscillatorArs, move_startle::StartleMrs};
 /// HindLocomotion includes spinal cord integration
 /// 
 /// M.nmlf - midbrain
-/// R.ars - r1-r3
-/// R.mrs - r4-r6
-/// R.prs - r7-r8
+/// R.ars - r1-r3 (pons) - ARRN, pn.o
+/// R.mrs - r4-r6 (medulla) - MRRN, M-cell, pn.c, my.gi, my.lgi
+/// R.prs - r7-r8 (medulla) - PRRN
 /// 
 /// M.nmlf, R.mrs and R.prs are all spinal projecting, meaning that
 /// conflicts may be resolved at the spinal level.
@@ -197,7 +200,7 @@ impl HindMove {
         let mut turn = Turn::Unit(0.);
         
         // TODO: should be driven by outside such as H.sum
-        let mut kind = MoveKind::Roam;
+        let mut kind = self.forward_r5.take();
 
         // ARTR in ARS r3 has lowest-priority turn
         if let Some(oscillator) = &mut self.oscillator_r3 {
@@ -286,8 +289,18 @@ impl HindMove {
     }
 
     #[inline]
-    pub fn forward(&mut self, value: f32) {
-        self.forward_r5.forward(value);
+    pub fn forward(&mut self, _value: f32) {
+        self.forward_r5.roam();
+    }
+
+    #[inline]
+    pub fn roam(&mut self) {
+        self.forward_r5.roam();
+    }
+
+    #[inline]
+    pub fn seek(&mut self) {
+        self.forward_r5.seek();
     }
 
     #[inline]
@@ -300,8 +313,8 @@ impl HindMove {
     }
 
     #[inline]
-    pub fn turn(&mut self, turn: Turn) {
-        self.turn_r6.turn(turn);
+    pub fn turn(&mut self, turn: impl Into<Turn>) {
+        self.turn_r6.turn(turn.into());
     }
 
     //
@@ -432,16 +445,29 @@ impl _AvoidMrrn {
 }
 
 struct ForwardMrs {
+    kind: MoveKind,
 }
 
 impl ForwardMrs {
     fn new() -> Self {
         Self {
+            kind: MoveKind::None
         }
     }
 
-    fn forward(&mut self, speed: f32) {
-        debug!("Forward {:?}", speed);
+    pub fn roam(&mut self) {
+        self.kind = MoveKind::Roam;
+    }
+
+    pub fn seek(&mut self) {
+        self.kind = MoveKind::Seek;
+    }
+
+    fn take(&mut self) -> MoveKind {
+        let kind = self.kind;
+        self.kind = MoveKind::None;
+
+        kind
     }
 }
 
