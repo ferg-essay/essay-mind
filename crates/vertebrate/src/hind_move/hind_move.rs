@@ -203,9 +203,11 @@ impl HindMove {
         let mut kind = self.forward_r5.take();
 
         // ARTR in ARS r3 has lowest-priority turn
-        if let Some(oscillator) = &mut self.oscillator_r3 {
-            if let Some(next_turn) = oscillator.next_turn() {
-                turn = next_turn;
+        if kind.is_random_turn() {
+            if let Some(oscillator) = &mut self.oscillator_r3 {
+                if let Some(next_turn) = oscillator.next_turn() {
+                    turn = next_turn;
+                }
             }
         }
 
@@ -301,6 +303,11 @@ impl HindMove {
     #[inline]
     pub fn seek(&mut self) {
         self.forward_r5.seek();
+    }
+
+    #[inline]
+    pub fn avoid(&mut self) {
+        self.forward_r5.avoid();
     }
 
     #[inline]
@@ -463,6 +470,10 @@ impl ForwardMrs {
         self.kind = MoveKind::Seek;
     }
 
+    pub fn avoid(&mut self) {
+        self.kind = MoveKind::Avoid;
+    }
+
     fn take(&mut self) -> MoveKind {
         let kind = self.kind;
         self.kind = MoveKind::None;
@@ -563,6 +574,7 @@ impl Action {
                 MoveKind::Halt => true,
                 MoveKind::Roam => true,
                 MoveKind::Seek => true,
+                MoveKind::Avoid => true,
                 MoveKind::UTurn(_) => false,
                 MoveKind::Escape(_) => false,
                 MoveKind::Startle => false,
@@ -595,6 +607,7 @@ pub enum MoveKind {
     Halt,
     Roam,
     Seek,
+    Avoid,
     Escape(Turn),
     UTurn(Turn),
     Startle,
@@ -615,9 +628,17 @@ impl MoveKind {
             MoveKind::Halt => 0.,
             MoveKind::Roam => 0.5,
             MoveKind::Seek => 0.5,
+            MoveKind::Avoid => 0.75,
             MoveKind::Escape(_) => 0.75,
             MoveKind::UTurn(_) => 0.75,
             MoveKind::Startle => 1.0,
+        }
+    }
+
+    fn is_random_turn(&self) -> bool {
+        match self {
+            MoveKind::Roam => true,
+            _ => false,
         }
     }
 
@@ -629,6 +650,9 @@ impl MoveKind {
             }
             MoveKind::Roam | MoveKind::Seek => {
                 Some(Action::new(*self, 0.5, turn, Seconds(1.)))
+            }
+            MoveKind::Avoid => {
+                Some(Action::new(*self, 0.75, turn, Seconds(1.)))
             }
             MoveKind::Escape(turn) => {
                 Some(Action::new(*self, 0.75, *turn, Seconds(1.)))

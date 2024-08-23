@@ -80,6 +80,7 @@ pub fn ui_homunculus_draw(
             MoveKind::Halt => { Emoji::Candy }, // TODO:
             MoveKind::Roam => { Emoji::Footprints },
             MoveKind::Seek => { Emoji::DirectHit },
+            MoveKind::Avoid => { Emoji::NoEntry },
             MoveKind::Escape(_) | MoveKind::UTurn(_) => { 
                 Emoji::NoEntry }
             MoveKind::Startle => {

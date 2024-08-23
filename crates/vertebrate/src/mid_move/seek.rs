@@ -70,7 +70,6 @@ fn update_seek<I: SeekInput, M: MotiveTrait>(
     motive: Res<Motive<M>>,
     tick: Res<AppTick>,
     mut motive_seek: ResMut<Motive<Seek>>,
-    mut _motive_avoid: ResMut<Motive<Avoid>>,
 ) {
     // only act if motivated, such as Foraging
     if ! motive.is_active() {
@@ -81,7 +80,6 @@ fn update_seek<I: SeekInput, M: MotiveTrait>(
         // seek until timeout
         match seek.update(tick.get()) {
             StriatumValue::Active => {
-                // println!("Active");
                 motive_seek.set_max(1.);
         
                 mid_move.seek();
@@ -92,7 +90,6 @@ fn update_seek<I: SeekInput, M: MotiveTrait>(
                 avoid.avoid();
             }
             StriatumValue::None => {
-                // println!("None");
             }
         }
     }

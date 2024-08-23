@@ -3,7 +3,7 @@ use mind_ecs::Tick;
 
 use crate::{
     hind_move::{HindMove, HindMovePlugin}, 
-    motive::Motives, 
+    motive::{Motive, Motives}, 
     taxis::chemotaxis::Avoid, 
     util::{Seconds, Ticks, Timeout}
 };
@@ -15,7 +15,7 @@ pub struct TaxisAvoid {
 impl TaxisAvoid {
     fn new() -> Self {
         Self {
-            is_avoid: Timeout::new(Ticks(3)),
+            is_avoid: Timeout::new(Seconds(25.)),
         }
     }
 
@@ -44,12 +44,15 @@ impl TaxisAvoidPlugin {
 
 fn update_avoid(
     mut avoid: ResMut<TaxisAvoid>,
-    mut _hind_move: ResMut<HindMove>
+    mut hind_move: ResMut<HindMove>,
+    mut motive_avoid: ResMut<Motive<Avoid>>,
 ) {
     avoid.update();
 
     if avoid.is_avoid() {
         // println!("Avoid");
+        motive_avoid.set_max(1.);
+        hind_move.avoid();
     }
 }
 
