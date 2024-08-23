@@ -6,9 +6,9 @@ use mind_ecs::{AppTick, Tick};
 use crate::{
     hind_move::{HindMove, HindMovePlugin},
     motive::{Motive, MotiveTrait, Motives}, 
-    striatum::{StriatumTimeout, TimeoutState}, 
-    taxis::chemotaxis::{Avoid, Seek}, 
-    util::{EgoVector, Seconds, Turn}
+    striatum::{StriatumTimeout, StriatumValue}, 
+    taxis::{chemotaxis::{Avoid, Seek}, TaxisAvoid}, 
+    util::{EgoVector, Seconds}
 };
 
 use super::MidMove;
@@ -40,8 +40,8 @@ impl<I: SeekInput> MidSeek<I> {
         }
     }
 
-    fn update(&mut self, tick: &AppTick) -> TimeoutState {
-        self.timeout.update(tick)
+    fn update(&mut self, tick: &AppTick) -> StriatumValue {
+        self.timeout.active(tick)
     }
 }
 
@@ -65,11 +65,12 @@ fn update_seek<I: SeekInput, M: MotiveTrait>(
     mut seek: ResMut<MidSeek<I>>,
     mid_move: Res<MidMove>,
     mut hind_move: ResMut<HindMove>,
+    mut avoid: ResMut<TaxisAvoid>,
     input: Res<I>,
     motive: Res<Motive<M>>,
     tick: Res<AppTick>,
     mut motive_seek: ResMut<Motive<Seek>>,
-    mut motive_avoid: ResMut<Motive<Avoid>>,
+    mut _motive_avoid: ResMut<Motive<Avoid>>,
 ) {
     // only act if motivated, such as Foraging
     if ! motive.is_active() {
@@ -79,23 +80,19 @@ fn update_seek<I: SeekInput, M: MotiveTrait>(
     if let Some(dir) = input.seek_dir() {
         // seek until timeout
         match seek.update(tick.get()) {
-            TimeoutState::Active => {
+            StriatumValue::Active => {
+                // println!("Active");
                 motive_seek.set_max(1.);
         
                 mid_move.seek();
-                mid_move.roam();
-
-                hind_move.forward(0.5);
 
                 hind_move.turn(dir.dir().to_turn());
             }
-            TimeoutState::Timeout => {
-                motive_avoid.set_max(1.);
-                //hind_move.forward(0.6);
-
-                let turn = dir.dir().to_turn();
-
-                //hind_move.turn(Turn::Unit(- turn.to_unit()));
+            StriatumValue::Avoid => {
+                avoid.avoid();
+            }
+            StriatumValue::None => {
+                // println!("None");
             }
         }
     }

@@ -10,7 +10,7 @@ use crate::{
     motive::{Dwell, Forage, Motive, MotiveForagePlugin, MotiveSleepPlugin}, 
     olfactory_bulb::{OlfactoryBulb, OlfactoryPlugin}, 
     retina::RetinaPlugin, 
-    taxis::klinotaxis::KlinotaxisPlugin, 
+    taxis::{klinotaxis::KlinotaxisPlugin, TaxisAvoidPlugin}, 
     tectum::{TectumLoomingPlugin, TectumPlugin} 
 };
 
@@ -103,6 +103,8 @@ impl AnimalBuilder {
 
             app.plugin(MidSeekPlugin::<OlfactoryBulb, Forage>::new());
         }
+
+        app.plugin(TaxisAvoidPlugin::new());
 
         if self.is_mid_klinotaxis {
             if ! self.is_motive_eating {

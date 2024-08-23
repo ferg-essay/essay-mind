@@ -8,7 +8,13 @@ use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}};
 use mind_ecs::{AppTick, Tick};
 
 use crate::{
-    body::Body, hind_move::{HindMove, HindMovePlugin}, mid_move::SeekInput, motive::{Motive, MotiveTrait, Motives}, striatum::{Gate, StriatumGate}, taxis::chemotaxis::{Avoid, Seek}, util::{DecayValue, Seconds, Turn}
+    body::Body, 
+    hind_move::{HindMove, HindMovePlugin}, 
+    mid_move::SeekInput, 
+    motive::{Motive, MotiveTrait, Motives}, 
+    striatum::{Gate, StriatumGate}, 
+    taxis::chemotaxis::{Avoid, Seek}, 
+    util::{DecayValue, Seconds, Turn}
 };
 
 pub struct Klinotaxis<I: SeekInput> {
@@ -51,8 +57,6 @@ impl<I: SeekInput> Klinotaxis<I> {
         self.lateral[bin] = 0.;
         self.short_average.update();
         self.long_average.update();
-
-        // self.striatum.update(tick);
     }
 
     fn update_signal(&mut self, head_cast: f32, value: f32) {
@@ -61,9 +65,6 @@ impl<I: SeekInput> Klinotaxis<I> {
         self.lateral[bin] = value;
         self.short_average.add(value);
         self.long_average.add(value);
-
-        // println!("AVG {} bin {} bins {:?}", (self.short_average.value() - self.long_average.value()), bin, self.lateral);
-        // self.striatum.update(tick);
     }
 
     fn bin(&self, head_cast: f32) -> usize {
@@ -157,22 +158,6 @@ impl<I: SeekInput> KlinotaxisStriatum<I> {
     }
 }
 
-//pub trait TegInput : Send + Sync + 'static {
-    // fn seek_dir(&self) -> Option<DirVector>;
-//}
-
-pub struct KlinotaxisPlugin<I: SeekInput, M: MotiveTrait> {
-    marker: PhantomData<(I, M)>,
-}
-
-impl<I: SeekInput, M: MotiveTrait> KlinotaxisPlugin<I, M> {
-    pub fn new() -> Self {
-        Self {
-            marker: PhantomData::<(I, M)>::default(),
-        }
-    }
-}
-
 fn update_seek<I: SeekInput, M: MotiveTrait>(
     mut seek: ResMut<Klinotaxis<I>>,
     mut hind_move: ResMut<HindMove>,
@@ -225,6 +210,18 @@ fn update_seek<I: SeekInput, M: MotiveTrait>(
                     hind_move.turn(Turn::Unit(- 0.25));
                 }
             }
+        }
+    }
+}
+
+pub struct KlinotaxisPlugin<I: SeekInput, M: MotiveTrait> {
+    marker: PhantomData<(I, M)>,
+}
+
+impl<I: SeekInput, M: MotiveTrait> KlinotaxisPlugin<I, M> {
+    pub fn new() -> Self {
+        Self {
+            marker: PhantomData::<(I, M)>::default(),
         }
     }
 }

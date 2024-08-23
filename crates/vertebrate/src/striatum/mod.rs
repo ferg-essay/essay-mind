@@ -5,4 +5,4 @@ pub mod striatum;
 
 pub use gate::{Gate, StriatumGate};
 pub use striatum2::Striatum2;
-pub use timeout::{StriatumTimeout, TimeoutState};
+pub use timeout::{StriatumTimeout, StriatumValue};
