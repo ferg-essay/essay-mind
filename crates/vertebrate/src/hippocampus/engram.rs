@@ -855,6 +855,194 @@ mod test {
     }
 
     #[test]
+    fn engram128_next_0_1() {
+        assert_eq!(Engram128(0), Engram128(0x0).next(0, 1));
+        assert_eq!(Engram128(0), Engram128(0x1).next(0, 1));
+        assert_eq!(Engram128(0x3), Engram128(0x2).next(0, 1));
+        assert_eq!(Engram128(0), Engram128(0x3).next(0, 1));
+        assert_eq!(Engram128(0x5), Engram128(0x4).next(0, 1));
+        assert_eq!(Engram128(0), Engram128(0x5).next(0, 1));
+        assert_eq!(Engram128(0x21), Engram128(0x20).next(0, 1));
+        assert_eq!(Engram128(0), Engram128(0x21).next(0, 1));
+
+        assert_eq!(
+            Engram128::from("#_#####_#####_#####_####0"),
+            Engram128::from("#_#####_#####_#####_####0").next(0, 1),
+        );
+        assert_eq!(
+            Engram128::from("#_#####_#####_#####_####0"),
+            Engram128::from("#_#####_#####_#####_####1").next(0, 1),
+        );
+        assert_eq!(
+            Engram128::from("#_#####_#####_#####_####9"),
+            Engram128::from("#_#####_#####_#####_####8").next(0, 1),
+        );
+        assert_eq!(
+            Engram128::from("#_#####_#####_#####_####0"),
+            Engram128::from("#_#####_#####_#####_####9").next(0, 1),
+        );
+        assert_eq!(
+            Engram128::from("#_#####_#####_#####_####b"),
+            Engram128::from("#_#####_#####_#####_####a").next(0, 1),
+        );
+        assert_eq!(
+            Engram128::from("#_#####_#####_#####_####0"),
+            Engram128::from("#_#####_#####_#####_####b").next(0, 1),
+        );
+    }
+
+    #[test]
+    fn engram128_next_0_6() {
+        assert_eq!(Engram128(0), Engram128(0x0).next(0, 6));
+        assert_eq!(Engram128(0x2), Engram128(0x1).next(0, 6));
+        assert_eq!(Engram128(0x3), Engram128(0x2).next(0, 6));
+        assert_eq!(Engram128(0x4), Engram128(0x3).next(0, 6));
+
+        assert_eq!(Engram128(0x5), Engram128(0x4).next(0, 6));
+        assert_eq!(Engram128(0x6), Engram128(0x5).next(0, 6));
+        assert_eq!(Engram128(0x7), Engram128(0x6).next(0, 6));
+        assert_eq!(Engram128(0x8), Engram128(0x7).next(0, 6));
+
+        assert_eq!(Engram128(0xd), Engram128(0xc).next(0, 6));
+        assert_eq!(Engram128(0xe), Engram128(0xd).next(0, 6));
+        assert_eq!(Engram128(0xf), Engram128(0xe).next(0, 6));
+        assert_eq!(Engram128(0x10), Engram128(0xf).next(0, 6));
+
+        assert_eq!(Engram128(0x1d), Engram128(0x1c).next(0, 6));
+        assert_eq!(Engram128(0x1e), Engram128(0x1d).next(0, 6));
+        assert_eq!(Engram128(0x1f), Engram128(0x1e).next(0, 6));
+        assert_eq!(Engram128(0x20), Engram128(0x1f).next(0, 6));
+
+        assert_eq!(Engram128(0x2d), Engram128(0x2c).next(0, 6));
+        assert_eq!(Engram128(0x2e), Engram128(0x2d).next(0, 6));
+        assert_eq!(Engram128(0x2f), Engram128(0x2e).next(0, 6));
+        assert_eq!(Engram128(0x30), Engram128(0x2f).next(0, 6));
+
+        assert_eq!(Engram128(0x3d), Engram128(0x3c).next(0, 6));
+        assert_eq!(Engram128(0x3e), Engram128(0x3d).next(0, 6));
+        assert_eq!(Engram128(0x3f), Engram128(0x3e).next(0, 6));
+        assert_eq!(Engram128(0x00), Engram128(0x3f).next(0, 6));
+
+        assert_eq!(
+            Engram64::from("#_#####_#####_#####_####0"),
+            Engram64::from("#_#####_#####_#####_####0").next(0, 6),
+        );
+        assert_eq!(
+            Engram64::from("#_#####_#####_#####_####Z"),
+            Engram64::from("#_#####_#####_#####_####Y").next(0, 6),
+        );
+        assert_eq!(
+            Engram64::from("#_#####_#####_#####_####$"),
+            Engram64::from("#_#####_#####_#####_####Z").next(0, 6),
+        );
+        assert_eq!(
+            Engram64::from("#_#####_#####_#####_#####"),
+            Engram64::from("#_#####_#####_#####_####$").next(0, 6),
+        );
+        assert_eq!(
+            Engram64::from("#_#####_#####_#####_####0"),
+            Engram64::from("#_#####_#####_#####_#####").next(0, 6),
+        );
+    }
+
+    #[test]
+    fn engram128_next_1_1() {
+        assert_eq!(
+            Engram128::from([0x3f, 0x00, 0x3f]), 
+            Engram128::from([0x3f, 0x00, 0x3f]).next(1, 1)
+        );
+        assert_eq!(
+            Engram128::from([0x3f, 0x00, 0x3f]),
+            Engram128::from([0x3f, 0x01, 0x3f]).next(1, 1)
+        );
+
+        assert_eq!(
+            Engram128::from([0x3f, 0x03, 0x3f]), 
+            Engram128::from([0x3f, 0x02, 0x3f]).next(1, 1)
+        );
+        assert_eq!(
+            Engram128::from([0x3f, 0x00, 0x3f]),
+            Engram128::from([0x3f, 0x03, 0x3f]).next(1, 1)
+        );
+        assert_eq!(
+            Engram128::from([0x3f, 0x05, 0x3f]),
+            Engram128::from([0x3f, 0x04, 0x3f]).next(1, 1)
+        );
+        assert_eq!(
+            Engram128::from([0x3f, 0x00, 0x3f]),
+            Engram128::from([0x3f, 0x05, 0x3f]).next(1, 1)
+        );
+        assert_eq!(
+            Engram128::from([0x3f, 0x21, 0x3f]),
+            Engram128::from([0x3f, 0x20, 0x3f]).next(1, 1)
+        );
+        assert_eq!(
+            Engram128::from([0x3f, 0x00, 0x3f]),
+            Engram128::from([0x3f, 0x21, 0x3f]).next(1, 1)
+        );
+
+        assert_eq!(Engram128(0), Engram128(0x0).next(1, 1));
+        assert_eq!(Engram128(0x1), Engram128(0x1).next(1, 1));
+
+        assert_eq!(
+            Engram128::from("#_#####_#####_#####_###9#"),
+            Engram128::from("#_#####_#####_#####_###8#").next(1, 1),
+        );
+        assert_eq!(
+            Engram128::from("#_#####_#####_#####_###0#"),
+            Engram128::from("#_#####_#####_#####_###9#").next(1, 1),
+        );
+        assert_eq!(
+            Engram128::from("#_#####_#####_#####_###b#"),
+            Engram128::from("#_#####_#####_#####_###a#").next(1, 1),
+        );
+        assert_eq!(
+            Engram128::from("#_#####_#####_#####_###0#"),
+            Engram128::from("#_#####_#####_#####_###b#").next(1, 1),
+        );
+    }
+
+    #[test]
+    fn engram128_next_20_2() {
+        assert_eq!(
+            Engram128::from("9_#####_#####_#####_#####"),
+            Engram128::from("8_#####_#####_#####_#####").next(20, 2),
+        );
+        assert_eq!(
+            Engram128::from("a_#####_#####_#####_#####"),
+            Engram128::from("9_#####_#####_#####_#####").next(20, 2),
+        );
+        assert_eq!(
+            Engram128::from("b_#####_#####_#####_#####"),
+            Engram128::from("a_#####_#####_#####_#####").next(20, 2),
+        );
+        assert_eq!(
+            Engram128::from("0_#####_#####_#####_#####"),
+            Engram128::from("b_#####_#####_#####_#####").next(20, 2),
+        );
+        assert_eq!(
+            Engram128::from("0_#####_#####_#####_#####"),
+            Engram128::from("X_#####_#####_#####_#####").next(20, 2),
+        );
+        assert_eq!(
+            Engram128::from("Z_#####_#####_#####_#####"),
+            Engram128::from("Y_#####_#####_#####_#####").next(20, 2),
+        );
+        assert_eq!(
+            Engram128::from("$_#####_#####_#####_#####"),
+            Engram128::from("Z_#####_#####_#####_#####").next(20, 2),
+        );
+        assert_eq!(
+            Engram128::from("#_#####_#####_#####_#####"),
+            Engram128::from("$_#####_#####_#####_#####").next(20, 2),
+        );
+        assert_eq!(
+            Engram128::from("0_#####_#####_#####_#####"),
+            Engram128::from("#_#####_#####_#####_#####").next(20, 2),
+        );
+    }
+
+    #[test]
     fn engram128_rand_n() {
         let mut rand = Rand64(42);
 
