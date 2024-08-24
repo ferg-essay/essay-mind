@@ -1,3 +1,3 @@
-mod sequence;
+mod engram;
 
-pub use sequence::Thread64;
+pub use engram::{Engram64, Engram128};

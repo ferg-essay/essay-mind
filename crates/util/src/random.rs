@@ -52,7 +52,7 @@ impl From<&str> for Rand32 {
         Self(seed)
     }
 }
-pub struct Rand64(u128);
+pub struct Rand64(pub u128);
 
 impl Rand64 {
     const A : u128 = 0xACAEAEFB4BF4A6A78B6E278B66409E7D;
