@@ -5,7 +5,7 @@ use crate::{
     hind_move::{HindMove, HindMovePlugin}, 
     motive::{Motive, Motives}, 
     taxis::chemotaxis::Avoid, 
-    util::{Seconds, Ticks, Timeout}
+    util::{Seconds, Timeout}
 };
 
 pub struct TaxisAvoid {

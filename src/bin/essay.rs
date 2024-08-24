@@ -53,7 +53,7 @@ pub fn main() {
         .odor(OdorType::FoodB);
 
     animal.retina()
-        .size(7)
+        .size(8)
         .fov(util::Angle::Deg(120.))
         .eye_angle(util::Angle::Deg(45.));
 

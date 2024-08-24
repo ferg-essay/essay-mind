@@ -4,7 +4,7 @@ use rand::RngCore;
 
 // LCG/PCG random number generator from
 // https://nullprogram.com/blog/2019/11/19/
-pub struct Rand32(u64);
+pub struct Rand32(pub u64);
 
 impl Rand32 {
     const A : u64 = 0x4822581B885237D5;
