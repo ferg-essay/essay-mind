@@ -13,7 +13,7 @@ impl Thread64 {
     pub fn rand(rand: &mut Rand32, n: usize, radix: usize, seq: usize) -> Self {
         assert!(radix <= 6);
         assert!(seq < radix);
-        assert!(n <= 8);
+        assert!(n <= 10);
 
         let mask = ((1 << radix) - 1) & !((1 << seq) - 1);
 
@@ -30,7 +30,7 @@ impl Thread64 {
             rand_value >>= 6;
 
             if digit != 0 {
-                value = (value << 8) + digit;
+                value = (value << 6) + digit;
                 n -= 1;
             }
         }
@@ -41,20 +41,20 @@ impl Thread64 {
     ///
     /// Returns the next thread in the sequence
     /// 
-    /// * i - digit index
-    /// * width - sequence width in bits
+    /// * `i` - index of the digit to change
+    /// * `width` - sequence width in bits
     /// 
     pub fn next(&self, i: usize, width: usize) -> Self {
-        assert!(i < 8);
+        assert!(i < 10);
         assert!(width <= 6);
 
-        let digit = (self.0 >> (i * 8)) & 0x3f;
+        let digit = (self.0 >> (i * 6)) & 0x3f;
 
         if digit == 0 {
             return Self(self.0);
         }
 
-        let mask = 0xff << (i * 8);
+        let mask = 0x3f << (i * 6);
         let submask = (1 << width) - 1;
 
         let seq = digit & submask;
@@ -64,15 +64,15 @@ impl Thread64 {
             (digit & !submask) + seq + 1
         };
 
-        Self((self.0 & !mask) + (digit << (i * 8)))
+        Self((self.0 & !mask) + (digit << (i * 6)))
     }
 }
 
 impl fmt::Display for Thread64 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let v = self.0;
         let mut is_digit = f.sign_aware_zero_pad();
-        for b in v.to_be_bytes() {
+        for i in 0..10 {
+            let b = ((self.0 >> 6 * (9 - i)) & 0x3f) as u8;
             if is_digit || b != 0 {
                 is_digit = true;
                 f.write_char(base64_unchecked(b))?;
@@ -90,9 +90,10 @@ impl fmt::Display for Thread64 {
 impl fmt::Debug for Thread64 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("Thread64(")?;
-        let v = self.0;
+
         let mut is_digit = f.sign_aware_zero_pad();
-        for b in v.to_be_bytes() {
+        for i in 0..10 {
+            let b = ((self.0 >> 6 * (9 - i)) & 0x3f) as u8;
             if is_digit || b != 0 {
                 is_digit = true;
                 f.write_char(base64_unchecked(b))?;
@@ -107,18 +108,31 @@ impl fmt::Debug for Thread64 {
     }
 }
 
+impl<const N : usize> From<[u8; N]> for Thread64 {
+    fn from(value: [u8; N]) -> Self {
+        assert!(N <= 10);
+
+        let mut result = 0;
+        for i in 0..N {
+            result = (result << 6) + value[i] as u64;
+        }
+
+        Self(result)
+    }
+}
+
 impl FromStr for Thread64 {
     type Err = fmt::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s.len() > 8 {
-            return Err(fmt::Error);
-        }
-
         let mut value : u64 = 0;
 
         for ch in s.chars() {
-            value = (value << 8) + base64_rev(ch)? as u64;
+            if ch == '_' {
+                continue;
+            }
+
+            value = (value << 6) + base64_rev(ch)? as u64;
         }
 
         Ok(Self(value))
@@ -164,33 +178,76 @@ mod test {
     #[test]
     fn thread64_format() {
         assert_eq!("0", format!("{}", Thread64(0)));
-        assert_eq!("00000000", format!("{:0}", Thread64(0)));
-        assert_eq!("10", format!("{}", Thread64(0x0100)));
-        assert_eq!("00000010", format!("{:0}", Thread64(0x0100)));
-        assert_eq!("76543210", format!("{}", Thread64(0x0706050_403020100)));
-        assert_eq!("fedcba98", format!("{}", Thread64(0x0f0e0d0_c0b0a0908)));
-        assert_eq!("nmlkjihg", format!("{}", Thread64(0x17161514_13121110)));
-        assert_eq!("vutsrqpo", format!("{}", Thread64(0x1f1e1d1c_1b1a1918)));
-        assert_eq!("DCBAzyxw", format!("{}", Thread64(0x27262524_23222120)));
-        assert_eq!("LKJIHGFE", format!("{}", Thread64(0x2f2e2d2c_2b2a2928)));
-        assert_eq!("TSRQPONM", format!("{}", Thread64(0x37363534_33323130)));
-        assert_eq!("#$ZYXWVU", format!("{}", Thread64(0x3f3e3d3c_3b3a3938)));
+        assert_eq!("0000000000", format!("{:0}", Thread64(0)));
+
+        assert_eq!("10", format!("{}", Thread64(0x40)));
+        assert_eq!("0000000010", format!("{:0}", Thread64(0x40)));
+
+        assert_eq!("9876543210", format!("{}", Thread64::from([
+            0x09, 0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01, 0x00
+        ])));
+        assert_eq!("76543210", format!("{}", Thread64::from([
+            0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01, 0x00
+        ])));
+        assert_eq!("fedcba98", format!("{}", Thread64::from([
+            0x0f, 0x0e, 0x0d, 0x0c, 0x0b, 0x0a, 0x09, 0x08,
+        ])));
+        assert_eq!("nmlkjihg", format!("{}", Thread64::from([
+            0x17, 0x16, 0x15, 0x14, 0x13, 0x12, 0x11, 0x10
+        ])));
+        assert_eq!("vutsrqpo", format!("{}", Thread64::from([
+            0x1f, 0x1e, 0x1d, 0x1c, 0x1b, 0x1a, 0x19, 0x18,
+        ])));
+        assert_eq!("DCBAzyxw", format!("{}", Thread64::from([
+            0x27, 0x26, 0x25, 0x24, 0x23, 0x22, 0x21, 0x20
+        ])));
+        assert_eq!("LKJIHGFE", format!("{}", Thread64::from([
+            0x2f, 0x2e, 0x2d, 0x2c, 0x2b, 0x2a, 0x29, 0x28,
+        ])));
+        assert_eq!("TSRQPONM", format!("{}", Thread64::from([
+            0x37, 0x36, 0x35, 0x34, 0x33, 0x32, 0x31, 0x30
+        ])));
+        assert_eq!("#$ZYXWVU", format!("{}", Thread64::from([
+            0x3f, 0x3e, 0x3d, 0x3c, 0x3b, 0x3a, 0x39, 0x38,
+        ])));
     }
 
     #[test]
     fn thread64_debug() {
         assert_eq!("Thread64(0)", format!("{:?}", Thread64(0)));
-        assert_eq!("Thread64(00000000)", format!("{:0?}", Thread64(0)));
-        assert_eq!("Thread64(10)", format!("{:?}", Thread64(0x0100)));
-        assert_eq!("Thread64(00000010)", format!("{:0?}", Thread64(0x0100)));
-        assert_eq!("Thread64(76543210)", format!("{:?}", Thread64(0x0706050_403020100)));
-        assert_eq!("Thread64(fedcba98)", format!("{:?}", Thread64(0x0f0e0d0_c0b0a0908)));
-        assert_eq!("Thread64(nmlkjihg)", format!("{:?}", Thread64(0x17161514_13121110)));
-        assert_eq!("Thread64(vutsrqpo)", format!("{:?}", Thread64(0x1f1e1d1c_1b1a1918)));
-        assert_eq!("Thread64(DCBAzyxw)", format!("{:?}", Thread64(0x27262524_23222120)));
-        assert_eq!("Thread64(LKJIHGFE)", format!("{:?}", Thread64(0x2f2e2d2c_2b2a2928)));
-        assert_eq!("Thread64(TSRQPONM)", format!("{:?}", Thread64(0x37363534_33323130)));
-        assert_eq!("Thread64(#$ZYXWVU)", format!("{:?}", Thread64(0x3f3e3d3c_3b3a3938)));
+        assert_eq!("Thread64(0000000000)", format!("{:0?}", Thread64(0)));
+
+        assert_eq!("Thread64(10)", format!("{:?}", Thread64(0x40)));
+        assert_eq!("Thread64(0000000010)", format!("{:0?}", Thread64(0x040)));
+
+
+        assert_eq!("Thread64(9876543210)", format!("{:?}", Thread64::from([
+            0x09, 0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01, 0x00
+        ])));
+        assert_eq!("Thread64(76543210)", format!("{:?}", Thread64::from([
+            0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01, 0x00
+        ])));
+        assert_eq!("Thread64(fedcba98)", format!("{:?}", Thread64::from([
+            0x0f, 0x0e, 0x0d, 0x0c, 0x0b, 0x0a, 0x09, 0x08,
+        ])));
+        assert_eq!("Thread64(nmlkjihg)", format!("{:?}", Thread64::from([
+            0x17, 0x16, 0x15, 0x14, 0x13, 0x12, 0x11, 0x10
+        ])));
+        assert_eq!("Thread64(vutsrqpo)", format!("{:?}", Thread64::from([
+            0x1f, 0x1e, 0x1d, 0x1c, 0x1b, 0x1a, 0x19, 0x18,
+        ])));
+        assert_eq!("Thread64(DCBAzyxw)", format!("{:?}", Thread64::from([
+            0x27, 0x26, 0x25, 0x24, 0x23, 0x22, 0x21, 0x20
+        ])));
+        assert_eq!("Thread64(LKJIHGFE)", format!("{:?}", Thread64::from([
+            0x2f, 0x2e, 0x2d, 0x2c, 0x2b, 0x2a, 0x29, 0x28,
+        ])));
+        assert_eq!("Thread64(TSRQPONM)", format!("{:?}", Thread64::from([
+            0x37, 0x36, 0x35, 0x34, 0x33, 0x32, 0x31, 0x30
+        ])));
+        assert_eq!("Thread64(#$ZYXWVU)", format!("{:?}", Thread64::from([
+            0x3f, 0x3e, 0x3d, 0x3c, 0x3b, 0x3a, 0x39, 0x38,
+        ])));
     }
 
     #[test]
@@ -199,16 +256,39 @@ mod test {
         assert_eq!(Thread64(0), Thread64::from("0"));
         assert_eq!(Thread64(0x01), Thread64::from("1"));
         assert_eq!(Thread64(0x3f), Thread64::from("#"));
-        assert_eq!(Thread64(0x3f00), Thread64::from("0#0"));
+        assert_eq!(Thread64::from([0x3f, 0x00]), Thread64::from("0#0"));
 
-        assert_eq!(Thread64(0x0001020304050607), Thread64::from("01234567"));
-        assert_eq!(Thread64(0x08090a0b0c0d0e0f), Thread64::from("89abcdef"));
-        assert_eq!(Thread64(0x1011121314151617), Thread64::from("ghijklmn"));
-        assert_eq!(Thread64(0x18191a1b1c1d1e1f), Thread64::from("opqrstuv"));
-        assert_eq!(Thread64(0x2021222324252627), Thread64::from("wxyzABCD"));
-        assert_eq!(Thread64(0x28292a2b2c2d2e2f), Thread64::from("EFGHIJKL"));
-        assert_eq!(Thread64(0x3031323334353637), Thread64::from("MNOPQRST"));
-        assert_eq!(Thread64(0x38393a3b3c3d3e3f), Thread64::from("UVWXYZ$#"));
+        assert_eq!(Thread64::from([
+            0x09, 0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01, 0x00
+        ]), Thread64::from("9876543210"));
+
+        assert_eq!(Thread64::from([
+            0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07
+        ]), Thread64::from("01234567"));
+        assert_eq!(Thread64::from([
+            0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f
+        ]), Thread64::from("89abcdef"));
+
+        assert_eq!(Thread64::from([
+            0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17
+        ]), Thread64::from("ghijklmn"));
+        assert_eq!(Thread64::from([
+            0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f
+        ]), Thread64::from("opqrstuv"));
+        
+        assert_eq!(Thread64::from([
+            0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27
+        ]), Thread64::from("wxyzABCD"));
+        assert_eq!(Thread64::from([
+            0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f
+        ]), Thread64::from("EFGHIJKL"));
+        
+        assert_eq!(Thread64::from([
+            0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37
+        ]), Thread64::from("MNOPQRST"));
+        assert_eq!(Thread64::from([
+            0x38, 0x39, 0x3a, 0x3b, 0x3c, 0x3d, 0x3e, 0x3f
+        ]), Thread64::from("UVWXYZ$#"));
     }
 
     #[test]
@@ -222,10 +302,26 @@ mod test {
         assert_eq!(Thread64(0x21), Thread64(0x20).next(0, 1));
         assert_eq!(Thread64(0), Thread64(0x21).next(0, 1));
 
-        assert_eq!(Thread64(0x01020304050607_11), Thread64(0x01020304050607_10).next(0, 1));
-        assert_eq!(Thread64(0x01020304050607_00), Thread64(0x01020304050607_11).next(0, 1));
-        assert_eq!(Thread64(0x01020304050607_13), Thread64(0x01020304050607_12).next(0, 1));
-        assert_eq!(Thread64(0x01020304050607_00), Thread64(0x01020304050607_13).next(0, 1));
+        assert_eq!(Thread64::from([
+            0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x11
+        ]), Thread64::from([
+            0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x10
+        ]).next(0, 1));
+        assert_eq!(Thread64::from([
+            0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x00
+        ]), Thread64::from([
+            0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x11
+        ]).next(0, 1));
+        assert_eq!(Thread64::from([
+            0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x13
+        ]), Thread64::from([
+            0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x12
+        ]).next(0, 1));
+        assert_eq!(Thread64::from([
+            0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x00
+        ]), Thread64::from([
+            0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x13
+        ]).next(0, 1));
     }
 
     #[test]
@@ -260,52 +356,156 @@ mod test {
         assert_eq!(Thread64(0x3f), Thread64(0x3e).next(0, 6));
         assert_eq!(Thread64(0x00), Thread64(0x3f).next(0, 6));
 
-        assert_eq!(Thread64(0x31323334353637_3d), Thread64(0x31323334353637_3c).next(0, 6));
-        assert_eq!(Thread64(0x31323334353637_3e), Thread64(0x31323334353637_3d).next(0, 6));
-        assert_eq!(Thread64(0x31323334353637_3f), Thread64(0x31323334353637_3e).next(0, 6));
-        assert_eq!(Thread64(0x31323334353637_00), Thread64(0x31323334353637_3f).next(0, 6));
+        assert_eq!(Thread64::from([
+            0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3d
+        ]), Thread64::from([
+            0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3c
+        ]).next(0, 6));
+        assert_eq!(Thread64::from([
+            0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3e
+        ]), Thread64::from([
+            0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3d
+        ]).next(0, 6));
+        assert_eq!(Thread64::from([
+            0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f,
+        ]), Thread64::from([
+            0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3e
+        ]).next(0, 6));
+        assert_eq!(Thread64::from([
+            0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x00
+        ]), Thread64::from([
+            0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f
+        ]).next(0, 6));
     }
 
     #[test]
     fn thread64_next_1_1() {
-        assert_eq!(Thread64(0x3f_00_3f), Thread64(0x3f_00_3f).next(1, 1));
-        assert_eq!(Thread64(0x3f_00_3f), Thread64(0x3f_01_3f).next(1, 1));
+        assert_eq!(
+            Thread64::from([0x3f, 0x00, 0x3f]), 
+            Thread64::from([0x3f, 0x00, 0x3f]).next(1, 1)
+        );
+        assert_eq!(
+            Thread64::from([0x3f, 0x00, 0x3f]),
+            Thread64::from([0x3f, 0x01, 0x3f]).next(1, 1)
+        );
 
-        assert_eq!(Thread64(0x3f_03_3f), Thread64(0x3f_02_3f).next(1, 1));
-        assert_eq!(Thread64(0x3f_00_3f), Thread64(0x3f_03_3f).next(1, 1));
-        assert_eq!(Thread64(0x3f_05_3f), Thread64(0x3f_04_3f).next(1, 1));
-        assert_eq!(Thread64(0x3f_00_3f), Thread64(0x3f_05_3f).next(1, 1));
-        assert_eq!(Thread64(0x3f_21_3f), Thread64(0x3f_20_3f).next(1, 1));
-        assert_eq!(Thread64(0x3f_00_3f), Thread64(0x3f_21_3f).next(1, 1));
+        assert_eq!(
+            Thread64::from([0x3f, 0x03, 0x3f]), 
+            Thread64::from([0x3f, 0x02, 0x3f]).next(1, 1)
+        );
+        assert_eq!(
+            Thread64::from([0x3f, 0x00, 0x3f]),
+            Thread64::from([0x3f, 0x03, 0x3f]).next(1, 1)
+        );
+        assert_eq!(
+            Thread64::from([0x3f, 0x05, 0x3f]),
+            Thread64::from([0x3f, 0x04, 0x3f]).next(1, 1)
+        );
+        assert_eq!(
+            Thread64::from([0x3f, 0x00, 0x3f]),
+            Thread64::from([0x3f, 0x05, 0x3f]).next(1, 1)
+        );
+        assert_eq!(
+            Thread64::from([0x3f, 0x21, 0x3f]),
+            Thread64::from([0x3f, 0x20, 0x3f]).next(1, 1)
+        );
+        assert_eq!(
+            Thread64::from([0x3f, 0x00, 0x3f]),
+            Thread64::from([0x3f, 0x21, 0x3f]).next(1, 1)
+        );
 
         assert_eq!(Thread64(0), Thread64(0x0).next(1, 1));
         assert_eq!(Thread64(0x1), Thread64(0x1).next(1, 1));
 
-        assert_eq!(Thread64(0x313233343536_11_38), Thread64(0x313233343536_10_38).next(1, 1));
-        assert_eq!(Thread64(0x313233343536_00_38), Thread64(0x313233343536_11_38).next(1, 1));
-        assert_eq!(Thread64(0x313233343536_13_38), Thread64(0x313233343536_12_38).next(1, 1));
-        assert_eq!(Thread64(0x313233343536_00_38), Thread64(0x313233343536_13_38).next(1, 1));
+        assert_eq!(Thread64::from([
+            0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x11, 0x3f
+        ]), Thread64::from([
+            0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x10, 0x3f
+        ]).next(1, 1));
+        assert_eq!(Thread64::from([
+            0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x00, 0x3f
+        ]), Thread64::from([
+            0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x11, 0x3f
+        ]).next(1, 1));
+        assert_eq!(Thread64::from([
+            0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x13, 0x3f
+        ]), Thread64::from([
+            0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x12, 0x3f
+        ]).next(1, 1));
+        assert_eq!(Thread64::from([
+            0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x00, 0x3f
+        ]), Thread64::from([
+            0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x13, 0x3f
+        ]).next(1, 1));
     }
 
     #[test]
-    fn thread64_next_7_1() {
-        assert_eq!(Thread64(0x00_3f3f3f_3f3f3f3f), Thread64(0x00_3f3f3f_3f3f3f3f).next(7, 1));
-        assert_eq!(Thread64(0x00_3f3f3f_3f3f3f3f), Thread64(0x00_3f3f3f_3f3f3f3f).next(7, 1));
+    fn thread64_next_9_1() {
+        assert_eq!(Thread64::from([
+            0x00, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f,
+        ]), Thread64::from([
+            0x00, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f,
+        ]).next(9, 1));
+        assert_eq!(Thread64::from([
+            0x00, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f,
+        ]), Thread64::from([
+            0x01, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f,
+        ]).next(9, 1));
 
-        assert_eq!(Thread64(0x03_3f3f3f_3f3f3f3f), Thread64(0x02_3f3f3f_3f3f3f3f).next(7, 1));
-        assert_eq!(Thread64(0x00_3f3f3f_3f3f3f3f), Thread64(0x03_3f3f3f_3f3f3f3f).next(7, 1));
-        assert_eq!(Thread64(0x05_3f3f3f_3f3f3f3f), Thread64(0x04_3f3f3f_3f3f3f3f).next(7, 1));
-        assert_eq!(Thread64(0x00_3f3f3f_3f3f3f3f), Thread64(0x05_3f3f3f_3f3f3f3f).next(7, 1));
-        assert_eq!(Thread64(0x21_3f3f3f_3f3f3f3f), Thread64(0x20_3f3f3f_3f3f3f3f).next(7, 1));
-        assert_eq!(Thread64(0x00_3f3f3f_3f3f3f3f), Thread64(0x21_3f3f3f_3f3f3f3f).next(7, 1));
+        assert_eq!(Thread64::from([
+            0x03, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f,
+        ]), Thread64::from([
+            0x02, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f,
+        ]).next(9, 1));
+        assert_eq!(Thread64::from([
+            0x00, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f,
+        ]), Thread64::from([
+            0x03, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f,
+        ]).next(9, 1));
+        assert_eq!(Thread64::from([
+            0x05, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f,
+        ]), Thread64::from([
+            0x04, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f,
+        ]).next(9, 1));
+        assert_eq!(Thread64::from([
+            0x00, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f,
+        ]), Thread64::from([
+            0x05, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f,
+        ]).next(9, 1));
+        assert_eq!(Thread64::from([
+            0x21, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f,
+        ]), Thread64::from([
+            0x20, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f,
+        ]).next(9, 1));
+        assert_eq!(Thread64::from([
+            0x00, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f,
+        ]), Thread64::from([
+            0x21, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f,
+        ]).next(9, 1));
 
         assert_eq!(Thread64(0), Thread64(0x0).next(1, 1));
         assert_eq!(Thread64(0x1), Thread64(0x1).next(1, 1));
 
-        assert_eq!(Thread64(0x11_3f3f3f_3f3f3f3f), Thread64(0x10_3f3f3f_3f3f3f3f).next(1, 1));
-        assert_eq!(Thread64(0x00_3f3f3f_3f3f3f3f), Thread64(0x11_3f3f3f_3f3f3f3f).next(1, 1));
-        assert_eq!(Thread64(0x13_3f3f3f_3f3f3f3f), Thread64(0x12_3f3f3f_3f3f3f3f).next(1, 1));
-        assert_eq!(Thread64(0x00_3f3f3f_3f3f3f3f), Thread64(0x13_3f3f3f_3f3f3f3f).next(1, 1));
+        assert_eq!(Thread64::from([
+            0x11, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f,
+        ]), Thread64::from([
+            0x10, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f,
+        ]).next(9, 1));
+        assert_eq!(Thread64::from([
+            0x00, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f,
+        ]), Thread64::from([
+            0x11, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f,
+        ]).next(9, 1));
+        assert_eq!(Thread64::from([
+            0x13, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f,
+        ]), Thread64::from([
+            0x12, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f,
+        ]).next(9, 1));
+        assert_eq!(Thread64::from([
+            0x00, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f,
+        ]), Thread64::from([
+            0x13, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f, 0x3f,
+        ]).next(9, 1));
     }
 
     #[test]
@@ -326,65 +526,68 @@ mod test {
         assert_eq!(Thread64::from("n#x92k"), Thread64::rand(&mut rand, 6, 6, 0));
         assert_eq!(Thread64::from("A3rlJRo"), Thread64::rand(&mut rand, 7, 6, 0));
         assert_eq!(Thread64::from("FqRBNUHO"), Thread64::rand(&mut rand, 8, 6, 0));
+        assert_eq!(Thread64::from("i3CD3EHFh"), Thread64::rand(&mut rand, 9, 6, 0));
+        assert_eq!(Thread64::from("O4kfw$fJcu"), Thread64::rand(&mut rand, 10, 6, 0));
     }
 
     #[test]
     fn thread64_rand_radix() {
         let mut rand = Rand32(42);
 
-        assert_eq!(Thread64::from("pCPx#l#j"), Thread64::rand(&mut rand, 8, 6, 0));
-        assert_eq!(Thread64::from("FpzXVIfC"), Thread64::rand(&mut rand, 8, 6, 0));
-        assert_eq!(Thread64::from("zkyj7YNK"), Thread64::rand(&mut rand, 8, 6, 0));
-        assert_eq!(Thread64::from("l8iobxeA"), Thread64::rand(&mut rand, 8, 6, 0));
+        assert_eq!(Thread64::from("pCPx#l#jjH"), Thread64::rand(&mut rand, 10, 6, 0));
+        assert_eq!(Thread64::from("FpzXVIfCi6"), Thread64::rand(&mut rand, 10, 6, 0));
+        assert_eq!(Thread64::from("zkyj7YNKil"), Thread64::rand(&mut rand, 10, 6, 0));
+        assert_eq!(Thread64::from("xeApqn#x92"), Thread64::rand(&mut rand, 10, 6, 0));
 
-        assert_eq!(Thread64::from("n#x92kIn"), Thread64::rand(&mut rand, 8, 6, 0));
-        assert_eq!(Thread64::from("A3rlJRoA"), Thread64::rand(&mut rand, 8, 6, 0));
-        assert_eq!(Thread64::from("FqRBNUHO"), Thread64::rand(&mut rand, 8, 6, 0));
-        assert_eq!(Thread64::from("i3CD3EHF"), Thread64::rand(&mut rand, 8, 6, 0));
+        assert_eq!(Thread64::from("A3rlJRoArw"), Thread64::rand(&mut rand, 10, 6, 0));
+        assert_eq!(Thread64::from("FqRBNUHOsB"), Thread64::rand(&mut rand, 10, 6, 0));
+        assert_eq!(Thread64::from("i3CD3EHFhO"), Thread64::rand(&mut rand, 10, 6, 0));
+        assert_eq!(Thread64::from("$fJcuGVnpl"), Thread64::rand(&mut rand, 10, 6, 0));
 
-        assert_eq!(Thread64::from("11111111"), Thread64::rand(&mut rand, 8, 1, 0));
+        assert_eq!(Thread64::from("1111111111"), Thread64::rand(&mut rand, 10, 1, 0));
 
-        assert_eq!(Thread64::from("13311321"), Thread64::rand(&mut rand, 8, 2, 0));
-        assert_eq!(Thread64::from("33312111"), Thread64::rand(&mut rand, 8, 2, 0));
+        assert_eq!(Thread64::from("3331211123"), Thread64::rand(&mut rand, 10, 2, 0));
+        assert_eq!(Thread64::from("3321312312"), Thread64::rand(&mut rand, 10, 2, 0));
 
-        assert_eq!(Thread64::from("37613527"), Thread64::rand(&mut rand, 8, 3, 0));
-        assert_eq!(Thread64::from("52761115"), Thread64::rand(&mut rand, 8, 3, 0));
-        assert_eq!(Thread64::from("73112557"), Thread64::rand(&mut rand, 8, 3, 0));
-        assert_eq!(Thread64::from("74367512"), Thread64::rand(&mut rand, 8, 3, 0));
+        assert_eq!(Thread64::from("1115273112"), Thread64::rand(&mut rand, 10, 3, 0));
+        assert_eq!(Thread64::from("5577436751"), Thread64::rand(&mut rand, 10, 3, 0));
+        assert_eq!(Thread64::from("2157514761"), Thread64::rand(&mut rand, 10, 3, 0));
+        assert_eq!(Thread64::from("6544137124"), Thread64::rand(&mut rand, 10, 3, 0));
 
-        assert_eq!(Thread64::from("29d7d1cf"), Thread64::rand(&mut rand, 8, 4, 0));
-        assert_eq!(Thread64::from("edc413f9"), Thread64::rand(&mut rand, 8, 4, 0));
-        assert_eq!(Thread64::from("ca9e3495"), Thread64::rand(&mut rand, 8, 4, 0));
-        assert_eq!(Thread64::from("a1c9e76f"), Thread64::rand(&mut rand, 8, 4, 0));
+        assert_eq!(Thread64::from("49574a1c9e"), Thread64::rand(&mut rand, 10, 4, 0));
+        assert_eq!(Thread64::from("76f967d8ef"), Thread64::rand(&mut rand, 10, 4, 0));
+        assert_eq!(Thread64::from("598738cc18"), Thread64::rand(&mut rand, 10, 4, 0));
+        assert_eq!(Thread64::from("c45e8d34ee"), Thread64::rand(&mut rand, 10, 4, 0));
     }
 
     #[test]
     fn thread64_rand_seq() {
         let mut rand = Rand32(42);
 
-        assert_eq!(Thread64::from("11111111"), Thread64::rand(&mut rand, 8, 1, 0));
-        assert_eq!(Thread64::from("22222222"), Thread64::rand(&mut rand, 8, 2, 1));
+        assert_eq!(Thread64::from("1111111111"), Thread64::rand(&mut rand, 10, 1, 0));
+        assert_eq!(Thread64::from("2222222222"), Thread64::rand(&mut rand, 10, 2, 1));
 
-        assert_eq!(Thread64::from("46242264"), Thread64::rand(&mut rand, 8, 3, 1));
-        assert_eq!(Thread64::from("66244664"), Thread64::rand(&mut rand, 8, 3, 1));
-        assert_eq!(Thread64::from("44444444"), Thread64::rand(&mut rand, 8, 3, 2));
+        assert_eq!(Thread64::from("4226426624"), Thread64::rand(&mut rand, 10, 3, 1));
+        assert_eq!(Thread64::from("4224444224"), Thread64::rand(&mut rand, 10, 3, 1));
+        assert_eq!(Thread64::from("2244226622"), Thread64::rand(&mut rand, 10, 3, 1));
+        assert_eq!(Thread64::from("4444444444"), Thread64::rand(&mut rand, 10, 3, 2));
 
-        assert_eq!(Thread64::from("8a8244ee"), Thread64::rand(&mut rand, 8, 4, 1));
-        assert_eq!(Thread64::from("a8684c26"), Thread64::rand(&mut rand, 8, 4, 1));
-        assert_eq!(Thread64::from("c48c4488"), Thread64::rand(&mut rand, 8, 4, 2));
-        assert_eq!(Thread64::from("88888888"), Thread64::rand(&mut rand, 8, 4, 3));
+        assert_eq!(Thread64::from("c26e48e46a"), Thread64::rand(&mut rand, 10, 4, 1));
+        assert_eq!(Thread64::from("826c48a8e2"), Thread64::rand(&mut rand, 10, 4, 1));
+        assert_eq!(Thread64::from("44844c8484"), Thread64::rand(&mut rand, 10, 4, 2));
+        assert_eq!(Thread64::from("8888888888"), Thread64::rand(&mut rand, 10, 4, 3));
 
-        assert_eq!(Thread64::from("8242m4qm"), Thread64::rand(&mut rand, 8, 5, 1));
-        assert_eq!(Thread64::from("8g4quig8"), Thread64::rand(&mut rand, 8, 5, 1));
-        assert_eq!(Thread64::from("sssg8k4o"), Thread64::rand(&mut rand, 8, 5, 2));
-        assert_eq!(Thread64::from("8o88og88"), Thread64::rand(&mut rand, 8, 5, 3));
-        assert_eq!(Thread64::from("gggggggg"), Thread64::rand(&mut rand, 8, 5, 4));
+        assert_eq!(Thread64::from("8m4oi6e4q2"), Thread64::rand(&mut rand, 10, 5, 1));
+        assert_eq!(Thread64::from("gceuesgskg"), Thread64::rand(&mut rand, 10, 5, 1));
+        assert_eq!(Thread64::from("c8osg48k4k"), Thread64::rand(&mut rand, 10, 5, 2));
+        assert_eq!(Thread64::from("ogooogo8gg"), Thread64::rand(&mut rand, 10, 5, 3));
+        assert_eq!(Thread64::from("gggggggggg"), Thread64::rand(&mut rand, 10, 5, 4));
 
-        assert_eq!(Thread64::from("IaU$OAEk"), Thread64::rand(&mut rand, 8, 6, 1));
-        assert_eq!(Thread64::from("qMYouS6$"), Thread64::rand(&mut rand, 8, 6, 1));
-        assert_eq!(Thread64::from("gkIoYgII"), Thread64::rand(&mut rand, 8, 6, 2));
-        assert_eq!(Thread64::from("gEogEUog"), Thread64::rand(&mut rand, 8, 6, 3));
-        assert_eq!(Thread64::from("MMwgggMg"), Thread64::rand(&mut rand, 8, 6, 4));
-        assert_eq!(Thread64::from("wwwwwwww"), Thread64::rand(&mut rand, 8, 6, 5));
+        assert_eq!(Thread64::from("e8sikMueg6"), Thread64::rand(&mut rand, 10, 6, 1));
+        assert_eq!(Thread64::from("8aGW2kqUww"), Thread64::rand(&mut rand, 10, 6, 1));
+        assert_eq!(Thread64::from("gU8IUgYsMA"), Thread64::rand(&mut rand, 10, 6, 2));
+        assert_eq!(Thread64::from("oMwUMwgEME"), Thread64::rand(&mut rand, 10, 6, 3));
+        assert_eq!(Thread64::from("wwMMggwMMw"), Thread64::rand(&mut rand, 10, 6, 4));
+        assert_eq!(Thread64::from("wwwwwwwwww"), Thread64::rand(&mut rand, 10, 6, 5));
     }
 }
