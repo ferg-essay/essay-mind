@@ -6,8 +6,9 @@ use crate::{
     body::{BodyEatPlugin, BodyPlugin}, 
     hind_eat::{HindEat, HindEatPlugin}, 
     hind_move::HindMovePlugin, 
+    hippocampus::HippocampusPlugin, 
     mid_move::{MidMovePlugin, MidSeekPlugin}, 
-    motive::{Dwell, Forage, Motive, MotiveForagePlugin, MotiveSleepPlugin}, 
+    motive::{Dwell, Forage, Motive, MotiveAvoidPlugin, MotiveForagePlugin, MotiveSleepPlugin}, 
     olfactory_bulb::{OlfactoryBulb, OlfactoryPlugin}, 
     retina::RetinaPlugin, 
     taxis::{klinotaxis::KlinotaxisPlugin, TaxisAvoidPlugin}, 
@@ -128,6 +129,14 @@ impl AnimalBuilder {
                 }
             }
         }
+
+        // forebrain
+
+        let mut ehc = HippocampusPlugin::new();
+        ehc.digits(4).radix(4).seq(2);
+        app.plugin(ehc);
+
+        app.plugin(MotiveAvoidPlugin);
     }
 }
 

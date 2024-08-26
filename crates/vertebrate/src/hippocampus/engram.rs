@@ -180,6 +180,11 @@ impl Engram128 {
         Self(value)
     }
 
+    #[inline]
+    pub fn is_zero(&self) -> bool {
+        self.0 == 0
+    }
+
     ///
     /// Returns the next engram in the sequence
     /// 
@@ -238,6 +243,8 @@ impl fmt::Debug for Engram128 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("Engram128(")?;
 
+        (&self as &dyn fmt::Display).fmt(f)?;
+        /*
         let mut is_digit = f.sign_aware_zero_pad();
         for i in 0..21 {
             let b = ((self.0 >> 6 * (20 - i)) & 0x3f) as u8;
@@ -255,6 +262,7 @@ impl fmt::Debug for Engram128 {
         if ! is_digit {
             f.write_str("0")?;
         }
+        */
 
         f.write_str(")")
     }

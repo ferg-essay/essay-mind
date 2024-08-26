@@ -52,6 +52,8 @@ impl From<&str> for Rand32 {
         Self(seed)
     }
 }
+
+#[derive(Clone)]
 pub struct Rand64(pub u128);
 
 impl Rand64 {
