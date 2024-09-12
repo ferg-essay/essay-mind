@@ -6,7 +6,11 @@ use essay_ecs::{prelude::{Plugin, App, ResMut, Res}, app::event::InEvent};
 use mind_ecs::Tick;
 
 use crate::{
-    body::Body, hind_move::{HindMove, HindMovePlugin}, motive::{Motive, MotiveTrait, Motives, Sated, Wake}, olfactory_bulb::{ObEvent, OlfactoryBulb}, util::{Heading, Seconds} 
+    body::Body, 
+    hind_move::{HindMove, HindMovePlugin}, 
+    motive::{Motive, MotiveTrait, Motives, Sated, Wake}, 
+    olfactory::olfactory_bulb::{ObEvent, OlfactoryBulb}, 
+    util::{Heading, Seconds} 
 };
 
 pub struct Seek;

@@ -1,27 +1,31 @@
-use std::time::{Duration, Instant};
+use std::{sync::{Arc, Mutex}, time::{Duration, Instant}};
 
 use mind_ecs::TickConfig;
 use winit::{
-    event::{ElementState, Event, MouseButton, StartCause, WindowEvent},
-    event_loop::{ControlFlow, EventLoop},
-    dpi::PhysicalPosition, keyboard::{Key, NamedKey},
+    dpi::PhysicalPosition, event::{ElementState, Event, MouseButton, StartCause, WindowEvent}, event_loop::{ControlFlow, EventLoop, EventLoopWindowTarget}, keyboard::{Key, NamedKey}
 };
-use essay_ecs::prelude::*;
+use essay_ecs::{prelude::*, core::error::{Error, Result}};
 
 use super::ui_canvas::UiWindowEvent;
 
-pub fn main_loop(mut app: App, tick_ms: Duration, ticks_per_cycle: usize) {
+pub fn main_loop(mut app: App, tick_ms: Duration, ticks_per_cycle: usize) -> Result<()> {
     // env_logger::init();
 
     let timer_length = tick_ms; // Duration::from_millis(100);
 
     let event_loop = app.remove_resource_non_send::<EventLoop<()>>().unwrap();
 
-    //app.insert_resource(WinitEvents::default());
     let mut wait_until = Instant::now();
     let mut is_run = true;
 
+    let result_handle = Arc::new(Mutex::new(ResultHandle::default()));
+    let mut result_inner = result_handle.clone();
+
     event_loop.run(move |event, window_target| {
+        if window_target.exiting() {
+            return;
+        }
+        
         app.resource_mut::<WinitEvents>().clear();
 
         match event {
@@ -32,7 +36,7 @@ pub fn main_loop(mut app: App, tick_ms: Duration, ticks_per_cycle: usize) {
 
                 if is_run {
                     for _ in 0..ticks_per_cycle {
-                        app.tick();
+                        win_tick(&mut app, &mut result_inner, window_target);
                     }
                 }
             }
@@ -96,14 +100,14 @@ pub fn main_loop(mut app: App, tick_ms: Duration, ticks_per_cycle: usize) {
 
                             " " => { 
                                 if ! is_run {
-                                    app.tick(); 
+                                    win_tick(&mut app, &result_inner, &window_target);
                                 }
                                 is_run = false;
                             },
 
                             "t" => { 
                                 if ! is_run {
-                                    app.tick(); 
+                                    win_tick(&mut app, &result_inner, &window_target);
                                 }
                                 is_run = false;
                             },
@@ -138,6 +142,29 @@ pub fn main_loop(mut app: App, tick_ms: Duration, ticks_per_cycle: usize) {
         }
         window_target.set_control_flow(ControlFlow::WaitUntil(wait_until));
     }).unwrap();
+
+    let err = result_handle.lock().unwrap().err.take();
+
+    if let Some(err) = err {
+        Err(err)
+    } else {
+        Ok(())
+    }
+}
+
+fn win_tick(
+    app: &mut App, 
+    result_inner: &Mutex<ResultHandle>, 
+    window_target: &EventLoopWindowTarget<()>) {
+    app.tick().unwrap_or_else(|err| {
+        result_inner.lock().unwrap().err = Some(err);
+        window_target.exit();
+    });
+}
+
+#[derive(Default)]
+struct ResultHandle {
+    err: Option<Error>
 }
 
 pub struct WinitEvents {

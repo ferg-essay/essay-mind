@@ -105,10 +105,10 @@ fn update_hind_eat(
         return;
     }
 
-    if ! body_eat.is_food_zone() {
-        // log!(Level::Debug, "eating without sensor");
-        return;
-    }
+    // if ! body_eat.is_food_zone() {
+    // log!(Level::Debug, "eating without sensor");
+    //    return;
+    // }
 
     if ! hind_eat.is_eat_allowed(body.get()) {
         info!("eating while moving");

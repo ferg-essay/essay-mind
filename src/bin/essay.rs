@@ -12,7 +12,7 @@ use vertebrate::{
         chemotaxis::{Avoid, Chemotaxis, Seek}, 
         phototaxis::Phototaxis
     }, 
-    olfactory_bulb::OlfactoryBulb, 
+    olfactory::olfactory_bulb::OlfactoryBulb, 
     ui::{
         ui_attention::UiAttentionPlugin, 
         ui_body::{UiBodyPlugin, UiBodyTrailPlugin}, 
@@ -64,7 +64,7 @@ pub fn main() {
     ui_eat_flat(&mut app);
     app.plugin(UiRetinaPlugin::new(((2.0, 0.0), [0.5, 0.5])));
 
-    app.run();
+    app.run().unwrap();
 }
 
 pub struct Dummy;

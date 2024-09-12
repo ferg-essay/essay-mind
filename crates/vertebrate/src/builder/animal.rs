@@ -9,7 +9,7 @@ use crate::{
     hippocampus::HippocampusPlugin, 
     mid_move::{MidMovePlugin, MidSeekPlugin}, 
     motive::{Dwell, Forage, Motive, MotiveAvoidPlugin, MotiveForagePlugin, MotiveSleepPlugin}, 
-    olfactory_bulb::{OlfactoryBulb, OlfactoryPlugin}, 
+    olfactory::olfactory_bulb::{OlfactoryBulb, OlfactoryPlugin}, 
     retina::RetinaPlugin, 
     taxis::{klinotaxis::KlinotaxisPlugin, TaxisAvoidPlugin}, 
     tectum::{TectumLoomingPlugin, TectumPlugin} 

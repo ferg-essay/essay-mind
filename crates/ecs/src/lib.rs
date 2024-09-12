@@ -1,6 +1,6 @@
 use std::ops::{Deref, DerefMut};
 
-use essay_ecs::{prelude::*, core::{Local, Store, Schedule, schedule::Executors}};
+use essay_ecs::{prelude::*, core::{error::Result, Local, Store, Schedule, schedule::Executors}};
 use util::random::random_test;
 
 pub struct MindApp {
@@ -125,8 +125,8 @@ impl Plugin for TickSchedulePlugin {
         app.init_resource::<AppTick>();
 
         app.system(Main, 
-            move |w: &mut Store, is_init: Local<bool>| {
-                tick_system(w, is_init);
+            move |store: &mut Store, is_init: Local<bool>| {
+                tick_system(store, is_init)
             }
         );
 
@@ -161,38 +161,41 @@ impl Default for AppTick {
 fn tick_system(
     store: &mut Store, 
     mut is_init: Local<bool>, 
-) {
+) -> Result<()> {
     if ! *is_init {
         *is_init = true;
-        let _ = store.try_run_schedule(PreStartup);
-        let _ = store.try_run_schedule(Startup);
-        let _ = store.try_run_schedule(PostStartup);
+        store.run_schedule_optional(PreStartup)?;
+        store.run_schedule_optional(Startup)?;
+        store.run_schedule_optional(PostStartup)?;
     }
 
-    let _ = store.try_run_schedule(First);
+    store.run_schedule_optional(First)?;
 
     match store.resource::<TickConfig>().state {
         TickState::Default => {
-            let _ = store.try_run_schedule(PreUpdate);
-
+            store.run_schedule_optional(PreUpdate)?;
+            
             let n_ticks = store.resource::<TickConfig>().n_ticks;
             for _ in 0..n_ticks {
-                let _ = store.try_run_schedule(PreTick);
-                let _ = store.try_run_schedule(Tick);
-                let _ = store.try_run_schedule(PostTick);
+                store.run_schedule_optional(PreTick)?;
+                store.run_schedule_optional(Tick)?;
+                store.run_schedule_optional(PostTick)?;
             }
 
-            let _ = store.try_run_schedule(AfterTicks);
+            store.run_schedule_optional(AfterTicks)?;
 
-            let _ = store.try_run_schedule(Update);
-            let _ = store.try_run_schedule(PostUpdate);
+            store.run_schedule_optional(Update)?;
+            store.run_schedule_optional(PostUpdate)?;
         },
         TickState::Menu => {
-            let _ = store.try_run_schedule(PreMenu);
-            let _ = store.try_run_schedule(Menu);
-            let _ = store.try_run_schedule(PostMenu);
+            store.run_schedule_optional(PreMenu)?;
+            store.run_schedule_optional(Menu)?;
+            store.run_schedule_optional(PostMenu)?;
         }
     }
-    let _ = store.try_run_schedule(Last);
+    store.run_schedule_optional(Last)?;
+
+    Ok(())
 }
+
 

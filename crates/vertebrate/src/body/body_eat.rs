@@ -6,8 +6,6 @@ use crate::{body::BodyPlugin, util::{DecayValue, Seconds}, world::World};
 use super::Body;
 
 pub struct BodyEat {
-    is_food_zone: bool,
-
     is_sweet: DecayValue,
     _is_umami: f32,
     _is_bitter: f32,
@@ -19,16 +17,6 @@ pub struct BodyEat {
 }
 
 impl BodyEat {
-    #[inline]
-    pub fn is_food_zone(&self) -> bool {
-        self.is_food_zone
-    }
-
-    #[inline]
-    pub fn set_food_zone(&mut self, is_food: bool) {
-        self.is_food_zone = is_food;
-    }
-
     #[inline]
     pub fn sweet(&self) -> f32 {
         self.is_sweet.value()
@@ -70,9 +58,8 @@ impl BodyEat {
         self.is_eating.update();
 
         let is_food = world.is_food(body.head_pos());
-        self.set_food_zone(is_food);
 
-        if self.is_eating() && self.is_food_zone() {
+        if self.is_eating() && is_food {
             body.eat();
             self.glucose.add(1.);
             self.is_sweet.add(1.);
@@ -83,8 +70,6 @@ impl BodyEat {
 impl Default for BodyEat {
     fn default() -> Self {
         Self {
-            is_food_zone: false,
-
             is_sweet: DecayValue::new(Seconds(1.)),
             _is_umami: 0.,
             _is_bitter: 0.,

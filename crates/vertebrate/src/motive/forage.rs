@@ -4,10 +4,7 @@ use essay_ecs::{
 };
 use mind_ecs::Tick;
 use crate::{
-    body::BodyEat, 
-    hind_eat::HindEat, 
-    mid_move::{MidMove, MidMovePlugin}, 
-    util::{DecayValue, Seconds}
+    body::BodyEat, hind_eat::HindEat, mid_move::{MidMove, MidMovePlugin}, olfactory::Olfactory, util::{DecayValue, Seconds}
 };
 
 use super::{
@@ -40,6 +37,7 @@ impl Forage {
 
 fn update_forage(
     mut forage: ResMut<Forage>,
+    olfactory: Res<Olfactory>,
     body_eat: Res<BodyEat>,
     mid_move: Res<MidMove>,
     hind_eat: Res<HindEat>,
@@ -63,8 +61,8 @@ fn update_forage(
         return;
     }
 
-    // TODO: H.l food zone should be distinct from body_eat.
-    if body_eat.is_food_zone() {
+    // H.l food zone from olfactory
+    if olfactory.is_food_zone() {
         foraging.clear();
 
         // activate eating
