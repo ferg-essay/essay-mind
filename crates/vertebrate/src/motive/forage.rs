@@ -11,6 +11,11 @@ use super::{
     Motive, MotiveTrait, Motives, Wake
 };
 
+//
+// Forage includes R.pb, H.l, H.pstn, H.pv, H.sum, S.a, P.bst
+// specifically the food-related portions of those nuclei
+//
+
 pub struct Forage {
     timeout: DecayValue,
 }
@@ -25,14 +30,6 @@ impl Forage {
     fn pre_update(&mut self) {
         self.timeout.update();
     }
-
-    fn add_eat(&mut self) {
-        self.timeout.add(1.);
-    }
-
-    fn is_eat_timeout(&mut self) -> bool {
-        self.timeout.value() > 0.5
-    }
 }
 
 fn update_forage(
@@ -40,8 +37,7 @@ fn update_forage(
     olfactory: Res<OlfactoryCortex>,
     body_eat: Res<BodyEat>,
     mid_move: Res<MidMove>,
-    hind_eat: Res<HindEat>,
-    mut motive_eat: ResMut<Motive<Eat>>,
+    mut hind_eat: ResMut<HindEat>,
     mut foraging: ResMut<Motive<Forage>>,
     mut sated: ResMut<Motive<Sated>>,
     wake: Res<Motive<Wake>>,
@@ -66,13 +62,16 @@ fn update_forage(
         foraging.clear();
 
         // activate eating
-        forage.add_eat();
+        // forage.add_eat();
 
+        hind_eat.eat();
+        /*
         if ! forage.is_eat_timeout() {
             motive_eat.set_max(1.);
             // H disinhibits R.pb (cite)
             hind_eat.eat();
         }
+        */
     } else {
         foraging.set_max(1.);
 

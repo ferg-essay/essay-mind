@@ -76,7 +76,7 @@ pub fn ui_homunculus_draw(
         next_emoji
     } else {
         match hind_move.action_kind() {
-            MoveKind::None => { Emoji::Bandage },
+            MoveKind::None => { Emoji::FaceThinking },
             MoveKind::Halt => { Emoji::Candy }, // TODO:
             MoveKind::Roam => { Emoji::Footprints },
             MoveKind::Seek => { Emoji::DirectHit },

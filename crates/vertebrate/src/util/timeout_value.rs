@@ -146,3 +146,23 @@ impl<V> TimeoutValue<V> {
         }
     }
 }
+
+impl<V: Clone> TimeoutValue<V> {
+    #[inline]
+    pub fn value_or(&self, default: V) -> V {
+        if self.is_active() {
+            match &self.value {
+                Some(value) => value.clone(),
+                None => default,
+            }
+        } else {
+            default
+        }
+    }
+}
+
+impl<V> Default for TimeoutValue<V> {
+    fn default() -> Self {
+        Self::new(Ticks(2))
+    }
+}

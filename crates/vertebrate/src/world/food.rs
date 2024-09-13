@@ -2,7 +2,7 @@ use essay_ecs::core::Component;
 
 use crate::util::Point;
 
-#[derive(Component)]
+#[derive(Component, Debug)]
 pub struct Food {
     pos: Point,
 }

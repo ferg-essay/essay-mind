@@ -1,7 +1,8 @@
-use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}};
+use essay_ecs::{app::{App, Plugin}, core::{Query, Res, ResMut}};
+use log::error;
 use mind_ecs::Tick;
 
-use crate::{body::BodyPlugin, util::{DecayValue, Seconds}, world::World};
+use crate::{body::BodyPlugin, util::{DecayValue, Seconds, TimeoutValue}, world::Food};
 
 use super::Body;
 
@@ -13,7 +14,7 @@ pub struct BodyEat {
 
     glucose: DecayValue,
 
-    is_eating: DecayValue,
+    is_eating: TimeoutValue<bool>,
 }
 
 impl BodyEat {
@@ -29,17 +30,17 @@ impl BodyEat {
 
     #[inline]
     pub fn is_eating(&self) -> bool {
-        self.is_eating.value() > 0.25
+        self.is_eating.value_or(false)
     }
 
     #[inline]
     pub fn eat(&mut self) {
-        self.is_eating.set(1.);
+        self.is_eating.set(true);
     }
 
     #[inline]
     pub fn stop_eat(&mut self) {
-        self.is_eating.set(0.);
+        self.is_eating.set(false);
     }
 
     pub fn p_food(&self) -> f32 {
@@ -50,13 +51,14 @@ impl BodyEat {
     ///
     /// Update the animal's eating and digestion
     /// 
-    fn update(&mut self, world: &World, body: &mut Body) {
+    fn pre_update(&mut self) {
         self.is_sweet.update();
 
         self.glucose.update();
 
         self.is_eating.update();
 
+        /*
         let is_food = world.is_food(body.head_pos());
 
         if self.is_eating() && is_food {
@@ -64,6 +66,7 @@ impl BodyEat {
             self.glucose.add(1.);
             self.is_sweet.add(1.);
         }
+        */
     }
 }
 
@@ -75,19 +78,38 @@ impl Default for BodyEat {
             _is_bitter: 0.,
             _is_sour: 0.,
 
-            glucose: DecayValue::new(Seconds(20.)).fill_time(Seconds(2.)),
+            glucose: DecayValue::new(Seconds(40.)).fill_time(Seconds(10.)),
 
-            is_eating: DecayValue::new(Seconds(0.2)),
+            is_eating: TimeoutValue::default(),
         }
     }
 }
 
 fn body_eat_update(
     mut body_eat: ResMut<BodyEat>,
-    mut body: ResMut<Body>,
-    world: Res<World>,
+    body: Res<Body>,
+    food: Query<&Food>,
 ) {
-    body_eat.update(world.get(), body.get_mut());
+    body_eat.pre_update();
+
+    if body_eat.is_eating() {
+        if let Some(_food) = food.iter().find(|f| f.is_pos(body.head_pos())) {
+            body_eat.glucose.add(1.);
+            body_eat.is_sweet.set(1.);
+        } else {
+            error!("Eating without food");
+        }
+    }
+
+    /*
+    let is_food = world.is_food(body.head_pos());
+
+    if self.is_eating() && is_food {
+        body.eat();
+        self.glucose.add(1.);
+        self.is_sweet.add(1.);
+    }
+    */
 }
 
 pub struct BodyEatPlugin;

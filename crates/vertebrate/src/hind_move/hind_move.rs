@@ -312,7 +312,7 @@ impl HindMove {
 
     #[inline]
     pub fn is_stop(&self) -> bool {
-        self.action.kind.is_stop()
+        self.action_kind().is_stop()
     }
 
     #[inline]
@@ -330,7 +330,11 @@ impl HindMove {
 
     #[inline]
     pub fn action_kind(&self) -> MoveKind {
-        self.action.kind
+        if self.action.is_active() {
+            self.action.kind
+        } else {
+            MoveKind::None
+        }
     }
 
     #[inline]
@@ -385,6 +389,12 @@ impl HindMove {
     #[inline]
     pub fn mo_right(&self) -> f32 {
         self.mo_right
+    }
+}
+
+impl Default for HindMove {
+    fn default() -> Self {
+        HindMove::new()
     }
 }
 

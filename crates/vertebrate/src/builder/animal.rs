@@ -186,7 +186,7 @@ fn dwell_eat(
     mut dwell: ResMut<Motive<Dwell>>,
     eat: Res<HindEat>,
 ) {
-    if eat.is_eat() {
+    if eat.is_eating() {
         dwell.set_max(1.);
     }
 }
