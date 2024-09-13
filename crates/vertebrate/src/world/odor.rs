@@ -1,69 +1,12 @@
 use std::fmt;
 
-use crate::util::{Angle, EgoVector, Point};
+use essay_ecs::core::Component;
 
-pub struct Odors {
-    odors: Vec<Odor>,
-}
+use crate::util::Point;
 
-impl Odors {
-    pub fn new() -> Self {
-        Self {
-            odors: Vec::new(),
-        }
-    }
-
-    pub(super) fn add_odor(&mut self, x: usize, y: usize, r: usize, odor: OdorType) {
-        self.odors.push(Odor::new_r(x, y, r, odor));
-    }
-
-    pub fn odor(&self, pt: Point) -> Option<(OdorType, Angle)> {
-        let Point(x, y) = pt;
-
-        let mut best_odor: Option<(OdorType, Angle)> = None;
-        let mut best_dist = f32::MAX;
-
-        for food in &self.odors {
-            let dx = food.x - x;
-            let dy = food.y - y;
-            let dist = dx.hypot(dy);
-
-            if dist <= food.r() && dist < best_dist {
-                let angle = dy.atan2(dx);
-
-                best_odor = Some((food.odor(), Angle::Rad(angle)));
-                best_dist = dist;
-            }
-        }
-
-        best_odor
-    }
-
-    pub fn odors(&self) -> &Vec<Odor> {
-        &self.odors
-    }
-
-    pub fn odors_by_head(&self, point: Point) -> Vec<(OdorType, EgoVector)> {
-        let mut odors = Vec::new();
-
-        for odor in &self.odors {
-            let dist = point.dist(&odor.pos());
-
-            if dist < odor.r() {
-                let angle = point.heading_to(odor.pos());
-                let value = 0.5 / dist.max(0.5);
-
-                odors.push((odor.odor(), EgoVector::new(angle, value)));
-            }
-        }
-        
-        odors
-    }
-}
-
+#[derive(Component)]
 pub struct Odor {
-    x: f32,
-    y: f32,
+    pos: Point,
     r: f32,
     odor: OdorType,
 }
@@ -73,27 +16,35 @@ impl Odor {
 
     pub(super) fn new_r(x: usize, y: usize, r:usize, odor: OdorType) -> Self {
         Self {
-            x: x as f32 + 0.5,
-            y: y as f32 + 0.5,
+            pos: Point(x as f32 + 0.5, y as f32 + 0.5),
             r: r as f32,
             odor,
         }
     }
 
+    #[inline]
     pub fn x(&self) -> f32 {
-        self.x
+        self.pos.x()
     }
 
+    #[inline]
     pub fn y(&self) -> f32 {
-        self.y
+        self.pos.y()
     }
 
+    #[inline]
     pub fn pos(&self) -> Point {
-        Point(self.x, self.y)
+        self.pos
     }
 
+    #[inline]
     pub fn r(&self) -> f32 {
         self.r
+    }
+
+    #[inline]
+    pub fn contains(&self, pos: Point) -> bool {
+        self.pos().dist(pos) <= self.r
     }
 
     pub fn is_food(&self) -> bool {
@@ -107,7 +58,7 @@ impl Odor {
 
 impl fmt::Debug for Odor {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_tuple("Food").field(&self.x).field(&self.y).finish()
+        f.debug_tuple("Food").field(&self.x()).field(&self.y()).finish()
     }
 }
 
