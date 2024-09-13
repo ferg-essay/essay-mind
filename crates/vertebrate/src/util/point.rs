@@ -419,8 +419,16 @@ impl Turn {
 }
 
 impl PartialEq for Turn {
+    #[inline]
     fn eq(&self, other: &Self) -> bool {
         self.to_unit() == other.to_unit()
+    }
+}
+
+impl From<f32> for Turn {
+    #[inline]
+    fn from(value: f32) -> Self {
+        Turn::Unit(value)
     }
 }
 

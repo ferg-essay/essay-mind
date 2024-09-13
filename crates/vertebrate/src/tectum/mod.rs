@@ -1,6 +1,6 @@
 mod looming;
 mod tectum;
-mod nucleus_isthmi;
+mod attention;
 
 pub use looming::TectumLoomingPlugin;
 

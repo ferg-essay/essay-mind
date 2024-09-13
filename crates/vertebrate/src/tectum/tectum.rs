@@ -6,7 +6,7 @@ use crate::{
     striatum::striatum::{Sense, StriatumId, StriatumSnr, StriatumStn}, util::{Angle, DecayValue, Heading}
 };
 
-use super::nucleus_isthmi::NucleusIsthmi;
+use super::attention::TectumAttention;
 
 pub struct TectumLocomotionStn {
     seek: TectumStnTurn,
@@ -50,7 +50,7 @@ pub struct TectumStnTurn {
     actions_d: TectumStnActions,
     actions_i: TectumStnActions,
     striatum: StriatumStn,
-    ach_attention: Option<NucleusIsthmi>,
+    ach_attention: Option<TectumAttention>,
 
     _last_action: Option<ActionId>,
     _last_default: Option<ActionId>,
@@ -61,7 +61,7 @@ impl TectumStnTurn {
 
     fn new(plugin: &TectumPlugin) -> Self {
         let ach_attention = if plugin.is_ni {
-            Some(NucleusIsthmi::new())
+            Some(TectumAttention::new())
         } else {
             None
         };

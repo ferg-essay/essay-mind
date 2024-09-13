@@ -20,13 +20,13 @@ impl MidMove {
     }
 
     #[inline]
-    pub fn dwell(&self) {
-        self.commands.send(MidMoveEvent::Dwell);
+    pub fn roam(&self) {
+        self.commands.send(MidMoveEvent::Roam);
     }
 
     #[inline]
-    pub fn roam(&self) {
-        self.commands.send(MidMoveEvent::Roam);
+    pub fn seek(&self) {
+        self.commands.send(MidMoveEvent::Seek);
     }
 
     #[inline]
@@ -46,8 +46,8 @@ impl MidMove {
     fn update(
         &mut self,
         _dwell: &Motive<Dwell>,
-        hind_move: &HindMove,
-        hind_eat: &HindEat,
+        hind_move: &mut HindMove,
+        hind_eat: &mut HindEat,
     ) {
         for event in self.commands() {
             match event {
@@ -57,8 +57,8 @@ impl MidMove {
                 MidMoveEvent::Roam => {
                     self.on_roam(hind_move, hind_eat);
                 }
-                MidMoveEvent::Dwell => {
-                    self.on_dwell(hind_move, hind_eat);
+                MidMoveEvent::Seek => {
+                    self.on_seek(hind_move, hind_eat);
                 }
             }
         }
@@ -66,30 +66,30 @@ impl MidMove {
 
     fn on_roam(
         &mut self, 
-        _hind_motor: &HindMove,
+        hind_move: &mut HindMove,
         hind_eat: &HindEat,
     ) {
         // H.stn managed transition waits for eat to stop before roam
-        if hind_eat.is_stop() {
-            // hind_motor.roam();
+        if ! hind_eat.is_eating() {
+            hind_move.roam();
         }
     }
 
-    fn on_dwell(
+    fn on_seek(
         &mut self, 
-        _hind_motor: &HindMove,
+        hind_move: &mut HindMove,
         hind_eat: &HindEat,
     ) {
-        // H.stn managed transition waits for eat to stop before dwell
-        if hind_eat.is_stop() {
-            // hind_motor.dwell();
+        // H.stn managed transition waits for eat to stop before roam
+        if ! hind_eat.is_eating() {
+            hind_move.seek();
         }
     }
 
     fn on_eat(
         &mut self, 
         hind_move: &HindMove,
-        hind_eat: &HindEat,
+        hind_eat: &mut HindEat,
     ) {
         // H.stn managed transition waits for movement to stop before eat
         if hind_move.is_stop() {
@@ -112,20 +112,20 @@ impl Default for MidMove {
 enum MidMoveEvent {
     Eat,
     Roam,
-    Dwell,
+    Seek,
 }
 
 fn update_mid_motor(
     mut mid_motor: ResMut<MidMove>,
-    hind_eat: Res<HindEat>, 
-    hind_move: Res<HindMove>, 
+    mut hind_eat: ResMut<HindEat>, 
+    mut hind_move: ResMut<HindMove>, 
     wake: Res<Motive<Wake>>,
     dwell: Res<Motive<Dwell>>,
 ) {
     mid_motor.pre_update();
 
     if wake.is_active() {
-        mid_motor.update(dwell.get(), hind_move.get(), hind_eat.get());
+        mid_motor.update(dwell.get(), hind_move.get_mut(), hind_eat.get_mut());
     } else {
         mid_motor.clear();
     }

@@ -1,18 +1,20 @@
 use std::time::Duration;
 
 use essay_plot::api::{Colors, Point};
+use log::LevelFilter;
 use vertebrate::{
-    body::Body, 
+    body::{Body, BodyEat}, 
     builder::AnimalBuilder, 
+    hind_eat::HindEat, 
+    hind_move::{HindMove, MoveKind}, 
     motive::{
-        Eat, Forage, Sated, 
-        Wake, Dwell, Motive, MotiveTrait, Roam, Sleep
+        Dwell, Forage, Motive, MotiveTrait, Sleep, Wake
     }, 
+    olfactory::olfactory_bulb::OlfactoryBulb, 
     taxis::{
-        chemotaxis::{Avoid, Chemotaxis, Seek}, 
+        chemotaxis::Chemotaxis, 
         phototaxis::Phototaxis
     }, 
-    olfactory_bulb::OlfactoryBulb, 
     ui::{
         ui_attention::UiAttentionPlugin, 
         ui_body::{UiBodyPlugin, UiBodyTrailPlugin}, 
@@ -28,7 +30,7 @@ use vertebrate::{
     }, 
     util::{self}, 
     world::{
-        OdorType, World, WorldPlugin
+        FoodKind, OdorType, World, WorldPlugin
     }
 };
 use essay_ecs::prelude::App;
@@ -36,14 +38,22 @@ use mind_ecs::TickSchedulePlugin;
 use ui_graphics::UiCanvasPlugin;
 
 pub fn main() {
+    env_logger::builder().filter_level(LevelFilter::Info).default_format().init();
+
     let mut app = App::new();
 
     app.plugin(TickSchedulePlugin::new().ticks(2));
 
     app.plugin(world_roam(21, 15)
-        .food_odor_r(5, 5, 4, OdorType::FoodA)
-        .odor_r(15, 5, 4, OdorType::FoodA)
+        // .odor_r(5, 5, 4, OdorType::FoodA)
+        // .odor_r(15, 5, 4, OdorType::FoodA)
+        .food_odor_r(5, 5, FoodKind::Bitter, 3, OdorType::FoodA)
+        .food_odor_r(15, 5, FoodKind::Sweet, 3, OdorType::FoodA)
     );
+
+    //app.plugin(world_roam(21, 15)
+        // .food_odor_r(5, 5, 4, OdorType::FoodA)
+    //);
 
     let mut animal = AnimalBuilder::new();
 
@@ -52,7 +62,7 @@ pub fn main() {
         .odor(OdorType::FoodB);
 
     animal.retina()
-        .size(7)
+        .size(8)
         .fov(util::Angle::Deg(120.))
         .eye_angle(util::Angle::Deg(45.));
 
@@ -63,7 +73,7 @@ pub fn main() {
     ui_eat_flat(&mut app);
     app.plugin(UiRetinaPlugin::new(((2.0, 0.0), [0.5, 0.5])));
 
-    app.run();
+    app.run().unwrap();
 }
 
 pub struct Dummy;
@@ -106,7 +116,7 @@ pub fn world_food_and_non_food(app: &mut App) {
         //.wall(((w - 1) / 2, h - h1), (2, h1))
         //.floor((0, 0), (w1, h), FloorType::Light)
         //.floor((w2, 0), (w - w2, h), FloorType::Dark)
-        .food_odor_r(5, 5, 4, OdorType::FoodA)
+        .food_odor_r(5, 5, FoodKind::Sweet, 4, OdorType::FoodA)
         .odor_r(15, 5, 4, OdorType::FoodA)
     );
 }
@@ -126,7 +136,7 @@ pub fn world_odor(app: &mut App) {
         //.wall(((w - 1) / 2, h - h1), (2, h1))
         //.floor((0, 0), (w1, h), FloorType::Light)
         //.floor((w2, 0), (w - w2, h), FloorType::Dark)
-        .food_odor_r(5, 5, 4, OdorType::FoodA)
+        .food_odor_r(5, 5, FoodKind::Sweet, 4, OdorType::FoodA)
         .odor_r(9, 5, 4, OdorType::FoodB)
     );
 }
@@ -173,21 +183,25 @@ fn ui_eat(app: &mut App) {
 fn ui_motive(app: &mut App, xy: impl Into<Point>, wh: impl Into<Point>) {
     app.plugin(UiMotivePlugin::new(xy, wh)
         .size(12.)
-        .item(Emoji::Footprints, |m: &Motive<Roam>| m.value())
+        .item(Emoji::Footprints, |m: &HindMove| if m.action_kind() == MoveKind::Roam { 1. } else { 0. })
         .item(Emoji::MagnifyingGlassLeft, |m: &Motive<Dwell>| m.value())
-        .item(Emoji::DirectHit, |m: &Motive<Seek>| m.value())
-        .item(Emoji::NoEntry, |m: &Motive<Avoid>| m.value())
+        .item(Emoji::DirectHit, |m: &HindMove| if m.action_kind() == MoveKind::Seek { 1. } else { 0. })
+        .item(Emoji::RightArrowCurvingLeft, |m: &HindMove| if m.action_kind() == MoveKind::Avoid { 1. } else { 0. })
         .item(Emoji::FaceDisappointed, |m: &Motive<Dummy>| m.value())
         //.item(Emoji::FaceGrinning, |m: &Motive<Wake>| m.value())
         .item(Emoji::Coffee, |m: &Motive<Wake>| m.value())
         .item(Emoji::FaceSleeping, |m: &Motive<Sleep>| m.value())
         .row()
-        .item(Emoji::ForkAndKnife, |m: &Motive<Eat>| m.value())
-        .item(Emoji::Pig, |m: &Motive<Sated>| m.value())
-        .item(Emoji::Candy, |m: &Motive<Dummy>| m.value())
-        .item(Emoji::Cheese, |m: &Motive<Forage>| m.value())
-        .item(Emoji::Lemon, |m: &Motive<Dummy>| m.value())
-        .item(Emoji::Salt, |m: &Motive<Dummy>| m.value())
+        .item(Emoji::FaceCowboy, |m: &Motive<Forage>| m.value())
+        .item(Emoji::ForkAndKnife, |m: &HindEat| if m.is_eating() { 1. } else { 0. })
+        .item(Emoji::Pig, |m: &BodyEat| m.sated_cck())
+        .item(Emoji::FaceGrimacing, |m: &HindEat| if m.is_gaping() { 1. } else { 0. })
+        .item(Emoji::FaceVomiting, |m: &HindEat| if m.is_vomiting() { 1. } else { 0. })
+        .row()
+        .item(Emoji::Candy, |m: &BodyEat| m.sweet())
+        .item(Emoji::Cheese, |m: &BodyEat| m.umami())
+        .item(Emoji::Lemon, |m: &BodyEat| m.bitter())
+        .item(Emoji::FaceVomiting, |m: &BodyEat| m.sickness())
         // .item(Emoji::FaceAstonished, |m: &Motive<Hunger>| m.value())
     );
 }
@@ -206,14 +220,7 @@ fn ui_eat_flat(app: &mut App) {
 
     ui_motive(app, (2.0, 0.5), (0.5, 0.5));
 
-    app.plugin(UiHomunculusPlugin::new((2.5, 0.5), (0.5, 0.5))
-        .item(Emoji::ForkAndKnife, |m: &Motive<Eat>| m.is_active())
-        .item(Emoji::DirectHit, |m: &Motive<Seek>| m.is_active())
-        .item(Emoji::NoEntry, |m: &Motive<Avoid>| m.is_active())
-        .item(Emoji::MagnifyingGlassLeft, |m: &Motive<Dwell>| m.is_active())
-        .item(Emoji::Footprints, |m: &Motive<Roam>| m.is_active())
-        .item(Emoji::FaceSleeping, |m: &Motive<Wake>| m.is_active())
-    );
+    ui_homunculus(app, (2.5, 0.5), (0.5, 0.5));
     //app.plugin(UiCameraPlugin::new((2., -1.), (0.5, 0.5)).fov(Angle::Deg(120.)));
 
     app.plugin(UiAttentionPlugin::new((2.5, 0.), (0.5, 0.5))
@@ -231,6 +238,19 @@ fn ui_eat_flat(app: &mut App) {
         .item(|ob: &OlfactoryBulb| ob.value_pair(OdorType::FoodB))
     );
     */
+}
+
+fn ui_homunculus(app: &mut App, xy: (f32, f32), wh: (f32, f32)) {
+    app.plugin(UiHomunculusPlugin::new(xy, wh)
+        .item(Emoji::FaceVomiting, |m: &HindEat| m.is_vomiting())
+        .item(Emoji::FaceGrimacing, |m: &HindEat| m.is_gaping())
+        .item(Emoji::ForkAndKnife, |m: &HindEat| m.is_eating())
+        .item(Emoji::DirectHit, |m: &HindMove| m.action_kind() == MoveKind::Seek)
+        .item(Emoji::RightArrowCurvingLeft, |m: &HindMove| m.action_kind() == MoveKind::Avoid)
+        .item(Emoji::MagnifyingGlassLeft, |m: &Motive<Dwell>| m.is_active())
+        .item(Emoji::Footprints, |m: &HindMove| m.action_kind() == MoveKind::Roam)
+        .item(Emoji::FaceSleeping, |m: &Motive<Wake>| ! m.is_active())
+    );
 }
 
 

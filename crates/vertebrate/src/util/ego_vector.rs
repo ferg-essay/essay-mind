@@ -1,4 +1,4 @@
-use super::Heading;
+use super::{Heading, Turn};
 
 #[derive(Clone, Copy, Debug)]
 pub struct EgoVector {
@@ -35,6 +35,11 @@ impl EgoVector {
     #[inline]
     pub fn dir(&self) -> Heading {
         self.dir
+    }
+
+    #[inline]
+    pub fn turn(&self) -> Turn {
+        self.dir.to_turn()
     }
 
     #[inline]

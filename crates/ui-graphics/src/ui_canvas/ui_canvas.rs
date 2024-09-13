@@ -229,22 +229,6 @@ impl UiCanvas {
         }
     }
 
-    /*
-    pub fn plot_renderer<'a>(&'a mut self) -> Option<PlotRenderer<'a>> {
-        match &self.view {
-            Some(view) => {
-                Some(PlotRenderer::new(
-                    &mut self.canvas, 
-                    &self.wgpu.device, 
-                    Some(&self.wgpu.queue), 
-                    Some(&view.view)
-                ))
-            },
-            None => None
-        }
-    }
-    */
-
     pub(crate) fn window_bounds(&mut self, width: u32, height: u32) {
         self.wgpu.window_bounds(width, height);
         self.canvas.resize(&self.wgpu.device, width, height);
@@ -423,7 +407,7 @@ impl Plugin for UiCanvasPlugin {
 
         let time = self.time.clone();
         app.runner(move |app| {
-            main_loop(app, time, 1);
+            main_loop(app, time, 1)
         });
     }
 }

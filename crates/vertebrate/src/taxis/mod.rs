@@ -1,3 +1,4 @@
+mod avoid;
 mod taxis;
 mod taxis_vector;
 pub mod chemotaxis;
@@ -6,6 +7,9 @@ pub mod klinotaxis;
 
 pub mod phototaxis;
 
-pub use taxis_vector::GoalVector;
+
+pub use avoid::{TaxisAvoid, TaxisAvoidPlugin};
 
 pub use taxis::Taxis;
+
+pub use taxis_vector::GoalVector;

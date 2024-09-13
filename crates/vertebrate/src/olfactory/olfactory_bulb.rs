@@ -4,7 +4,7 @@ use std::collections::HashMap;
 /// Olfactory bulb
 ///
 
-use essay_ecs::{prelude::{Plugin, App, ResMut, Res, Event}, app::event::OutEvent};
+use essay_ecs::{app::event::OutEvent, core::Query, prelude::{App, Event, Plugin, Res, ResMut}};
 use mind_ecs::Tick;
 
 use crate::{
@@ -12,7 +12,7 @@ use crate::{
     mid_move::SeekInput, 
     pallidum::basal_forebrain::{AttendId, AttendValue, BasalForebrain}, 
     util::{Angle, EgoVector}, 
-    world::{OdorType, World}
+    world::{Odor, OdorType}
 };
 
 pub struct OlfactoryBulb {
@@ -139,21 +139,22 @@ impl SeekInput for OlfactoryBulb {
 
 fn update_olfactory(
     body: Res<Body>, 
-    world: Res<World>, 
+    odors: Query<&Odor>, 
     mut olf_bulb: ResMut<OlfactoryBulb>,
     mut ob_events: OutEvent<ObEvent>,
 ) {
-    // olf_bulb.food = None;
-    // olf_bulb.avoid = None;
-
     olf_bulb.pre_update();
 
-    for (odor, vector) in world.odors_by_head(body.head_pos()) {
-        let index = *olf_bulb.odor_map.get(&odor).unwrap();
+    for odor in odors.iter().filter(|odor| odor.contains(body.head_pos())) {
+        let index = *olf_bulb.odor_map.get(&odor.odor()).unwrap();
 
+        let dist = odor.pos().dist(&body.head_pos());
+        let angle = body.head_pos().heading_to(odor.pos());
+        let value = 0.5 / dist.max(0.5);
+
+        let vector = EgoVector::new(angle, value);
         let vector = vector.to_ego(body.head_dir());
 
-        // olf_bulb.glomerules[index].odor(vector);
         olf_bulb.get_mut().update_odor(index, vector);
     }
 
@@ -165,6 +166,8 @@ fn update_olfactory(
         }
     }
 }
+
+// fn odors_by_head(pos: Point, odors: Query<&Odor>)
 
 #[derive(Clone, Copy, Debug)]
 pub struct OdorId(usize);
@@ -244,11 +247,11 @@ pub enum ObEvent {
     Odor(OdorType, EgoVector),
 }
 
-pub struct OlfactoryPlugin {
+pub struct OlfactoryBulbPlugin {
     odors: Vec<OdorType>,
 }
 
-impl OlfactoryPlugin {
+impl OlfactoryBulbPlugin {
     pub fn new() -> Self {
         Self {
             odors: Vec::new(),
@@ -262,7 +265,7 @@ impl OlfactoryPlugin {
     }
 }
 
-impl Plugin for OlfactoryPlugin {
+impl Plugin for OlfactoryBulbPlugin {
     fn build(&self, app: &mut App) {
         let mut bulb = OlfactoryBulb::new();
 

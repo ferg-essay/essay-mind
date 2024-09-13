@@ -79,6 +79,14 @@ impl DecayValue {
         self.value
     }
 
+    ///
+    /// Active value above the threshold, scaled to [0., 1.]
+    /// 
+    #[inline]
+    pub fn active_value(&self) -> f32 {
+        (self.value - self.threshold).max(0.) / (1. - self.threshold).max(1.0e-6)
+    }
+
     #[inline]
     pub fn add(&mut self, value: f32) {
         self.value += self.fill * value.clamp(0., 1.);

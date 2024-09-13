@@ -4,15 +4,17 @@ use essay_ecs::{
 };
 use mind_ecs::Tick;
 use crate::{
-    body::BodyEat, 
-    hind_eat::HindEat, 
-    mid_move::{MidMove, MidMovePlugin}, 
-    util::{DecayValue, Seconds}
+    body::BodyEat, hind_eat::HindEat, mid_move::{MidMove, MidMovePlugin}, olfactory::{OlfactoryCortex, OlfactoryCortexPlugin}, util::{DecayValue, Seconds}
 };
 
 use super::{
     Motive, MotiveTrait, Motives, Wake
 };
+
+//
+// Forage includes R.pb, H.l, H.pstn, H.pv, H.sum, S.a, P.bst
+// specifically the food-related portions of those nuclei
+//
 
 pub struct Forage {
     timeout: DecayValue,
@@ -28,22 +30,14 @@ impl Forage {
     fn pre_update(&mut self) {
         self.timeout.update();
     }
-
-    fn add_eat(&mut self) {
-        self.timeout.add(1.);
-    }
-
-    fn is_eat_timeout(&mut self) -> bool {
-        self.timeout.value() > 0.5
-    }
 }
 
 fn update_forage(
     mut forage: ResMut<Forage>,
+    olfactory: Res<OlfactoryCortex>,
     body_eat: Res<BodyEat>,
     mid_move: Res<MidMove>,
-    mut motive_eat: ResMut<Motive<Eat>>,
-    mut dwell: ResMut<Motive<Dwell>>,
+    mut hind_eat: ResMut<HindEat>,
     mut foraging: ResMut<Motive<Forage>>,
     mut sated: ResMut<Motive<Sated>>,
     wake: Res<Motive<Wake>>,
@@ -54,32 +48,35 @@ fn update_forage(
 
     forage.pre_update();
 
-    if ! wake.is_active() || sated.is_active() {
+    if ! wake.is_active() {
+        return;
+    } else if sated.is_active() {
+        // TODO: roam not strictly justified, but w/o this the animal remains 
+        // paused at the food
+        mid_move.roam();
         return;
     }
-
-    // TODO: H.l food zone should be distinct from body_eat.
-    if body_eat.is_food_zone() {
+    
+    // H.l food zone from olfactory
+    if olfactory.is_food_zone() {
         foraging.clear();
 
         // activate eating
-        forage.add_eat();
+        // forage.add_eat();
 
-        if body_eat.is_eating() {
-            // eating sets dwell mode (5HT)
-            if ! sated.is_active() {
-                dwell.set_max(1.);
-            } else {
-                dwell.clear();
-            }
-        }
-
+        hind_eat.eat();
+        /*
         if ! forage.is_eat_timeout() {
             motive_eat.set_max(1.);
-            mid_move.eat();
+            // H disinhibits R.pb (cite)
+            hind_eat.eat();
         }
+        */
     } else {
         foraging.set_max(1.);
+
+        // H.sum activation for roaming
+        mid_move.roam();
     }
 }
 pub struct Eat;
@@ -97,36 +94,12 @@ impl MotiveTrait for Roam {}
 pub struct Dwell;
 impl MotiveTrait for Dwell {}
 
-fn update_roam(
-    mut roam: ResMut<Motive<Roam>>,
-    mut dwell: ResMut<Motive<Dwell>>,
-    hind_eat: Res<HindEat>,
-    mid_move: Res<MidMove>,
-    wake: Res<Motive<Wake>>,
-) {
-    if ! wake.is_active() {
-        return;
-    }
-
-    if hind_eat.is_eat() {
-        roam.set_max(wake.value() * 0.2);
-        dwell.set_max(wake.value());
-    } else {
-        roam.set_max(wake.value());
-    }
-
-    if dwell.is_active() {
-        mid_move.dwell();
-    } else if roam.is_active() {
-        mid_move.roam();
-    }   
-}
-
 pub struct MotiveForagePlugin;
 
 impl Plugin for MotiveForagePlugin {
     fn build(&self, app: &mut App) {
         assert!(app.contains_plugin::<MidMovePlugin>(), "MotiveForage requires MidMove");
+        assert!(app.contains_plugin::<OlfactoryCortexPlugin>(), "MotiveForage requires Olfactory");
 
         let feeding = Forage::new();
         app.insert_resource(feeding);
@@ -139,16 +112,5 @@ impl Plugin for MotiveForagePlugin {
         Motives::insert::<Dwell>(app, Seconds(4.));
 
         app.system(Tick, update_forage);
-        app.system(Tick, update_roam);
-    }
-}
-
-
-pub struct MotiveMovePlugin;
-
-impl Plugin for MotiveMovePlugin {
-    fn build(&self, app: &mut App) {
-        assert!(app.contains_plugin::<MidMovePlugin>(), "MotiveMove requires MidMove");
-
     }
 }
