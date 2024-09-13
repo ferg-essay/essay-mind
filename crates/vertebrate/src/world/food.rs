@@ -1,17 +1,27 @@
+use essay_ecs::core::Component;
 
-pub struct Foods {
-    foods: Vec<Food>,
+use crate::util::Point;
+
+#[derive(Component)]
+pub struct Food {
+    pos: Point,
 }
 
-impl Foods {
-    pub fn new() -> Self {
+impl Food {
+    pub(super) fn new(pos: impl Into<Point>) -> Self {
         Self {
-            foods: Vec::new(),
+            pos: pos.into(),
         }
     }
-}
 
-pub struct Food {
-    
+    #[inline]
+    pub fn pos(&self) -> Point {
+        self.pos
+    }
+
+    #[inline]
+    pub fn is_pos(&self, pos: impl Into<Point>) -> bool {
+        self.pos.dist(pos) < 0.3
+    }
 }
 

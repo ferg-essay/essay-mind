@@ -5,7 +5,7 @@ mod world;
 
 pub use builder::WorldPlugin;
 
-pub use food::{Foods, Food};
+pub use food::Food;
 
 pub use odor::{Odors, OdorType};
 

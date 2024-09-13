@@ -1,3 +1,4 @@
+use essay_ecs::core::Query;
 use essay_ecs::prelude::*;
 use essay_graphics::layout::{Layout, View};
 use essay_plot::{prelude::*, artist::paths};
@@ -5,7 +6,7 @@ use essay_tensor::Tensor;
 use renderer::{Canvas, Drawable, Event, Renderer};
 use ui_graphics::{ui_layout::UiLayoutPlugin, UiCanvas, UiCanvasPlugin};
 
-use crate::world::{OdorType, Odors, World, WorldPlugin};
+use crate::world::{Food, OdorType, Odors, World, WorldPlugin};
 
 use crate::world::WorldCell;
 
@@ -65,6 +66,7 @@ impl Coord for UiWorld {}
 pub fn draw_world(
     world: Res<World>, 
     odors: Res<Odors>, 
+    foods: Query<&Food>,
     mut ui_world: ResMut<UiWorld>, 
     mut ui_canvas: ResMut<UiCanvas>
 ) {
@@ -95,12 +97,35 @@ pub fn draw_world(
             sizes.push([odor.r(), odor.r()]);
 
             colors.push(Color::from(odor.odor()).set_alpha(0.2));
+            // colors.push(Color::from(odor.odor()).set_alpha(1.));
         }
 
         let xy = ui_world.to_canvas().transform(&Tensor::from(xy));
 
         if xy.len() > 0 {
             ui.draw_markers(&circle, xy, sizes, &colors);
+        }
+
+        let mut xy : Vec<[f32; 2]> = Vec::new();
+        let mut sizes : Vec<[f32; 2]> = Vec::new();
+        let mut colors : Vec<Color> = Vec::new();
+
+        for food in foods.iter() {
+            let pos = food.pos();
+
+            xy.push([pos.x(), pos.y()]);
+            sizes.push([0.8, 0.8]);
+
+            colors.push(Color::from("olive"))
+        }
+
+        let xy = ui_world.to_canvas().transform(&Tensor::from(xy));
+
+        if xy.len() > 0 {
+            // ui.flush();
+            let star: Path<Canvas> = paths::unit_star(5, 0.3)
+                .transform(&ui_world.to_canvas_scale());
+            ui.draw_markers(&star, xy, sizes, &colors);
         }
 
         if let Some(image) = &ui_world.image {

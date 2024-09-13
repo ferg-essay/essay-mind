@@ -33,8 +33,10 @@ pub fn main() {
     app.plugin(TickSchedulePlugin::new().ticks(2));
 
     app.plugin(world_roam(21, 15)
-        .odor_r(5, 5, 4, OdorType::FoodA)
-        .odor_r(15, 5, 4, OdorType::FoodA)
+        // .odor_r(5, 5, 4, OdorType::FoodA)
+        // .odor_r(15, 5, 4, OdorType::FoodA)
+        .food_odor_r(5, 5, 3, OdorType::FoodA)
+        .food_odor_r(15, 5, 3, OdorType::FoodA)
     );
 
     //app.plugin(world_roam(21, 15)

@@ -1,8 +1,8 @@
-use essay_ecs::app::{App, Plugin};
+use essay_ecs::{app::{App, Plugin, Startup}, core::Commands};
 
 use crate::world::odor::Odor;
 
-use super::{FloorType, OdorType, Odors, World, WorldCell};
+use super::{FloorType, Food, OdorType, Odors, World, WorldCell};
 
 
 pub struct WorldPlugin {
@@ -123,15 +123,27 @@ impl WorldPlugin {
             }
         }
 
-        for food in &self.food {
-            world[*food] = WorldCell::Food;
-        }
+        //for food in &self.food {
+        //    world[*food] = WorldCell::Food;
+        //}
 
         for wall in &self.walls {
             world[*wall] = WorldCell::Wall;
         }
 
         world
+    }
+
+    fn create_food(&self, app: &mut App) {
+        let mut foods : Vec<Food> = self.food.iter().map(|p| {
+            Food::new((p.0 as f32 + 0.5, p.1 as f32 + 0.5))
+        }).collect();
+
+        app.system(Startup, move |mut cmd: Commands| {
+            for food in foods.drain(..) {
+                cmd.spawn(food);
+            }
+        });
     }
 
     fn create_odors(&self) -> Odors {
@@ -154,6 +166,8 @@ impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(self.create_world());
         app.insert_resource(self.create_odors());
+
+        self.create_food(app);
     }
 }
 
