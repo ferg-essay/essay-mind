@@ -12,7 +12,7 @@ use crate::{
     mid_move::SeekInput, 
     pallidum::basal_forebrain::{AttendId, AttendValue, BasalForebrain}, 
     util::{Angle, EgoVector}, 
-    world::{OdorType, World}
+    world::{OdorType, Odors}
 };
 
 pub struct OlfactoryBulb {
@@ -139,7 +139,7 @@ impl SeekInput for OlfactoryBulb {
 
 fn update_olfactory(
     body: Res<Body>, 
-    world: Res<World>, 
+    odors: Res<Odors>, 
     mut olf_bulb: ResMut<OlfactoryBulb>,
     mut ob_events: OutEvent<ObEvent>,
 ) {
@@ -148,7 +148,7 @@ fn update_olfactory(
 
     olf_bulb.pre_update();
 
-    for (odor, vector) in world.odors_by_head(body.head_pos()) {
+    for (odor, vector) in odors.odors_by_head(body.head_pos()) {
         let index = *olf_bulb.odor_map.get(&odor).unwrap();
 
         let vector = vector.to_ego(body.head_dir());
@@ -244,11 +244,11 @@ pub enum ObEvent {
     Odor(OdorType, EgoVector),
 }
 
-pub struct OlfactoryPlugin {
+pub struct OlfactoryBulbPlugin {
     odors: Vec<OdorType>,
 }
 
-impl OlfactoryPlugin {
+impl OlfactoryBulbPlugin {
     pub fn new() -> Self {
         Self {
             odors: Vec::new(),
@@ -262,7 +262,7 @@ impl OlfactoryPlugin {
     }
 }
 
-impl Plugin for OlfactoryPlugin {
+impl Plugin for OlfactoryBulbPlugin {
     fn build(&self, app: &mut App) {
         let mut bulb = OlfactoryBulb::new();
 

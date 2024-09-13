@@ -3,11 +3,11 @@ use mind_ecs::Tick;
 
 use crate::{body::Body, util::{Ticks, TimeoutValue}, world::World};
 
-pub struct Olfactory {
+pub struct OlfactoryCortex {
     is_food_zone: TimeoutValue<bool>,
 }
 
-impl Olfactory {
+impl OlfactoryCortex {
     pub fn new() -> Self {
         Self {
             is_food_zone: TimeoutValue::<bool>::new(Ticks(3))
@@ -16,7 +16,7 @@ impl Olfactory {
 
     #[inline]
     pub fn is_food_zone(&self) -> bool {
-        self.is_food_zone.is_active()
+        self.is_food_zone.value().unwrap_or(false)
     }
 
     fn pre_update(&mut self) {
@@ -25,7 +25,7 @@ impl Olfactory {
 }
 
 fn update_olfactory(
-    mut olfactory: ResMut<Olfactory>,
+    mut olfactory: ResMut<OlfactoryCortex>,
     body: Res<Body>,
     world: Res<World>,
 ) {
@@ -35,19 +35,19 @@ fn update_olfactory(
     olfactory.is_food_zone.set(is_food);
 }
 
-pub struct OlfactoryPlugin {
+pub struct OlfactoryCortexPlugin {
 }
 
-impl OlfactoryPlugin {
+impl OlfactoryCortexPlugin {
     pub fn new() -> Self {
         Self {
         }
     }
 }
 
-impl Plugin for OlfactoryPlugin {
+impl Plugin for OlfactoryCortexPlugin {
     fn build(&self, app: &mut App) {
-        let olfactory = Olfactory::new();
+        let olfactory = OlfactoryCortex::new();
 
         app.insert_resource(olfactory);
 

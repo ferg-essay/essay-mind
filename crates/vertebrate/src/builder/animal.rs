@@ -9,7 +9,7 @@ use crate::{
     hippocampus::HippocampusPlugin, 
     mid_move::{MidMovePlugin, MidSeekPlugin}, 
     motive::{Dwell, Forage, Motive, MotiveAvoidPlugin, MotiveForagePlugin, MotiveSleepPlugin}, 
-    olfactory::olfactory_bulb::{OlfactoryBulb, OlfactoryPlugin}, 
+    olfactory::{olfactory_bulb::{OlfactoryBulb, OlfactoryBulbPlugin}, OlfactoryCortexPlugin}, 
     retina::RetinaPlugin, 
     taxis::{klinotaxis::KlinotaxisPlugin, TaxisAvoidPlugin}, 
     tectum::{TectumLoomingPlugin, TectumPlugin} 
@@ -22,7 +22,8 @@ pub struct AnimalBuilder {
     hind_move: HindMovePlugin,
     hind_eat: HindEatPlugin,
 
-    olfactory: OlfactoryPlugin,
+    olfactory_bulb: OlfactoryBulbPlugin,
+    olfactory_cortex: OlfactoryCortexPlugin,
     retina: RetinaPlugin,
 
     is_motive_eating: bool,
@@ -41,7 +42,8 @@ impl AnimalBuilder {
             hind_move: HindMovePlugin,
             hind_eat: HindEatPlugin,
 
-            olfactory: OlfactoryPlugin::new(),
+            olfactory_bulb: OlfactoryBulbPlugin::new(),
+            olfactory_cortex: OlfactoryCortexPlugin::new(),
             retina: RetinaPlugin::new(),
 
             is_motive_eating: true,
@@ -52,8 +54,8 @@ impl AnimalBuilder {
         }
     }
 
-    pub fn olfactory(&mut self) -> &mut OlfactoryPlugin {
-        &mut self.olfactory
+    pub fn olfactory(&mut self) -> &mut OlfactoryBulbPlugin {
+        &mut self.olfactory_bulb
     }
 
     pub fn retina(&mut self) -> &mut RetinaPlugin {
@@ -85,12 +87,14 @@ impl AnimalBuilder {
         app.plugin(self.hind_move);
         app.plugin(self.hind_eat);
 
-        app.plugin(self.olfactory);
+        app.plugin(self.olfactory_bulb);
         app.plugin(self.retina);
 
         app.plugin(TectumPlugin::new().striatum());
         app.plugin(TectumLoomingPlugin::new());
         // app.plugin(ChemotaxisPlugin);
+
+        app.plugin(self.olfactory_cortex);
 
         if self.is_motive_eating {
             app.plugin(MidMovePlugin);

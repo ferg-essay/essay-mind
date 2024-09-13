@@ -5,7 +5,7 @@ use essay_tensor::Tensor;
 use renderer::{Canvas, Drawable, Event, Renderer};
 use ui_graphics::{ui_layout::UiLayoutPlugin, UiCanvas, UiCanvasPlugin};
 
-use crate::world::{World, OdorType, WorldPlugin};
+use crate::world::{OdorType, Odors, World, WorldPlugin};
 
 use crate::world::WorldCell;
 
@@ -64,6 +64,7 @@ impl Coord for UiWorld {}
 
 pub fn draw_world(
     world: Res<World>, 
+    odors: Res<Odors>, 
     mut ui_world: ResMut<UiWorld>, 
     mut ui_canvas: ResMut<UiCanvas>
 ) {
@@ -89,7 +90,7 @@ pub fn draw_world(
         let mut sizes : Vec<[f32; 2]> = Vec::new();
         let mut colors : Vec<Color> = Vec::new();
 
-        for odor in world.odors() {
+        for odor in odors.odors() {
             xy.push([odor.x(), odor.y()]);
             sizes.push([odor.r(), odor.r()]);
 

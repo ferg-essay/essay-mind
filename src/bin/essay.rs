@@ -2,18 +2,12 @@ use std::time::Duration;
 
 use essay_plot::api::{Colors, Point};
 use vertebrate::{
-    body::Body, 
-    builder::AnimalBuilder, 
-    motive::{
-        Eat, Forage, Sated, 
-        Wake, Dwell, Motive, MotiveTrait, Roam, Sleep
-    }, 
-    taxis::{
+    body::Body, builder::AnimalBuilder, motive::{
+        Dwell, Eat, Forage, Motive, MotiveTrait, Roam, Sated, Sleep, Wake
+    }, olfactory::olfactory_bulb::OlfactoryBulb, taxis::{
         chemotaxis::{Avoid, Chemotaxis, Seek}, 
         phototaxis::Phototaxis
-    }, 
-    olfactory::olfactory_bulb::OlfactoryBulb, 
-    ui::{
+    }, ui::{
         ui_attention::UiAttentionPlugin, 
         ui_body::{UiBodyPlugin, UiBodyTrailPlugin}, 
         ui_emoji::Emoji, 
@@ -25,10 +19,8 @@ use vertebrate::{
         ui_retina::UiRetinaPlugin, 
         ui_table::UiTablePlugin, 
         ui_world_map::UiWorldPlugin
-    }, 
-    util::{self}, 
-    world::{
-        OdorType, World, WorldPlugin
+    }, util::{self}, world::{
+        OdorType, World, WorldPlugin,
     }
 };
 use essay_ecs::prelude::App;
@@ -41,10 +33,13 @@ pub fn main() {
     app.plugin(TickSchedulePlugin::new().ticks(2));
 
     app.plugin(world_roam(21, 15)
-        // .food_odor_r(5, 5, 4, OdorType::FoodA)
         .odor_r(5, 5, 4, OdorType::FoodA)
         .odor_r(15, 5, 4, OdorType::FoodA)
     );
+
+    //app.plugin(world_roam(21, 15)
+        // .food_odor_r(5, 5, 4, OdorType::FoodA)
+    //);
 
     let mut animal = AnimalBuilder::new();
 

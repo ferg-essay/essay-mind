@@ -221,7 +221,7 @@ impl HindMove {
         if turn_mrs.to_unit() != 0. {
             turn = turn_mrs;
         }
-
+        
         if self.action.allow_override(kind) {
             if let Some(action) = kind.action(turn) {
                 self.action = action;

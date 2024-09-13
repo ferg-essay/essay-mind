@@ -4,7 +4,7 @@ use essay_ecs::{
 };
 use mind_ecs::Tick;
 use crate::{
-    body::BodyEat, hind_eat::HindEat, mid_move::{MidMove, MidMovePlugin}, olfactory::Olfactory, util::{DecayValue, Seconds}
+    body::BodyEat, hind_eat::HindEat, mid_move::{MidMove, MidMovePlugin}, olfactory::{OlfactoryCortex, OlfactoryCortexPlugin}, util::{DecayValue, Seconds}
 };
 
 use super::{
@@ -37,7 +37,7 @@ impl Forage {
 
 fn update_forage(
     mut forage: ResMut<Forage>,
-    olfactory: Res<Olfactory>,
+    olfactory: Res<OlfactoryCortex>,
     body_eat: Res<BodyEat>,
     mid_move: Res<MidMove>,
     hind_eat: Res<HindEat>,
@@ -60,7 +60,7 @@ fn update_forage(
         mid_move.roam();
         return;
     }
-
+    
     // H.l food zone from olfactory
     if olfactory.is_food_zone() {
         foraging.clear();
@@ -100,6 +100,7 @@ pub struct MotiveForagePlugin;
 impl Plugin for MotiveForagePlugin {
     fn build(&self, app: &mut App) {
         assert!(app.contains_plugin::<MidMovePlugin>(), "MotiveForage requires MidMove");
+        assert!(app.contains_plugin::<OlfactoryCortexPlugin>(), "MotiveForage requires Olfactory");
 
         let feeding = Forage::new();
         app.insert_resource(feeding);
