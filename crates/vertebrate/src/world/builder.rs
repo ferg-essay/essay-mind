@@ -2,7 +2,7 @@ use essay_ecs::{app::{App, Plugin, Startup}, core::Commands};
 
 use crate::world::odor::Odor;
 
-use super::{FloorType, Food, OdorType, World, WorldCell};
+use super::{food::FoodKind, FloorType, Food, OdorType, World, WorldCell};
 
 
 pub struct WorldPlugin {
@@ -10,7 +10,7 @@ pub struct WorldPlugin {
     height: usize,
 
     walls: Vec<(usize, usize)>,
-    food: Vec<(usize, usize)>,
+    food: Vec<Food>,
     odors: Vec<OdorItem>,
     floor: Vec<FloorItem>,
 }
@@ -72,7 +72,16 @@ impl WorldPlugin {
         assert!(x < self.width);
         assert!(y < self.height);
 
-        self.food.push((x, y));
+        self.food.push(Food::new((x as f32 + 0.5, y as f32 + 0.5)));
+
+        self
+    }
+
+    pub fn food_kind(mut self, x: usize, y: usize, kind: impl Into<FoodKind>) -> Self {
+        assert!(x < self.width);
+        assert!(y < self.height);
+
+        self.food.push(Food::new((x as f32 + 0.5, y as f32 + 0.5)).set_kind(kind.into()));
 
         self
     }
@@ -81,8 +90,8 @@ impl WorldPlugin {
         self.food(x, y).odor(x, y, odor)
     }
 
-    pub fn food_odor_r(self, x: usize, y: usize, r: usize, odor: OdorType) -> Self {
-        self.food(x, y).odor_r(x, y, r, odor)
+    pub fn food_odor_r(self, x: usize, y: usize, food: FoodKind, r: usize, odor: OdorType) -> Self {
+        self.food_kind(x, y, food).odor_r(x, y, r, odor)
     }
 
     pub fn odor(mut self, x: usize, y: usize, odor: OdorType) -> Self {
@@ -135,9 +144,7 @@ impl WorldPlugin {
     }
 
     fn create_food(&self, app: &mut App) {
-        let mut foods : Vec<Food> = self.food.iter().map(|p| {
-            Food::new((p.0 as f32 + 0.5, p.1 as f32 + 0.5))
-        }).collect();
+        let mut foods : Vec<Food> = self.food.clone();
 
         app.system(Startup, move |mut cmd: Commands| {
             for food in foods.drain(..) {

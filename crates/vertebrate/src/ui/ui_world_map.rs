@@ -6,7 +6,7 @@ use essay_tensor::Tensor;
 use renderer::{Canvas, Drawable, Event, Renderer};
 use ui_graphics::{ui_layout::UiLayoutPlugin, UiCanvas, UiCanvasPlugin};
 
-use crate::world::{Food, Odor, OdorType, World, WorldPlugin};
+use crate::world::{Food, FoodKind, Odor, OdorType, World, WorldPlugin};
 
 use crate::world::WorldCell;
 
@@ -116,7 +116,13 @@ pub fn draw_world(
             xy.push([pos.x(), pos.y()]);
             sizes.push([0.8, 0.8]);
 
-            colors.push(Color::from("olive"))
+            let color = match food.kind() {
+                FoodKind::Plain => Color::from("pumpkin orange"),
+                FoodKind::Sweet => Color::from("cherry red"),
+                FoodKind::Bitter => Color::from("mustard yellow"),
+                FoodKind::Sick => Color::from("brownish green"),
+            };
+            colors.push(color);
         }
 
         let xy = ui_world.to_canvas().transform(&Tensor::from(xy));

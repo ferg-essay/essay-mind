@@ -2,7 +2,7 @@ use essay_ecs::{
     app::{App, Plugin}, 
     core::{Res, ResMut}
 };
-use log::{error, info};
+use log::error;
 use mind_ecs::Tick;
 
 use crate::{
@@ -17,7 +17,11 @@ use crate::{
 pub struct HindEat {
     is_eat_request: TimeoutValue<bool>,
     is_stop_request: TimeoutValue<bool>,
+
     is_eating: TimeoutValue<bool>,
+    is_gaping: TimeoutValue<bool>,
+    is_vomiting: TimeoutValue<bool>,
+
     allow_eat_while_move: bool,
 }
 
@@ -26,6 +30,14 @@ impl HindEat {
 
     pub fn is_eating(&self) -> bool {
         self.is_eating.value_or(false)
+    } 
+
+    pub fn is_gaping(&self) -> bool {
+        self.is_gaping.value_or(false)
+    } 
+
+    pub fn is_vomiting(&self) -> bool {
+        self.is_vomiting.value_or(false)
     } 
 
     #[inline]
@@ -62,6 +74,8 @@ impl Default for HindEat {
             is_eat_request: TimeoutValue::new(Ticks(3)),
             is_stop_request: TimeoutValue::new(Seconds(1.)),
             is_eating: TimeoutValue::new(Seconds(2.)),
+            is_gaping: TimeoutValue::new(Seconds(10.)),
+            is_vomiting: TimeoutValue::new(Seconds(60.)),
             allow_eat_while_move: true,
         }
     }
@@ -86,8 +100,13 @@ fn update_hind_eat(
         hind_eat.is_eating.set(false);
     }
 
-    if hind_eat.is_eating() {
-        info!("hind eat");
+    if body_eat.sickness() > 0. {
+        // rodent lack vomiting
+        hind_eat.is_vomiting.set(true);
+    } else if body_eat.bitter() > 0. {
+        // rodent gaping is in R.nts [cite]
+        hind_eat.is_gaping.set(true);
+    } else if hind_eat.is_eating() {
         body_eat.eat();
     }
 }
