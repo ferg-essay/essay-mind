@@ -8,7 +8,7 @@ use crate::{
     hind_move::HindMovePlugin, 
     hippocampus::HippocampusPlugin, 
     mid_move::{MidMovePlugin, MidSeekPlugin}, 
-    motive::{Dwell, Forage, Motive, MotiveAvoidPlugin, MotiveForagePlugin, MotiveSleepPlugin}, 
+    motive::{Dwell, Forage, Motive, MotiveAlarmPlugin, MotiveAvoidPlugin, MotiveEatPlugin, MotiveForagePlugin, MotiveSleepPlugin}, 
     olfactory::{olfactory_bulb::{OlfactoryBulb, OlfactoryBulbPlugin}, OlfactoryCortexPlugin}, 
     retina::RetinaPlugin, 
     taxis::{klinotaxis::KlinotaxisPlugin, TaxisAvoidPlugin}, 
@@ -82,8 +82,6 @@ impl AnimalBuilder {
         app.plugin(self.body);
         app.plugin(self.body_eat);
 
-        //app.plugin(HindLevyPlugin);
-        //app.plugin(_HindMovePlugin);
         app.plugin(self.hind_move);
         app.plugin(self.hind_eat);
 
@@ -92,12 +90,13 @@ impl AnimalBuilder {
 
         app.plugin(TectumPlugin::new().striatum());
         app.plugin(TectumLoomingPlugin::new());
-        // app.plugin(ChemotaxisPlugin);
 
         app.plugin(self.olfactory_cortex);
 
         if self.is_motive_eating {
             app.plugin(MidMovePlugin);
+            app.plugin(MotiveAlarmPlugin);
+            app.plugin(MotiveEatPlugin);
             app.plugin(MotiveForagePlugin);
         }
 

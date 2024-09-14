@@ -28,14 +28,17 @@ pub struct HindEat {
 impl HindEat {
     pub const HALF_LIFE : HalfLife = HalfLife(2.);
 
+    #[inline]
     pub fn is_eating(&self) -> bool {
         self.is_eating.value_or(false)
     } 
 
+    #[inline]
     pub fn is_gaping(&self) -> bool {
         self.is_gaping.value_or(false)
     } 
 
+    #[inline]
     pub fn is_vomiting(&self) -> bool {
         self.is_vomiting.value_or(false)
     } 
@@ -45,6 +48,7 @@ impl HindEat {
         self.is_eat_request.set(true);
     }
 
+    #[inline]
     fn is_eat_request(&self) -> bool {
         self.is_eat_request.value_or(false)
     } 
@@ -64,7 +68,11 @@ impl HindEat {
 
     fn pre_update(&mut self) {
         self.is_eating.update();
+        self.is_gaping.update();
+        self.is_vomiting.update();
+
         self.is_eat_request.update();
+        self.is_stop_request.update();
     }
 }
 

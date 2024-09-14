@@ -163,6 +163,6 @@ impl<V: Clone> TimeoutValue<V> {
 
 impl<V> Default for TimeoutValue<V> {
     fn default() -> Self {
-        Self::new(Ticks(2))
+        Self::new(Ticks(3))
     }
 }

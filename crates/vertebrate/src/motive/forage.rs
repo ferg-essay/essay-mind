@@ -4,11 +4,14 @@ use essay_ecs::{
 };
 use mind_ecs::Tick;
 use crate::{
-    body::BodyEat, hind_eat::HindEat, mid_move::{MidMove, MidMovePlugin}, olfactory::{OlfactoryCortex, OlfactoryCortexPlugin}, util::{DecayValue, Seconds}
+    mid_move::{MidMove, MidMovePlugin}, 
+    motive::eat::MotiveEatPlugin, 
+    olfactory::{OlfactoryCortex, OlfactoryCortexPlugin}, 
+    util::{DecayValue, Seconds}
 };
 
 use super::{
-    Motive, MotiveTrait, Motives, Wake
+    eat::MotiveEat, Motive, MotiveAlarm, MotiveTrait, Motives, Wake
 };
 
 //
@@ -35,17 +38,13 @@ impl Forage {
 fn update_forage(
     mut forage: ResMut<Forage>,
     olfactory: Res<OlfactoryCortex>,
-    body_eat: Res<BodyEat>,
     mid_move: Res<MidMove>,
-    mut hind_eat: ResMut<HindEat>,
+    mut eat: ResMut<MotiveEat>,
     mut foraging: ResMut<Motive<Forage>>,
-    mut sated: ResMut<Motive<Sated>>,
+    alarm: Res<MotiveAlarm>,
     wake: Res<Motive<Wake>>,
+    sated: Res<Motive<Sated>>,
 ) {
-    if body_eat.glucose() > 0.75 || body_eat.glucose() > 0.25 && sated.is_active() {
-        sated.set_max(1.);
-    }
-
     forage.pre_update();
 
     if ! wake.is_active() {
@@ -57,21 +56,13 @@ fn update_forage(
         return;
     }
     
-    // H.l food zone from olfactory
-    if olfactory.is_food_zone() {
+    if alarm.is_alarm() {
+        mid_move.avoid();
+    } else if olfactory.is_food_zone() {
+        // H.l food zone from olfactory
         foraging.clear();
 
-        // activate eating
-        // forage.add_eat();
-
-        hind_eat.eat();
-        /*
-        if ! forage.is_eat_timeout() {
-            motive_eat.set_max(1.);
-            // H disinhibits R.pb (cite)
-            hind_eat.eat();
-        }
-        */
+        eat.set_food_zone(true);
     } else {
         foraging.set_max(1.);
 
@@ -91,6 +82,9 @@ impl MotiveTrait for Forage {}
 pub struct Roam;
 impl MotiveTrait for Roam {}
 
+pub struct Alarm;
+impl MotiveTrait for Alarm {}
+
 pub struct Dwell;
 impl MotiveTrait for Dwell {}
 
@@ -99,6 +93,7 @@ pub struct MotiveForagePlugin;
 impl Plugin for MotiveForagePlugin {
     fn build(&self, app: &mut App) {
         assert!(app.contains_plugin::<MidMovePlugin>(), "MotiveForage requires MidMove");
+        assert!(app.contains_plugin::<MotiveEatPlugin>(), "MotiveForage requires MotiveEat");
         assert!(app.contains_plugin::<OlfactoryCortexPlugin>(), "MotiveForage requires Olfactory");
 
         let feeding = Forage::new();
@@ -110,6 +105,7 @@ impl Plugin for MotiveForagePlugin {
 
         Motives::insert::<Roam>(app, Seconds(1.));
         Motives::insert::<Dwell>(app, Seconds(4.));
+        Motives::insert::<Alarm>(app, Seconds(4.));
 
         app.system(Tick, update_forage);
     }
