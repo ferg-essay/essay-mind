@@ -3,7 +3,7 @@ use mind_ecs::Tick;
 
 use crate::{
     body::Body, 
-    hind_move::HindMove, 
+    hind_brain::HindMove, 
     tectum::TectumMap, 
     util::{EgoVector, Heading, Line, Point}, 
     world::World
@@ -184,7 +184,7 @@ impl Plugin for LateralLinePlugin {
 
 #[cfg(test)]
 mod test {
-    use crate::{hind_sense::lateral_line::SenseArc, util::EgoVector};
+    use crate::{hind_brain::lateral_line::SenseArc, util::EgoVector};
 
     #[test]
     fn test_square() {

@@ -1,10 +1,12 @@
 use super::Ticks;
 
 pub struct Timeout {
-    threshold: u32,
-
     timeout: u32,
     last_ticks: u64,
+
+    // config
+    threshold: u32,
+
 }
 
 impl Timeout {
@@ -71,11 +73,12 @@ impl Timeout {
 }
 
 pub struct TimeoutValue<V> {
-    threshold: u32,
-
     timeout: u32,
     value: Option<V>,
     last_ticks: u64,
+
+    // config
+    threshold: u32,
 }
 
 impl<V> TimeoutValue<V> {
@@ -163,6 +166,6 @@ impl<V: Clone> TimeoutValue<V> {
 
 impl<V> Default for TimeoutValue<V> {
     fn default() -> Self {
-        Self::new(Ticks(2))
+        Self::new(Ticks(3))
     }
 }

@@ -6,7 +6,9 @@ use essay_ecs::{
 use mind_ecs::Tick;
 
 use crate::{
-    hind_eat::HindEat, hind_move::{HindMove, HindMovePlugin}, motive::{Dwell, Motive, Wake}, util::Command
+    hind_brain::{HindEat, HindMove, HindMovePlugin}, 
+    motive::{Dwell, Motive, Wake}, 
+    util::Command
 };
 
 pub struct MidMove {
@@ -22,6 +24,11 @@ impl MidMove {
     #[inline]
     pub fn roam(&self) {
         self.commands.send(MidMoveEvent::Roam);
+    }
+
+    #[inline]
+    pub fn avoid(&self) {
+        self.commands.send(MidMoveEvent::Avoid);
     }
 
     #[inline]
@@ -57,6 +64,9 @@ impl MidMove {
                 MidMoveEvent::Roam => {
                     self.on_roam(hind_move, hind_eat);
                 }
+                MidMoveEvent::Avoid => {
+                    self.on_avoid(hind_move, hind_eat);
+                }
                 MidMoveEvent::Seek => {
                     self.on_seek(hind_move, hind_eat);
                 }
@@ -72,6 +82,17 @@ impl MidMove {
         // H.stn managed transition waits for eat to stop before roam
         if ! hind_eat.is_eating() {
             hind_move.roam();
+        }
+    }
+
+    fn on_avoid(
+        &mut self, 
+        hind_move: &mut HindMove,
+        hind_eat: &HindEat,
+    ) {
+        // H.stn managed transition waits for eat to stop before roam
+        if ! hind_eat.is_eating() {
+            hind_move.avoid();
         }
     }
 
@@ -112,6 +133,7 @@ impl Default for MidMove {
 enum MidMoveEvent {
     Eat,
     Roam,
+    Avoid,
     Seek,
 }
 

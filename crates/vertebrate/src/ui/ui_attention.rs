@@ -6,7 +6,7 @@ use essay_graphics::layout::{Layout, View};
 use essay_plot::{artist::{paths::{self, Unit}, ColorMap, ColorMaps, PathStyle}, chart::Data, prelude::*};
 use ui_graphics::{ui_layout::UiLayoutPlugin, UiCanvas, UiCanvasPlugin};
 
-use crate::pallidum::basal_forebrain::AttendValue;
+use crate::subpallium::AttendValue;
 
 #[derive(Component)]
 pub struct UiAttention {

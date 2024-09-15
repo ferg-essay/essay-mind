@@ -34,12 +34,12 @@ pub struct MotiveAvoidPlugin;
 
 fn update_avoid(
     mut avoid: ResMut<MotiveAvoid>,
-    mut ehb: ResMut<Hippocampus>,
+    mut hc: ResMut<Hippocampus>,
 ) {
     avoid.update();
 
     if avoid.is_avoid() {
-        ehb.avoid();
+        hc.avoid();
     }
 }
 

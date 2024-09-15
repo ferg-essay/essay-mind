@@ -7,7 +7,7 @@ use mind_ecs::Tick;
 
 use crate::{
     body::Body, 
-    hind_move::HindMove, 
+    hind_brain::HindMove, 
     util::{DecayValue, EgoVector, HalfLife, Heading, Seconds}, 
     world::World
 };

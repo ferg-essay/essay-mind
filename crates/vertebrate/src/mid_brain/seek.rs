@@ -4,9 +4,9 @@ use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}};
 use mind_ecs::{AppTick, Tick};
 
 use crate::{
-    hind_move::{HindMove, HindMovePlugin},
+    hind_brain::{HindMove, HindMovePlugin},
     motive::{Motive, MotiveAvoid, MotiveTrait, Motives}, 
-    striatum::{StriatumTimeout, StriatumValue}, 
+    subpallium::{StriatumTimeout, StriatumValue}, 
     taxis::chemotaxis::{Avoid, Seek}, 
     util::{EgoVector, Seconds}
 };
