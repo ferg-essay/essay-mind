@@ -4,7 +4,7 @@ use essay_ecs::{
 };
 use mind_ecs::Tick;
 use crate::{
-    mid_move::{MidMove, MidMovePlugin}, 
+    mid_brain::{MidMove, MidMovePlugin}, 
     motive::eat::MotiveEatPlugin, 
     olfactory::{OlfactoryCortex, OlfactoryCortexPlugin}, 
     util::{DecayValue, Seconds}

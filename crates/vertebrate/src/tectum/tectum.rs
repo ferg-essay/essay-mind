@@ -3,7 +3,7 @@ use essay_tensor::Tensor;
 use mind_ecs::PreTick;
 
 use crate::{
-    striatum::striatum::{Sense, StriatumId, StriatumSnr, StriatumStn}, util::{Angle, DecayValue, Heading}
+    subpallium::striatum::{Sense, StriatumId, StriatumSnr, StriatumStn}, util::{Angle, DecayValue, Heading}
 };
 
 use super::attention::TectumAttention;

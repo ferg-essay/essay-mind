@@ -6,7 +6,7 @@ use crate::{
     body::{BodyEatPlugin, BodyPlugin}, 
     hind_brain::{HindEat, HindEatPlugin, HindMovePlugin}, 
     hippocampus::HippocampusPlugin, 
-    mid_move::{MidMovePlugin, MidSeekPlugin}, 
+    mid_brain::{MidMovePlugin, MidSeekPlugin}, 
     motive::{Dwell, Forage, Motive, MotiveAlarmPlugin, MotiveAvoidPlugin, MotiveEatPlugin, MotiveForagePlugin, MotiveSleepPlugin}, 
     olfactory::{olfactory_bulb::{OlfactoryBulb, OlfactoryBulbPlugin}, OlfactoryCortexPlugin}, 
     retina::RetinaPlugin, 

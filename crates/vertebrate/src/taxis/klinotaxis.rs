@@ -10,9 +10,9 @@ use mind_ecs::{AppTick, Tick};
 use crate::{
     body::Body, 
     hind_brain::{HindMove, HindMovePlugin}, 
-    mid_move::SeekInput, 
+    mid_brain::SeekInput, 
     motive::{Motive, MotiveTrait, Motives}, 
-    striatum::{Gate, StriatumGate}, 
+    subpallium::{Gate, StriatumGate}, 
     taxis::chemotaxis::{Avoid, Seek}, 
     util::{DecayValue, Seconds, Turn}
 };

@@ -9,8 +9,8 @@ use mind_ecs::Tick;
 
 use crate::{
     body::Body, 
-    mid_move::SeekInput, 
-    pallidum::basal_forebrain::{AttendId, AttendValue, BasalForebrain}, 
+    mid_brain::SeekInput, 
+    subpallium::{AttendId, AttendValue, BasalForebrain}, 
     util::{Angle, EgoVector}, 
     world::{Odor, OdorType}
 };
