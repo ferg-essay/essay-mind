@@ -7,10 +7,11 @@ use mind_ecs::Tick;
 
 use crate::{
     body::{Body, BodyEat, BodyEatPlugin},
-    util::{HalfLife, Seconds, Ticks, TimeoutValue} 
+    util::{Seconds, Ticks, TimeoutValue} 
 };
 
 //
+// HindEat corresponds to Phox2b correlates of adult tunicate Ciona brain
 // HindEat includes R.nts and R.my but not R.pb
 //
 
@@ -19,15 +20,22 @@ pub struct HindEat {
     is_stop_request: TimeoutValue<bool>,
 
     is_eating: TimeoutValue<bool>,
+
+    // Mouse gaping is a reflexive orofacial expression to expel food in
+    // the mouth, functionally like spitting
     is_gaping: TimeoutValue<bool>,
+
+    // Some animals like mice can't vomit
     is_vomiting: TimeoutValue<bool>,
 
+    // Configuration
+
+    // animals that can eat while moving, such as worms or swimming
+    // filter feeders like manta rays
     allow_eat_while_move: bool,
 }
 
 impl HindEat {
-    pub const HALF_LIFE : HalfLife = HalfLife(2.);
-
     #[inline]
     pub fn is_eating(&self) -> bool {
         self.is_eating.value_or(false)
@@ -96,7 +104,9 @@ fn update_hind_eat(
 ) {
     hind_eat.pre_update();
 
-    if hind_eat.is_eat_request() {
+    if hind_eat.is_stop_request() {
+        hind_eat.is_eating.set(false);
+    } else if hind_eat.is_eat_request() {
         if hind_eat.is_eat_allowed(body.get()) {
             hind_eat.is_eating.set(true);
         } else {
@@ -104,9 +114,6 @@ fn update_hind_eat(
         }
     }
 
-    if hind_eat.is_stop_request() {
-        hind_eat.is_eating.set(false);
-    }
 
     if body_eat.sickness() > 0. {
         // rodent lack vomiting

@@ -4,8 +4,7 @@ use mind_ecs::Tick;
 
 use crate::{
     body::{BodyEatPlugin, BodyPlugin}, 
-    hind_eat::{HindEat, HindEatPlugin}, 
-    hind_move::HindMovePlugin, 
+    hind_brain::{HindEat, HindEatPlugin, HindMovePlugin}, 
     hippocampus::HippocampusPlugin, 
     mid_move::{MidMovePlugin, MidSeekPlugin}, 
     motive::{Dwell, Forage, Motive, MotiveAlarmPlugin, MotiveAvoidPlugin, MotiveEatPlugin, MotiveForagePlugin, MotiveSleepPlugin}, 

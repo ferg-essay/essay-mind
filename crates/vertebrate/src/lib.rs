@@ -1,8 +1,6 @@
 pub mod builder;
 pub mod body;
-pub mod hind_eat;
-pub mod hind_move;
-pub mod hind_sense;
+pub mod hind_brain;
 pub mod hippocampus;
 pub mod mid_move;
 pub mod motive;

@@ -3,7 +3,7 @@ use mind_ecs::Tick;
 
 use crate::{
     body::BodyEat, 
-    hind_eat::{HindEat, HindEatPlugin}, 
+    hind_brain::{HindEat, HindEatPlugin}, 
     motive::{Dwell, Eat, Motives, Sated}, 
     util::{Seconds, TimeoutValue}
 };

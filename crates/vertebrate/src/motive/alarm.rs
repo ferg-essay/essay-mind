@@ -1,7 +1,7 @@
 use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}};
 use mind_ecs::Tick;
 
-use crate::{body::BodyEat, hind_eat::HindEatPlugin, util::{Seconds, TimeoutValue}};
+use crate::{body::BodyEat, hind_brain::HindEatPlugin, util::{Seconds, TimeoutValue}};
 
 ///
 /// MotiveAlarm includes R.pb CGRP and its S.a/P.bst modulation

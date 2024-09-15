@@ -2,7 +2,7 @@ use essay_ecs::{app::{App, Plugin}, core::ResMut};
 use mind_ecs::Tick;
 
 use crate::{
-    hind_move::{HindMove, HindMovePlugin}, 
+    hind_brain::{HindMove, HindMovePlugin}, 
     motive::{Motive, Motives}, 
     taxis::chemotaxis::Avoid, 
     util::{Seconds, Timeout}

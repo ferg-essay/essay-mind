@@ -5,8 +5,7 @@ use log::LevelFilter;
 use vertebrate::{
     body::{Body, BodyEat}, 
     builder::AnimalBuilder, 
-    hind_eat::HindEat, 
-    hind_move::{HindMove, MoveKind}, 
+    hind_brain::{HindEat, HindMove, MoveKind}, 
     motive::{
         Dwell, Forage, Motive, MotiveAlarm, MotiveTrait, Sleep, Wake
     }, 
