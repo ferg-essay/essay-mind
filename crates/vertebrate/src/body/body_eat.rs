@@ -2,9 +2,32 @@ use essay_ecs::{app::{App, Plugin}, core::{Query, Res, ResMut}};
 use log::error;
 use mind_ecs::Tick;
 
-use crate::{body::BodyPlugin, util::{DecayValue, Point, Seconds, Ticks, TimeoutValue}, world::{Food, FoodKind}};
+use crate::{
+    body::BodyPlugin, 
+    util::{DecayValue, Point, Seconds, Ticks, TimeoutValue}, 
+    world::{Food, FoodKind}
+};
 
 use super::Body;
+
+// BodyEat is physical simulation of eating and sensors
+// It includes a gut delay for sickness, glucose and gut sensors
+//
+// TODO: note missing N5 including capiscin
+// TODO: missing salt
+
+// [Ahn et al 2020] Gut(fat) -> N10 -> R.nts -> R.pb -> Snc.da
+// [Essner et al 2017] Amylin (pancreas), CCK (small intestine), 
+//   LiCl (gastric discomfort), LPS (bacterial inflammation)
+// [Han W et al 2018] Gut -> N10 -> R.nts -> R.pb.dl -> Snc
+// [Kraus et al 2021] Ascidian filter feeders regularly exposed to microbes,
+//   neuroimmune interactions. TRP to CGRP immune avoidance.
+// [Li J et al 2019] R.pb.el converge bitter, capsaicin (N5 pain), heat
+// [Palmiter 2018] N10 for CCK, GLP-1, LPS / LiCl
+// [Rosen et al 2010] Specific water response in R.nts and R.pb
+// [Torruella-Suárez et al 2020] Sa.nts, R.pb activated by ethanol
+// [Weiss et al 2014] R.pb some taste long-latency 1.5s possibly N10 gut.
+//    water as independent taste
 
 pub struct BodyEat {
     is_sweet: DecayValue,
@@ -14,12 +37,13 @@ pub struct BodyEat {
     sated_cck: DecayValue,
 
     gut_sweet: DecayValue,
+    gut_fat: DecayValue,
     gut_glucose: DecayValue,
     gut_sickness: DecayValue,
 
     is_eating: TimeoutValue<bool>,
 
-    food_delay: DelayRing<FoodKind>,
+    gut_delay: DelayRing<FoodKind>,
 }
 
 impl BodyEat {
@@ -55,6 +79,12 @@ impl BodyEat {
         self.gut_sweet.active_value()
     }
 
+    /// fat as measured in the gut
+    #[inline]
+    pub fn gut_fat(&self) -> f32 {
+        self.gut_fat.active_value()
+    }
+
     #[inline]
     pub fn glucose(&self) -> f32 {
         self.gut_glucose.active_value()
@@ -85,6 +115,7 @@ impl BodyEat {
 
         self.sated_cck.update();
         self.gut_sweet.update();
+        self.gut_fat.update();
         self.gut_glucose.update();
         self.gut_sickness.update();
 
@@ -94,7 +125,8 @@ impl BodyEat {
     fn update(&mut self, head_pos: Point, food: Query<&Food>) {
         self.pre_update();
 
-        match self.food_delay.value() {
+        // update gut values
+        match self.gut_delay.value() {
             FoodKind::None => {},
             FoodKind::Plain => {
                 self.gut_glucose.add(1.);
@@ -111,7 +143,7 @@ impl BodyEat {
     
         if self.is_eating() {
             if let Some(food) = food.iter().find(|f| f.is_pos(head_pos)) {
-                self.food_delay.set(food.kind());
+                self.gut_delay.set(food.kind());
     
                 match food.kind() {
                     FoodKind::None => {
@@ -134,7 +166,7 @@ impl BodyEat {
             }
         }
     
-        self.food_delay.next();
+        self.gut_delay.next();
     }
 }
 
@@ -147,10 +179,11 @@ impl Default for BodyEat {
 
             sated_cck: DecayValue::new(Seconds(40.)).fill_time(Seconds(10.)),
 
-            food_delay: DelayRing::new(Seconds(30.)),
+            gut_delay: DelayRing::new(Seconds(30.)),
 
             gut_glucose: DecayValue::new(Seconds(40.)).fill_time(Seconds(10.)),
             gut_sweet: DecayValue::new(Seconds(1.)),
+            gut_fat: DecayValue::new(Seconds(1.)),
             gut_sickness: DecayValue::new(Seconds(60.)),
 
             is_eating: TimeoutValue::default(),
