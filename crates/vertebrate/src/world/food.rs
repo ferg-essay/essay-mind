@@ -40,9 +40,16 @@ impl Food {
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum FoodKind {
+    None,
     Plain,
     Sweet,
     Bitter,
     Sick,
+}
+
+impl Default for FoodKind {
+    fn default() -> Self {
+        FoodKind::None
+    }
 }
 

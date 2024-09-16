@@ -117,6 +117,7 @@ pub fn draw_world(
             sizes.push([0.8, 0.8]);
 
             let color = match food.kind() {
+                FoodKind::None => Color::from("black"),
                 FoodKind::Plain => Color::from("pumpkin orange"),
                 FoodKind::Sweet => Color::from("cherry red"),
                 FoodKind::Bitter => Color::from("mustard yellow"),

@@ -16,6 +16,11 @@ use super::{Motive, Wake};
 //
 // H.l and H.sum are in Forage, the food seeking module
 //
+// [Palmiter 2018] R.nts.cck -> R.pb.cgrp
+// [Roman et al 2016] R.nts.cck -> R.pb.cgrp ko rescue H.arc.agrp anorexia
+// [Roman et al 2017] R.nts.cck -> R.pb, H.pv stop eating. CTA, CPA
+// [Torruella-Suárez et al 2024] S.a -> R.pb tonic inhibition (GABA.b), 
+// suppressed by chronic pain
 
 #[derive(Default)]
 pub struct MotiveEat {
@@ -45,11 +50,12 @@ fn update_eat(
     mut sated: ResMut<Motive<Sated>>,
     wake: Res<Motive<Wake>>,
 ) {
+    eat.pre_update();
+    
     if body_eat.glucose() > 0.75 || body_eat.glucose() > 0.25 && sated.is_active() {
         sated.set_max(1.);
     }
 
-    eat.pre_update();
 
     if ! wake.is_active() {
         return;

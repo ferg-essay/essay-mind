@@ -14,7 +14,10 @@ use crate::{
 // HindEat corresponds to Phox2b correlates of adult tunicate Ciona brain
 // HindEat includes R.nts and R.my but not R.pb
 //
-
+// [Kinzeler and Travers 2008] Bitter stim R.nts.r produce gaping by N9.
+// [Travers et al 1997] Licking R.my.irt. Orosensory to R.my.irt.
+// [Weiss et al 2014] R.nts -> R.my orofacial reflexes.
+//
 pub struct HindEat {
     is_eat_request: TimeoutValue<bool>,
     is_stop_request: TimeoutValue<bool>,
