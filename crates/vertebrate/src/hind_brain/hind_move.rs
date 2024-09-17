@@ -316,7 +316,8 @@ impl HindMove {
     }
 
     #[inline]
-    pub fn stop(&self) {
+    pub fn halt(&mut self) {
+        self.forward_r5.halt();
     }
 
     #[inline]
@@ -473,15 +474,19 @@ impl ForwardMrs {
     }
 
     pub fn roam(&mut self) {
-        self.kind = MoveKind::Roam;
+        self.kind = self.kind.roam();
     }
 
     pub fn seek(&mut self) {
-        self.kind = MoveKind::Seek;
+        self.kind = self.kind.seek();
     }
 
     pub fn avoid(&mut self) {
-        self.kind = MoveKind::Avoid;
+        self.kind = self.kind.avoid();
+    }
+
+    pub fn halt(&mut self) {
+        self.kind = self.kind.halt();
     }
 
     fn take(&mut self) -> MoveKind {
@@ -580,14 +585,10 @@ impl Action {
             return true;
         } else {
             match self.kind {
-                MoveKind::None => true,
-                MoveKind::Halt => true,
-                MoveKind::Roam => true,
-                MoveKind::Seek => true,
-                MoveKind::Avoid => true,
                 MoveKind::UTurn(_) => false,
                 MoveKind::Escape(_) => false,
                 MoveKind::Startle => false,
+                _ => true,
             }
         }
     }
@@ -624,6 +625,39 @@ pub enum MoveKind {
 }
 
 impl MoveKind {
+    fn roam(&self) -> MoveKind {
+        match self {
+            MoveKind::None => MoveKind::Roam,
+            _ => *self
+        }
+    }
+
+    fn seek(&self) -> MoveKind {
+        match self {
+            MoveKind::None => MoveKind::Seek,
+            MoveKind::Roam => MoveKind::Seek,
+            _ => *self
+        }
+    }
+
+    fn avoid(&self) -> MoveKind {
+        match self {
+            MoveKind::None => MoveKind::Avoid,
+            MoveKind::Roam => MoveKind::Avoid,
+            MoveKind::Seek => MoveKind::Avoid,
+            _ => *self
+        }
+    }
+
+    fn halt(&self) -> MoveKind {
+        match self {
+            MoveKind::Startle => *self,
+            MoveKind::Escape(_) => *self,
+            _ => MoveKind::Halt
+        }
+    }
+
+
     fn is_stop(&self) -> bool {
         match self {
             MoveKind::None => true,

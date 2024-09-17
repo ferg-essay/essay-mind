@@ -11,7 +11,7 @@ use crate::{
 };
 
 use super::{
-    eat::MotiveEat, Motive, MotiveAlarm, MotiveTrait, Motives, Wake
+    eat::MotiveEat, Motive, MotiveAlarm, MotiveTrait, Motives, Sleep, Wake
 };
 
 //
@@ -42,14 +42,13 @@ fn update_forage(
     mut eat: ResMut<MotiveEat>,
     mut foraging: ResMut<Motive<Forage>>,
     alarm: Res<MotiveAlarm>,
-    wake: Res<Motive<Wake>>,
-    sated: Res<Motive<Sated>>,
+    sleep: Res<Sleep>,
 ) {
     forage.pre_update();
 
-    if ! wake.is_active() {
+    if ! sleep.is_wake() {
         return;
-    } else if sated.is_active() {
+    } else if ! eat.is_hungry_agrp() {
         // TODO: roam not strictly justified, but w/o this the animal remains 
         // paused at the food
         mid_move.roam();

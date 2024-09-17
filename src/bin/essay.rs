@@ -7,7 +7,8 @@ use vertebrate::{
     builder::AnimalBuilder, 
     hind_brain::{HindEat, HindMove, MoveKind}, 
     motive::{
-        Dwell, Forage, Motive, MotiveAlarm, MotiveTrait, Sleep, Wake
+        Dwell, 
+        Motive, MotiveAlarm, MotiveEat, MotiveTrait, Sleep, Wake
     }, 
     olfactory::olfactory_bulb::OlfactoryBulb, 
     taxis::{
@@ -48,7 +49,7 @@ pub fn main() {
     app.plugin(world_roam(21, 15)
         // .odor_r(5, 5, 4, OdorType::FoodA)
         // .odor_r(15, 5, 4, OdorType::FoodA)
-        .food_odor_r(5, 5, FoodKind::Sick, 3, OdorType::FoodA)
+        .food_odor_r(5, 5, FoodKind::Plain, 3, OdorType::FoodA)
         .food_odor_r(10, 10, FoodKind::Sick, 3, OdorType::FoodA)
         .food_odor_r(15, 5, FoodKind::Sick, 3, OdorType::FoodA)
     );
@@ -191,12 +192,12 @@ fn ui_motive(app: &mut App, xy: impl Into<Point>, wh: impl Into<Point>) {
         .item(Emoji::NoEntry, |m: &HindMove| if m.action_kind() == MoveKind::Avoid { 1. } else { 0. })
         .item(Emoji::FaceDisappointed, |m: &Motive<Dummy>| m.value())
         //.item(Emoji::FaceGrinning, |m: &Motive<Wake>| m.value())
-        .item(Emoji::Coffee, |m: &Motive<Wake>| m.value())
-        .item(Emoji::FaceSleeping, |m: &Motive<Sleep>| m.value())
+        .item(Emoji::Coffee, |m: &Sleep| if m.is_wake() { 1. } else { 0. })
+        .item(Emoji::FaceSleeping, |m: &Sleep| if m.is_wake() { 0. } else { 1. })
         .row()
-        .item(Emoji::FaceCowboy, |m: &Motive<Forage>| m.value())
+        .item(Emoji::FaceCowboy, |m: &MotiveEat| if m.is_hungry_agrp() { 1. } else { 0. })
         .item(Emoji::ForkAndKnife, |m: &HindEat| if m.is_eating() { 1. } else { 0. })
-        .item(Emoji::Pig, |m: &BodyEat| m.sated_cck())
+        .item(Emoji::Pig, |m: &MotiveEat| m.sated())
         .item(Emoji::FaceGrimacing, |m: &HindEat| if m.is_gaping() { 1. } else { 0. })
         .item(Emoji::FaceVomiting, |m: &HindEat| if m.is_vomiting() { 1. } else { 0. })
         .item(Emoji::Warning, |m: &MotiveAlarm| if m.is_alarm() { 1. } else { 0. })
