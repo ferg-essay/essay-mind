@@ -7,7 +7,7 @@ use crate::{
     hind_brain::{HindEat, HindEatPlugin, HindMovePlugin}, 
     hippocampus::HippocampusPlugin, 
     mid_brain::{MidMovePlugin, MidSeekPlugin}, 
-    motive::{Dwell, Forage, Motive, MotiveAlarmPlugin, MotiveAvoidPlugin, MotiveEatPlugin, MotiveForagePlugin, MotiveSleepPlugin}, 
+    motive::{Dwell, Forage, Motive, MotiveAvoidPlugin, MotiveEatPlugin, MotiveForagePlugin, MotiveSleepPlugin}, 
     olfactory::{olfactory_bulb::{OlfactoryBulb, OlfactoryBulbPlugin}, OlfactoryCortexPlugin}, 
     retina::RetinaPlugin, 
     taxis::{klinotaxis::KlinotaxisPlugin, TaxisAvoidPlugin}, 
@@ -94,7 +94,6 @@ impl AnimalBuilder {
 
         if self.is_motive_eating {
             app.plugin(MidMovePlugin);
-            app.plugin(MotiveAlarmPlugin);
             app.plugin(MotiveEatPlugin);
             app.plugin(MotiveForagePlugin);
         }

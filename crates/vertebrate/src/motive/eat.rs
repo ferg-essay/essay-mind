@@ -8,7 +8,7 @@ use crate::{
     util::{DecayValue, Seconds, TimeoutValue}
 };
 
-use super::{Motive, Sleep, Wake};
+use super::Sleep;
 
 ///
 /// MotiveEat includes R.pb, H.pstn, H.arc, H.pv, S.a, P.bst
@@ -296,13 +296,26 @@ impl MotiveEat {
         ! self.is_sated_gut() && ! self.is_sick()
     }
 
+    #[inline]
+    pub fn is_alarm(&self) -> bool {
+        self.is_sick() || self.cgrp_bitter.active_value() > 0.
+    }
+
     fn pre_update(&mut self) {
         self.is_food_zone.update();
+
+
+        self.is_cck_sated.update();
+        self.is_agrp_hungry.update();
+        self.is_pv_sated.update();
+        self.cgrp_bitter.update();
+        self.is_cgrp_sick.update();
     }
 
     fn update_hunger(
         &mut self,
         body_eat: &BodyEat,
+        hind_eat: &HindEat,
         sleep: &Sleep
     ) {
         // R.pb CCK sated signal extends body signal
@@ -358,7 +371,7 @@ impl MotiveEat {
 
         // LPS sickness
 
-        if body_eat.sickness() > 0. {
+        if body_eat.sickness() > 0. || hind_eat.is_vomiting() {
             self.is_cgrp_sick.set(true);
         }
     }
@@ -381,15 +394,6 @@ impl Default for MotiveEat {
     }
 }
 
-///
-/// Update eat threat
-/// 
-fn update_eat_threat(
-    mut eat: ResMut<MotiveEat>,
-    body_eat: Res<BodyEat>,
-) {
-}
-
 fn update_eat(
     mut eat: ResMut<MotiveEat>,
     body_eat: Res<BodyEat>,
@@ -398,7 +402,7 @@ fn update_eat(
 ) {
     eat.pre_update();
 
-    eat.update_hunger(body_eat.get(), sleep.get());
+    eat.update_hunger(body_eat.get(), hind_eat.get(), sleep.get());
 
     if ! sleep.is_wake() {
         return;
@@ -407,7 +411,7 @@ fn update_eat(
         return;
     }
 
-    if ! eat.is_sated_gut() {
+    if ! eat.is_sated_gut() && ! eat.is_sick() {
         hind_eat.eat();
     }
 

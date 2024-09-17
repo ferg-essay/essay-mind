@@ -11,7 +11,7 @@ use crate::{
 };
 
 use super::{
-    eat::MotiveEat, Motive, MotiveAlarm, MotiveTrait, Motives, Sleep, Wake
+    eat::MotiveEat, Motive,MotiveTrait, Motives, Sleep,
 };
 
 //
@@ -41,7 +41,6 @@ fn update_forage(
     mid_move: Res<MidMove>,
     mut eat: ResMut<MotiveEat>,
     mut foraging: ResMut<Motive<Forage>>,
-    alarm: Res<MotiveAlarm>,
     sleep: Res<Sleep>,
 ) {
     forage.pre_update();
@@ -55,7 +54,7 @@ fn update_forage(
         return;
     }
     
-    if alarm.is_alarm() {
+    if eat.is_alarm() {
         mid_move.avoid();
     } else if olfactory.is_food_zone() {
         // H.l food zone from olfactory

@@ -8,7 +8,7 @@ use vertebrate::{
     hind_brain::{HindEat, HindMove, MoveKind}, 
     motive::{
         Dwell, 
-        Motive, MotiveAlarm, MotiveEat, MotiveTrait, Sleep, Wake
+        Motive, MotiveEat, MotiveTrait, Sleep, Wake
     }, 
     olfactory::olfactory_bulb::OlfactoryBulb, 
     taxis::{
@@ -200,7 +200,7 @@ fn ui_motive(app: &mut App, xy: impl Into<Point>, wh: impl Into<Point>) {
         .item(Emoji::Pig, |m: &MotiveEat| m.sated())
         .item(Emoji::FaceGrimacing, |m: &HindEat| if m.is_gaping() { 1. } else { 0. })
         .item(Emoji::FaceVomiting, |m: &HindEat| if m.is_vomiting() { 1. } else { 0. })
-        .item(Emoji::Warning, |m: &MotiveAlarm| if m.is_alarm() { 1. } else { 0. })
+        .item(Emoji::Warning, |m: &MotiveEat| if m.is_alarm() { 1. } else { 0. })
         .row()
         .item(Emoji::Candy, |m: &BodyEat| m.sweet())
         .item(Emoji::Cheese, |m: &BodyEat| m.umami())
