@@ -604,16 +604,32 @@ impl HeadDir {
 
         for i in 0..n {
             // TODO: unit match degree
-            let a0 = Angle::Unit(0.25 - i as f32 * a_2); // - a_2 / 2.;
-            let a1 = Angle::Unit(0.25 - (i as f32 + 1.) * a_2);
+            let a0 = Heading::Unit(i as f32 * a_2); // - a_2 / 2.;
+            let a1 = Heading::Unit((i as f32 + 1.) * a_2);
+
+            let am = Heading::Unit((i as f32 + 0.5) * a_2);
 
             let (x0, y0) = a0.sin_cos();
             let (x1, y1) = a1.sin_cos();
 
+            let (xm, ym) = am.sin_cos();
+
+            let hm = radius * 0.04; // TODO: lookup value
+
+            // TODO: fix sign
+            let (x0, x1, xm) = (-x0, -x1, -xm);
+            /*
             let path = Path::<Unit>::move_to(x0 * h1, y0 * h1)
                 .line_to(x1 * h1, y1 * h1)
                 .line_to(x1 * h2, y1 * h2)
                 .close_poly(x0 * h2, y0 * h2)
+                .to_path();
+            */
+            let path = Path::<Unit>::move_to(x1 * h1, y1 * h1)
+                .bezier2_to((xm * (h1 + hm), ym * (h1 + hm)), (x0 * h1, y0 * h1))
+                .line_to(x0 * h2, y0 * h2)
+                .bezier2_to((xm * (h2 + hm), ym * (h2 + hm)), (x1 * h2, y1 * h2))
+                .close_poly(x1 * h1, y1 * h1)
                 .to_path();
 
             unit_paths.push(path);

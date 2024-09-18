@@ -109,14 +109,14 @@ impl MidMove {
 
     fn on_eat(
         &mut self, 
-        hind_move: &HindMove,
+        hind_move: &mut HindMove,
         hind_eat: &mut HindEat,
     ) {
         // H.stn managed transition waits for movement to stop before eat
         if hind_move.is_stop() {
             hind_eat.eat();
         } else {
-            hind_move.stop();
+            hind_move.halt();
         }
     }
 }

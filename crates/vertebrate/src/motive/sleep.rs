@@ -13,6 +13,9 @@ pub struct Sleep {
     state: CircadianState,
 
     active_wake: AtomicBool,
+
+    // morning forage activity
+    forage_time: f32,
 }
 
 impl Sleep {
@@ -21,6 +24,7 @@ impl Sleep {
             circadian,
             state: CircadianState::Wake,
             active_wake: AtomicBool::new(false),
+            forage_time: 0.25,
         }
     }
 
@@ -30,6 +34,24 @@ impl Sleep {
     /// 
     pub fn wake(&self) {
         self.active_wake.store(true, Ordering::Relaxed);
+    }
+
+    #[inline]
+    pub fn is_wake(&self) -> bool {
+        self.circadian.phase() < 0.5
+    }
+
+    #[inline]
+    pub fn is_sleep(&self) -> bool {
+        ! self.is_wake()
+    }
+
+    ///
+    /// Morning forage activity increated, generally using DA signaling
+    /// 
+    #[inline]
+    pub fn is_forage(&self) -> bool {
+        self.circadian.phase() < self.forage_time
     }
 
     fn get_state(&self) -> CircadianState {
@@ -50,6 +72,12 @@ impl Sleep {
         ) {
             self.state = CircadianState::Wake;
         }
+    }
+}
+
+impl Default for Sleep {
+    fn default() -> Self {
+        Self::new(Circadian::default())
     }
 }
 
@@ -94,6 +122,10 @@ impl Circadian {
         } else {
             CircadianState::Sleep
         }
+    }
+
+    fn phase(&self) -> f32 {
+        self.phase
     }
 
     fn update(&mut self) {

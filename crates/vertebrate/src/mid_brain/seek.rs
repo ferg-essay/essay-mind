@@ -84,7 +84,7 @@ fn update_seek<I: SeekInput, M: MotiveTrait>(
         
                 mid_move.seek();
 
-                hind_move.turn(dir.dir().to_turn());
+                hind_move.turn(dir.dir().to_turn().to_unit() * 0.5);
             }
             StriatumValue::Avoid => {
                 avoid.avoid();

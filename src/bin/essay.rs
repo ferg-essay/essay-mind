@@ -7,7 +7,7 @@ use vertebrate::{
     builder::AnimalBuilder, 
     hind_brain::{HindEat, HindMove, MoveKind}, 
     motive::{
-        Dwell, Forage, Motive, MotiveAlarm, MotiveTrait, Sleep, Wake
+        Dwell, Forage, Motive, MotiveEat, MotiveTrait, Sleep, Wake
     }, 
     olfactory::olfactory_bulb::OlfactoryBulb, 
     taxis::{
@@ -36,6 +36,8 @@ use essay_ecs::prelude::App;
 use mind_ecs::TickSchedulePlugin;
 use ui_graphics::UiCanvasPlugin;
 
+// 
+
 pub fn main() {
     env_logger::builder().filter_level(LevelFilter::Info).default_format().init();
 
@@ -46,8 +48,9 @@ pub fn main() {
     app.plugin(world_roam(21, 15)
         // .odor_r(5, 5, 4, OdorType::FoodA)
         // .odor_r(15, 5, 4, OdorType::FoodA)
-        .food_odor_r(5, 5, FoodKind::Bitter, 3, OdorType::FoodA)
-        .food_odor_r(15, 5, FoodKind::Sweet, 3, OdorType::FoodA)
+        .food_odor_r(5, 5, FoodKind::Plain, 3, OdorType::FoodA)
+        .food_odor_r(10, 10, FoodKind::Sweet, 3, OdorType::FoodA)
+        .food_odor_r(15, 5, FoodKind::Bitter, 3, OdorType::FoodA)
     );
 
     //app.plugin(world_roam(21, 15)
@@ -188,15 +191,23 @@ fn ui_motive(app: &mut App, xy: impl Into<Point>, wh: impl Into<Point>) {
         .item(Emoji::NoEntry, |m: &HindMove| if m.action_kind() == MoveKind::Avoid { 1. } else { 0. })
         .item(Emoji::FaceDisappointed, |m: &Motive<Dummy>| m.value())
         //.item(Emoji::FaceGrinning, |m: &Motive<Wake>| m.value())
-        .item(Emoji::Coffee, |m: &Motive<Wake>| m.value())
-        .item(Emoji::FaceSleeping, |m: &Motive<Sleep>| m.value())
+        .item(Emoji::Coffee, |m: &Sleep| {
+            if m.is_forage() { 
+                1. 
+            } else if m.is_wake() { 
+                0.5 
+            } else {
+                0.
+            }
+        })
+        .item(Emoji::FaceSleeping, |m: &Sleep| if m.is_wake() { 0. } else { 1. })
         .row()
         .item(Emoji::FaceCowboy, |m: &Motive<Forage>| m.value())
         .item(Emoji::ForkAndKnife, |m: &HindEat| if m.is_eating() { 1. } else { 0. })
-        .item(Emoji::Pig, |m: &BodyEat| m.sated_cck())
+        .item(Emoji::Pig, |m: &MotiveEat| m.sated())
         .item(Emoji::FaceGrimacing, |m: &HindEat| if m.is_gaping() { 1. } else { 0. })
         .item(Emoji::FaceVomiting, |m: &HindEat| if m.is_vomiting() { 1. } else { 0. })
-        .item(Emoji::Warning, |m: &MotiveAlarm| if m.is_alarm() { 1. } else { 0. })
+        .item(Emoji::Warning, |m: &MotiveEat| if m.is_alarm() { 1. } else { 0. })
         .row()
         .item(Emoji::Candy, |m: &BodyEat| m.sweet())
         .item(Emoji::Cheese, |m: &BodyEat| m.umami())
@@ -212,7 +223,7 @@ fn ui_homunculus(app: &mut App, xy: (f32, f32), wh: (f32, f32)) {
         .item(Emoji::FaceGrimacing, |m: &HindEat| m.is_gaping())
         .item(Emoji::ForkAndKnife, |m: &HindEat| m.is_eating())
         .item(Emoji::DirectHit, |m: &HindMove| m.action_kind() == MoveKind::Seek)
-        .item(Emoji::NoEntry, |m: &HindMove| m.action_kind() == MoveKind::Avoid)
+        .item(Emoji::Warning, |m: &HindMove| m.action_kind() == MoveKind::Avoid)
         .item(Emoji::MagnifyingGlassLeft, |m: &Motive<Dwell>| m.is_active())
         .item(Emoji::Footprints, |m: &HindMove| m.action_kind() == MoveKind::Roam)
         .item(Emoji::FaceSleeping, |m: &Motive<Wake>| ! m.is_active())

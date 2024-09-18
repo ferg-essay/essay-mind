@@ -114,6 +114,11 @@ impl DecayValue {
     }
 
     #[inline]
+    pub fn set_max_threshold(&mut self) {
+        self.value = self.value.max(self.threshold);
+    }
+
+    #[inline]
     pub fn update(&mut self) {
         self.value = (self.value - self.rest_value) * self.decay + self.rest_value;
         self.last_ticks += 1;
