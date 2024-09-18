@@ -91,6 +91,11 @@ impl BodyEat {
     }
 
     #[inline]
+    pub fn glucose_low(&self) -> bool {
+        self.gut_glucose.value() < 0.1
+    }
+
+    #[inline]
     pub fn is_eating(&self) -> bool {
         self.is_eating.value_or(false)
     }
@@ -149,9 +154,11 @@ impl BodyEat {
                     FoodKind::None => {
                     }
                     FoodKind::Plain => {
+                        self.sated_cck.set_max_threshold();
                         self.sated_cck.add(1.);
                     }
                     FoodKind::Sweet => {
+                        self.sated_cck.set_max_threshold();
                         self.sated_cck.add(1.);
                         self.is_sweet.set(1.);
                     }
@@ -177,11 +184,11 @@ impl Default for BodyEat {
             is_umami: DecayValue::new(Seconds(1.)),
             is_bitter: DecayValue::new(Seconds(1.)),
 
-            sated_cck: DecayValue::new(Seconds(40.)).fill_time(Seconds(10.)),
+            sated_cck: DecayValue::new(Seconds(40.)).fill_time(Seconds(20.)),
 
             gut_delay: DelayRing::new(Seconds(30.)),
 
-            gut_glucose: DecayValue::new(Seconds(40.)).fill_time(Seconds(10.)),
+            gut_glucose: DecayValue::new(Seconds(40.)).fill_time(Seconds(20.)),
             gut_sweet: DecayValue::new(Seconds(1.)),
             gut_fat: DecayValue::new(Seconds(1.)),
             gut_sickness: DecayValue::new(Seconds(60.)),

@@ -5,7 +5,7 @@ use crate::{
     body::BodyEat, 
     hind_brain::{HindEat, HindEatPlugin}, 
     motive::{Dwell, Eat, Motives, Sated}, 
-    util::{DecayValue, Seconds, TimeoutValue}
+    util::{Seconds, TimeoutValue}
 };
 
 use super::Sleep;
@@ -246,7 +246,10 @@ pub struct MotiveEat {
     sated: f32,
 
     // R.pb CGRP bitter
-    cgrp_bitter: DecayValue,
+    is_cgrp_bitter: TimeoutValue<bool>,
+
+    // R.pb CGRP sated
+    is_cgrp_sated: TimeoutValue<bool>,
 
     // R.pb CGRP LPS
     is_cgrp_sick: TimeoutValue<bool>,
@@ -271,6 +274,16 @@ impl MotiveEat {
     #[inline]
     pub fn is_sated_gut(&self) -> bool {
         self.is_cck_sated.value_or(false)
+    }
+
+    #[inline]
+    pub fn is_cgrp_bitter(&self) -> bool {
+        self.is_cgrp_bitter.value_or(false)
+    }
+
+    #[inline]
+    pub fn is_cgrp_sated(&self) -> bool {
+        self.is_cgrp_sated.value_or(false)
     }
 
     /// AgRP hunger - seek hunger
@@ -298,7 +311,9 @@ impl MotiveEat {
 
     #[inline]
     pub fn is_alarm(&self) -> bool {
-        self.is_sick() || self.cgrp_bitter.active_value() > 0.
+        self.is_sick() 
+        || self.is_cgrp_bitter.value_or(false)
+        || self.is_cgrp_sated.value_or(false)
     }
 
     fn pre_update(&mut self) {
@@ -308,7 +323,8 @@ impl MotiveEat {
         self.is_cck_sated.update();
         self.is_agrp_hungry.update();
         self.is_pv_sated.update();
-        self.cgrp_bitter.update();
+        self.is_cgrp_bitter.update();
+        self.is_cgrp_sated.update();
         self.is_cgrp_sick.update();
     }
 
@@ -324,15 +340,19 @@ impl MotiveEat {
         }
 
         // H.arc AgRP hunger
-        if self.is_food_zone() {
+        if sleep.is_sleep() {
+            self.is_agrp_hungry.set(false);
+        } else if self.is_food_zone() {
             // H.l food zone immediately suppresses AgRP
             self.is_agrp_hungry.set(false);
-        } else if body_eat.glucose() > 0.75 {
+        } else if body_eat.glucose() > 0.5 {
             self.is_agrp_hungry.set(false);
-        } else if body_eat.glucose() < 0.1 {
-            self.is_agrp_hungry.set(true);
+        //} else if body_eat.glucose_low() {
+        //    self.is_agrp_hungry.set(true);
         } else if sleep.is_forage() {
             // Circadian forage time in morning activates AgRP
+            self.is_agrp_hungry.set(true);
+        } else if body_eat.glucose() <= 0. {
             self.is_agrp_hungry.set(true);
         }
 
@@ -350,24 +370,28 @@ impl MotiveEat {
         }
 
         // R.pb CGRP for bitter/CCK
-        let mut cgrp_bitter: f32 = 0.;
-        if self.is_sated_gut() {
-            cgrp_bitter = 1.;
-        }
+        let mut cgrp_sated: f32 = body_eat.sated_cck();
 
-        cgrp_bitter = cgrp_bitter.max(body_eat.bitter());
+        // S.am suppression of cgrp_bitter
+        if body_eat.sweet() > 0. {
+            cgrp_sated -= 0.75;
+        }
 
         // TODO: capsaicin and pain s/b treated like bitter
 
         // AgRP suppresses CCK and bitter
         // TODO: But H.arc.AgRP not directly to R.pb CGRP?
         if self.is_hungry_agrp() {
-            cgrp_bitter = 0.;
+            cgrp_sated = 0.;
         }
 
-        // S.am suppression of cgrp_bitter
+        if cgrp_sated > 0. {
+            self.is_cgrp_sated.set(true);
+        }
 
-        self.cgrp_bitter.set_max(cgrp_bitter);
+        if body_eat.bitter() > 0. || hind_eat.is_gaping() {
+            self.is_cgrp_bitter.set(true);
+        }
 
         // LPS sickness
 
@@ -388,7 +412,8 @@ impl Default for MotiveEat {
             is_pv_sated: TimeoutValue::new(Seconds(30.)),
             sated: 0.,
 
-            cgrp_bitter: DecayValue::new(Seconds(30.)),
+            is_cgrp_bitter: TimeoutValue::new(Seconds(30.)),
+            is_cgrp_sated: TimeoutValue::new(Seconds(30.)),
             is_cgrp_sick: TimeoutValue::new(Seconds(30.)),
         }
     }
@@ -404,14 +429,13 @@ fn update_eat(
 
     eat.update_hunger(body_eat.get(), hind_eat.get(), sleep.get());
 
-    if ! sleep.is_wake() {
-        return;
-    } else if ! eat.is_food_zone() {
-        // is_food_zone is from Forage (H.l) 
+    if sleep.is_sleep()
+    || ! eat.is_food_zone()
+    || eat.is_alarm() {
         return;
     }
 
-    if ! eat.is_sated_gut() && ! eat.is_sick() {
+    if ! eat.is_sated_gut() && ! eat.is_cgrp_bitter() {
         hind_eat.eat();
     }
 

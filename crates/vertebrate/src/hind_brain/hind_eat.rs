@@ -128,8 +128,8 @@ impl Default for HindEat {
             is_eat_request: TimeoutValue::new(Ticks(3)),
             is_stop_request: TimeoutValue::new(Seconds(1.)),
             is_eating: TimeoutValue::new(Seconds(2.)),
-            is_gaping: TimeoutValue::new(Seconds(10.)),
-            is_vomiting: TimeoutValue::new(Seconds(30.)),
+            is_gaping: TimeoutValue::new(Seconds(5.)),
+            is_vomiting: TimeoutValue::new(Seconds(15.)),
             allow_eat_while_move: true,
         }
     }

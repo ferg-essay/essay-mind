@@ -45,18 +45,19 @@ fn update_forage(
 ) {
     forage.pre_update();
 
-    if ! sleep.is_wake() {
+    if sleep.is_sleep() {
         return;
-    } else if ! eat.is_hungry_agrp() {
+    } else if eat.is_alarm() {
+        mid_move.avoid();
+        return;
+    } else if eat.sated() > 0. {
         // TODO: roam not strictly justified, but w/o this the animal remains 
         // paused at the food
         mid_move.roam();
         return;
     }
     
-    if eat.is_alarm() {
-        mid_move.avoid();
-    } else if olfactory.is_food_zone() {
+    if olfactory.is_food_zone() {
         // H.l food zone from olfactory
         foraging.clear();
 

@@ -41,6 +41,11 @@ impl Sleep {
         self.circadian.phase() < 0.5
     }
 
+    #[inline]
+    pub fn is_sleep(&self) -> bool {
+        ! self.is_wake()
+    }
+
     ///
     /// Morning forage activity increated, generally using DA signaling
     /// 
