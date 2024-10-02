@@ -107,8 +107,16 @@ pub fn draw_world(
     // TODO: cache texture when unmodified
     if let Some(mut ui) = ui_canvas.renderer() {
         let to_canvas = ui_world.to_canvas();
+
+        if let Some(image) = &ui_world.image {
+            ui.draw_image(&ui_world.pos(), image.clone());
+            ui.flush();
+        }
+
+        //ui.flush();
         ui_world.update(world.get(), ui.renderer());
         ui_world.draw(ui.renderer(), &to_canvas).unwrap();
+        ui.flush();
 
         let circle: Path<Canvas> = paths::circle().transform(&ui_world.to_canvas_scale());
         let mut xy : Vec<[f32; 2]> = Vec::new();
@@ -156,10 +164,6 @@ pub fn draw_world(
             let star: Path<Canvas> = paths::unit_star(5, 0.3)
                 .transform(&ui_world.to_canvas_scale());
             ui.draw_markers(&star, xy, sizes, &colors);
-        }
-
-        if let Some(image) = &ui_world.image {
-            ui.draw_image(&ui_world.pos(), image.clone());
         }
     }
 }

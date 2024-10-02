@@ -2,7 +2,6 @@ use essay_plot::wgpu::WgpuMainLoop;
 use essay_graphics::api::form::{Shape, ShapeId};
 use renderer::{Canvas, Drawable, Renderer};
 use essay_graphics::{layout::Layout, prelude::*};
-use essay_tensor::Tensor;
 use ui_graphics::{HexSliceGenerator, TexId, TextureBuilder, TextureGenerator};
 
 fn main() { 
@@ -41,7 +40,7 @@ fn main() {
 
     let mut form = Shape::new();
 
-    let gen = HexSliceGenerator::new(0.1);
+    let gen = HexSliceGenerator::new(0.1, 0.1);
 
     gen.hex(&mut form, (0.251, 0.25), tex.tile(TexId(0)));
     gen.hex(&mut form, (0.40, 0.25 + 0.0866), tex.tile(TexId(1)));

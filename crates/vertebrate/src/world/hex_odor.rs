@@ -1,4 +1,4 @@
-use std::f32::consts::PI;
+use std::{f32::consts::PI, ops::{Index, IndexMut}};
 
 pub struct HexOdorWorld {
     vec: Vec<HexOdor>,
@@ -48,6 +48,26 @@ impl HexOdorWorld {
 
     pub fn update_count(&self) -> usize {
         self.update_count
+    }
+}
+
+impl Index<(usize, usize)> for HexOdorWorld {
+    type Output = OdorKind;
+
+    fn index(&self, index: (usize, usize)) -> &Self::Output {
+        assert!(index.0 < self.width);
+        assert!(index.1 < self.height);
+
+        &self.vec[index.1 * self.width + index.0].kind
+    }
+}
+
+impl IndexMut<(usize, usize)> for HexOdorWorld {
+    fn index_mut(&mut self, index: (usize, usize)) -> &mut Self::Output {
+        assert!(index.0 < self.width);
+        assert!(index.1 < self.height);
+
+        &mut self.vec[index.1 * self.width + index.0].kind
     }
 }
 

@@ -11,18 +11,18 @@ pub struct HexSliceGenerator {
 }
 
 impl HexSliceGenerator {
-    pub fn new(r: f32) -> Self {
+    pub fn new(r_x: f32, r_y: f32) -> Self {
         let r_u = 0.5;
         let r_v = 0.5 / (TAU / 6.).sin();
 
         Self {
             vertices: [
-                hex_vertex(r, r, 0. * TAU / 6.),
-                hex_vertex(r, r, 1. * TAU / 6.),
-                hex_vertex(r, r, 2. * TAU / 6.),
-                hex_vertex(r, r, 3. * TAU / 6.),
-                hex_vertex(r, r, 4. * TAU / 6.),
-                hex_vertex(r, r, 5. * TAU / 6.),
+                hex_vertex(r_x, r_y, 0. * TAU / 6.),
+                hex_vertex(r_x, r_y, 1. * TAU / 6.),
+                hex_vertex(r_x, r_y, 2. * TAU / 6.),
+                hex_vertex(r_x, r_y, 3. * TAU / 6.),
+                hex_vertex(r_x, r_y, 4. * TAU / 6.),
+                hex_vertex(r_x, r_y, 5. * TAU / 6.),
             ],
             uv: [
                 hex_vertex(r_u, r_v, 0. * TAU / 6.),

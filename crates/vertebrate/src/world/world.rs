@@ -4,7 +4,7 @@ use essay_ecs::prelude::*;
 
 use crate::util::Point;
 
-use super::HexOdorWorld;
+use super::{hex_odor::OdorKind, HexOdorWorld};
 
 #[derive(Component)]
 pub struct World {
@@ -20,7 +20,11 @@ impl World {
 
         values.resize_with(width * height, || WorldCell::Empty);
 
-        let hex = HexOdorWorld::new(width, height, 0.866);
+        let mut hex = HexOdorWorld::new(width, height, 0.866);
+        hex[(3, 5)] = OdorKind::A;
+        hex[(3, 6)] = OdorKind::C;
+        hex[(4, 5)] = OdorKind::B;
+        hex[(5, 5)] = OdorKind::A;
 
         Self {
             width,

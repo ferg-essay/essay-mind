@@ -8,7 +8,7 @@ pub use builder::WorldPlugin;
 
 pub use food::{Food, FoodKind};
 
-pub use hex_odor::{HexOdor, HexOdorWorld};
+pub use hex_odor::{HexOdor, HexOdorWorld, OdorKind};
 
 pub use odor::{Odor, OdorType};
 
