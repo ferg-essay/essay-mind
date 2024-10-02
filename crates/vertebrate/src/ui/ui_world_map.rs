@@ -32,8 +32,6 @@ impl UiWorld {
 
         values.resize_with(width * height, || WorldCell::Empty);
 
-
-
         Self {
             view,
             // pos: Bounds::zero(),

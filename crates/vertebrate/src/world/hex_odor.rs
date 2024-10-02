@@ -83,6 +83,7 @@ impl Default for HexOdor {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum OdorKind {
     None,
     A,

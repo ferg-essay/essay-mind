@@ -1,35 +1,136 @@
-use std::f32::consts::PI;
+use std::{collections::HashMap, f32::consts::PI};
+use core::hash::Hash;
 
-use essay_plot::api::{form::{Shape, ShapeId}, renderer::{self, Renderer}, Affine2d};
-use ui_graphics::{HexSliceGenerator, TexId, TextureBuilder, TextureGenerator};
+use essay_plot::api::{form::{Shape, ShapeId}, renderer::{self, Renderer}, Affine2d, Color, TextureId};
+use ui_graphics::{HexSliceGenerator, TexId, TextureBuilder, TextureGenerator, Tile};
 
 use crate::world::{HexOdorWorld, OdorKind};
+
+pub struct HexBuilder<K: Eq + Hash> {
+    tex: TextureBuilder,
+    tex_map: HashMap<K, TexId>,
+}
+
+impl<K: Eq + Hash> HexBuilder<K> {
+    pub fn new(width: usize, height: usize) -> Self {
+        let mut tex = TextureBuilder::new(width, height);
+
+        let _tex_0 = tex.create_tile();
+
+        Self {
+            tex,
+            tex_map: HashMap::default(),
+        }
+    }
+
+    pub fn tile<'a>(&'a mut self, key: K) -> TileBuilder<'a> {
+        let id = self.tex.create_tile();
+        self.tex_map.insert(key, id);
+
+        TileBuilder {
+            builder: &mut self.tex,
+            id,
+        }
+    }
+
+    fn gen(self, renderer: &mut dyn Renderer) -> HexGenerator<K> {
+        let mut gen = self.tex.gen();
+        gen.bind(renderer);
+
+        HexGenerator {
+            gen,
+            tex_map: self.tex_map,
+        }
+    }
+}
+
+pub struct TileBuilder<'a> {
+    builder: &'a mut TextureBuilder,
+    id: TexId,
+}
+
+impl<'a> TileBuilder<'a> {
+    pub fn fill(self, color: impl Into<Color>) -> Self {
+        self.builder.fill(self.id, color.into());
+        
+        self
+    }
+
+    pub fn tri(
+        self, 
+        color: impl Into<Color>, 
+        a: [f32; 2], 
+        b: [f32; 2], 
+        c: [f32; 2]
+    ) -> Self {
+        self.builder.tri(self.id, color, a, b, c);
+
+        self
+    }
+
+    pub fn quad(
+        self, 
+        color: impl Into<Color>, 
+        a: [f32; 2], 
+        b: [f32; 2], 
+        c: [f32; 2],
+        d: [f32; 2]
+    ) -> Self {
+        self.builder.quad(self.id, color, a, b, c, d);
+
+        self
+    }
+
+    pub fn tri_p(
+        self, 
+        color: impl Into<Color>, 
+        fun: impl Fn(f32, f32)->bool
+    ) -> Self {
+        self.builder.tri_p(self.id, color, fun);
+
+        self
+    }
+}
+
+pub struct HexGenerator<K: Eq + Hash> {
+    gen: TextureGenerator,
+    tex_map: HashMap<K, TexId>,
+}
+
+impl<K: Eq + Hash> HexGenerator<K> {
+    fn texture_id(&self) -> TextureId {
+        self.gen.texture_id()
+    }
+
+    fn tile(&self, key: &K) -> Option<&Tile> {
+        if let Some(id) = self.tex_map.get(key) {
+            Some(self.gen.tile(*id))
+        } else {
+            None
+        }
+    }
+}
 
 pub(super) struct UiWorldHex {
     shape: Shape,
 
     shape_id: Option<ShapeId>,
 
-    tex: Option<TextureBuilder>,
-    tex_gen: Option<TextureGenerator>,
+    tex: Option<HexBuilder<OdorKind>>,
+    tex_gen: Option<HexGenerator<OdorKind>>,
 
     update_count: usize,
 }
 
 impl UiWorldHex {
     pub fn new() -> Self {
-        let mut tex = TextureBuilder::new(64, 64);
+        let mut tex = HexBuilder::<OdorKind>::new(64, 64);
 
-        let _tex_0 = tex.create_tile();
+        tex.tile(OdorKind::A).fill("teal");
 
-        let tex_1 = tex.create_tile();
-        tex.fill(tex_1, "teal".into());
+        tex.tile(OdorKind::B).fill("orange");
 
-        let tex_2 = tex.create_tile();
-        tex.fill(tex_2, "orange".into());
-
-        let tex_3 = tex.create_tile();
-        tex.fill(tex_3, "red".into());
+        tex.tile(OdorKind::C).fill("red");
 
         Self {
             shape: Shape::new(),
@@ -43,24 +144,30 @@ impl UiWorldHex {
 
     pub fn update_render(&mut self, renderer: &mut dyn Renderer, world: &HexOdorWorld) {
         if let Some(tex) = self.tex.take() {
-            let mut gen = tex.gen();
-            gen.bind(renderer);
-            self.tex_gen = Some(gen);
+            self.tex_gen = Some(tex.gen(renderer));
         }
 
         if self.shape_id.is_none() || self.update_count < world.update_count() {
             self.update_count = world.update_count();
-            
+
             if let Some(tex_gen) = &self.tex_gen {
                 let mut shape = Shape::new();
                 shape.texture(tex_gen.texture_id());
-                let hex_gen = HexSliceGenerator::new(2. / 3., (PI / 6.).cos() * 2. / 3.);
+                let epsilon = 0.01;
+                let hex_gen = HexSliceGenerator::new(
+                    2. / 3. - epsilon,
+                    (PI / 6.).cos() * 2. / 3. - 2. * epsilon
+                );
 
                 for j in 0..world.height() {
                     for i in 0..world.width() {
                         let x = i as f32 + 0.5;
                         let y = j as f32 + if i % 2 == 0 { 0.5 } else { 0.0 };
 
+                        if let Some(tile) = tex_gen.tile(&world[(i, j)]) {
+                            hex_gen.hex(&mut shape, (x, y), tile);
+                        }
+                        /*
                         let tex = match world[(i, j)] {
                             OdorKind::A => Some(TexId(1)),
                             OdorKind::B => Some(TexId(2)),
@@ -71,40 +178,13 @@ impl UiWorldHex {
                         if let Some(id) = tex {
                             hex_gen.hex(&mut shape, (x, y), tex_gen.tile(id));
                         }
+                        */
                     }
                 }
 
                 self.shape_id = Some(renderer.create_shape(&shape));
             }
         }
-    }
-
-    pub fn _update(&mut self, world: &HexOdorWorld, tiles: TextureGenerator) {
-        if world.update_count() <= self.update_count {
-            return;
-        }
-        self.update_count = world.update_count();
-
-        let scale = world.scale();
-        let y_scale = scale * (PI / 0.6).cos();
-        let x_scale = scale * 1.5;
-
-        let mut shape = Shape::new();
-        let gen = HexSliceGenerator::new(scale, scale);
-
-        for j in 0..world.height() {
-            for i in 0..world.width() {
-                let y = (j as f32 + 0.5 * (i % 2) as f32) * y_scale;
-                let x = i as f32 * x_scale;
-
-                let tile = tiles.tile(TexId(1));
-
-                gen.hex(&mut shape, (x, y), tile);
-            }
-        }
-
-        self.shape = shape;
-        self.shape_id = None;
     }
 
     pub fn draw(&mut self, renderer: &mut dyn Renderer, camera: &Affine2d) -> renderer::Result<()> {

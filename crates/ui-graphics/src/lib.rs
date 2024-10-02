@@ -9,5 +9,5 @@ pub use ui_canvas::{
 };
 
 pub use hex_tile::{
-    HexSliceGenerator, TexId, TextureBuilder, TextureGenerator,
+    HexSliceGenerator, TexId, TextureBuilder, TextureGenerator, Tile,
 };
