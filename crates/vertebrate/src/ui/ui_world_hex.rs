@@ -101,6 +101,34 @@ impl<'a> TileBuilder<'a> {
 
         self
     }
+
+    pub fn pattern(
+        self,
+        pattern: Pattern,
+        color: impl Into<Color>
+    ) -> Self {
+        pattern.draw(self, color.into())
+    }
+}
+
+pub enum Pattern {
+    SOLID,
+    CHECKERBOARD,
+}
+
+impl Pattern {
+    fn draw<'a>(&self, tile: TileBuilder<'a>, color: Color) -> TileBuilder<'a> {
+        match self {
+            Pattern::SOLID => { 
+                tile.fill(color)
+            }
+            Pattern::CHECKERBOARD => { 
+                tile.tri_p(color, |u, v| {
+                    (8. * u) as usize % 2 == (8. * v) as usize % 2
+                })
+            }
+        }
+    }
 }
 
 pub struct HexGenerator<K: Eq + Hash> {
@@ -147,7 +175,7 @@ impl UiWorldHex {
 
         tex.tile(OdorKind::B).fill("orange");
 
-        tex.tile(OdorKind::C).fill("red");
+        tex.tile(OdorKind::C).pattern(Pattern::CHECKERBOARD, "red");
 
         Self {
             shape: Shape::new(),
