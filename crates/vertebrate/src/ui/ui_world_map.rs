@@ -10,19 +10,29 @@ use crate::world::{Food, FoodKind, Odor, OdorType, World, WorldPlugin};
 
 use crate::world::WorldCell;
 
+use super::ui_world_hex::UiWorldHex;
+
 #[derive(Component)]
 pub struct UiWorld {
     view: View<UiWorldView>,
     width: usize,
     height: usize,
     image: Option<ImageId>,
+    hex: UiWorldHex,
 }
 
 impl UiWorld {
-    fn new(view: View<UiWorldView>, width: usize, height: usize) -> Self {
+    fn new(
+        view: View<UiWorldView>, 
+        width: usize, 
+        height: usize,
+        hex: UiWorldHex,
+    ) -> Self {
         let mut values = Vec::new();
 
         values.resize_with(width * height, || WorldCell::Empty);
+
+
 
         Self {
             view,
@@ -30,6 +40,7 @@ impl UiWorld {
             width,
             height,
             image: None,
+            hex,
         }
     }
 
@@ -59,6 +70,14 @@ impl UiWorld {
         // &self.clip
         &Clip::None
     }
+
+    pub fn update(&mut self, world: &World, renderer: &mut dyn Renderer) {
+        self.hex.update_render(renderer, world.hex());
+    }
+
+    pub fn draw(&mut self, renderer: &mut dyn Renderer, camera: &Affine2d) -> renderer::Result<()> {
+        self.hex.draw(renderer, camera)
+    }
 }
 
 impl Coord for UiWorld {}
@@ -87,6 +106,10 @@ pub fn draw_world(
 
     // TODO: cache texture when unmodified
     if let Some(mut ui) = ui_canvas.renderer() {
+        let to_canvas = ui_world.to_canvas();
+        ui_world.update(world.get(), ui.renderer());
+        ui_world.draw(ui.renderer(), &to_canvas).unwrap();
+
         let circle: Path<Canvas> = paths::circle().transform(&ui_world.to_canvas_scale());
         let mut xy : Vec<[f32; 2]> = Vec::new();
         let mut sizes : Vec<[f32; 2]> = Vec::new();
@@ -273,7 +296,9 @@ impl Plugin for UiWorldPlugin {
             let view = UiWorldView::new([width as f32, height as f32]);
             let view = app.resource_mut::<UiCanvas>().view(self.bounds.clone(), view);
 
-            let ui_world = UiWorld::new(view, width, height);
+            let hex = UiWorldHex::new();
+
+            let ui_world = UiWorld::new(view, width, height, hex);
 
             // let box_id = app.resource_mut::<UiLayout>().add_box(self.bounds.clone());
             app.insert_resource(ui_world);

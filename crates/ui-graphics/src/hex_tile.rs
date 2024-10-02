@@ -3,6 +3,7 @@ use std::f32::consts::TAU;
 use essay_graphics::api::form::Shape;
 use essay_graphics::prelude::*;
 use essay_tensor::Tensor;
+use renderer::Renderer;
 
 pub struct HexSliceGenerator {
     vertices: [[f32; 2]; 6],
@@ -34,7 +35,7 @@ impl HexSliceGenerator {
         }
     }
 
-    pub fn gen(&self, shape: &mut Shape, pos: impl Into<Point>, tile: &Tile) {
+    pub fn hex(&self, shape: &mut Shape, pos: impl Into<Point>, tile: &Tile) {
         let pos = pos.into();
 
         self.tri(shape, pos, tile, (2, 4, 5));
@@ -208,10 +209,11 @@ impl TextureBuilder {
             });
         }
 
-        let texture = Tensor::from(tex);
-        
+        let texture = Tensor::from(tex).reshape([height, width, 4]);
+
         TextureGenerator {
-            texture: texture.reshape([height, width, 4]),
+            texture: Some(texture),
+            texture_id: None,
             tile: tiles,
         }
     }
@@ -245,9 +247,10 @@ fn sign(p: [f32; 2], a: [f32; 2], b: [f32; 2]) -> f32 {
 }
 
 pub struct TextureGenerator {
-    texture: Tensor<u8>,
-
     tile: Vec<Tile>,
+
+    texture: Option<Tensor<u8>>,
+    texture_id: Option<TextureId>,
 }
 
 impl TextureGenerator {
@@ -255,8 +258,15 @@ impl TextureGenerator {
         self.tile.get(id.0).unwrap()
     }
 
-    pub fn texture(&self) -> Tensor<u8> {
-        self.texture.clone()
+    pub fn bind(&mut self, renderer: &mut dyn Renderer) {
+        if let Some(texture) = self.texture.take() {
+            let id = renderer.create_texture_rgba8(&texture);
+            self.texture_id = Some(id);
+        }
+    }
+
+    pub fn texture_id(&self) -> TextureId {
+        self.texture_id.unwrap()
     }
 }
 

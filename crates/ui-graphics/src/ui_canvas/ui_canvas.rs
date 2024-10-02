@@ -263,6 +263,10 @@ impl<'a> UiRender<'a> {
         }
     }
 
+    pub fn renderer(&mut self) -> &mut PlotRenderer<'a> {
+        &mut self.renderer
+    }
+
     pub fn draw_path(&mut self, path: &Path<Canvas>, style: &PathStyle) {
         self.renderer.draw_path(path, style).unwrap();
 

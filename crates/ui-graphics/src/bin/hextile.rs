@@ -3,7 +3,7 @@ use essay_graphics::api::form::{Shape, ShapeId};
 use renderer::{Canvas, Drawable, Renderer};
 use essay_graphics::{layout::Layout, prelude::*};
 use essay_tensor::Tensor;
-use ui_graphics::{HexSliceGenerator, TexId, TextureBuilder};
+use ui_graphics::{HexSliceGenerator, TexId, TextureBuilder, TextureGenerator};
 
 fn main() { 
     let mut layout = Layout::new();
@@ -43,13 +43,13 @@ fn main() {
 
     let gen = HexSliceGenerator::new(0.1);
 
-    gen.gen(&mut form, (0.251, 0.25), tex.tile(TexId(0)));
-    gen.gen(&mut form, (0.40, 0.25 + 0.0866), tex.tile(TexId(1)));
-    gen.gen(&mut form, (0.55, 0.25), tex.tile(TexId(2)));
-    gen.gen(&mut form, (0.40, 0.25 - 0.0866), tex.tile(TexId(3)));
+    gen.hex(&mut form, (0.251, 0.25), tex.tile(TexId(0)));
+    gen.hex(&mut form, (0.40, 0.25 + 0.0866), tex.tile(TexId(1)));
+    gen.hex(&mut form, (0.55, 0.25), tex.tile(TexId(2)));
+    gen.hex(&mut form, (0.40, 0.25 - 0.0866), tex.tile(TexId(3)));
 
     layout.view(((0.5, 0.5), [0.5, 0.5]),
-        ShapeView::new(form, tex.texture()),
+        ShapeView::new(form, tex)
     );
 
     WgpuMainLoop::new().main_loop(Box::new(layout)).unwrap();
@@ -58,13 +58,13 @@ fn main() {
 struct ShapeView {
     form: Shape,
     form_id: Option<ShapeId>,
-    texture: Tensor<u8>,
+    texture: TextureGenerator,
 
     is_dirty: bool,
 }
 
 impl ShapeView {
-    fn new(form: Shape, texture: Tensor<u8>) -> Self {
+    fn new(form: Shape, texture: TextureGenerator) -> Self {
         Self {
             form,
             form_id: None,
@@ -74,9 +74,8 @@ impl ShapeView {
     }
 
     fn fill_model(&mut self, renderer: &mut dyn Renderer) {
-        let texture = renderer.create_texture_rgba8(&self.texture);
-
-        self.form.texture(texture);
+        self.texture.bind(renderer);
+        self.form.texture(self.texture.texture_id());
 
         self.form_id = Some(renderer.create_shape(&self.form));
     }
