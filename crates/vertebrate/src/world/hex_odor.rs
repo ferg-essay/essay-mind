@@ -89,5 +89,6 @@ pub enum OdorKind {
     A,
     B,
     C,
-    D
+    D,
+    Bogus,
 }

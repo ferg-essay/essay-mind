@@ -25,6 +25,7 @@ impl World {
         hex[(3, 6)] = OdorKind::C;
         hex[(4, 5)] = OdorKind::B;
         hex[(5, 5)] = OdorKind::A;
+        hex[(7, 5)] = OdorKind::D;
 
         Self {
             width,

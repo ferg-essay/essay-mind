@@ -9,18 +9,28 @@ use crate::world::{HexOdorWorld, OdorKind};
 pub struct HexBuilder<K: Eq + Hash> {
     tex: TextureBuilder,
     tex_map: HashMap<K, TexId>,
+    id_missing: TexId,
 }
 
 impl<K: Eq + Hash> HexBuilder<K> {
     pub fn new(width: usize, height: usize) -> Self {
         let mut tex = TextureBuilder::new(width, height);
 
-        let _tex_0 = tex.create_tile();
+        // tex 0 reserved
+        tex.create_tile();
+
+        let id_missing = tex.create_tile();
+        tex.fill(id_missing, "hot pink".into());
 
         Self {
             tex,
             tex_map: HashMap::default(),
+            id_missing,
         }
+    }
+
+    pub fn none(&mut self, key: K) {
+        self.tex_map.insert(key, TexId(0));
     }
 
     pub fn tile<'a>(&'a mut self, key: K) -> TileBuilder<'a> {
@@ -40,6 +50,7 @@ impl<K: Eq + Hash> HexBuilder<K> {
         HexGenerator {
             gen,
             tex_map: self.tex_map,
+            id_missing: self.id_missing,
         }
     }
 }
@@ -95,6 +106,7 @@ impl<'a> TileBuilder<'a> {
 pub struct HexGenerator<K: Eq + Hash> {
     gen: TextureGenerator,
     tex_map: HashMap<K, TexId>,
+    id_missing: TexId,
 }
 
 impl<K: Eq + Hash> HexGenerator<K> {
@@ -104,9 +116,13 @@ impl<K: Eq + Hash> HexGenerator<K> {
 
     fn tile(&self, key: &K) -> Option<&Tile> {
         if let Some(id) = self.tex_map.get(key) {
-            Some(self.gen.tile(*id))
+            if id.0 != 0 {
+                Some(self.gen.tile(*id))
+            } else {
+                None
+            }
         } else {
-            None
+            Some(self.gen.tile(self.id_missing))
         }
     }
 }
@@ -126,6 +142,7 @@ impl UiWorldHex {
     pub fn new() -> Self {
         let mut tex = HexBuilder::<OdorKind>::new(64, 64);
 
+        tex.none(OdorKind::None);
         tex.tile(OdorKind::A).fill("teal");
 
         tex.tile(OdorKind::B).fill("orange");
@@ -167,18 +184,6 @@ impl UiWorldHex {
                         if let Some(tile) = tex_gen.tile(&world[(i, j)]) {
                             hex_gen.hex(&mut shape, (x, y), tile);
                         }
-                        /*
-                        let tex = match world[(i, j)] {
-                            OdorKind::A => Some(TexId(1)),
-                            OdorKind::B => Some(TexId(2)),
-                            OdorKind::C => Some(TexId(3)),
-                            _ => None,
-                        };
-
-                        if let Some(id) = tex {
-                            hex_gen.hex(&mut shape, (x, y), tex_gen.tile(id));
-                        }
-                        */
                     }
                 }
 
