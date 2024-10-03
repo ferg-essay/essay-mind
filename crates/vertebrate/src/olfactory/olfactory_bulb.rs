@@ -160,11 +160,11 @@ fn update_olfactory(
 
     olf_bulb.update();
 
-    for glomerule in &olf_bulb.glomerules {
-        if glomerule.vector.value() > Glomerule::MIN {
-            ob_events.send(ObEvent::Odor(glomerule.odor, glomerule.vector));
-        }
-    }
+    // for glomerule in &olf_bulb.glomerules {
+    //    if glomerule.vector.value() > Glomerule::MIN {
+    //        ob_events.send(ObEvent::Odor(glomerule.odor, glomerule.vector));
+    //    }
+    //}
 }
 
 // fn odors_by_head(pos: Point, odors: Query<&Odor>)

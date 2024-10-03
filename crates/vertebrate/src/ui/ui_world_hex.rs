@@ -345,6 +345,7 @@ fn update_hex_world(
         for j in 0..world_hex.height() {
             for i in 0..world_hex.width() {
                 let key = world_hex[(i, j)];
+                // let key = OdorKind::D;
 
                 let x = i as f32 + 0.5;
                 let y = j as f32 + if i % 2 == 0 { 0.5 } else { 0.0 };

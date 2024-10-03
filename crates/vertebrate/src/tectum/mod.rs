@@ -1,7 +1,7 @@
 mod looming;
-mod tectum;
+mod tectum_map;
 mod attention;
 
 pub use looming::TectumLoomingPlugin;
 
-pub use tectum::{TectumMap, TectumPlugin};
+pub use tectum_map::{TectumMap, TectumPlugin};
