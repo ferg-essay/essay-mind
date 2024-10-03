@@ -15,17 +15,7 @@ use vertebrate::{
         phototaxis::Phototaxis
     }, 
     ui::{
-        ui_attention::UiAttentionPlugin, 
-        ui_body::{UiBodyPlugin, UiBodyTrailPlugin}, 
-        ui_emoji::Emoji, 
-        ui_graph::UiGraphPlugin, 
-        ui_heatmap::UiHeatmapPlugin, 
-        ui_homunculus::UiHomunculusPlugin, 
-        ui_motive::UiMotivePlugin, 
-        ui_peptide::UiPeptidePlugin, 
-        ui_retina::UiRetinaPlugin, 
-        ui_table::UiTablePlugin, 
-        ui_world_map::UiWorldPlugin
+        ui_attention::UiAttentionPlugin, ui_body::{UiBodyPlugin, UiBodyTrailPlugin}, ui_emoji::Emoji, ui_graph::UiGraphPlugin, ui_heatmap::UiHeatmapPlugin, ui_homunculus::UiHomunculusPlugin, ui_motive::UiMotivePlugin, ui_peptide::UiPeptidePlugin, ui_retina::UiRetinaPlugin, ui_table::UiTablePlugin, ui_world_hex::UiWorldHexPlugin, ui_world_map::UiWorldPlugin
     }, 
     util::{self}, 
     world::{
@@ -237,6 +227,7 @@ fn ui_eat_flat(app: &mut App) {
     app.plugin(UiWorldPlugin::new((0., 0.), (2., 1.0)));
     app.plugin(UiBodyPlugin); // ::new((0., 0.5), (0.25, 0.5)));
     app.plugin(UiBodyTrailPlugin);
+    app.plugin(UiWorldHexPlugin::new());
 
     // let colors = Colors::from(["amber", "azure", "red", "purple", "blue", "green", "olive"]);
 

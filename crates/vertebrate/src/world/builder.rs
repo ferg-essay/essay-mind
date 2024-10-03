@@ -2,8 +2,7 @@ use essay_ecs::{app::{App, Plugin, Startup}, core::Commands};
 
 use crate::world::odor::Odor;
 
-use super::{food::FoodKind, FloorType, Food, OdorType, World, WorldCell};
-
+use super::{food::FoodKind, FloorType, Food, OdorKind, OdorType, World, WorldCell, WorldHex};
 
 pub struct WorldPlugin {
     width: usize,
@@ -143,6 +142,14 @@ impl WorldPlugin {
         world
     }
 
+    fn create_world_hex(&self) -> WorldHex<OdorKind> {
+        let mut world = WorldHex::<OdorKind>::new(self.width, self.height, 1.);
+
+        world[(7, 7)] = OdorKind::D;
+
+        world
+    }
+
     fn create_food(&self, app: &mut App) {
         let mut foods : Vec<Food> = self.food.clone();
 
@@ -169,7 +176,8 @@ impl WorldPlugin {
 impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(self.create_world());
-        // app.insert_resource(self.create_odors());
+
+        app.insert_resource(self.create_world_hex());
 
         self.create_odors(app);
 

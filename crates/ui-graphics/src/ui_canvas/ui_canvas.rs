@@ -2,6 +2,7 @@ use std::ops::{Deref, DerefMut};
 use std::time::Duration;
 
 use essay_ecs::prelude::*;
+use essay_graphics::layout::ViewId;
 use essay_graphics::{
     api::{
         renderer::{Canvas, Drawable, Event, Renderer, Result},
@@ -87,6 +88,15 @@ impl UiCanvas {
         view: T
     ) -> View<T> {
         self.layout.get_layout_mut().view(pos, view)
+    }
+
+    pub fn subview<T: Drawable + Send + 'static>(
+        &mut self, 
+        id: ViewId,
+        index: usize,
+        view: T
+    ) -> View<T> {
+        self.layout.get_layout_mut().subview(id, index, view)
     }
 
     pub fn renderer<'a>(&'a mut self) -> Option<UiRender<'a>> {

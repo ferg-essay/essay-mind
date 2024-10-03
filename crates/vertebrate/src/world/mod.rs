@@ -1,4 +1,4 @@
-mod hex_odor;
+mod world_hex;
 mod builder;
 mod food;
 mod odor;
@@ -8,7 +8,7 @@ pub use builder::WorldPlugin;
 
 pub use food::{Food, FoodKind};
 
-pub use hex_odor::{HexOdor, HexOdorWorld, OdorKind};
+pub use world_hex::{HexItem, WorldHex, OdorKind};
 
 pub use odor::{Odor, OdorType};
 

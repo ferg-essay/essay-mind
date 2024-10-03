@@ -1,16 +1,16 @@
 use essay_ecs::core::Query;
 use essay_ecs::prelude::*;
-use essay_graphics::layout::{Layout, View};
+use essay_graphics::layout::{Layout, View, ViewId};
 use essay_plot::{prelude::*, artist::paths};
 use essay_tensor::Tensor;
 use renderer::{Canvas, Drawable, Event, Renderer};
 use ui_graphics::{ui_layout::UiLayoutPlugin, UiCanvas, UiCanvasPlugin};
 
-use crate::world::{Food, FoodKind, Odor, OdorType, World, WorldPlugin};
+use crate::world::{Food, FoodKind, Odor, OdorKind, OdorType, World, WorldPlugin};
 
 use crate::world::WorldCell;
 
-use super::ui_world_hex::UiWorldHex;
+use super::ui_world_hex::{TileBuilder, UiWorldHex};
 
 #[derive(Component)]
 pub struct UiWorld {
@@ -18,7 +18,7 @@ pub struct UiWorld {
     width: usize,
     height: usize,
     image: Option<ImageId>,
-    hex: UiWorldHex,
+    // hex: UiWorldHex<OdorKind>,
 }
 
 impl UiWorld {
@@ -26,7 +26,7 @@ impl UiWorld {
         view: View<UiWorldView>, 
         width: usize, 
         height: usize,
-        hex: UiWorldHex,
+        // hex: UiWorldHex<OdorKind>,
     ) -> Self {
         let mut values = Vec::new();
 
@@ -38,15 +38,20 @@ impl UiWorld {
             width,
             height,
             image: None,
-            hex,
+            // hex,
         }
     }
+    /*
+    pub fn hex(&mut self) -> &mut UiWorldHex<OdorKind> {
+        &mut self.hex
+    }
+    */
 
     fn pos(&self) -> Bounds<Canvas> {
         self.view.read(|v| v.pos.clone())    
     }
 
-    fn bounds(&self) -> Bounds<UiWorld> {
+    pub fn bounds(&self) -> Bounds<UiWorld> {
         self.view.read(|v| v.bounds.clone())    
     }
 
@@ -69,12 +74,17 @@ impl UiWorld {
         &Clip::None
     }
 
+    pub fn view_id(&self) -> ViewId {
+        self.view.id()
+    }
+
     pub fn update(&mut self, world: &World, renderer: &mut dyn Renderer) {
-        self.hex.update_render(renderer, world.hex());
+        // self.hex.update_render(renderer, world.hex());
     }
 
     pub fn draw(&mut self, renderer: &mut dyn Renderer, camera: &Affine2d) -> renderer::Result<()> {
-        self.hex.draw(renderer, camera)
+        // self.hex.draw(renderer, camera)
+        Ok(())
     }
 }
 
@@ -99,22 +109,24 @@ pub fn draw_world(
         let colors = Tensor::from(&vec);
         let colors = colors.reshape([ui_world.height as usize, ui_world.width as usize, 4]);
 
-        ui_world.image = ui_canvas.create_image(colors);
+        let image = ui_canvas.create_image(colors);
+        ui_world.image = image.clone();
+        ui_world.view.write(|v| v.image = image);
     }
 
     // TODO: cache texture when unmodified
     if let Some(mut ui) = ui_canvas.renderer() {
-        let to_canvas = ui_world.to_canvas();
+        //let to_canvas = ui_world.to_canvas();
 
-        if let Some(image) = &ui_world.image {
-            ui.draw_image(&ui_world.pos(), image.clone());
-            ui.flush();
-        }
+        //if let Some(image) = &ui_world.image {
+        //    ui.draw_image(&ui_world.pos(), image.clone());
+        //    ui.flush();
+        //}
 
         //ui.flush();
-        ui_world.update(world.get(), ui.renderer());
-        ui_world.draw(ui.renderer(), &to_canvas).unwrap();
-        ui.flush();
+        //ui_world.update(world.get(), ui.renderer());
+        //ui_world.draw(ui.renderer(), &to_canvas).unwrap();
+        //ui.flush();
 
         let circle: Path<Canvas> = paths::circle().transform(&ui_world.to_canvas_scale());
         let mut xy : Vec<[f32; 2]> = Vec::new();
@@ -207,6 +219,8 @@ struct UiWorldView {
 
     clip: Clip,
     to_canvas: Affine2d,
+
+    image: Option<ImageId>,
 }
 
 impl UiWorldView {
@@ -214,6 +228,8 @@ impl UiWorldView {
         Self {
             bounds: bounds.into(),
             pos: Bounds::zero(),
+
+            image: None,
 
             clip: Clip::None,
             to_canvas: Affine2d::eye(),
@@ -255,8 +271,12 @@ impl UiWorldView {
 }
 
 impl Drawable for UiWorldView {
-    fn draw(&mut self, _renderer: &mut dyn Renderer) -> renderer::Result<()> {
+    fn draw(&mut self, renderer: &mut dyn Renderer) -> renderer::Result<()> {
         // todo!()
+        if let Some(image) = &self.image {
+            renderer.draw_image_ref(&self.pos, image.clone())?;
+        }
+    
         Ok(())
     }
 
@@ -269,6 +289,8 @@ impl Drawable for UiWorldView {
 
 pub struct UiWorldPlugin {
     bounds: Bounds::<Layout>,
+
+    // hex: UiWorldHex<OdorKind>,
 }
 
 impl UiWorldPlugin {
@@ -278,8 +300,17 @@ impl UiWorldPlugin {
 
         Self {
             bounds: Bounds::new(xy, (xy.0 + wh.0, xy.1 + wh.1)),
+            // hex: UiWorldHex::new(),
         }
     }
+
+    pub fn none(&mut self, key: OdorKind) {
+        // self.hex.none(key);
+    }
+
+    //pub fn tile(&mut self, key: OdorKind) -> TileBuilder {
+        // self.hex.tile(key)
+    //}
 }
 
 impl Plugin for UiWorldPlugin {
@@ -298,9 +329,27 @@ impl Plugin for UiWorldPlugin {
             let view = UiWorldView::new([width as f32, height as f32]);
             let view = app.resource_mut::<UiCanvas>().view(self.bounds.clone(), view);
 
-            let hex = UiWorldHex::new();
+            /*
+            let mut hex = UiWorldHex::<OdorKind>::new();
+            
+            hex.none(OdorKind::None);
+            hex.tile(OdorKind::A).fill("red");
+            hex.tile(OdorKind::B).fill("orange");
+            hex.tile(OdorKind::C).fill("teal");
+            */
+            // let hex = self.hex.gen();
 
-            let ui_world = UiWorld::new(view, width, height, hex);
+
+            let ui_world = UiWorld::new(view, width, height);
+
+            //let mut hex = UiWorldHex::<OdorKind>::new(&ui_world);
+            
+            //hex.none(OdorKind::None);
+            //hex.tile(OdorKind::A).fill("red");
+            //hex.tile(OdorKind::B).fill("orange");
+            //hex.tile(OdorKind::C).fill("teal");
+
+            //app.insert_resource(hex);
 
             // let box_id = app.resource_mut::<UiLayout>().add_box(self.bounds.clone());
             app.insert_resource(ui_world);

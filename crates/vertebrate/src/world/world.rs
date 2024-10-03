@@ -4,14 +4,11 @@ use essay_ecs::prelude::*;
 
 use crate::util::Point;
 
-use super::{hex_odor::OdorKind, HexOdorWorld};
-
 #[derive(Component)]
 pub struct World {
     width: usize,
     height: usize,
     cells: Vec<WorldCell>,
-    hex: HexOdorWorld,
 }
 
 impl World {
@@ -20,27 +17,15 @@ impl World {
 
         values.resize_with(width * height, || WorldCell::Empty);
 
-        let mut hex = HexOdorWorld::new(width, height, 0.866);
-        hex[(3, 5)] = OdorKind::A;
-        hex[(3, 6)] = OdorKind::C;
-        hex[(4, 5)] = OdorKind::B;
-        hex[(5, 5)] = OdorKind::A;
-        hex[(7, 5)] = OdorKind::D;
-
         Self {
             width,
             height,
             cells: values,
-            hex,
         }
     }
 
     pub fn extent(&self) -> (usize, usize) {
         (self.width, self.height)
-    }
-
-    pub fn hex(&self) -> &HexOdorWorld {
-        &self.hex
     }
 
     pub fn is_collide(&self, pt: impl Into<Point>) -> bool {

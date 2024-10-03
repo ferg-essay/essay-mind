@@ -265,6 +265,10 @@ impl TextureGenerator {
         }
     }
 
+    pub fn texture(&mut self) -> Option<Tensor<u8>> {
+        self.texture.take()
+    }
+
     pub fn texture_id(&self) -> TextureId {
         self.texture_id.unwrap()
     }
