@@ -232,15 +232,15 @@ impl LocOdorItem {
     }
 
     fn fill(&self, world: &mut WorldHex<OdorKind>) {
-        let x = self.pos.0 as u32;
-        let y = self.pos.1 as u32;
-        let r = self.r as u32;
+        let x = self.pos.0 as i32;
+        let y = self.pos.1 as i32;
+        let r = self.r as i32;
 
         let x0 = x as f32;
         let y0 = y as f32 + if x % 2 == 0 { 0.5 } else { 0. };
 
-        for j in (y - r).max(0)..(y + r).min(world.height() as u32) {
-            for i in (x - r).max(0)..(x + r).min(world.width() as u32) {
+        for j in (y - r).max(0)..(y + r).min(world.height() as i32) {
+            for i in (x - r).max(0)..(x + r).min(world.width() as i32) {
                 let x1 = i as f32;
                 let y1 = j as f32 + if i % 2 == 0 { 0.5 } else { 0. };
 

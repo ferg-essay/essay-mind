@@ -32,6 +32,12 @@ impl StriatumTimeout {
         }
     }
 
+    pub fn decay(mut self, time: impl Into<Ticks>) -> Self {
+        self.ltd_decay = 1. / time.into().ticks().max(1) as f32;
+
+        self
+    }
+
     pub fn active(&mut self, tick: &AppTick) -> StriatumValue {
         let now = tick.ticks();
         let last_time = self.last_time;
@@ -63,6 +69,12 @@ impl StriatumTimeout {
                 StriatumValue::None
             }
         }
+    }
+
+    pub fn is_valid(&self, tick: &AppTick) -> bool {
+        let delta = (tick.ticks() - self.last_time) as f32;
+
+        delta < self.ltd_decay.recip()
     }
 }
 

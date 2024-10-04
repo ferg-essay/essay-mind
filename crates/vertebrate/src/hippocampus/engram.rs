@@ -6,7 +6,7 @@ use util::random::{Rand32, Rand64};
 use crate::util::{base64_rev, base64_unchecked};
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
-pub struct Engram64(u64);
+pub struct Engram64(pub u64);
 
 impl Engram64 {
     ///

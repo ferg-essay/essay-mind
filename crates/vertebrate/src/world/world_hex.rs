@@ -1,5 +1,7 @@
 use std::ops::{Index, IndexMut};
 
+use crate::util::Point;
+
 pub struct WorldHex<K> {
     vec: Vec<HexItem<K>>,
 
@@ -61,6 +63,19 @@ impl<K> Index<(usize, usize)> for WorldHex<K> {
         assert!(index.1 < self.height);
 
         &self.vec[index.1 * self.width + index.0].kind
+    }
+}
+
+impl<K> Index<Point> for WorldHex<K> {
+    type Output = K;
+
+    fn index(&self, index: Point) -> &Self::Output {
+        let x = index.x().max(0.).min(self.width as f32 - 1.) as usize;
+        let y = (index.y() + if x % 2 == 0 { 0.} else { 0.5 })
+            .max(0.)
+            .min(self.height as f32 - 1.) as usize;
+
+        &self.vec[y * self.width + x].kind
     }
 }
 

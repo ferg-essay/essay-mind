@@ -6,12 +6,12 @@ use crate::{
     body::{BodyEatPlugin, BodyPlugin}, 
     hind_brain::{HindEat, HindEatPlugin, HindMovePlugin}, 
     hippocampus::HippocampusPlugin, 
-    mid_brain::{MidMovePlugin, MidSeekPlugin}, 
+    mid_brain::{MidMovePlugin, MidSeekContextPlugin, MidSeekPlugin}, 
     motive::{Dwell, Forage, Motive, MotiveAvoidPlugin, MotiveEatPlugin, MotiveForagePlugin, MotiveSleepPlugin}, 
-    olfactory::{olfactory_bulb::{OlfactoryBulb, OlfactoryBulbPlugin}, OlfactoryCortexPlugin}, 
+    olfactory::{olfactory_bulb::{OlfactoryBulb, OlfactoryBulbPlugin}, olfactory_context::OdorContext, OlfactoryCortexPlugin}, 
     retina::RetinaPlugin, 
     taxis::{klinotaxis::KlinotaxisPlugin, TaxisAvoidPlugin}, 
-    tectum::{TectumLoomingPlugin, TectumPlugin} 
+    tectum::{TectumLoomingPlugin, TectumPlugin}, util::Seconds 
 };
 
 pub struct AnimalBuilder {
@@ -103,7 +103,12 @@ impl AnimalBuilder {
                 warn!("Tegmentum seek requires eating");
             }
 
-            app.plugin(MidSeekPlugin::<OlfactoryBulb, Forage>::new());
+            let is_context = true;
+            if is_context {
+                app.plugin(MidSeekContextPlugin::<OlfactoryBulb, OdorContext, Forage>::new().decay(Seconds(180.)));
+            } else {
+                app.plugin(MidSeekPlugin::<OlfactoryBulb, Forage>::new());
+            }
         }
 
         app.plugin(TaxisAvoidPlugin::new());

@@ -9,7 +9,7 @@ use vertebrate::{
     motive::{
         Dwell, Forage, Motive, MotiveEat, MotiveTrait, Sleep, Wake
     }, 
-    olfactory::olfactory_bulb::OlfactoryBulb, 
+    olfactory::{olfactory_bulb::OlfactoryBulb, olfactory_context::OlfactoryContextPlugin}, 
     taxis::{
         chemotaxis::Chemotaxis, 
         phototaxis::Phototaxis
@@ -36,12 +36,30 @@ pub fn main() {
     app.plugin(TickSchedulePlugin::new().ticks(2));
 
     app.plugin(world_roam(21, 15)
-        // .odor_r(5, 5, 4, OdorType::FoodA)
+        .odor_r(2, 4, 3, OdorType::FoodA)
+        .loc_odor(2, 4, 3, OdorKind::A)
+
+        .odor_r(2, 10, 3, OdorType::FoodA)
+        .loc_odor(2, 10, 3, OdorKind::B)
+
+        .odor_r(8, 4, 3, OdorType::FoodA)
+        .loc_odor(8, 4, 3, OdorKind::A)
+
+        .odor_r(8, 10, 3, OdorType::FoodA)
+        .loc_odor(8, 10, 3, OdorKind::A)
+
+        .odor_r(14, 10, 3, OdorType::FoodA)
+        .loc_odor(14, 10, 3, OdorKind::A)
         // .odor_r(15, 5, 4, OdorType::FoodA)
-        .food_odor_r(5, 5, FoodKind::Plain, 3, OdorType::FoodA)
-        .food_odor_r(10, 10, FoodKind::Sweet, 3, OdorType::FoodA)
-        .food_odor_r(15, 5, FoodKind::Bitter, 3, OdorType::FoodA)
-        .loc_odor(5, 5, 3, OdorKind::B)
+
+        .food_odor_r(14, 4, FoodKind::Plain, 3, OdorType::FoodA)
+    );
+
+    app.plugin(OlfactoryContextPlugin::<OdorKind>::new()
+        .add(OdorKind::A, "a")
+        .add(OdorKind::B, "b")
+        .add(OdorKind::C, "c")
+        .add(OdorKind::D, "d")
     );
 
     //app.plugin(world_roam(21, 15)

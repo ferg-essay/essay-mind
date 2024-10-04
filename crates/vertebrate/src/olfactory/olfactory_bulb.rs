@@ -4,7 +4,7 @@ use std::collections::HashMap;
 /// Olfactory bulb
 ///
 
-use essay_ecs::{app::event::OutEvent, core::Query, prelude::{App, Event, Plugin, Res, ResMut}};
+use essay_ecs::{core::Query, prelude::{App, Event, Plugin, Res, ResMut}};
 use mind_ecs::Tick;
 
 use crate::{
@@ -141,7 +141,6 @@ fn update_olfactory(
     body: Res<Body>, 
     odors: Query<&Odor>, 
     mut olf_bulb: ResMut<OlfactoryBulb>,
-    mut ob_events: OutEvent<ObEvent>,
 ) {
     olf_bulb.pre_update();
 

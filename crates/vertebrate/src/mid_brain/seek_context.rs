@@ -10,7 +10,7 @@ use crate::{
     motive::{Motive, MotiveAvoid, MotiveTrait, Motives}, 
     subpallium::{StriatumTimeout, StriatumValue}, 
     taxis::chemotaxis::{Avoid, Seek}, 
-    util::{EgoVector, Seconds}
+    util::{Seconds, Ticks}
 };
 
 use super::{MidMove, SeekInput};
@@ -29,7 +29,7 @@ use super::{MidMove, SeekInput};
 
 
 pub struct MidSeekContext<I: SeekInput, C: SeekContext> {
-    timeout: StriatumTimeout,
+    decay: Ticks,
 
     items: Vec<Item>,
 
@@ -39,20 +39,39 @@ pub struct MidSeekContext<I: SeekInput, C: SeekContext> {
 impl<I: SeekInput, C: SeekContext> MidSeekContext<I, C> {
     fn new() -> Self {
         Self {
-            timeout: StriatumTimeout::new(),
+            decay: Seconds(120.).into(),
             items: Vec::new(),
             marker: PhantomData::default(),
         }
     }
 
+    fn decay(mut self, value: impl Into<Ticks>) -> Self {
+        self.decay = value.into();
+
+        self
+    }
+
     fn update(&mut self, context: Engram64, tick: &AppTick) -> StriatumValue {
         if let Some(item) = self.items.iter_mut().find(|i| i.context == context) {
-            return item.timeout.active(tick)
+            if item.retain(tick) {
+                let value = item.timeout.active(tick);
+
+                return value;
+            }
         }
 
         self.items.retain_mut(|i| i.retain(tick));
 
-        panic!();
+        let mut item = Item {
+            context,
+            timeout: StriatumTimeout::new().decay(self.decay),
+        };
+
+        let value = item.timeout.active(tick);
+
+        self.items.push(item);
+
+        value
     }
 }
 
@@ -63,23 +82,33 @@ struct Item {
 
 impl Item {
     fn retain(&mut self, tick: &AppTick) -> bool {
-        true
+        let is_valid = self.timeout.is_valid(tick);
+
+        is_valid
     }
 }
 
 pub trait SeekContext : Send + Sync + 'static {
-    fn context(&self) -> Option<Engram64>;
+    fn context(&self) -> Engram64;
 }
 
 pub struct MidSeekContextPlugin<I: SeekInput, C: SeekContext, M: MotiveTrait> {
+    decay: Ticks,
     marker: PhantomData<fn(I, C, M)>,
 }
 
 impl<I: SeekInput, C: SeekContext, M: MotiveTrait> MidSeekContextPlugin<I, C, M> {
     pub fn new() -> Self {
         Self {
+            decay: Seconds(120.).into(),
             marker: PhantomData::<fn(I, C, M)>::default(),
         }
+    }
+
+    pub fn decay(mut self, value: impl Into<Ticks>) -> Self {
+        self.decay = value.into();
+
+        self
     }
 }
 
@@ -100,21 +129,21 @@ fn update_seek<I: SeekInput, C: SeekContext, M: MotiveTrait>(
     }
 
     if let Some(dir) = input.seek_dir() {
-        if let Some(context) = context.context() {
-            // seek until timeout
-            match seek.update(context, tick.get()) {
-                StriatumValue::Active => {
-                    motive_seek.set_max(1.);
-        
-                    mid_move.seek();
+        let context = context.context();
 
-                    hind_move.turn(dir.dir().to_turn().to_unit() * 0.5);
-                }
-                StriatumValue::Avoid => {
-                    avoid.avoid();
-                }
-                StriatumValue::None => {
-                }
+        // seek until timeout
+        match seek.update(context, tick.get()) {
+            StriatumValue::Active => {
+                motive_seek.set_max(1.);
+        
+                mid_move.seek();
+
+                hind_move.turn(dir.dir().to_turn().to_unit() * 0.5);
+            }
+            StriatumValue::Avoid => {
+                avoid.avoid();
+            }
+            StriatumValue::None => {
             }
         }
     }
@@ -127,7 +156,7 @@ impl<I: SeekInput, C: SeekContext, M: MotiveTrait> Plugin for MidSeekContextPlug
         assert!(app.contains_resource::<I>(), "MidSeekContext requires seek resource {}", type_name::<I>());
         assert!(app.contains_resource::<C>(), "MidSeekContext requires context resource {}", type_name::<C>());
         
-        let seek = MidSeekContext::<I, C>::new();
+        let seek = MidSeekContext::<I, C>::new().decay(self.decay);
         app.insert_resource(seek);
 
         Motives::insert::<Seek>(app, Seconds(0.2));

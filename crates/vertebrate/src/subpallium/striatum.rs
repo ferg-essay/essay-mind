@@ -1,7 +1,7 @@
-use super::StriatumTimeout;
+//use super::StriatumTimeout;
 
 pub struct StriatumItem {
-    key: [u32; 4],
+    //key: [u32; 4],
 
-    timeout: StriatumTimeout,
+    //timeout: StriatumTimeout,
 }
