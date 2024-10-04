@@ -12,6 +12,8 @@ pub struct WorldPlugin {
     food: Vec<Food>,
     odors: Vec<OdorItem>,
     floor: Vec<FloorItem>,
+
+    loc_odor: Vec<LocOdorItem>,
 }
 
 impl WorldPlugin {
@@ -24,6 +26,8 @@ impl WorldPlugin {
             floor: Vec::new(),
             food: Vec::new(),
             odors: Vec::new(),
+
+            loc_odor: Vec::new(),
         }
     }
 
@@ -113,6 +117,15 @@ impl WorldPlugin {
         self
     }
 
+    pub fn loc_odor(mut self, x: usize, y: usize, odor: OdorKind) -> Self {
+        assert!(x < self.width);
+        assert!(y < self.height);
+
+        self.loc_odor.push(LocOdorItem::new(x, y, 1, odor));
+
+        self
+    }
+
     fn create_world(&self) -> World {
         let mut world = World::new(self.width, self.height);
 
@@ -145,7 +158,9 @@ impl WorldPlugin {
     fn create_world_hex(&self) -> WorldHex<OdorKind> {
         let mut world = WorldHex::<OdorKind>::new(self.width, self.height, 1.);
 
-        world[(7, 7)] = OdorKind::D;
+        for item in &self.loc_odor {
+            world[item.pos] = item.odor;
+        }
 
         world
     }
@@ -193,6 +208,22 @@ struct OdorItem {
 
 impl OdorItem {
     fn new(x: usize, y: usize, r: usize, odor: OdorType) -> Self {
+        Self { 
+            pos: (x, y), 
+            r,
+            odor 
+        }
+    }
+}
+
+struct LocOdorItem {
+    pos: (usize, usize),
+    r: usize,
+    odor: OdorKind,
+}
+
+impl LocOdorItem {
+    fn new(x: usize, y: usize, r: usize, odor: OdorKind) -> Self {
         Self { 
             pos: (x, y), 
             r,

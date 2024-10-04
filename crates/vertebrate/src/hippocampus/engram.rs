@@ -3,6 +3,8 @@ use std::{fmt::Write, str::FromStr};
 
 use util::random::{Rand32, Rand64};
 
+use crate::util::{base64_rev, base64_unchecked};
+
 #[derive(Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Engram64(u64);
 
@@ -89,7 +91,7 @@ impl fmt::Display for Engram64 {
 
 impl fmt::Debug for Engram64 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str("Thread64(")?;
+        f.write_str("Engram64(")?;
 
         let mut is_digit = f.sign_aware_zero_pad();
         for i in 0..10 {
@@ -302,30 +304,6 @@ impl FromStr for Engram128 {
 impl From<&str> for Engram128 {
     fn from(s: &str) -> Engram128 {
         Engram128::from_str(s).unwrap()
-    }
-}
-
-fn base64_unchecked(value: u8) -> char {
-    match value {
-        0..=9 => ('0' as u8 + value) as char,
-        10..=35 => ('a' as u8 + value - 10) as char,
-        36..=61 => ('A' as u8 + value - 36) as char,
-        62 => '$',
-        63 => '#',
-
-        _ => '?'
-    }
-}
-
-fn base64_rev(value: char) -> Result<u8, fmt::Error> {
-    match value {
-        '0'..='9' => Ok(value as u8 - '0' as u8),
-        'a'..='z' => Ok(value as u8 - 'a' as u8 + 10),
-        'A'..='Z' => Ok(value as u8 - 'A' as u8 + 36),
-        '$' => Ok(62),
-        '#' => Ok(63),
-
-        _ => Err(fmt::Error)
     }
 }
 

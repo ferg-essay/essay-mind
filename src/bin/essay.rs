@@ -19,7 +19,7 @@ use vertebrate::{
     }, 
     util::{self}, 
     world::{
-        FoodKind, OdorType, World, WorldPlugin
+        FoodKind, OdorKind, OdorType, World, WorldPlugin
     }
 };
 use essay_ecs::prelude::App;
@@ -41,6 +41,7 @@ pub fn main() {
         .food_odor_r(5, 5, FoodKind::Plain, 3, OdorType::FoodA)
         .food_odor_r(10, 10, FoodKind::Sweet, 3, OdorType::FoodA)
         .food_odor_r(15, 5, FoodKind::Bitter, 3, OdorType::FoodA)
+        .loc_odor(5, 6, OdorKind::B)
     );
 
     //app.plugin(world_roam(21, 15)
