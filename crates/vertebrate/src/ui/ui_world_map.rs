@@ -235,8 +235,23 @@ impl UiWorldView {
             to_canvas: Affine2d::eye(),
         }
     }
+}
 
-    fn set_pos(&mut self, pos: &Bounds<Canvas>) {
+impl Drawable for UiWorldView {
+    fn draw(&mut self, renderer: &mut dyn Renderer) -> renderer::Result<()> {
+        // todo!()
+        if let Some(image) = &self.image {
+            renderer.draw_image_ref(&self.pos, image.clone())?;
+        }
+
+        Ok(())
+    }
+
+    fn resize(
+        &mut self, 
+        _renderer: &mut dyn Renderer, 
+        pos: &Bounds<Canvas>
+    ) -> Bounds<Canvas> {
         let aspect = self.bounds.width() / self.bounds.height();
 
         // force bounds to match aspect ratio
@@ -267,23 +282,10 @@ impl UiWorldView {
         self.pos = pos;
         self.clip = Clip::from(&self.pos);
         self.to_canvas = self.bounds.affine_to(&self.pos);
-    }
-}
 
-impl Drawable for UiWorldView {
-    fn draw(&mut self, renderer: &mut dyn Renderer) -> renderer::Result<()> {
-        // todo!()
-        if let Some(image) = &self.image {
-            renderer.draw_image_ref(&self.pos, image.clone())?;
-        }
-    
-        Ok(())
-    }
+        println!("MapCanvas {:?} {:?}", self.bounds, self.pos);
 
-    fn event(&mut self, _renderer: &mut dyn Renderer, event: &Event) {
-        if let Event::Resize(pos) = event {
-            self.set_pos(pos);
-        }
+        self.pos.clone()
     }
 }
 

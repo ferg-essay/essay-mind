@@ -3,7 +3,11 @@ use core::hash::Hash;
 
 use essay_ecs::{app::{App, Plugin, Update}, core::{Res, ResMut}};
 use essay_graphics::layout::View;
-use essay_plot::{api::{form::{Shape, ShapeId}, renderer::{self, Canvas, Drawable, Event, Renderer}, Affine2d, Bounds, Color, TextureId}, chart::Data};
+use essay_plot::api::{
+    form::{Shape, ShapeId}, 
+    renderer::{self, Canvas, Drawable, Renderer}, 
+    Affine2d, Bounds, Color, TextureId
+};
 use essay_tensor::Tensor;
 use ui_graphics::{HexSliceGenerator, TexId, TextureBuilder, TextureGenerator, Tile, UiCanvas};
 
@@ -112,13 +116,13 @@ impl<K: Eq + Hash> UiWorldHex<K> {
     }
 }
 
-pub struct HexBuilder<K: Eq + Hash> {
+pub struct HexBuilder<K: Eq + Hash + Clone> {
     tex: TextureBuilder,
     tex_map: HashMap<K, TexId>,
     id_missing: TexId,
 }
 
-impl<K: Eq + Hash> HexBuilder<K> {
+impl<K: Eq + Hash + Clone> HexBuilder<K> {
     pub fn new(width: usize, height: usize) -> Self {
         let mut tex = TextureBuilder::new(width, height);
 
@@ -149,14 +153,14 @@ impl<K: Eq + Hash> HexBuilder<K> {
         }
     }
 
-    fn gen(self) -> HexGenerator<K> {
-        let mut gen = self.tex.gen();
+    fn gen(&self) -> HexGenerator<K> {
+        let gen = self.tex.gen();
 
         // let texture = gen.texture();
 
         HexGenerator {
             gen,
-            tex_map: self.tex_map,
+            tex_map: self.tex_map.clone(),
             id_missing: self.id_missing,
         }
     }
@@ -320,16 +324,16 @@ impl Drawable for HexView {
         }
     }
 
-    fn event(&mut self, _renderer: &mut dyn Renderer, event: &Event) {
-        if let Event::Resize(pos) = event {
-            self.set_pos(pos);
-        }
+    fn resize(&mut self, _renderer: &mut dyn Renderer, bounds: &Bounds<Canvas>) -> Bounds<Canvas> {
+        self.set_pos(bounds);
+
+        bounds.clone()
     }
 }
 
 fn update_hex_world(
     mut ui_hex: ResMut<UiWorldHex<OdorKind>>,
-    mut world_hex: Res<WorldHex<OdorKind>>,
+    world_hex: Res<WorldHex<OdorKind>>,
 ) {
     if ui_hex.update_count < world_hex.update_count() {
         ui_hex.update_count = world_hex.update_count();
@@ -341,7 +345,7 @@ fn update_hex_world(
             2. / 3. - epsilon,
             (PI / 6.).cos() * 2. / 3. - 2. * epsilon
         );
-
+    
         for j in 0..world_hex.height() {
             for i in 0..world_hex.width() {
                 let key = world_hex[(i, j)];
@@ -349,7 +353,7 @@ fn update_hex_world(
 
                 let x = i as f32 + 0.5;
                 let y = j as f32 + if i % 2 == 0 { 0.5 } else { 0.0 };
-    
+
                 if let Some(tile) = ui_hex.tex_gen.tile(&key) {
                     hex_gen.hex(&mut shape, (x, y), tile);
                 }
@@ -361,21 +365,23 @@ fn update_hex_world(
 }
 
 pub struct UiWorldHexPlugin {
+    builder: HexBuilder<OdorKind>,
 }
 
 impl UiWorldHexPlugin {
     pub fn new() -> Self {
         Self {
+            builder: HexBuilder::new(64, 64),
         }
     }
 
     pub fn none(&mut self, key: OdorKind) {
-        // self.hex.none(key);
+        self.builder.none(key);
     }
 
-    //pub fn tile(&mut self, key: OdorKind) -> TileBuilder {
-        // self.hex.tile(key)
-    //}
+    pub fn tile(&mut self, key: OdorKind) -> TileBuilder {
+        self.builder.tile(key)
+    }
 }
 
 impl Plugin for UiWorldHexPlugin {
@@ -383,19 +389,16 @@ impl Plugin for UiWorldHexPlugin {
         if app.contains_plugin::<UiWorldPlugin>() {
             let world_bounds = app.resource::<UiWorld>().bounds();
             let world_id = app.resource::<UiWorld>().view_id();
-            
+            println!("WB {:?}", world_bounds);
             let view = HexView::new(world_bounds);
 
             let view = app.resource_mut::<UiCanvas>().subview(world_id, 2, view);
 
-            let mut hex_builder = HexBuilder::new(64, 64);
+            // let mut hex_builder = HexBuilder::new(64, 64);
             
-            hex_builder.none(OdorKind::None);
-            hex_builder.tile(OdorKind::A).fill("red");
-            hex_builder.tile(OdorKind::B).fill("orange");
-            hex_builder.tile(OdorKind::C).fill("teal");
+            // hex_builder.none(OdorKind::None);
 
-            let gen = hex_builder.gen();
+            let gen = self.builder.gen();
 
             let hex = UiWorldHex::<OdorKind>::new(view, gen);
 

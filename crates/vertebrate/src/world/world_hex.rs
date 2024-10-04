@@ -1,6 +1,4 @@
-use std::{f32::consts::PI, ops::{Index, IndexMut}};
-
-use essay_ecs::app::{App, Plugin};
+use std::ops::{Index, IndexMut};
 
 pub struct WorldHex<K> {
     vec: Vec<HexItem<K>>,
@@ -15,9 +13,9 @@ pub struct WorldHex<K> {
 
 impl<K: Default> WorldHex<K> {
     pub fn new(width: usize, height: usize, scale: f32) -> WorldHex<K> {
-        let hex_width = (width as f32 / scale + 1.) as usize;
+        let hex_width = width + 1;
 
-        let hex_height = (height as f32 / scale * (PI / 6.).cos() + 1.) as usize;
+        let hex_height = height + 1;
 
         let mut vec = Vec::new();
 
@@ -100,34 +98,5 @@ pub enum OdorKind {
 impl Default for OdorKind {
     fn default() -> Self {
         OdorKind::None
-    }
-}
-
-
-pub struct WorldHexPlugin {
-    width: usize,
-    height: usize,
-}
-
-impl WorldHexPlugin {
-    pub fn new(width: usize, height: usize) -> Self {
-        Self {
-            width,
-            height,
-        }
-    }
-
-    pub fn width(&self) -> usize {
-        self.width
-    }
-
-    pub fn height(&self) -> usize {
-        self.height
-    }
-}
-
-impl Plugin for WorldHexPlugin {
-    fn build(&self, app: &mut App) {
-        app.insert_resource(WorldHex::<OdorKind>::new(self.width, self.height, 1.));
     }
 }

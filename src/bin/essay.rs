@@ -140,7 +140,8 @@ fn ui_eat(app: &mut App) {
     // UiCanvasPlugin enables graphics
     app.plugin(UiCanvasPlugin::new().frame_ms(Duration::from_millis(50)));
 
-    app.plugin(UiWorldPlugin::new((0., 0.), (2., 1.0)));
+    app.plugin(UiWorldPlugin::new((0., 0.), (2., 1.0))
+        );
     app.plugin(UiBodyPlugin); // ::new((0., 0.5), (0.25, 0.5)));
     app.plugin(UiBodyTrailPlugin);
 
@@ -228,7 +229,14 @@ fn ui_eat_flat(app: &mut App) {
     app.plugin(UiWorldPlugin::new((0., 0.), (2., 1.0)));
     app.plugin(UiBodyPlugin); // ::new((0., 0.5), (0.25, 0.5)));
     app.plugin(UiBodyTrailPlugin);
-    app.plugin(UiWorldHexPlugin::new());
+
+    let mut hex = UiWorldHexPlugin::new();
+    hex.tile(OdorKind::None);
+    hex.tile(OdorKind::A).fill("red");
+    hex.tile(OdorKind::B).fill("cyan");
+    hex.tile(OdorKind::C).fill("orange");
+
+    app.plugin(hex);
 
     // let colors = Colors::from(["amber", "azure", "red", "purple", "blue", "green", "olive"]);
 

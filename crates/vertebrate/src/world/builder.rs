@@ -157,6 +157,7 @@ impl WorldPlugin {
 
     fn create_world_hex(&self) -> WorldHex<OdorKind> {
         let mut world = WorldHex::<OdorKind>::new(self.width, self.height, 1.);
+        println!("WH: {},{}", self.width, self.height);
 
         for item in &self.loc_odor {
             world[item.pos] = item.odor;
@@ -218,7 +219,7 @@ impl OdorItem {
 
 struct LocOdorItem {
     pos: (usize, usize),
-    r: usize,
+    _r: usize,
     odor: OdorKind,
 }
 
@@ -226,7 +227,7 @@ impl LocOdorItem {
     fn new(x: usize, y: usize, r: usize, odor: OdorKind) -> Self {
         Self { 
             pos: (x, y), 
-            r,
+            _r: r,
             odor 
         }
     }
