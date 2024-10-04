@@ -15,7 +15,7 @@ use vertebrate::{
         phototaxis::Phototaxis
     }, 
     ui::{
-        ui_attention::UiAttentionPlugin, ui_body::{UiBodyPlugin, UiBodyTrailPlugin}, ui_emoji::Emoji, ui_graph::UiGraphPlugin, ui_heatmap::UiHeatmapPlugin, ui_homunculus::UiHomunculusPlugin, ui_motive::UiMotivePlugin, ui_peptide::UiPeptidePlugin, ui_retina::UiRetinaPlugin, ui_table::UiTablePlugin, ui_world_hex::UiWorldHexPlugin, ui_world_map::UiWorldPlugin
+        ui_attention::UiAttentionPlugin, ui_body::{UiBodyPlugin, UiBodyTrailPlugin}, ui_emoji::Emoji, ui_graph::UiGraphPlugin, ui_heatmap::UiHeatmapPlugin, ui_homunculus::UiHomunculusPlugin, ui_motive::UiMotivePlugin, ui_peptide::UiPeptidePlugin, ui_retina::UiRetinaPlugin, ui_table::UiTablePlugin, ui_world_hex::{Pattern, UiWorldHexPlugin}, ui_world_map::UiWorldPlugin
     }, 
     util::{self}, 
     world::{
@@ -41,7 +41,7 @@ pub fn main() {
         .food_odor_r(5, 5, FoodKind::Plain, 3, OdorType::FoodA)
         .food_odor_r(10, 10, FoodKind::Sweet, 3, OdorType::FoodA)
         .food_odor_r(15, 5, FoodKind::Bitter, 3, OdorType::FoodA)
-        .loc_odor(5, 6, OdorKind::B)
+        .loc_odor(5, 5, 3, OdorKind::B)
     );
 
     //app.plugin(world_roam(21, 15)
@@ -232,9 +232,9 @@ fn ui_eat_flat(app: &mut App) {
 
     let mut hex = UiWorldHexPlugin::new();
     hex.tile(OdorKind::None);
-    hex.tile(OdorKind::A).fill("red");
-    hex.tile(OdorKind::B).fill("cyan");
-    hex.tile(OdorKind::C).fill("orange");
+    hex.tile(OdorKind::A).pattern(Pattern::CheckerBoard(8), "red");
+    hex.tile(OdorKind::B).pattern(Pattern::CheckerBoard(8), "teal");
+    hex.tile(OdorKind::C).pattern(Pattern::CheckerBoard(8), "orange");
 
     app.plugin(hex);
 

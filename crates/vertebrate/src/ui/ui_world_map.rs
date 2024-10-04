@@ -3,14 +3,12 @@ use essay_ecs::prelude::*;
 use essay_graphics::layout::{Layout, View, ViewId};
 use essay_plot::{prelude::*, artist::paths};
 use essay_tensor::Tensor;
-use renderer::{Canvas, Drawable, Event, Renderer};
+use renderer::{Canvas, Drawable, Renderer};
 use ui_graphics::{ui_layout::UiLayoutPlugin, UiCanvas, UiCanvasPlugin};
 
 use crate::world::{Food, FoodKind, Odor, OdorKind, OdorType, World, WorldPlugin};
 
 use crate::world::WorldCell;
-
-use super::ui_world_hex::{TileBuilder, UiWorldHex};
 
 #[derive(Component)]
 pub struct UiWorld {
@@ -78,11 +76,11 @@ impl UiWorld {
         self.view.id()
     }
 
-    pub fn update(&mut self, world: &World, renderer: &mut dyn Renderer) {
+    pub fn update(&mut self, _world: &World, _renderer: &mut dyn Renderer) {
         // self.hex.update_render(renderer, world.hex());
     }
 
-    pub fn draw(&mut self, renderer: &mut dyn Renderer, camera: &Affine2d) -> renderer::Result<()> {
+    pub fn draw(&mut self, _renderer: &mut dyn Renderer, _camera: &Affine2d) -> renderer::Result<()> {
         // self.hex.draw(renderer, camera)
         Ok(())
     }
@@ -283,8 +281,6 @@ impl Drawable for UiWorldView {
         self.clip = Clip::from(&self.pos);
         self.to_canvas = self.bounds.affine_to(&self.pos);
 
-        println!("MapCanvas {:?} {:?}", self.bounds, self.pos);
-
         self.pos.clone()
     }
 }
@@ -306,7 +302,7 @@ impl UiWorldPlugin {
         }
     }
 
-    pub fn none(&mut self, key: OdorKind) {
+    pub fn none(&mut self, _key: OdorKind) {
         // self.hex.none(key);
     }
 

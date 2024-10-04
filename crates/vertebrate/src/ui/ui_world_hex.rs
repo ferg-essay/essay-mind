@@ -389,7 +389,7 @@ impl Plugin for UiWorldHexPlugin {
         if app.contains_plugin::<UiWorldPlugin>() {
             let world_bounds = app.resource::<UiWorld>().bounds();
             let world_id = app.resource::<UiWorld>().view_id();
-            println!("WB {:?}", world_bounds);
+
             let view = HexView::new(world_bounds);
 
             let view = app.resource_mut::<UiCanvas>().subview(world_id, 2, view);

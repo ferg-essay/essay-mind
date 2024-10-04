@@ -117,11 +117,11 @@ impl WorldPlugin {
         self
     }
 
-    pub fn loc_odor(mut self, x: usize, y: usize, odor: OdorKind) -> Self {
+    pub fn loc_odor(mut self, x: usize, y: usize, r: usize, odor: OdorKind) -> Self {
         assert!(x < self.width);
         assert!(y < self.height);
 
-        self.loc_odor.push(LocOdorItem::new(x, y, 1, odor));
+        self.loc_odor.push(LocOdorItem::new(x, y, r, odor));
 
         self
     }
@@ -157,10 +157,9 @@ impl WorldPlugin {
 
     fn create_world_hex(&self) -> WorldHex<OdorKind> {
         let mut world = WorldHex::<OdorKind>::new(self.width, self.height, 1.);
-        println!("WH: {},{}", self.width, self.height);
 
         for item in &self.loc_odor {
-            world[item.pos] = item.odor;
+            item.fill(&mut world);
         }
 
         world
@@ -219,7 +218,7 @@ impl OdorItem {
 
 struct LocOdorItem {
     pos: (usize, usize),
-    _r: usize,
+    r: usize,
     odor: OdorKind,
 }
 
@@ -227,8 +226,28 @@ impl LocOdorItem {
     fn new(x: usize, y: usize, r: usize, odor: OdorKind) -> Self {
         Self { 
             pos: (x, y), 
-            _r: r,
+            r,
             odor 
+        }
+    }
+
+    fn fill(&self, world: &mut WorldHex<OdorKind>) {
+        let x = self.pos.0 as u32;
+        let y = self.pos.1 as u32;
+        let r = self.r as u32;
+
+        let x0 = x as f32;
+        let y0 = y as f32 + if x % 2 == 0 { 0.5 } else { 0. };
+
+        for j in (y - r).max(0)..(y + r).min(world.height() as u32) {
+            for i in (x - r).max(0)..(x + r).min(world.width() as u32) {
+                let x1 = i as f32;
+                let y1 = j as f32 + if i % 2 == 0 { 0.5 } else { 0. };
+
+                if (x1 - x0).hypot(y1 - y0) < r as f32 - 0.5 {
+                    world[(i as usize, j as usize)] = self.odor.clone();
+                }
+            }
         }
     }
 }
