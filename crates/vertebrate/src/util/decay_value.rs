@@ -1,4 +1,4 @@
-use super::ticks::HalfLife;
+use super::{ticks::HalfLife, Ticks};
 
 pub struct DecayValue {
     decay: f32,
@@ -20,17 +20,17 @@ impl DecayValue {
         Self {
             decay,
             fill: 1. - decay,
-            threshold: 0.26,
+            threshold: 0.5,
             rest_value: 0.,
             value: 0.,
             last_ticks: 0,
         }
     }
 
-    pub fn fill_time(mut self, half_life: impl Into<HalfLife>) -> Self {
-        let decay = half_life.into().decay();
+    pub fn fill_time(mut self, ticks: impl Into<Ticks>) -> Self {
+        let ticks = ticks.into();
 
-        self.fill = 1. - decay;
+        self.fill = 1. / ticks.ticks().max(1) as f32;
 
         self
     }
@@ -89,14 +89,14 @@ impl DecayValue {
 
     #[inline]
     pub fn add(&mut self, value: f32) {
-        self.value += self.fill * value.clamp(0., 1.);
-        self.value = self.value.clamp(0., 1.);
+        self.value = (self.value + self.fill * value.clamp(0., 1.))
+            .clamp(0., 1.);
     }
 
     #[inline]
     pub fn subtract(&mut self, value: f32) {
-        self.value -= self.fill * value.clamp(0., 1.);
-        self.value = self.value.clamp(0., 1.);
+        self.value = (self.value + self.fill * value.clamp(0., 1.))
+            .clamp(0., 1.);
     }
 
     #[inline]

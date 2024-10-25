@@ -39,7 +39,7 @@ impl AnimalBuilder {
             body_eat: BodyEatPlugin,
 
             hind_move: HindMovePlugin,
-            hind_eat: HindEatPlugin,
+            hind_eat: HindEatPlugin::new(),
 
             olfactory_bulb: OlfactoryBulbPlugin::new(),
             olfactory_cortex: OlfactoryCortexPlugin::new(),
@@ -59,6 +59,10 @@ impl AnimalBuilder {
 
     pub fn retina(&mut self) -> &mut RetinaPlugin {
         &mut self.retina
+    }
+
+    pub fn hind_eat(&mut self) -> &mut HindEatPlugin {
+        &mut self.hind_eat
     }
 
     pub fn motive(&mut self) -> MotiveBuilder {

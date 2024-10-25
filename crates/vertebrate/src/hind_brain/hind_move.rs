@@ -4,10 +4,10 @@ use mind_ecs::Tick;
 use crate::{
     body::{Body, BodyPlugin}, 
     motive::{Motive, Wake}, 
-    util::{DecayValue, Seconds, Ticks, Turn}
+    util::{DecayValue, Seconds, Ticks, TimeoutValue, Turn}
 };
 
-use super::{random_walk::OscillatorArs, startle::StartleMrs};
+use super::{random_walk::OscillatorArs, startle::StartleMrs, HindEat};
 
 //
 // Barandela et al 2023 - Lamprey early R.mrrn only from M.nmlf, DLR, MLR
@@ -81,6 +81,33 @@ use super::{random_walk::OscillatorArs, startle::StartleMrs};
 // TODO: possibly ARRN sufficiently different that shouldn't be included.
 // Hind
 
+
+fn update_hind_move(
+    mut hind_move: ResMut<HindMove>,
+    hind_eat: Res<HindEat>,
+    mut body: ResMut<Body>,
+    wake: Res<Motive<Wake>>,
+) {
+    hind_move.pre_update();
+
+    // Acoustic startle in r4 Mauthner cells is an immediate reflex
+    if hind_move.update_startle(body.get_mut()) {
+        return;
+    }
+
+    if ! wake.is_active() {
+        return;
+    }
+
+    // lateral inhibition by hindbrain eating circuits
+    if hind_eat.is_active() {
+        return;
+    }
+
+    hind_move.update_voluntary_move(body.get_mut());
+}
+
+
 /// Currently using ARS, MRS, PRS similar to Lamprey naming 
 /// convention: ARRN, MRRN, PRRN
 /// 
@@ -127,6 +154,9 @@ pub struct HindMove {
     // mammal Gi
     turn_r6: TurnMrs,
 
+    // S.nr or lateral (eat) disable of movement
+    is_disable: TimeoutValue<bool>,
+
     action: Action,
     
     ss_forward: f32,
@@ -159,6 +189,8 @@ impl HindMove {
             forward_r5: ForwardMrs::new(),
             turn_r6: TurnMrs::new(),
 
+            is_disable: TimeoutValue::default(),
+
             action: Action::none(),
 
             ss_forward: 0.0,
@@ -173,109 +205,14 @@ impl HindMove {
         }
     }
 
-    fn update(&mut self, body: &mut Body, wake: &Motive<Wake>) {
-        self.pre_update();
-
-        // Startle Mauthner cell in r4
-        if let Some(startle) = &mut self.startle_r4 {
-            startle.update(body);
-
-            self.ss_forward = startle.ss_forward().max(self.ss_forward);
-            self.ss_left = startle.ss_left().max(self.ss_left);
-            self.ss_right = startle.ss_right().max(self.ss_right);
-
-            if self.action.allow_startle() {
-                if let Some(action) = startle.next_action() {
-                    self.action = action;
-                    self.send_action(body);
-                    return;
-                }
-            }
-        }
-
-        if ! wake.is_active() {
-            return;
-        }
-
-        let mut turn = Turn::Unit(0.);
-        
-        // TODO: should be driven by outside such as H.sum
-        let mut kind = self.forward_r5.take();
-
-        // ARTR in ARS r3 has lowest-priority turn
-        if kind.is_random_turn() {
-            if let Some(oscillator) = &mut self.oscillator_r3 {
-                if let Some(next_turn) = oscillator.next_turn() {
-                    turn = next_turn;
-                }
-            }
-        }
-
-        // optic - nMLF
-        if let Some(optic_kind) = self.optic().action() {
-            kind = optic_kind;
-        }
-
-        let turn_mrs = self.turn_r6.take();
-
-        if turn_mrs.to_unit() != 0. {
-            turn = turn_mrs;
-        }
-        
-        if self.action.allow_override(kind) {
-            if let Some(action) = kind.action(turn) {
-                self.action = action;
-            }
-        }
-
-        if self.action.is_active() {
-            self.send_action(body);
-        }
+    #[inline]
+    pub fn is_active(&self) -> bool {
+        ! self.action_kind().is_stop()
     }
 
-    fn send_action(&mut self, body: &mut Body) {
-        let Action { speed, turn, timeout, elapsed, .. } = self.action;
-
-        // println!("Turn {:?} {:?}", self.action.kind, turn);
-
-        let turn_per_tick = Turn::Unit(turn.to_unit() / timeout.ticks().max(1) as f32);
-
-        body.action(
-            speed, 
-            turn_per_tick,
-            Ticks(timeout.ticks() - elapsed.ticks())
-        );
-
-        self.mo_forward = speed;
-        let turn = turn.to_unit();
-
-        let turn_value = match self.action.kind {
-            MoveKind::Startle => 0.5 + 2. * turn.abs(),
-            MoveKind::Escape(_) => 0.75,
-            MoveKind::UTurn(_) => 0.75,
-            _ => (2. * turn.abs()).min(0.49),
-        };
-
-        if turn < -1.0e-3 {
-            self.mo_left = turn_value;
-        } else if turn > 1.0e-3 {
-            self.mo_right = turn_value;
-        }
-    }
-
-    fn pre_update(&mut self) {
-        self.action.update();
-        self.optic_mid.update();
-
-        self.ss_forward = 0.;
-        self.ss_left = 0.;
-        self.ss_right = 0.;
-
-        self.is_freeze = false;
-
-        self.mo_forward = 0.;
-        self.mo_left = 0.;
-        self.mo_right = 0.;
+    #[inline]
+    pub fn is_stop(&self) -> bool {
+        self.action_kind().is_stop()
     }
 
     //
@@ -311,11 +248,6 @@ impl HindMove {
     }
 
     #[inline]
-    pub fn is_stop(&self) -> bool {
-        self.action_kind().is_stop()
-    }
-
-    #[inline]
     pub fn halt(&mut self) {
         self.forward_r5.halt();
     }
@@ -323,6 +255,126 @@ impl HindMove {
     #[inline]
     pub fn turn(&mut self, turn: impl Into<Turn>) {
         self.turn_r6.turn(turn.into());
+    }
+
+    //
+    // tick updates
+    //
+
+    fn pre_update(&mut self) {
+        self.action.update();
+        self.optic_mid.update();
+        self.is_disable.update();
+
+        self.ss_forward = 0.;
+        self.ss_left = 0.;
+        self.ss_right = 0.;
+
+        self.is_freeze = false;
+
+        self.mo_forward = 0.;
+        self.mo_left = 0.;
+        self.mo_right = 0.;
+    }
+
+    ///
+    /// Acoustic startle driving Mauthner cells in r4
+    /// 
+    fn update_startle(&mut self, body: &mut Body) -> bool {
+        self.pre_update();
+
+        // Startle Mauthner cell in r4
+        if let Some(startle) = &mut self.startle_r4 {
+            startle.update(body);
+
+            self.ss_forward = startle.ss_forward().max(self.ss_forward);
+            self.ss_left = startle.ss_left().max(self.ss_left);
+            self.ss_right = startle.ss_right().max(self.ss_right);
+
+            if self.action.allow_startle() {
+                if let Some(action) = startle.next_action() {
+                    self.action = action;
+                    self.send_action(body);
+                    return true;
+                }
+            }
+        }
+
+        false
+    }
+
+    ///
+    /// Voluntary movement
+    /// 
+    fn update_voluntary_move(&mut self, body: &mut Body) {
+        // S.nr top-down disable
+        if self.is_disable.value_or(false) {
+            return;
+        }
+
+        let mut turn = Turn::Unit(0.);
+        
+        // TODO: should be driven by outside such as H.sum
+        let mut kind = self.forward_r5.take();
+
+        // ARTR in ARS r3 has lowest-priority turn
+        if kind.is_random_turn() {
+            if let Some(oscillator) = &mut self.oscillator_r3 {
+                if let Some(next_turn) = oscillator.next_turn() {
+                    turn = next_turn;
+                }
+            }
+        }
+
+        // optic - nMLF
+        if let Some(optic_kind) = self.optic().action() {
+            kind = optic_kind;
+        }
+
+        let turn_mrs = self.turn_r6.take();
+
+        if turn_mrs.to_unit() != 0. {
+            turn = turn_mrs;
+        }
+        
+        // CPG can only change on certain phases
+        if self.action.allow_override(kind) {
+            if let Some(action) = kind.action(turn) {
+                self.action = action;
+            }
+        }
+
+        if self.action.is_active() {
+            self.send_action(body);
+        }
+    }
+
+    fn send_action(&mut self, body: &mut Body) {
+        let Action { speed, turn, timeout, elapsed, .. } = self.action;
+
+        let turn_per_tick = Turn::Unit(turn.to_unit() / timeout.ticks().max(1) as f32);
+
+        body.action(
+            speed, 
+            turn_per_tick,
+            Ticks(timeout.ticks() - elapsed.ticks())
+        );
+
+        self.mo_forward = speed;
+        let turn = turn.to_unit();
+
+        let turn_value = match self.action.kind {
+            MoveKind::Startle => 0.5 + 2. * turn.abs(),
+            MoveKind::Escape(_) => 0.75,
+            MoveKind::UTurn(_) => 0.75,
+            _ => (2. * turn.abs()).min(0.49),
+        };
+
+        if turn < -1.0e-3 {
+            self.mo_left = turn_value;
+        } else if turn > 1.0e-3 {
+            self.mo_right = turn_value;
+        }
     }
 
     //
@@ -709,14 +761,6 @@ impl MoveKind {
             }
         }
     }
-}
-
-fn update_hind_move(
-    mut hind_move: ResMut<HindMove>,
-    mut body: ResMut<Body>,
-    wake: Res<Motive<Wake>>,
-) {
-    hind_move.update(body.get_mut(), wake.get());
 }
 
 pub struct HindMovePlugin;

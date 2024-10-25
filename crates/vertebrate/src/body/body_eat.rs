@@ -30,6 +30,8 @@ use super::Body;
 //    water as independent taste
 
 pub struct BodyEat {
+    is_food: DecayValue,
+
     is_sweet: DecayValue,
     is_umami: DecayValue,
     is_bitter: DecayValue,
@@ -47,6 +49,11 @@ pub struct BodyEat {
 }
 
 impl BodyEat {
+    #[inline]
+    pub fn food(&self) -> f32 {
+        self.is_food.active_value()
+    }
+
     #[inline]
     pub fn sweet(&self) -> f32 {
         self.is_sweet.active_value()
@@ -66,6 +73,14 @@ impl BodyEat {
     #[inline]
     pub fn sated_cck(&self) -> f32 {
         self.sated_cck.active_value()
+    }
+
+    /// sated as measured by leptin
+    #[inline]
+    pub fn sated_leptin(&self) -> f32 {
+        // TODO: currently use single satiety measure. Multiple names
+        // to match actual receptors.
+        self.sated_cck()
     }
 
     #[inline]
@@ -114,6 +129,7 @@ impl BodyEat {
     /// Update the animal's eating and digestion
     /// 
     fn pre_update(&mut self) {
+        self.is_food.update();
         self.is_sweet.update();
         self.is_umami.update();
         self.is_bitter.update();
@@ -154,13 +170,15 @@ impl BodyEat {
                     FoodKind::None => {
                     }
                     FoodKind::Plain => {
-                        self.sated_cck.set_max_threshold();
+                        // self.sated_cck.set_max_threshold();
                         self.sated_cck.add(1.);
+                        self.is_food.set(1.);
                     }
                     FoodKind::Sweet => {
-                        self.sated_cck.set_max_threshold();
+                        // self.sated_cck.set_max_threshold();
                         self.sated_cck.add(1.);
                         self.is_sweet.set(1.);
+                        self.is_food.set(1.);
                     }
                     FoodKind::Bitter => {
                         self.is_bitter.set(1.);
@@ -168,8 +186,8 @@ impl BodyEat {
                     FoodKind::Sick => {
                     }
                 }
-            } else {
-                error!("Eating without food");
+            // } else {
+            //    error!("Eating without food");
             }
         }
     
@@ -180,6 +198,7 @@ impl BodyEat {
 impl Default for BodyEat {
     fn default() -> Self {
         Self {
+            is_food: DecayValue::new(Seconds(1.)),
             is_sweet: DecayValue::new(Seconds(1.)),
             is_umami: DecayValue::new(Seconds(1.)),
             is_bitter: DecayValue::new(Seconds(1.)),
