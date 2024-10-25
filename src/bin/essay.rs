@@ -39,14 +39,15 @@ pub fn main() {
         .odor_r(2, 4, 3, OdorType::FoodA)
         .loc_odor(2, 4, 3, OdorKind::A)
 
-        .odor_r(2, 10, 3, OdorType::FoodA)
+        // .odor_r(2, 10, 3, OdorType::FoodA)
+        .food_odor_r(2, 10, FoodKind::Plain, 3, OdorType::FoodA)
         .loc_odor(2, 10, 3, OdorKind::B)
 
         .odor_r(8, 4, 3, OdorType::FoodA)
         .loc_odor(8, 4, 3, OdorKind::A)
 
         .odor_r(8, 10, 3, OdorType::FoodA)
-        .loc_odor(8, 10, 3, OdorKind::A)
+        .loc_odor(8, 10, 3, OdorKind::B)
 
         .odor_r(14, 10, 3, OdorType::FoodA)
         .loc_odor(14, 10, 3, OdorKind::A)
