@@ -2,11 +2,11 @@ use essay_ecs::{
     app::{App, Plugin}, 
     core::ResMut
 };
-use log::info;
+
 use mind_ecs::Tick;
 
 use crate::{
-    body::{Body, BodyEat, BodyEatPlugin},
+    body::{BodyEat, BodyEatPlugin},
     util::{Seconds, Ticks, TimeoutValue} 
 };
 
@@ -59,7 +59,7 @@ fn update_hind_eat(
         hind_eat.is_eating.set(false);
     }
     
-    if ! hind_move.is_active() {
+    if ! hind_move.is_active() { // lateral inhibition
         hind_eat.update_eating(body_eat.get());
     }
 
@@ -161,9 +161,6 @@ impl HindEat {
     fn update_eating(&mut self, body_eat: &BodyEat) {
         if self.is_eat_request() {
             self.is_eating.set(true);
-        }
-
-        if self.is_eating() {
         }
 
         if self.is_eating() && body_eat.sated_leptin() <= 0. && body_eat.food() > 0. {

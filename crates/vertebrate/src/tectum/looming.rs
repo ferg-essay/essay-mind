@@ -64,26 +64,12 @@ fn looming_update(
     looming.light_mid.add(0.5 * (retina.light_left() + retina.light_right()));
 
     if looming.is_looming() {
-        /*
-        println!("Loom ({:.3}, {:.3}) {:.2} {:.2}({:.2}), {:.2}({:.2}))", 
-            looming.dim_left.value(), 
-            looming.dim_right.value(), 
-            looming.light_mid.value(),
-            retina.light_left() - looming.light_left.value(),
-            retina.light_left() - looming.light_mid.value(),
-            retina.light_right() - looming.light_right.value(),
-            retina.light_right() - looming.light_mid.value(),
-        );
-        */
-
         let light_mid = looming.light_mid.value();
         let left_dim = -(retina.light_left() - light_mid);
         let right_dim = -(retina.light_right() - light_mid);
-        //let left_dim = retina.light_left() - light_mid;
-        //let right_dim = retina.light_right() - light_mid;
+
         let sum = left_dim.max(0.) + right_dim.max(0.);
 
-        // println!("turn sum {:?} left {:?} right {:?}", sum, left_dim, right_dim);
         if sum * 0.75 < left_dim {
             hind_move.optic().escape(Turn::Unit(Looming::TURN));
             hind_move.set_ss_left(0.75);

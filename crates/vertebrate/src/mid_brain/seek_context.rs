@@ -28,6 +28,43 @@ use super::{MidMove, SeekInput};
 //
 
 
+fn update_seek<I: SeekInput, C: SeekContext, M: MotiveTrait>(
+    mut seek: ResMut<MidSeekContext<I, C>>,
+    mid_move: Res<MidMove>,
+    mut hind_move: ResMut<HindMove>,
+    mut avoid: ResMut<MotiveAvoid>,
+    input: Res<I>,
+    context: Res<C>,
+    motive: Res<Motive<M>>,
+    tick: Res<AppTick>,
+    mut motive_seek: ResMut<Motive<Seek>>,
+) {
+    // only act if motivated, such as Foraging
+    if ! motive.is_active() {
+        return;
+    }
+
+    if let Some(dir) = input.seek_dir() {
+        let context = context.context();
+
+        // seek until timeout
+        match seek.update(context, tick.get()) {
+            StriatumValue::Active => {
+                motive_seek.set_max(1.);
+        
+                mid_move.seek();
+
+                hind_move.turn(dir.dir().to_turn().to_unit() * 0.5);
+            }
+            StriatumValue::Avoid => {
+                avoid.avoid();
+            }
+            StriatumValue::None => {
+            }
+        }
+    }
+}
+
 pub struct MidSeekContext<I: SeekInput, C: SeekContext> {
     decay: Ticks,
 
@@ -109,43 +146,6 @@ impl<I: SeekInput, C: SeekContext, M: MotiveTrait> MidSeekContextPlugin<I, C, M>
         self.decay = value.into();
 
         self
-    }
-}
-
-fn update_seek<I: SeekInput, C: SeekContext, M: MotiveTrait>(
-    mut seek: ResMut<MidSeekContext<I, C>>,
-    mid_move: Res<MidMove>,
-    mut hind_move: ResMut<HindMove>,
-    mut avoid: ResMut<MotiveAvoid>,
-    input: Res<I>,
-    context: Res<C>,
-    motive: Res<Motive<M>>,
-    tick: Res<AppTick>,
-    mut motive_seek: ResMut<Motive<Seek>>,
-) {
-    // only act if motivated, such as Foraging
-    if ! motive.is_active() {
-        return;
-    }
-
-    if let Some(dir) = input.seek_dir() {
-        let context = context.context();
-
-        // seek until timeout
-        match seek.update(context, tick.get()) {
-            StriatumValue::Active => {
-                motive_seek.set_max(1.);
-        
-                mid_move.seek();
-
-                hind_move.turn(dir.dir().to_turn().to_unit() * 0.5);
-            }
-            StriatumValue::Avoid => {
-                avoid.avoid();
-            }
-            StriatumValue::None => {
-            }
-        }
     }
 }
 

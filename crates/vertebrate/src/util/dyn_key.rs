@@ -1,14 +1,16 @@
-use std::{any::Any, hash::{Hasher, Hash}};
+///
+/// See Bevy label.rs for original idea
+/// 
+use std::{hash::{Hash, Hasher}, any::Any};
 
-
-pub trait DynKey : 'static {
+pub trait DynLabel : 'static {
     fn as_any(&self) -> &dyn Any;
-    fn as_dyn_eq(&self) -> &dyn DynKey;
-    fn dyn_eq(&self, other: &dyn DynKey) -> bool;
+    fn as_dyn_eq(&self) -> &dyn DynLabel;
+    fn dyn_eq(&self, other: &dyn DynLabel) -> bool;
     fn dyn_hash(&self, state: &mut dyn Hasher);
 }
 
-impl<T> DynKey for T
+impl<T> DynLabel for T
 where
     T: Any + Eq + Hash
 {
@@ -16,11 +18,11 @@ where
         self
     }
 
-    fn as_dyn_eq(&self) -> &dyn DynKey {
+    fn as_dyn_eq(&self) -> &dyn DynLabel {
         self
     }
 
-    fn dyn_eq(&self, other: &dyn DynKey) -> bool {
+    fn dyn_eq(&self, other: &dyn DynLabel) -> bool {
         if let Some(other) = other.as_any().downcast_ref::<T>() {
             return self == other;
         }

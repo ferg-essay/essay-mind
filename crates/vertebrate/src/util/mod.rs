@@ -1,3 +1,4 @@
+pub mod dyn_key;
 mod base64;
 mod command;
 mod decay_value;

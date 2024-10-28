@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use essay_plot::api::{Colors, Point};
+use essay_plot::api::{Color, Colors, Point};
 use log::LevelFilter;
 use vertebrate::{
     body::{Body, BodyEat}, 
@@ -35,26 +35,25 @@ pub fn main() {
 
     app.plugin(TickSchedulePlugin::new().ticks(2));
 
-    let odor_r = 2;
+    // let odor_r = 2;
     app.plugin(world_roam(21, 15)
-        .odor_r(2, 4, odor_r, OdorType::FoodA)
+        //.food_odor_r(2, 4, FoodKind::Plain, odor_r, OdorType::FoodA)
         .loc_odor(2, 4, 3, OdorKind::A)
 
-        // .odor_r(2, 10, 3, OdorType::FoodA)
-        .food_odor_r(2, 10, FoodKind::Plain, odor_r, OdorType::FoodA)
+        //.food_odor_r(2, 10, FoodKind::Plain, odor_r, OdorType::FoodA)
         .loc_odor(2, 10, 3, OdorKind::B)
 
-        .food_odor_r(8, 4, FoodKind::Plain, odor_r, OdorType::FoodA)
+        //.food_odor_r(8, 4, FoodKind::Plain, odor_r, OdorType::FoodA)
         .loc_odor(8, 4, 3, OdorKind::A)
 
-        .food_odor_r(8, 10, FoodKind::Sweet, odor_r, OdorType::FoodA)
+        //.food_odor_r(8, 10, FoodKind::Sweet, odor_r, OdorType::FoodA)
         .loc_odor(8, 10, 3, OdorKind::B)
 
-        .food_odor_r(14, 10, FoodKind::Sweet, odor_r, OdorType::FoodA)
+        //.food_odor_r(14, 10, FoodKind::Sweet, odor_r, OdorType::FoodA)
         .loc_odor(14, 10, 3, OdorKind::A)
         // .odor_r(15, 5, 4, OdorType::FoodA)
 
-        .food_odor_r(14, 4, FoodKind::Plain, odor_r, OdorType::FoodA)
+        //.food_odor_r(14, 4, FoodKind::Plain, odor_r, OdorType::FoodA)
     );
 
     app.plugin(OlfactoryContextPlugin::<OdorKind>::new()
@@ -79,7 +78,7 @@ pub fn main() {
         .fov(util::Angle::Deg(120.))
         .eye_angle(util::Angle::Deg(45.));
 
-    animal.seek().seek(true);
+    animal.seek().seek(false);
 
     // animal.hind_eat();
 
@@ -252,10 +251,11 @@ fn ui_eat_flat(app: &mut App) {
     app.plugin(UiBodyPlugin); // ::new((0., 0.5), (0.25, 0.5)));
     app.plugin(UiBodyTrailPlugin);
 
+    let alpha = 0.25;
     let mut hex = UiWorldHexPlugin::new();
     hex.tile(OdorKind::None);
-    hex.tile(OdorKind::A).pattern(Pattern::CheckerBoard(8), "red");
-    hex.tile(OdorKind::B).pattern(Pattern::CheckerBoard(8), "teal");
+    hex.tile(OdorKind::A).pattern(Pattern::CheckerBoard(8), Color::from("red").set_alpha(alpha));
+    hex.tile(OdorKind::B).pattern(Pattern::CheckerBoard(8), Color::from("teal").set_alpha(alpha));
     hex.tile(OdorKind::C).pattern(Pattern::CheckerBoard(8), "orange");
 
     app.plugin(hex);

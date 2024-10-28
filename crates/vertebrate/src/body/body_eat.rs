@@ -1,5 +1,4 @@
 use essay_ecs::{app::{App, Plugin}, core::{Query, Res, ResMut}};
-use log::error;
 use mind_ecs::Tick;
 
 use crate::{
@@ -143,7 +142,7 @@ impl BodyEat {
         self.is_eating.update();
     }
 
-    fn update(&mut self, head_pos: Point, food: Query<&Food>) {
+    fn update(&mut self, head_pos: Point, food: Query<&mut Food>) {
         self.pre_update();
 
         // update gut values
@@ -164,26 +163,28 @@ impl BodyEat {
     
         if self.is_eating() {
             if let Some(food) = food.iter().find(|f| f.is_pos(head_pos)) {
-                self.gut_delay.set(food.kind());
+                if food.eat_probability() {
+                    self.gut_delay.set(food.kind());
     
-                match food.kind() {
-                    FoodKind::None => {
-                    }
-                    FoodKind::Plain => {
-                        // self.sated_cck.set_max_threshold();
-                        self.sated_cck.add(1.);
-                        self.is_food.set(1.);
-                    }
-                    FoodKind::Sweet => {
-                        // self.sated_cck.set_max_threshold();
-                        self.sated_cck.add(1.);
-                        self.is_sweet.set(1.);
-                        self.is_food.set(1.);
-                    }
-                    FoodKind::Bitter => {
-                        self.is_bitter.set(1.);
-                    }
-                    FoodKind::Sick => {
+                    match food.kind() {
+                        FoodKind::None => {
+                        }
+                        FoodKind::Plain => {
+                            // self.sated_cck.set_max_threshold();
+                            self.sated_cck.add(1.);
+                            self.is_food.set(1.);
+                        }
+                        FoodKind::Sweet => {
+                            // self.sated_cck.set_max_threshold();
+                            self.sated_cck.add(1.);
+                            self.is_sweet.set(1.);
+                            self.is_food.set(1.);
+                        }
+                        FoodKind::Bitter => {
+                            self.is_bitter.set(1.);
+                        }
+                        FoodKind::Sick => {
+                        }
                     }
                 }
             // } else {
@@ -220,7 +221,7 @@ impl Default for BodyEat {
 fn body_eat_update(
     mut body_eat: ResMut<BodyEat>,
     body: Res<Body>,
-    food: Query<&Food>,
+    food: Query<&mut Food>,
 ) {
     body_eat.update(body.head_pos(), food);
 }

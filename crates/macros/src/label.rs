@@ -41,3 +41,17 @@ pub fn derive_peptide_label(input: TokenStream) -> TokenStream {
         }
     })
 }
+
+pub fn derive_action_key(input: TokenStream) -> TokenStream {
+    let ast = parse_macro_input!(input as DeriveInput);
+
+    let name = &ast.ident;
+
+    TokenStream::from(quote! {
+        impl vertebrate::mid_brain::ActionKey for #name {
+            fn box_clone(&self) -> Box<dyn vertebrate::mid_brain::ActionKey> {
+                Box::new(Clone::clone(self))
+            }
+        }
+    })
+}

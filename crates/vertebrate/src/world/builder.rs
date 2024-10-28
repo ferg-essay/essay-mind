@@ -80,6 +80,15 @@ impl WorldPlugin {
         self
     }
 
+    pub fn food_mut(&mut self, x: usize, y: usize) -> &mut Food {
+        assert!(x < self.width);
+        assert!(y < self.height);
+
+        self.food.push(Food::new((x as f32 + 0.5, y as f32 + 0.5)));
+
+        self.food.last_mut().unwrap()
+    }
+
     pub fn food_kind(mut self, x: usize, y: usize, kind: impl Into<FoodKind>) -> Self {
         assert!(x < self.width);
         assert!(y < self.height);
