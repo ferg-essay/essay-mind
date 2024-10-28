@@ -27,7 +27,7 @@ impl Food {
         self
     }
 
-    pub(super) fn set_probability(mut self, p: f32) -> Self {
+    pub(super) fn _set_probability(mut self, p: f32) -> Self {
         self.probability = p;
 
         self

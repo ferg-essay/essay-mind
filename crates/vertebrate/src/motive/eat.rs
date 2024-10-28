@@ -3,7 +3,7 @@ use mind_ecs::Tick;
 
 use crate::{
     body::BodyEat, 
-    hind_brain::{HindEat, HindEatPlugin}, 
+    hind_brain::{HindEat, HindEatPlugin, Serotonin}, 
     motive::{Dwell, Eat, Motives, Sated}, 
     util::{Seconds, TimeoutValue}
 };
@@ -420,23 +420,24 @@ impl Default for MotiveEat {
 }
 
 fn update_eat(
-    mut eat: ResMut<MotiveEat>,
+    mut motive_eat: ResMut<MotiveEat>,
+    hind_eat: Res<HindEat>,
+    mut serotonin_eat: ResMut<Serotonin<HindEat>>,
     body_eat: Res<BodyEat>,
-    mut hind_eat: ResMut<HindEat>,
     sleep: Res<Sleep>,
 ) {
-    eat.pre_update();
+    motive_eat.pre_update();
 
-    eat.update_hunger(body_eat.get(), hind_eat.get(), sleep.get());
+    motive_eat.update_hunger(body_eat.get(), hind_eat.get(), sleep.get());
 
     if sleep.is_sleep()
-    || ! eat.is_food_zone()
-    || eat.is_alarm() {
+    || ! motive_eat.is_food_zone()
+    || motive_eat.is_alarm() {
         return;
     }
 
-    if ! eat.is_sated_gut() && ! eat.is_cgrp_bitter() {
-        hind_eat.eat();
+    if ! motive_eat.is_sated_gut() && ! motive_eat.is_cgrp_bitter() {
+        serotonin_eat.excite(1.);
     }
 
     // TODO: check current moving

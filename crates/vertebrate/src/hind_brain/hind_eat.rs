@@ -6,11 +6,10 @@ use essay_ecs::{
 use mind_ecs::Tick;
 
 use crate::{
-    body::{BodyEat, BodyEatPlugin},
-    util::{Seconds, Ticks, TimeoutValue} 
+    body::{BodyEat, BodyEatPlugin}, hind_brain::SerotoninManager, util::{Seconds, Ticks, TimeoutValue} 
 };
 
-use super::HindMove;
+use super::{HindMove, Serotonin, SerotoninTrait};
 
 // ## References
 // [Ahn et al 2020] R.nts dbh/th orexigenic. Gut (fat) -> N10 -> R.nts
@@ -52,29 +51,36 @@ fn update_hind_eat(
     mut hind_eat: ResMut<HindEat>,
     mut hind_move: ResMut<HindMove>,
     mut body_eat: ResMut<BodyEat>,
+    mut serotonin_eat: ResMut<Serotonin<HindEat>>,
 ) {
     hind_eat.pre_update();
 
     if hind_eat.is_stop_request() {
         hind_eat.is_eating.set(false);
     }
-    
-    if ! hind_move.is_active() { // lateral inhibition
-        hind_eat.update_eating(body_eat.get());
+
+    if serotonin_eat.is_active() && body_eat.sated_leptin() <= 0. && body_eat.food() > 0. {
+        serotonin_eat.excite(1.);
+    }
+
+    if serotonin_eat.is_active() {
+        hind_eat.is_eating.set(true);
     }
 
     if body_eat.sickness() > 0. {
         // rodent lack vomiting
         hind_eat.is_vomiting.set(true);
     } else if body_eat.bitter() > 0. {
-        // rodent gaping is in R.nts [cite]
+        // rodent gaping is in R.nts
         hind_eat.is_gaping.set(true);
     }
 
     // R.my blocking of movement while gaping or vomiting
     if hind_eat.is_vomiting() || hind_eat.is_gaping() {
         hind_move.halt();
-    } else if hind_eat.is_eating() {
+    } else if hind_move.is_active() {
+        // lateral inhibition
+    } else if serotonin_eat.is_active() {
         body_eat.eat();
     }
 }
@@ -88,7 +94,6 @@ fn update_hind_eat(
 ///   BodyEat already includes taste.
 /// 
 pub struct HindEat {
-    is_eat_request: TimeoutValue<bool>,
     is_stop_request: TimeoutValue<bool>,
 
     is_eating: TimeoutValue<bool>,
@@ -131,16 +136,6 @@ impl HindEat {
     } 
 
     #[inline]
-    pub fn eat(&mut self) {
-        self.is_eat_request.set(true);
-    }
-
-    #[inline]
-    fn is_eat_request(&self) -> bool {
-        self.is_eat_request.value_or(false)
-    } 
-
-    #[inline]
     pub fn stop(&mut self) {
         self.is_stop_request.set(true);
     }
@@ -154,25 +149,13 @@ impl HindEat {
         self.is_gaping.update();
         self.is_vomiting.update();
 
-        self.is_eat_request.update();
         self.is_stop_request.update();
-    }
-
-    fn update_eating(&mut self, body_eat: &BodyEat) {
-        if self.is_eat_request() {
-            self.is_eating.set(true);
-        }
-
-        if self.is_eating() && body_eat.sated_leptin() <= 0. && body_eat.food() > 0. {
-            self.is_eating.set(true);
-        }
     }
 }
 
 impl Default for HindEat {
     fn default() -> Self {
         Self {  
-            is_eat_request: TimeoutValue::new(Ticks(3)),
             is_stop_request: TimeoutValue::new(Seconds(1.)),
             is_eating: TimeoutValue::new(Seconds(2.)),
             is_gaping: TimeoutValue::new(Seconds(5.)),
@@ -181,6 +164,8 @@ impl Default for HindEat {
         }
     }
 }
+
+impl SerotoninTrait for HindEat {}
 
 pub struct HindEatPlugin {
     eat_time: Ticks,
@@ -198,11 +183,13 @@ impl Plugin for HindEatPlugin {
     fn build(&self, app: &mut App) {
         assert!(app.contains_plugin::<BodyEatPlugin>(), "HindEatPlugin requires BodyEatPlugin");
 
-        let mut eat = HindEat::default();
+        SerotoninManager::insert::<HindEat>(app, self.eat_time);
 
-        eat.is_eating = TimeoutValue::new(self.eat_time);
+        let mut hind_eat = HindEat::default();
 
-        app.insert_resource(eat);
+        hind_eat.is_eating = TimeoutValue::new(self.eat_time);
+
+        app.insert_resource(hind_eat);
 
         app.system(Tick, update_hind_eat);
     }

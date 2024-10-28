@@ -6,7 +6,7 @@ mod serotonin;
 mod startle;
 
 pub use hind_eat::{
-    HindEatPlugin, HindEat
+    HindEatPlugin, HindEat,
 };
 
 pub use hind_move::{

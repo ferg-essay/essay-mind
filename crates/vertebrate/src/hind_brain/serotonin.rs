@@ -1,4 +1,4 @@
-use std::{marker::PhantomData, ops::Deref, sync::atomic::{AtomicBool, AtomicU32, Ordering}};
+use std::{marker::PhantomData, ops::Deref};
 
 use essay_ecs::{app::{App, PreUpdate}, core::ResMut};
 
@@ -7,10 +7,10 @@ use crate::util::{DecayValue, HalfLife, Ticks};
 pub struct Serotonin<T: SerotoninTrait> {
     value: DecayValue,
 
-    excite: AtomicU32,
-    inhibit: AtomicU32,
-    max: AtomicU32,
-    is_clear: AtomicBool,
+    excite: f32,
+    inhibit: f32,
+    max: f32,
+    is_clear: bool,
 
     marker: PhantomData<T>,
 }
@@ -61,36 +61,30 @@ impl<T: SerotoninTrait> Serotonin<T> {
 
     #[inline]
     pub fn excite(&mut self, value: f32) {
-        let value = (value.clamp(0., 1.) * u16::MAX as f32) as u32;
-
-        self.excite.fetch_add(value, Ordering::Relaxed);
+        self.excite += value.clamp(0., 1.);
     }
 
     #[inline]
     pub fn inhibit(&mut self, value: f32) {
-        let value = (value.clamp(0., 1.) * u16::MAX as f32) as u32;
-
-        self.inhibit.fetch_add(value, Ordering::Relaxed);
+        self.inhibit += value.clamp(0., 1.);
     }
 
     #[inline]
     pub fn set_max(&mut self, value: f32) {
-        let value = (value.clamp(0., 1.) * u16::MAX as f32) as u32;
-
-        self.max.fetch_max(value, Ordering::Relaxed);
+        self.max = self.max.max(value).clamp(0., 1.);
     }
 
     fn update(&mut self) {
         self.value.update();
 
-        let excite = self.excite.swap(0, Ordering::SeqCst);
-        let inhibit = self.inhibit.swap(0, Ordering::SeqCst);
-        let max = self.max.swap(0, Ordering::SeqCst);
-        let is_clear = self.is_clear.swap(false, Ordering::SeqCst);
-
-        let excite = (excite as f32 / u16::MAX as f32).min(1.);
-        let inhibit = (inhibit as f32 / u16::MAX as f32).min(1.);
-        let max = (max as f32 / u16::MAX as f32).min(1.);
+        let excite = self.excite;
+        self.excite = 0.;
+        let inhibit = self.inhibit;
+        self.inhibit = 0.;
+        let max = self.max;
+        self.max = 0.;
+        let is_clear = self.is_clear;
+        self.is_clear = false;
 
         let delta = (excite - inhibit).clamp(0., 1.);
 

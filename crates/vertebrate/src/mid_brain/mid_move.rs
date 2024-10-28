@@ -6,7 +6,7 @@ use essay_ecs::{
 use mind_ecs::Tick;
 
 use crate::{
-    hind_brain::{HindEat, HindMove, HindMovePlugin}, 
+    hind_brain::{HindEat, HindMove, HindMovePlugin, Serotonin}, 
     motive::{Dwell, Motive, Wake}, 
     util::Command
 };
@@ -55,11 +55,12 @@ impl MidMove {
         _dwell: &Motive<Dwell>,
         hind_move: &mut HindMove,
         hind_eat: &mut HindEat,
+        serotonin_eat: &mut Serotonin<HindEat>,
     ) {
         for event in self.commands() {
             match event {
                 MidMoveEvent::Eat => {
-                    self.on_eat(hind_move, hind_eat);
+                    self.on_eat(hind_move, serotonin_eat);
                 },
                 MidMoveEvent::Roam => {
                     self.on_roam(hind_move, hind_eat);
@@ -110,11 +111,11 @@ impl MidMove {
     fn on_eat(
         &mut self, 
         hind_move: &mut HindMove,
-        hind_eat: &mut HindEat,
+        serotonin_eat: &mut Serotonin<HindEat>,
     ) {
         // H.stn managed transition waits for movement to stop before eat
         if hind_move.is_stop() {
-            hind_eat.eat();
+            serotonin_eat.excite(1.);
         } else {
             hind_move.halt();
         }
@@ -140,6 +141,7 @@ enum MidMoveEvent {
 fn update_mid_motor(
     mut mid_motor: ResMut<MidMove>,
     mut hind_eat: ResMut<HindEat>, 
+    mut serotonin_eat: ResMut<Serotonin<HindEat>>, 
     mut hind_move: ResMut<HindMove>, 
     wake: Res<Motive<Wake>>,
     dwell: Res<Motive<Dwell>>,
@@ -147,7 +149,12 @@ fn update_mid_motor(
     mid_motor.pre_update();
 
     if wake.is_active() {
-        mid_motor.update(dwell.get(), hind_move.get_mut(), hind_eat.get_mut());
+        mid_motor.update(
+            dwell.get(), 
+            hind_move.get_mut(), 
+            hind_eat.get_mut(),
+            serotonin_eat.get_mut(),
+        );
     } else {
         mid_motor.clear();
     }
