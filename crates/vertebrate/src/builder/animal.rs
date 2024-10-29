@@ -4,7 +4,7 @@ use mind_ecs::Tick;
 
 use crate::{
     body::{BodyEatPlugin, BodyPlugin}, 
-    hind_brain::{HindEat, HindEatPlugin, HindMovePlugin}, 
+    hind_brain::{HindEat, HindEatPlugin, HindMovePlugin, HindSearchPlugin}, 
     hippocampus::HippocampusPlugin, 
     mid_brain::{MidMovePlugin, MidSeekContextPlugin, MidSeekPlugin}, 
     motive::{Dwell, Forage, Motive, MotiveAvoidPlugin, MotiveEatPlugin, MotiveForagePlugin, MotiveSleepPlugin}, 
@@ -20,6 +20,7 @@ pub struct AnimalBuilder {
 
     hind_move: HindMovePlugin,
     hind_eat: HindEatPlugin,
+    hind_search: HindSearchPlugin,
 
     olfactory_bulb: OlfactoryBulbPlugin,
     olfactory_cortex: OlfactoryCortexPlugin,
@@ -40,6 +41,7 @@ impl AnimalBuilder {
 
             hind_move: HindMovePlugin,
             hind_eat: HindEatPlugin::new(),
+            hind_search: HindSearchPlugin::new(),
 
             olfactory_bulb: OlfactoryBulbPlugin::new(),
             olfactory_cortex: OlfactoryCortexPlugin::new(),
@@ -87,6 +89,7 @@ impl AnimalBuilder {
 
         app.plugin(self.hind_move);
         app.plugin(self.hind_eat);
+        app.plugin(self.hind_search);
 
         app.plugin(self.olfactory_bulb);
         app.plugin(self.retina);

@@ -6,7 +6,7 @@ use essay_ecs::{
 use mind_ecs::Tick;
 
 use crate::{
-    hind_brain::{HindEat, HindMove, HindMovePlugin, Serotonin}, 
+    hind_brain::{HindEat, HindMove, HindMovePlugin, HindSearch, Serotonin}, 
     motive::{Dwell, Motive, Wake}, 
     util::Command
 };
@@ -56,6 +56,7 @@ impl MidMove {
         hind_move: &mut HindMove,
         hind_eat: &mut HindEat,
         serotonin_eat: &mut Serotonin<HindEat>,
+        serotonin_search: &mut Serotonin<HindSearch>,
     ) {
         for event in self.commands() {
             match event {
@@ -63,7 +64,7 @@ impl MidMove {
                     self.on_eat(hind_move, serotonin_eat);
                 },
                 MidMoveEvent::Roam => {
-                    self.on_roam(hind_move, hind_eat);
+                    self.on_roam(hind_eat, serotonin_search);
                 }
                 MidMoveEvent::Avoid => {
                     self.on_avoid(hind_move, hind_eat);
@@ -77,12 +78,13 @@ impl MidMove {
 
     fn on_roam(
         &mut self, 
-        hind_move: &mut HindMove,
         hind_eat: &HindEat,
+        serotonin_search: &mut Serotonin<HindSearch>,
     ) {
         // H.stn managed transition waits for eat to stop before roam
         if ! hind_eat.is_eating() {
-            hind_move.roam();
+            // hind_move.roam();
+            serotonin_search.excite(1.);
         }
     }
 
@@ -142,6 +144,7 @@ fn update_mid_motor(
     mut mid_motor: ResMut<MidMove>,
     mut hind_eat: ResMut<HindEat>, 
     mut serotonin_eat: ResMut<Serotonin<HindEat>>, 
+    mut serotonin_search: ResMut<Serotonin<HindSearch>>, 
     mut hind_move: ResMut<HindMove>, 
     wake: Res<Motive<Wake>>,
     dwell: Res<Motive<Dwell>>,
@@ -154,6 +157,7 @@ fn update_mid_motor(
             hind_move.get_mut(), 
             hind_eat.get_mut(),
             serotonin_eat.get_mut(),
+            serotonin_search.get_mut(),
         );
     } else {
         mid_motor.clear();

@@ -20,7 +20,7 @@ impl OscillatorArs {
         }
     }
 
-    pub(super) fn next_turn(&mut self) -> Option<Turn> {
+    pub(super) fn _next_turn(&mut self) -> Option<Turn> {
         let mut rand = Rand32::new();
         // semi-brownian
         if rand.next_uniform() <= 0.5 {

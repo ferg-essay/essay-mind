@@ -257,6 +257,11 @@ impl HindMove {
         self.turn_r6.turn(turn.into());
     }
 
+    #[inline]
+    pub fn turn_if_new(&mut self, turn: impl Into<Turn>) {
+        self.turn_r6.turn_if_new(turn.into());
+    }
+
     //
     // tick updates
     //
@@ -318,23 +323,21 @@ impl HindMove {
         let mut kind = self.forward_r5.take();
 
         // ARTR in ARS r3 has lowest-priority turn
-        if kind.is_random_turn() {
-            if let Some(oscillator) = &mut self.oscillator_r3 {
-                if let Some(next_turn) = oscillator.next_turn() {
-                    turn = next_turn;
-                }
-            }
-        }
+        // if kind.is_random_turn() {
+        //     if let Some(oscillator) = &mut self.oscillator_r3 {
+        //         if let Some(next_turn) = oscillator.next_turn() {
+        //             turn = next_turn;
+        //         }
+        //     }
+        // }
 
         // optic - nMLF
         if let Some(optic_kind) = self.optic().action() {
             kind = optic_kind;
         }
 
-        let turn_mrs = self.turn_r6.take();
-
-        if turn_mrs.to_unit() != 0. {
-            turn = turn_mrs;
+        if let Some(turn_r6) = self.turn_r6.take() {
+            turn = turn_r6;
         }
         
         // CPG can only change on certain phases
@@ -550,25 +553,29 @@ impl ForwardMrs {
 }
 
 struct TurnMrs {
-    turn: Turn
+    turn: Option<Turn>
 }
 
 impl TurnMrs {
     fn new() -> Self {
         Self {
-            turn: Turn::Unit(0.),
+            turn: None,
         }
     }
 
     fn turn(&mut self, turn: Turn) {
-        self.turn = turn;
+        self.turn = Some(turn);
     }
 
-    fn take(&mut self) -> Turn {
-        let turn = self.turn;
-        self.turn = Turn::Unit(0.);
+    fn turn_if_new(&mut self, turn: Turn) {
+        if self.turn.is_none() {
+            self.turn = Some(turn);
 
-        turn
+        }
+    }
+
+    fn take(&mut self) -> Option<Turn> {
+        self.turn.take()
     }
 }
 
@@ -731,7 +738,7 @@ impl MoveKind {
         }
     }
 
-    fn is_random_turn(&self) -> bool {
+    fn _is_random_turn(&self) -> bool {
         match self {
             MoveKind::Roam => true,
             _ => false,
