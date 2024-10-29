@@ -69,7 +69,7 @@ fn looming_update(
         let right_dim = -(retina.light_right() - light_mid);
 
         let sum = left_dim.max(0.) + right_dim.max(0.);
-
+        
         if sum * 0.75 < left_dim {
             hind_move.optic().escape(Turn::Unit(Looming::TURN));
             hind_move.set_ss_left(0.75);

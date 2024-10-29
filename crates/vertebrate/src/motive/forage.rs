@@ -4,10 +4,7 @@ use essay_ecs::{
 };
 use mind_ecs::Tick;
 use crate::{
-    mid_brain::{MidMove, MidMovePlugin}, 
-    motive::eat::MotiveEatPlugin, 
-    olfactory::{OlfactoryCortex, OlfactoryCortexPlugin}, 
-    util::{DecayValue, Seconds}
+    hind_brain::{HindEat, HindSearch, Serotonin}, mid_brain::{MidMove, MidMovePlugin}, motive::eat::MotiveEatPlugin, olfactory::{OlfactoryCortex, OlfactoryCortexPlugin}, util::{DecayValue, Seconds}
 };
 
 use super::{
@@ -39,18 +36,20 @@ fn update_forage(
     mut forage: ResMut<Forage>,
     olfactory: Res<OlfactoryCortex>,
     mid_move: Res<MidMove>,
-    mut eat: ResMut<MotiveEat>,
+    mut motive_eat: ResMut<MotiveEat>,
     mut foraging: ResMut<Motive<Forage>>,
+    mut serotonin_eat: ResMut<Serotonin<HindEat>>,
+    mut serotonin_search: ResMut<Serotonin<HindSearch>>,
     sleep: Res<Sleep>,
 ) {
     forage.pre_update();
 
     if sleep.is_sleep() {
         return;
-    } else if eat.is_alarm() {
+    } else if motive_eat.is_alarm() {
         mid_move.avoid();
         return;
-    } else if eat.sated() > 0. {
+    } else if motive_eat.sated() > 0. {
         // TODO: roam not strictly justified, but w/o this the animal remains 
         // paused at the food
         mid_move.roam();
@@ -61,12 +60,16 @@ fn update_forage(
         // H.l food zone from olfactory
         foraging.clear();
 
-        eat.set_food_zone(true);
+        motive_eat.set_food_zone(true);
+        serotonin_eat.excite(1.);
+        serotonin_search.inhibit(1.);
     } else {
         foraging.set_max(1.);
 
         // H.sum activation for roaming
-        mid_move.roam();
+        // mid_move.roam();
+        serotonin_search.excite(1.);
+        serotonin_eat.excite(0.);
     }
 }
 pub struct Eat;

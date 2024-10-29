@@ -472,13 +472,13 @@ pub struct OpticMid {
 
 impl OpticMid {
     fn new() -> Self {
-        let mut escape = DecayValue::new(Ticks(1));
+        let mut escape = DecayValue::default();
         escape.set_threshold(0.4);
 
         Self {
             escape,
             escape_kind: MoveKind::None,
-            u_turn: DecayValue::new(Ticks(1)),
+            u_turn: DecayValue::default(),
         }
     }
 
@@ -499,7 +499,6 @@ impl OpticMid {
 
     fn action(&self) -> Option<MoveKind> {
         if self.escape.is_active() {
-            // println!("Escape {:?}", self.escape_kind);
             Some(self.escape_kind)
         } else {
             None
@@ -570,7 +569,6 @@ impl TurnMrs {
     fn turn_if_new(&mut self, turn: Turn) {
         if self.turn.is_none() {
             self.turn = Some(turn);
-
         }
     }
 

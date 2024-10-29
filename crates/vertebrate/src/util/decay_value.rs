@@ -135,6 +135,12 @@ impl DecayValue {
     }
 }
 
+impl Default for DecayValue {
+    fn default() -> Self {
+        Self::new(Ticks(3))
+    }
+}
+
 #[cfg(test)]
 mod test {
     use crate::util::{Seconds, Ticks};

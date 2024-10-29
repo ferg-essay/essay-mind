@@ -20,7 +20,8 @@ fn update_hind_search(
     hind_move.roam();
 
     if let Some(turn) = hind_search.next_turn() {
-        hind_move.turn(turn);
+        // hind search (ARTR) is low priority
+        hind_move.turn_if_new(turn);
     }
 }
 
