@@ -1,14 +1,16 @@
-use essay_ecs::{app::{App, Plugin, Startup}, core::{entity::EntityId, Commands, Component, Query}};
+use essay_ecs::{app::{App, Plugin, Startup}, core::{entity::EntityId, Commands, Component, Query, Res}};
 use log::warn;
 use mind_ecs::Tick;
 use util::random::Rand32;
 
-use crate::{util::Point, world::{Wall, World}};
+use crate::{util::{Point, Ticks}, world::World};
 
 use super::OdorKind;
 
-pub(super) fn update_food(
+fn update_food(
     query: Query<(EntityId, &Food)>,
+    world: Res<World>,
+    gen: Res<FoodGenerator>,
     mut command: Commands,
 ) {
     let mut food_count = 0;
@@ -16,12 +18,33 @@ pub(super) fn update_food(
     for (id, food) in query.iter() {
         if food.value <= 0. {
             command.entity(id).despawn();
-            food_count += 1;
         }
+
+        food_count += 1;
     }
 
-    if food_count > 0 {
-        warn!("Remove food {:?}", food_count);
+    while food_count < gen.count {
+        command.spawn(create_food(gen.get(), world.get()));
+        food_count += 1;
+    }
+}
+
+fn create_food(gen: &FoodGenerator, world: &World) -> Food {
+    let (width, height) = world.extent();
+
+    let mut rand = Rand32::new();
+
+    loop {
+        let x = (width - 1) as f32 * rand.next_uniform() + 0.5; 
+        let y = (height - 1) as f32 * rand.next_uniform() + 0.5; 
+
+        if ! world.is_collide((x, y)) {
+            let mut food = Food::new((x, y));
+            food.value = gen.value;
+            food.radius = gen.radius;
+
+            return food;
+        }
     }
 }
 
@@ -43,24 +66,6 @@ impl Food {
             radius: 0.4,
             probability: 1.,
         }
-    }
-
-    fn set_kind(&mut self, kind: FoodKind) -> &mut Self {
-        self.kind = kind;
-
-        self
-    }
-
-    fn set_probability(&mut self, p: f32) -> &mut Self {
-        self.probability = p;
-
-        self
-    }
-
-    fn set_radius(&mut self, r: f32) -> &mut Self {
-        self.radius = r;
-
-        self
     }
 
     #[inline]
@@ -111,14 +116,34 @@ impl Default for FoodKind {
         FoodKind::None
     }
 }
+
+#[derive(Clone)]
+struct FoodGenerator {
+    count: usize,
+    radius: f32,
+    value: f32,
+}
+
+impl Default for FoodGenerator {
+    fn default() -> Self {
+        Self { 
+            count: 0, 
+            radius: 1.,
+            value: f32::MAX,
+        }
+    }
+}
+
 pub struct FoodPlugin {
     food: Vec<Food>,
+    gen: FoodGenerator,
 }
 
 impl FoodPlugin {
     pub fn new() -> Self {
         Self {
             food: Vec::default(),
+            gen: FoodGenerator::default(),
         }
     }
 
@@ -141,35 +166,59 @@ impl FoodPlugin {
     }
 
     pub fn kind(&mut self, kind: impl Into<FoodKind>) -> &mut Self {
-        self.food.last_mut().unwrap().set_kind(kind.into());
+        self.food.last_mut().unwrap().kind = kind.into();
 
         self
     }
 
     pub fn radius(&mut self, r: f32) -> &mut Self {
-        self.food.last_mut().unwrap().set_radius(r);
+        self.food.last_mut().unwrap().radius = r;
 
         self
     }
 
     pub fn probability(&mut self, p: f32) -> &mut Self {
-        self.food.last_mut().unwrap().set_probability(p);
+        self.food.last_mut().unwrap().probability = p;
 
         self
     }
 
-    pub fn odor(&mut self, odor: OdorKind) -> &mut Self {
+    pub fn value(&mut self, value: f32) -> &mut Self {
+        self.food.last_mut().unwrap().value = value;
+
+        self
+    }
+
+    pub fn gen_count(&mut self, count: usize) -> &mut Self {
+        self.gen.count = count;
+
+        self
+    }
+
+    pub fn gen_radius(&mut self, r: f32) -> &mut Self {
+        self.gen.radius = r;
+
+        self
+    }
+
+    pub fn gen_value(&mut self, value: impl Into<Ticks>) -> &mut Self {
+        self.gen.value = value.into().ticks() as f32;
+
+        self
+    }
+
+    pub fn odor(&mut self, _odor: OdorKind) -> &mut Self {
         todo!();
         // self.food.last_mut().unwrap().odor(odor);
 
-        self
+        //self
     }
 
-    pub fn odor_r(&mut self, r: usize, odor: OdorKind) -> &mut Self {
+    pub fn odor_r(&mut self, _r: usize, _odor: OdorKind) -> &mut Self {
         todo!();
         // self.food.last_mut().unwrap().odor_r(odor, r);
 
-        self
+        //self
     }
 
     fn create_food(&self, app: &mut App) {
@@ -189,6 +238,8 @@ impl Plugin for FoodPlugin {
         assert!(app.contains_resource::<World>(), "FoodPlugin requires World");
 
         self.create_food(app);
+
+        app.insert_resource(self.gen.clone());
 
         app.system(Tick, update_food);
     }

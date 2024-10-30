@@ -28,9 +28,9 @@ use vertebrate::{
         ui_world_hex::{Pattern, UiWorldHexPlugin}, 
         ui_world_map::UiWorldPlugin
     }, 
-    util::{self}, 
+    util::{self, Seconds}, 
     world::{
-        FoodKind, FoodPlugin, OdorKind, OdorPlugin, Wall, World, WorldPlugin
+        FoodKind, FoodPlugin, OdorKind, OdorPlugin, World, WorldPlugin
     }
 };
 use essay_ecs::prelude::App;
@@ -63,7 +63,7 @@ pub fn main() {
     );
 
     let mut food = FoodPlugin::new();
-    food.food(5, 5).radius(2.);
+    food.gen_count(1).gen_radius(2.).gen_value(Seconds(10.));
     app.plugin(food);
 
     app.plugin(OdorPlacePlugin::<OdorKind>::new()
@@ -193,7 +193,7 @@ fn ui_eat(app: &mut App) {
     app.plugin(UiBodyTrailPlugin);
 
     app.plugin(UiTablePlugin::new((2., 0.7), (1., 0.3))
-        .p_item("p(food)", |w: &World<Wall>, b: &Body| 0.) // if b.eat().is_sensor_food() { 1. } else { 0. })
+        .p_item("p(food)", |w: &World, b: &Body| 0.) // if b.eat().is_sensor_food() { 1. } else { 0. })
     );
 
     app.plugin(UiHeatmapPlugin::new(((2., 0.), [1., 0.7])));
@@ -323,7 +323,7 @@ fn ui_chemotaxis(app: &mut App) {
     app.plugin(UiBodyTrailPlugin);
 
     app.plugin(UiTablePlugin::new((2., 0.7), (1., 0.3))
-        .p_item("p(food)", |w: &World<Wall>, b: &Body| 0.) // if b.eat().is_sensor_food() { 1. } else { 0. })
+        .p_item("p(food)", |w: &World, b: &Body| 0.) // if b.eat().is_sensor_food() { 1. } else { 0. })
     );
 
     app.plugin(UiHeatmapPlugin::new(((2., 0.), [1., 0.7])));
@@ -360,7 +360,7 @@ fn ui_phototaxis(app: &mut App) {
     app.plugin(UiBodyTrailPlugin);
 
     app.plugin(UiTablePlugin::new((2., 0.7), (1., 0.3))
-        .p_item("p(light)", |w: &World<Wall>, b: &Body| w.light(b.pos()))
+        .p_item("p(light)", |w: &World, b: &Body| w.light(b.pos()))
     );
 
     app.plugin(UiHeatmapPlugin::new(((2., 0.), [1., 0.7])));

@@ -1,6 +1,7 @@
 use essay_ecs::core::Query;
 use essay_ecs::prelude::*;
 use essay_graphics::layout::{Layout, View, ViewId};
+use essay_plot::artist::PathStyle;
 use essay_plot::{prelude::*, artist::paths};
 use essay_tensor::Tensor;
 use renderer::{Canvas, Drawable, Renderer};
@@ -9,6 +10,103 @@ use ui_graphics::{ui_layout::UiLayoutPlugin, UiCanvas, UiCanvasPlugin};
 use crate::world::{Food, FoodKind, Odor, OdorInnate, OdorKind, World, WorldPlugin};
 
 use crate::world::Wall;
+
+pub fn draw_world(
+    world: Res<World>, 
+    odors: Query<&Odor<OdorKind>>, 
+    foods: Query<&Food>,
+    mut ui_world: ResMut<UiWorld>, 
+    mut ui_canvas: ResMut<UiCanvas>
+) {
+    if ui_world.image.is_none() {
+        let mut vec = Vec::<[u8; 4]>::new();
+
+        for j in 0..ui_world.height {
+            for i in 0..ui_world.width {
+                vec.push(Color::from(&world[(i, j)]).to_rgba_vec());
+            }
+        }
+
+        let colors = Tensor::from(&vec);
+        let colors = colors.reshape([ui_world.height as usize, ui_world.width as usize, 4]);
+
+        let image = ui_canvas.create_image(colors);
+        ui_world.image = image.clone();
+        ui_world.view.write(|v| v.image = image);
+    }
+
+    // TODO: cache texture when unmodified
+    if let Some(mut ui) = ui_canvas.renderer() {
+        //let to_canvas = ui_world.to_canvas();
+
+        //if let Some(image) = &ui_world.image {
+        //    ui.draw_image(&ui_world.pos(), image.clone());
+        //    ui.flush();
+        //}
+
+        //ui.flush();
+        //ui_world.update(world.get(), ui.renderer());
+        //ui_world.draw(ui.renderer(), &to_canvas).unwrap();
+        //ui.flush();
+
+        let circle: Path<Canvas> = paths::circle().transform(&ui_world.to_canvas_scale());
+        let mut xy : Vec<[f32; 2]> = Vec::new();
+        let mut sizes : Vec<[f32; 2]> = Vec::new();
+        let colors : Vec<Color> = Vec::new();
+
+        for odor in odors.iter() {
+            xy.push([odor.x(), odor.y()]);
+            sizes.push([odor.r(), odor.r()]);
+
+            // colors.push(Color::from(odor.odor()).set_alpha(0.2));
+        }
+
+        let xy = ui_world.to_canvas().transform(&Tensor::from(xy));
+
+        if xy.len() > 0 {
+            ui.draw_markers(&circle, xy, sizes, &colors);
+        }
+
+        let mut xy : Vec<[f32; 2]> = Vec::new();
+        let mut sizes : Vec<[f32; 2]> = Vec::new();
+        let mut colors : Vec<u32> = Vec::new();
+
+        for food in foods.iter() {
+            let pos = food.pos();
+
+            xy.push([pos.x(), pos.y()]);
+            sizes.push([food.radius(), food.radius()]);
+
+            let color = match food.kind() {
+                FoodKind::None => Color::from("black"),
+                // FoodKind::Plain => Color::from("pumpkin orange"),
+                FoodKind::Plain => Color::from("teal"),
+                FoodKind::Sweet => Color::from("cherry red"),
+                FoodKind::Bitter => Color::from("mustard yellow"),
+                FoodKind::Sick => Color::from("brownish green"),
+            };
+            colors.push(color.to_rgba());
+        }
+
+        let food = UiFood {
+            xy: xy.into(),
+            sizes: sizes.into(),
+            colors: colors.into(),
+        };
+
+        ui_world.view.write(|v| v.food = Some(food));
+        /*
+        let xy = ui_world.to_canvas().transform(&Tensor::from(xy));
+
+        if xy.len() > 0 {
+            // ui.flush();
+            let star: Path<Canvas> = paths::unit_star(8, 0.6)
+                .transform(&ui_world.to_canvas_scale());
+            ui.draw_markers(&star, xy, sizes, &colors);
+        }
+        */
+    }
+}
 
 #[derive(Component)]
 pub struct UiWorld {
@@ -88,92 +186,10 @@ impl UiWorld {
 
 impl Coord for UiWorld {}
 
-pub fn draw_world(
-    world: Res<World>, 
-    odors: Query<&Odor<OdorKind>>, 
-    foods: Query<&Food>,
-    mut ui_world: ResMut<UiWorld>, 
-    mut ui_canvas: ResMut<UiCanvas>
-) {
-    if ui_world.image.is_none() {
-        let mut vec = Vec::<[u8; 4]>::new();
-
-        for j in 0..ui_world.height {
-            for i in 0..ui_world.width {
-                vec.push(Color::from(&world[(i, j)]).to_rgba_vec());
-            }
-        }
-
-        let colors = Tensor::from(&vec);
-        let colors = colors.reshape([ui_world.height as usize, ui_world.width as usize, 4]);
-
-        let image = ui_canvas.create_image(colors);
-        ui_world.image = image.clone();
-        ui_world.view.write(|v| v.image = image);
-    }
-
-    // TODO: cache texture when unmodified
-    if let Some(mut ui) = ui_canvas.renderer() {
-        //let to_canvas = ui_world.to_canvas();
-
-        //if let Some(image) = &ui_world.image {
-        //    ui.draw_image(&ui_world.pos(), image.clone());
-        //    ui.flush();
-        //}
-
-        //ui.flush();
-        //ui_world.update(world.get(), ui.renderer());
-        //ui_world.draw(ui.renderer(), &to_canvas).unwrap();
-        //ui.flush();
-
-        let circle: Path<Canvas> = paths::circle().transform(&ui_world.to_canvas_scale());
-        let mut xy : Vec<[f32; 2]> = Vec::new();
-        let mut sizes : Vec<[f32; 2]> = Vec::new();
-        let colors : Vec<Color> = Vec::new();
-
-        for odor in odors.iter() {
-            xy.push([odor.x(), odor.y()]);
-            sizes.push([odor.r(), odor.r()]);
-
-            // colors.push(Color::from(odor.odor()).set_alpha(0.2));
-        }
-
-        let xy = ui_world.to_canvas().transform(&Tensor::from(xy));
-
-        if xy.len() > 0 {
-            ui.draw_markers(&circle, xy, sizes, &colors);
-        }
-
-        let mut xy : Vec<[f32; 2]> = Vec::new();
-        let mut sizes : Vec<[f32; 2]> = Vec::new();
-        let mut colors : Vec<Color> = Vec::new();
-
-        for food in foods.iter() {
-            let pos = food.pos();
-
-            xy.push([pos.x(), pos.y()]);
-            sizes.push([food.radius(), food.radius()]);
-
-            let color = match food.kind() {
-                FoodKind::None => Color::from("black"),
-                // FoodKind::Plain => Color::from("pumpkin orange"),
-                FoodKind::Plain => Color::from("teal"),
-                FoodKind::Sweet => Color::from("cherry red"),
-                FoodKind::Bitter => Color::from("mustard yellow"),
-                FoodKind::Sick => Color::from("brownish green"),
-            };
-            colors.push(color);
-        }
-
-        let xy = ui_world.to_canvas().transform(&Tensor::from(xy));
-
-        if xy.len() > 0 {
-            // ui.flush();
-            let star: Path<Canvas> = paths::unit_star(8, 0.6)
-                .transform(&ui_world.to_canvas_scale());
-            ui.draw_markers(&star, xy, sizes, &colors);
-        }
-    }
+struct UiFood {
+    xy: Tensor,
+    sizes: Tensor,
+    colors: Tensor<u32>,
 }
 
 impl From<&Wall> for Color {
@@ -214,8 +230,12 @@ struct UiWorldView {
 
     clip: Clip,
     to_canvas: Affine2d,
+    to_canvas_view: Affine2d,
 
     image: Option<ImageId>,
+    food: Option<UiFood>,
+
+    food_x: f32,
 }
 
 impl UiWorldView {
@@ -225,9 +245,12 @@ impl UiWorldView {
             pos: Bounds::zero(),
 
             image: None,
+            food: None,
+            food_x: 0.,
 
             clip: Clip::None,
             to_canvas: Affine2d::eye(),
+            to_canvas_view: Affine2d::eye(),
         }
     }
 }
@@ -237,6 +260,23 @@ impl Drawable for UiWorldView {
         // todo!()
         if let Some(image) = &self.image {
             renderer.draw_image_ref(&self.pos, image.clone())?;
+        }
+
+        if let Some(food) = &self.food {
+            if food.xy.len() > 0 {
+                //println!("XY {:?}", food.xy);
+                let xy = &self.to_canvas.transform(&food.xy);
+
+                let star: Path<Canvas> = paths::unit_star(8, 0.6)
+                    .transform(&self.to_canvas_view);
+
+                if self.food_x != food.xy[0] {
+                    self.food_x = food.xy[0];
+                }
+                let style = PathStyle::new();
+                renderer.draw_markers(&star, &xy, &food.sizes, &food.colors, &style)?;
+        
+            }
         }
 
         Ok(())
@@ -276,7 +316,9 @@ impl Drawable for UiWorldView {
 
         self.pos = pos;
         self.clip = Clip::from(&self.pos);
+        let extent = Bounds::<Canvas>::from([xmin + c_width, ymin + c_height]);
         self.to_canvas = self.bounds.affine_to(&self.pos);
+        self.to_canvas_view = self.bounds.affine_to(&extent);
 
         self.pos.clone()
     }
