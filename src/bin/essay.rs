@@ -5,7 +5,7 @@ use log::LevelFilter;
 use vertebrate::{
     body::{Body, BodyEat}, 
     builder::AnimalBuilder, 
-    hind_brain::{HindEat, HindMove, MoveKind}, 
+    hind_brain::{HindEat, HindMove, HindSearch, MoveKind, Serotonin}, 
     motive::{
         Dwell, Forage, Motive, MotiveEat, MotiveTrait, Sleep, Wake
     }, 
@@ -63,7 +63,7 @@ pub fn main() {
     );
 
     let mut food = FoodPlugin::new();
-    food.gen_count(1).gen_radius(2.).gen_value(Seconds(10.));
+    food.gen_count(1).gen_radius(2.).gen_value(Seconds(120.)).gen_kind(FoodKind::Poor);
     app.plugin(food);
 
     app.plugin(OdorPlacePlugin::<OdorKind>::new()
@@ -253,6 +253,9 @@ fn ui_motive(app: &mut App, xy: impl Into<Point>, wh: impl Into<Point>) {
         .item(Emoji::Lemon, |m: &BodyEat| m.bitter())
         .item(Emoji::FaceVomiting, |m: &BodyEat| m.sickness())
         // .item(Emoji::FaceAstonished, |m: &Motive<Hunger>| m.value())
+        .row()
+        .item(Emoji::FaceCowboy, |m: &Serotonin<HindSearch>| m.active_value())
+        .item(Emoji::ForkAndKnife, |m: &Serotonin<HindEat>| m.active_value())
     );
 }
 

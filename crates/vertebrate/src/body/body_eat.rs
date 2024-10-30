@@ -148,6 +148,7 @@ impl BodyEat {
         // update gut values
         match self.gut_delay.value() {
             FoodKind::None => {},
+            FoodKind::Poor => {},
             FoodKind::Plain => {
                 self.gut_glucose.add(1.);
             },
@@ -168,6 +169,8 @@ impl BodyEat {
     
                     match food.kind() {
                         FoodKind::None => {
+                        }
+                        FoodKind::Poor => {
                         }
                         FoodKind::Plain => {
                             self.sated_cck.add(1.);

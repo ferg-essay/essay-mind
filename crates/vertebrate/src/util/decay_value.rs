@@ -19,7 +19,7 @@ impl DecayValue {
 
         Self {
             decay,
-            fill: 1. - decay,
+            fill: 1., // default fill immediately //  - decay,
             threshold: 0.5,
             rest_value: 0.,
             value: 0.,

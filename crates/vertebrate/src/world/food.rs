@@ -42,6 +42,7 @@ fn create_food(gen: &FoodGenerator, world: &World) -> Food {
             let mut food = Food::new((x, y));
             food.value = gen.value;
             food.radius = gen.radius;
+            food.kind = gen.kind;
 
             return food;
         }
@@ -105,6 +106,7 @@ impl Food {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum FoodKind {
     None,
+    Poor,
     Plain,
     Sweet,
     Bitter,
@@ -122,6 +124,7 @@ struct FoodGenerator {
     count: usize,
     radius: f32,
     value: f32,
+    kind: FoodKind,
 }
 
 impl Default for FoodGenerator {
@@ -130,6 +133,7 @@ impl Default for FoodGenerator {
             count: 0, 
             radius: 1.,
             value: f32::MAX,
+            kind: FoodKind::Plain,
         }
     }
 }
@@ -203,6 +207,12 @@ impl FoodPlugin {
 
     pub fn gen_value(&mut self, value: impl Into<Ticks>) -> &mut Self {
         self.gen.value = value.into().ticks() as f32;
+
+        self
+    }
+
+    pub fn gen_kind(&mut self, kind: impl Into<FoodKind>) -> &mut Self {
+        self.gen.kind = kind.into();
 
         self
     }
