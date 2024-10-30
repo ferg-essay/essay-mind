@@ -12,7 +12,7 @@ use essay_tensor::Tensor;
 use mind_ecs::Tick;
 use image::Pixel;
 
-use crate::{body::Body, util::{Angle, Heading}, world::{World, WorldCell}};
+use crate::{body::Body, util::{Angle, Heading}, world::{World, Wall}};
 
 pub struct Retina {
     width: u32,
@@ -99,7 +99,7 @@ impl Retina {
         self.brighten_right
     }
 
-    fn startup(&mut self, world: &World) {
+    fn startup(&mut self, world: &World<Wall>) {
         let mut startup = RetinaStartup {
             world,
             form_id: None,
@@ -157,7 +157,7 @@ impl Retina {
 }
 
 struct RetinaStartup<'a> {
-    world: &'a World,
+    world: &'a World<Wall>,
     form_id: Option<FormId>,
 }
 
@@ -173,7 +173,7 @@ impl Drawable for RetinaStartup<'_> {
     }
 }
 
-pub fn world_form(renderer: &mut dyn Renderer, world: &World) -> FormId {
+pub fn world_form(renderer: &mut dyn Renderer, world: &World<Wall>) -> FormId {
     let mut form = Form::new();
         
     form.texture(renderer.create_texture_rgba8(&texture_colors(&[
@@ -239,10 +239,10 @@ pub fn world_form(renderer: &mut dyn Renderer, world: &World) -> FormId {
     for j in 0..height {
         for i in 0..width {
             match world[(i, j)] {
-                WorldCell::Food => {
+                Wall::Food => {
                     floor(&mut form, (i as f32, j as f32), (i as f32 + 1., j as f32 + 1.), c_food);                    
                 },
-                WorldCell::Wall => {
+                Wall::Wall => {
                     wall(&mut form, (i as f32, j as f32), (i as f32, j as f32 + 1.), c_n);                    
                     wall(&mut form, (i as f32 + 1., j as f32), (i as f32 + 1., j as f32 + 1.), c_s);                    
                     wall(&mut form, (i as f32, j as f32), (i as f32 + 1., j as f32), c_e);                    
@@ -251,7 +251,7 @@ pub fn world_form(renderer: &mut dyn Renderer, world: &World) -> FormId {
                     floor(&mut form, (i as f32, j as f32), (i as f32 + 1., j as f32 + 1.), c_k);                    
                     roof(&mut form, (i as f32, j as f32), (i as f32 + 1., j as f32 + 1.), c_k);                    
                 },
-                WorldCell::Empty => {
+                Wall::Empty => {
                     if (i + j) % 2 == 0 {
                         floor(&mut form, (i as f32, j as f32), (i as f32 + 1., j as f32 + 1.), c_gl);                    
                     } else {
@@ -259,8 +259,8 @@ pub fn world_form(renderer: &mut dyn Renderer, world: &World) -> FormId {
 
                     }
                 },
-                WorldCell::FloorLight => {},
-                WorldCell::FloorDark => {},
+                Wall::FloorLight => {},
+                Wall::FloorDark => {},
             }
         }
     }
@@ -269,7 +269,7 @@ pub fn world_form(renderer: &mut dyn Renderer, world: &World) -> FormId {
 }
 
 fn retina_startup(
-    world: Res<World>,
+    world: Res<World<Wall>>,
     mut retina: ResMut<Retina>,
 ) {
     retina.startup(world.as_ref());

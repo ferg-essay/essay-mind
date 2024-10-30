@@ -3,10 +3,10 @@ use std::ops::{Index, IndexMut};
 use crate::util::Point;
 
 pub struct WorldHex<K> {
-    vec: Vec<HexItem<K>>,
-
     width: usize,
     height: usize,
+
+    vec: Vec<HexItem<K>>,
 
     scale: f32,
 
@@ -97,21 +97,5 @@ impl<K: Default> Default for HexItem<K> {
         Self { 
             kind: Default::default(),
         }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub enum OdorKind {
-    None,
-    A,
-    B,
-    C,
-    D,
-    Bogus,
-}
-
-impl Default for OdorKind {
-    fn default() -> Self {
-        OdorKind::None
     }
 }

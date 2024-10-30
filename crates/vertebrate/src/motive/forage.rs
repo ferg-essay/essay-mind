@@ -4,7 +4,7 @@ use essay_ecs::{
 };
 use mind_ecs::Tick;
 use crate::{
-    hind_brain::{HindEat, HindSearch, Serotonin}, mid_brain::{MidMove, MidMovePlugin}, motive::eat::MotiveEatPlugin, olfactory::{OlfactoryCortex, OlfactoryCortexPlugin}, util::{DecayValue, Seconds}
+    hind_brain::{HindEat, HindSearch, Serotonin}, mid_brain::{MidMove, MidMovePlugin}, motive::eat::MotiveEatPlugin, olfactory::{OdorCortex, OlfactoryCortexPlugin}, util::{DecayValue, Seconds}
 };
 
 use super::{
@@ -34,7 +34,7 @@ impl Forage {
 
 fn update_forage(
     mut forage: ResMut<Forage>,
-    olfactory: Res<OlfactoryCortex>,
+    odor_cortex: Res<OdorCortex>,
     mid_move: Res<MidMove>,
     mut motive_eat: ResMut<MotiveEat>,
     mut foraging: ResMut<Motive<Forage>>,
@@ -56,13 +56,16 @@ fn update_forage(
         return;
     }
     
-    if olfactory.is_food_zone() {
+    if odor_cortex.is_food_zone() {
         // H.l food zone from olfactory
         foraging.clear();
 
-        motive_eat.set_food_zone(true);
         serotonin_eat.excite(1.);
         serotonin_search.inhibit(1.);
+
+        // TODO: remove/merge motive_eat food zone because redundant with
+        // serotonin
+        motive_eat.set_food_zone(true);
     } else {
         foraging.set_max(1.);
 

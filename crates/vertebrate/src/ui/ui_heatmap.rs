@@ -8,7 +8,7 @@ use essay_plot::{
 use essay_tensor::Tensor;
 use mind_ecs::PostTick;
 use ui_graphics::UiCanvas;
-use crate::world::World;
+use crate::world::{Wall, World};
 use crate::body::Body;
 use crate::ui::ui_world_map::UiWorldPlugin;
 
@@ -84,7 +84,7 @@ impl Plugin for UiHeatmapPlugin {
             if let Some(ui_canvas) = app.get_mut_resource::<UiCanvas>() {
                 let graph = ui_canvas.chart(&self.pos);
 
-                let world = app.resource::<World>();
+                let world = app.resource::<World<Wall>>();
                 app.insert_resource(UiHeatmap::new(graph, world.extent()));
 
                 app.system(PostTick, ui_heatmap_update);

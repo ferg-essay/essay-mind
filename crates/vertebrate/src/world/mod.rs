@@ -6,12 +6,12 @@ mod world;
 
 pub use builder::WorldPlugin;
 
-pub use food::{Food, FoodKind};
+pub use food::{Food, FoodKind, FoodPlugin};
 
-pub use world_hex::{HexItem, WorldHex, OdorKind};
+pub use world_hex::{HexItem, WorldHex};
 
-pub use odor::{Odor, OdorType};
+pub use odor::{Odor, OdorInnate, OdorType, OdorKind, OdorPlugin};
 
 pub use world::{
-    FloorType, World, WorldCell
+    FloorType, World, Wall
 };

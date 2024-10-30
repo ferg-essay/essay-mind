@@ -9,17 +9,28 @@ use vertebrate::{
     motive::{
         Dwell, Forage, Motive, MotiveEat, MotiveTrait, Sleep, Wake
     }, 
-    olfactory::{olfactory_bulb::OlfactoryBulb, olfactory_context::OlfactoryContextPlugin}, 
+    olfactory::{odor_place::OdorPlacePlugin, olfactory_bulb::OlfactoryBulb}, 
     taxis::{
         chemotaxis::Chemotaxis, 
         phototaxis::Phototaxis
     }, 
     ui::{
-        ui_attention::UiAttentionPlugin, ui_body::{UiBodyPlugin, UiBodyTrailPlugin}, ui_emoji::Emoji, ui_graph::UiGraphPlugin, ui_heatmap::UiHeatmapPlugin, ui_homunculus::UiHomunculusPlugin, ui_motive::UiMotivePlugin, ui_peptide::UiPeptidePlugin, ui_retina::UiRetinaPlugin, ui_table::UiTablePlugin, ui_world_hex::{Pattern, UiWorldHexPlugin}, ui_world_map::UiWorldPlugin
+        ui_attention::UiAttentionPlugin, 
+        ui_body::{UiBodyPlugin, UiBodyTrailPlugin}, 
+        ui_emoji::Emoji, 
+        ui_graph::UiGraphPlugin, 
+        ui_heatmap::UiHeatmapPlugin, 
+        ui_homunculus::UiHomunculusPlugin, 
+        ui_motive::UiMotivePlugin, 
+        ui_peptide::UiPeptidePlugin, 
+        ui_retina::UiRetinaPlugin, 
+        ui_table::UiTablePlugin, 
+        ui_world_hex::{Pattern, UiWorldHexPlugin}, 
+        ui_world_map::UiWorldPlugin
     }, 
     util::{self}, 
     world::{
-        FoodKind, OdorKind, OdorType, World, WorldPlugin
+        FoodKind, FoodPlugin, OdorKind, OdorPlugin, Wall, World, WorldPlugin
     }
 };
 use essay_ecs::prelude::App;
@@ -36,31 +47,31 @@ pub fn main() {
     app.plugin(TickSchedulePlugin::new().ticks(2));
 
     // let odor_r = 2;
-    app.plugin(world_roam(21, 15)
-        //.food_odor_r(2, 4, FoodKind::Plain, odor_r, OdorType::FoodA)
-        .loc_odor(2, 4, 3, OdorKind::A)
+    app.plugin(world_roam(15, 11)
+        //.loc_odor(2, 4, 3, OdorKind::FoodA)
 
-        //.food_odor_r(2, 10, FoodKind::Plain, odor_r, OdorType::FoodA)
-        .loc_odor(2, 10, 3, OdorKind::B)
+        //.loc_odor(2, 10, 3, OdorKind::FoodB)
 
-        //.food_odor_r(8, 4, FoodKind::Plain, odor_r, OdorType::FoodA)
-        .loc_odor(8, 4, 3, OdorKind::A)
+        //.loc_odor(8, 4, 3, OdorKind::FoodA)
 
-        //.food_odor_r(8, 10, FoodKind::Sweet, odor_r, OdorType::FoodA)
-        .loc_odor(8, 10, 3, OdorKind::B)
+        //.loc_odor(8, 10, 3, OdorKind::FoodB)
 
-        //.food_odor_r(14, 10, FoodKind::Sweet, odor_r, OdorType::FoodA)
-        .loc_odor(14, 10, 3, OdorKind::A)
+        //.loc_odor(14, 10, 3, OdorKind::FoodA)
         // .odor_r(15, 5, 4, OdorType::FoodA)
 
         //.food_odor_r(14, 4, FoodKind::Plain, odor_r, OdorType::FoodA)
     );
 
-    app.plugin(OlfactoryContextPlugin::<OdorKind>::new()
-        .add(OdorKind::A, "a")
-        .add(OdorKind::B, "b")
-        .add(OdorKind::C, "c")
-        .add(OdorKind::D, "d")
+    let mut food = FoodPlugin::new();
+    food.food(5, 5).radius(2.);
+    app.plugin(food);
+
+    app.plugin(OdorPlacePlugin::<OdorKind>::new()
+        .add(OdorKind::FoodA, "a")
+        .add(OdorKind::FoodB, "b")
+        .add(OdorKind::AvoidA, "c")
+        .add(OdorKind::AvoidB, "d")
+        .add(OdorKind::OtherA, "e")
     );
 
     //app.plugin(world_roam(21, 15)
@@ -70,8 +81,8 @@ pub fn main() {
     let mut animal = AnimalBuilder::new();
 
     animal.olfactory()
-        .odor(OdorType::FoodA)
-        .odor(OdorType::FoodB);
+        .odor(OdorKind::FoodA)
+        .odor(OdorKind::FoodB);
 
     animal.retina()
         .size(8)
@@ -130,9 +141,16 @@ pub fn world_food_and_non_food(app: &mut App) {
         //.wall(((w - 1) / 2, h - h1), (2, h1))
         //.floor((0, 0), (w1, h), FloorType::Light)
         //.floor((w2, 0), (w - w2, h), FloorType::Dark)
-        .food_odor_r(5, 5, FoodKind::Sweet, 4, OdorType::FoodA)
-        .odor_r(15, 5, 4, OdorType::FoodA)
+        //.food_odor_r(5, 5, FoodKind::Sweet, 4, OdorKind::FoodA)
     );
+
+    let mut food = FoodPlugin::new();
+    food.food(5, 5).kind(FoodKind::Sweet).odor_r(4, OdorKind::FoodA);
+    app.plugin(food);
+
+    let mut odor = OdorPlugin::new();
+    odor.odor_r(15, 5, 4, OdorKind::FoodA);
+    app.plugin(odor);
 }
 
 pub fn world_odor(app: &mut App) {
@@ -150,9 +168,17 @@ pub fn world_odor(app: &mut App) {
         //.wall(((w - 1) / 2, h - h1), (2, h1))
         //.floor((0, 0), (w1, h), FloorType::Light)
         //.floor((w2, 0), (w - w2, h), FloorType::Dark)
-        .food_odor_r(5, 5, FoodKind::Sweet, 4, OdorType::FoodA)
-        .odor_r(9, 5, 4, OdorType::FoodB)
+        // .food_odor_r(5, 5, FoodKind::Sweet, 4, OdorKind::FoodA)
+        //.odor_r(9, 5, 4, OdorKind::FoodB)
     );
+
+    let mut food = FoodPlugin::new();
+    food.food(5, 5).kind(FoodKind::Sweet).odor_r(4, OdorKind::FoodA);
+    app.plugin(food);
+
+    let mut odor = OdorPlugin::new();
+    odor.odor_r(15, 5, 4, OdorKind::FoodA);
+    app.plugin(odor);
 }
 
 
@@ -167,7 +193,7 @@ fn ui_eat(app: &mut App) {
     app.plugin(UiBodyTrailPlugin);
 
     app.plugin(UiTablePlugin::new((2., 0.7), (1., 0.3))
-        .p_item("p(food)", |w: &World, b: &Body| 0.) // if b.eat().is_sensor_food() { 1. } else { 0. })
+        .p_item("p(food)", |w: &World<Wall>, b: &Body| 0.) // if b.eat().is_sensor_food() { 1. } else { 0. })
     );
 
     app.plugin(UiHeatmapPlugin::new(((2., 0.), [1., 0.7])));
@@ -187,8 +213,8 @@ fn ui_eat(app: &mut App) {
     app.plugin(UiAttentionPlugin::new((2.0, 1.0), (0.5, 0.5))
         .colors(odor_colors)
         // .item("v", |p: &Phototaxis| p.value())
-        .item(|ob: &OlfactoryBulb| ob.value_pair(OdorType::FoodA))
-        .item(|ob: &OlfactoryBulb| ob.value_pair(OdorType::FoodB))
+        .item(|ob: &OlfactoryBulb| ob.value_pair(OdorKind::FoodA))
+        .item(|ob: &OlfactoryBulb| ob.value_pair(OdorKind::FoodB))
     );
 
     ui_motive(app, (2.0, 1.5), (0.5, 0.5));
@@ -254,9 +280,9 @@ fn ui_eat_flat(app: &mut App) {
     let alpha = 0.25;
     let mut hex = UiWorldHexPlugin::new();
     hex.tile(OdorKind::None);
-    hex.tile(OdorKind::A).pattern(Pattern::CheckerBoard(8), Color::from("red").set_alpha(alpha));
-    hex.tile(OdorKind::B).pattern(Pattern::CheckerBoard(8), Color::from("teal").set_alpha(alpha));
-    hex.tile(OdorKind::C).pattern(Pattern::CheckerBoard(8), "orange");
+    hex.tile(OdorKind::FoodA).pattern(Pattern::CheckerBoard(8), Color::from("red").set_alpha(alpha));
+    hex.tile(OdorKind::FoodB).pattern(Pattern::CheckerBoard(8), Color::from("teal").set_alpha(alpha));
+    hex.tile(OdorKind::OtherA).pattern(Pattern::CheckerBoard(8), "orange");
 
     app.plugin(hex);
 
@@ -272,8 +298,8 @@ fn ui_eat_flat(app: &mut App) {
     app.plugin(UiAttentionPlugin::new((2.5, 0.), (0.5, 0.5))
         .colors(odor_colors)
         // .item("v", |p: &Phototaxis| p.value())
-        .item(|ob: &OlfactoryBulb| ob.value_pair(OdorType::FoodA))
-        .item(|ob: &OlfactoryBulb| ob.value_pair(OdorType::FoodB))
+        .item(|ob: &OlfactoryBulb| ob.value_pair(OdorKind::FoodA))
+        .item(|ob: &OlfactoryBulb| ob.value_pair(OdorKind::FoodB))
     );
 
     // app.plugin(UiHeatmapPlugin::new(((2.0, -0.5), [1.0, 0.5])));
@@ -297,7 +323,7 @@ fn ui_chemotaxis(app: &mut App) {
     app.plugin(UiBodyTrailPlugin);
 
     app.plugin(UiTablePlugin::new((2., 0.7), (1., 0.3))
-        .p_item("p(food)", |w: &World, b: &Body| 0.) // if b.eat().is_sensor_food() { 1. } else { 0. })
+        .p_item("p(food)", |w: &World<Wall>, b: &Body| 0.) // if b.eat().is_sensor_food() { 1. } else { 0. })
     );
 
     app.plugin(UiHeatmapPlugin::new(((2., 0.), [1., 0.7])));
@@ -317,8 +343,8 @@ fn ui_chemotaxis(app: &mut App) {
     app.plugin(UiAttentionPlugin::new((2.0, 1.0), (0.5, 1.))
         .colors(odor_colors)
         // .item("v", |p: &Phototaxis| p.value())
-        .item(|ob: &OlfactoryBulb| ob.value_pair(OdorType::FoodA))
-        .item(|ob: &OlfactoryBulb| ob.value_pair(OdorType::FoodB))
+        .item(|ob: &OlfactoryBulb| ob.value_pair(OdorKind::FoodA))
+        .item(|ob: &OlfactoryBulb| ob.value_pair(OdorKind::FoodB))
     );
 
     app.plugin(UiMotivePlugin::new((2.5, 1.), (0.5, 1.)));
@@ -334,7 +360,7 @@ fn ui_phototaxis(app: &mut App) {
     app.plugin(UiBodyTrailPlugin);
 
     app.plugin(UiTablePlugin::new((2., 0.7), (1., 0.3))
-        .p_item("p(light)", |w: &World, b: &Body| w.light(b.pos()))
+        .p_item("p(light)", |w: &World<Wall>, b: &Body| w.light(b.pos()))
     );
 
     app.plugin(UiHeatmapPlugin::new(((2., 0.), [1., 0.7])));

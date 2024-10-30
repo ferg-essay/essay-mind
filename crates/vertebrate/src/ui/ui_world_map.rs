@@ -6,9 +6,9 @@ use essay_tensor::Tensor;
 use renderer::{Canvas, Drawable, Renderer};
 use ui_graphics::{ui_layout::UiLayoutPlugin, UiCanvas, UiCanvasPlugin};
 
-use crate::world::{Food, FoodKind, Odor, OdorKind, OdorType, World, WorldPlugin};
+use crate::world::{Food, FoodKind, Odor, OdorInnate, OdorKind, World, WorldPlugin};
 
-use crate::world::WorldCell;
+use crate::world::Wall;
 
 #[derive(Component)]
 pub struct UiWorld {
@@ -28,7 +28,7 @@ impl UiWorld {
     ) -> Self {
         let mut values = Vec::new();
 
-        values.resize_with(width * height, || WorldCell::Empty);
+        values.resize_with(width * height, || Wall::Empty);
 
         Self {
             view,
@@ -76,7 +76,7 @@ impl UiWorld {
         self.view.id()
     }
 
-    pub fn update(&mut self, _world: &World, _renderer: &mut dyn Renderer) {
+    pub fn update(&mut self, _world: &World<Wall>, _renderer: &mut dyn Renderer) {
         // self.hex.update_render(renderer, world.hex());
     }
 
@@ -89,8 +89,8 @@ impl UiWorld {
 impl Coord for UiWorld {}
 
 pub fn draw_world(
-    world: Res<World>, 
-    odors: Query<&Odor>, 
+    world: Res<World<Wall>>, 
+    odors: Query<&Odor<OdorKind>>, 
     foods: Query<&Food>,
     mut ui_world: ResMut<UiWorld>, 
     mut ui_canvas: ResMut<UiCanvas>
@@ -129,14 +129,13 @@ pub fn draw_world(
         let circle: Path<Canvas> = paths::circle().transform(&ui_world.to_canvas_scale());
         let mut xy : Vec<[f32; 2]> = Vec::new();
         let mut sizes : Vec<[f32; 2]> = Vec::new();
-        let mut colors : Vec<Color> = Vec::new();
+        let colors : Vec<Color> = Vec::new();
 
         for odor in odors.iter() {
             xy.push([odor.x(), odor.y()]);
             sizes.push([odor.r(), odor.r()]);
 
-            colors.push(Color::from(odor.odor()).set_alpha(0.2));
-            // colors.push(Color::from(odor.odor()).set_alpha(1.));
+            // colors.push(Color::from(odor.odor()).set_alpha(0.2));
         }
 
         let xy = ui_world.to_canvas().transform(&Tensor::from(xy));
@@ -153,12 +152,12 @@ pub fn draw_world(
             let pos = food.pos();
 
             xy.push([pos.x(), pos.y()]);
-            sizes.push([0.8, 0.8]);
+            sizes.push([food.radius(), food.radius()]);
 
             let color = match food.kind() {
                 FoodKind::None => Color::from("black"),
                 // FoodKind::Plain => Color::from("pumpkin orange"),
-                FoodKind::Plain => Color::black(),
+                FoodKind::Plain => Color::from("teal"),
                 FoodKind::Sweet => Color::from("cherry red"),
                 FoodKind::Bitter => Color::from("mustard yellow"),
                 FoodKind::Sick => Color::from("brownish green"),
@@ -170,35 +169,32 @@ pub fn draw_world(
 
         if xy.len() > 0 {
             // ui.flush();
-            let star: Path<Canvas> = paths::unit_star(5, 0.3)
+            let star: Path<Canvas> = paths::unit_star(8, 0.6)
                 .transform(&ui_world.to_canvas_scale());
             ui.draw_markers(&star, xy, sizes, &colors);
         }
     }
 }
 
-impl From<&WorldCell> for Color {
-    fn from(value: &WorldCell) -> Self {
+impl From<&Wall> for Color {
+    fn from(value: &Wall) -> Self {
         match value {
-            WorldCell::Empty => Color::from_hsv(0.25, 0.0, 0.98),
-            WorldCell::Food => Color::from("green"),
-            WorldCell::Wall => Color::from("dark beige"),
+            Wall::Empty => Color::from_hsv(0.25, 0.0, 0.98),
+            Wall::Food => Color::from("green"),
+            Wall::Wall => Color::from("dark beige"),
 
-            WorldCell::FloorLight => Color::from(0xf8f8f8),
-            WorldCell::FloorDark => Color::from(0x606060),
+            Wall::FloorLight => Color::from(0xf8f8f8),
+            Wall::FloorDark => Color::from(0x606060),
         }
     }
 }
 
-impl From<OdorType> for Color {
-    fn from(value: OdorType) -> Self {
+impl From<OdorInnate> for Color {
+    fn from(value: OdorInnate) -> Self {
         match value {
-            OdorType::FoodA => Color::from("green"),
-            OdorType::FoodB => Color::from("azure"),
-            OdorType::AvoidA => Color::from("red"),
-            OdorType::AvoidB => Color::from("tomato"),
-            OdorType::OtherA => Color::from("purple"),
-            OdorType::OtherB => Color::from("blue"),
+            OdorInnate::Food => Color::from("green"),
+            OdorInnate::Avoid => Color::from("red"),
+            OdorInnate::None => Color::from("purple"),
         }
     }
 }

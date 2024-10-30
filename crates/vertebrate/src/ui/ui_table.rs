@@ -5,7 +5,7 @@ use essay_plot::api::{renderer::Canvas, Bounds, Clip, Coord, HorizAlign, Point, 
 use mind_ecs::PostTick;
 use ui_graphics::{ui_layout::{BoxId, UiLayout, UiLayoutEvent, UiLayoutPlugin}, UiCanvas, UiCanvasPlugin};
 
-use crate::{body::Body, world::World};
+use crate::{body::Body, world::{Wall, World}};
 
 
 #[derive(Component)]
@@ -71,7 +71,7 @@ impl UiTableItem {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct UiPeptideId(usize);
 
-type UpdateBox = Box<dyn Fn(&World, &Body) -> f32 + Sync + Send>;
+type UpdateBox = Box<dyn Fn(&World<Wall>, &Body) -> f32 + Sync + Send>;
 
 pub fn ui_peptide_resize(
     mut ui_peptide: ResMut<UiTable>, 
@@ -197,7 +197,7 @@ impl Item for ItemImpl {
             app.system(
                 PostTick,
                 |updates: Res<PeptideUpdates>, 
-                world: Res<World>,
+                world: Res<World<Wall>>,
                 body: Res<Body>,
                 mut ui: ResMut<UiTable>| {
                     for (id, fun) in &updates.updates {
@@ -223,7 +223,7 @@ pub trait IntoItem {
 
 impl<F> IntoItem for F
 where
-    F: Fn(&World, &Body) -> f32 + Send + Sync + 'static
+    F: Fn(&World<Wall>, &Body) -> f32 + Send + Sync + 'static
 {
     fn into_item(this: Self) -> Box<dyn Item> {
         Box::new(ItemImpl {

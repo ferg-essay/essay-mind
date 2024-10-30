@@ -1,21 +1,18 @@
 use std::ops::{Index, IndexMut};
 
-use essay_ecs::prelude::*;
-
 use crate::util::Point;
 
-#[derive(Component)]
-pub struct World {
+pub struct World<T: WorldType> {
     width: usize,
     height: usize,
-    cells: Vec<WorldCell>,
+    cells: Vec<T>,
 }
 
-impl World {
+impl<T: WorldType> World<T> {
     pub fn new(width: usize, height: usize) -> Self {
         let mut values = Vec::new();
 
-        values.resize_with(width * height, || WorldCell::Empty);
+        values.resize_with(width * height, || T::default());
 
         Self {
             width,
@@ -27,7 +24,65 @@ impl World {
     pub fn extent(&self) -> (usize, usize) {
         (self.width, self.height)
     }
+}
 
+impl<T: WorldType> Index<(usize, usize)> for World<T> {
+    type Output = T;
+
+    fn index(&self, index: (usize, usize)) -> &Self::Output {
+        assert!(index.0 < self.width);
+        assert!(index.1 < self.height);
+
+        &self.cells[index.1 * self.width + index.0]
+    }
+}
+
+impl<T: WorldType> IndexMut<(usize, usize)> for World<T> {
+    fn index_mut(&mut self, index: (usize, usize)) -> &mut Self::Output {
+        assert!(index.0 < self.width);
+        assert!(index.1 < self.height);
+
+        &mut self.cells[index.1 * self.width + index.0]
+    }
+}
+
+impl<T: WorldType> Index<(f32, f32)> for World<T> {
+    type Output = T;
+
+    fn index(&self, index: (f32, f32)) -> &Self::Output {
+        assert!(index.0 >= 0.);
+        assert!(index.1 >= 0.);
+
+        let x = index.0 as usize;
+        let y = index.1 as usize;
+
+        assert!(x < self.width);
+        assert!(y < self.height);
+
+        &self.cells[y * self.width + x]
+    }
+}
+
+impl<T: WorldType> IndexMut<(f32, f32)> for World<T> {
+    fn index_mut(&mut self, index: (f32, f32)) -> &mut Self::Output {
+        assert!(index.0 >= 0.);
+        assert!(index.1 >= 0.);
+
+        let x = index.0 as usize;
+        let y = index.1 as usize;
+
+        assert!(x < self.width);
+        assert!(y < self.height);
+
+        &mut self.cells[y * self.width + x]
+    }
+}
+
+pub trait WorldType : Default + Send + Sync + 'static {
+    fn is_collide(&self) -> bool;
+}
+
+impl World<Wall> {
     pub fn is_collide(&self, pt: impl Into<Point>) -> bool {
         let Point(x, y) = pt.into();
 
@@ -35,10 +90,7 @@ impl World {
             return true;
         }
 
-        match self[(x.floor() as usize, y.floor() as usize)] {
-            WorldCell::Wall => true,
-            _ => false,
-        }
+        self[(x.floor() as usize, y.floor() as usize)].is_collide()
     }
 
     pub fn light(&self, pt: impl Into<Point>) -> f32 {
@@ -57,11 +109,11 @@ impl World {
         let y = (y as usize).clamp(0, self.height - 1);
 
         match self[(x, y)] {
-            WorldCell::Empty => 1.,
-            WorldCell::Food => 1.,
-            WorldCell::Wall => -1.,
-            WorldCell::FloorLight => 1.,
-            WorldCell::FloorDark => 0.,
+            Wall::Empty => 1.,
+            Wall::Food => 1.,
+            Wall::Wall => -1.,
+            Wall::FloorLight => 1.,
+            Wall::FloorDark => 0.,
         }
     }
 
@@ -73,34 +125,35 @@ impl World {
         }
 
         match self[(x.floor() as usize, y.floor() as usize)] {
-            WorldCell::Food => true,
+            Wall::Food => true,
             _ => false,
         }
     }
 }
 
-impl Index<(usize, usize)> for World {
-    type Output = WorldCell;
-
-    fn index(&self, index: (usize, usize)) -> &Self::Output {
-        &self.cells[index.1 * self.width + index.0]
-    }
-}
-
-impl IndexMut<(usize, usize)> for World {
-    fn index_mut(&mut self, index: (usize, usize)) -> &mut Self::Output {
-        &mut self.cells[index.1 * self.width + index.0]
-    }
-}
-
 #[derive(Copy, Clone, Debug)]
-pub enum WorldCell {
+pub enum Wall {
     Empty,
     Food,
     Wall,
 
     FloorLight,
     FloorDark,
+}
+
+impl Default for Wall {
+    fn default() -> Self {
+        Wall::Empty
+    }
+}
+
+impl WorldType for Wall {
+    fn is_collide(&self) -> bool {
+        match self {
+            Wall::Wall => true,
+            _ => false,
+        }
+    }
 }
 
 #[derive(Clone, Copy, PartialEq)]
@@ -111,10 +164,10 @@ pub enum FloorType {
 
 #[cfg(test)]
 mod test {
-    use crate::world::World;
+    use crate::world::{World, Wall};
 
     #[test]
     fn world_extent() {
-        assert_eq!(World::new(7, 8).extent(), (7, 8));
+        assert_eq!(World::<Wall>::new(7, 8).extent(), (7, 8));
     }
 }

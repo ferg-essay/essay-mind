@@ -12,7 +12,7 @@ use crate::{
     mid_brain::SeekInput, 
     subpallium::{AttendId, AttendValue, BasalForebrain}, 
     util::{Angle, EgoVector}, 
-    world::{Odor, OdorType}
+    world::{Odor, OdorKind, OdorType}
 };
 
 pub struct OlfactoryBulb {
@@ -20,7 +20,7 @@ pub struct OlfactoryBulb {
     avoid: Option<OdorItem>,
 
     glomerules: Vec<Glomerule>,
-    odor_map: HashMap<OdorType, usize>,
+    odor_map: HashMap<OdorKind, usize>,
 
     active_odors: Vec<OdorId>,
 
@@ -39,7 +39,7 @@ impl OlfactoryBulb {
         }
     }
 
-    fn odor(&mut self, odor: OdorType) -> OdorId {
+    fn odor(&mut self, odor: OdorKind) -> OdorId {
         let index = self.glomerules.len();
 
         let attend_id = self.attention.push();
@@ -87,13 +87,13 @@ impl OlfactoryBulb {
     }
 
     #[inline]
-    pub fn value(&self, odor: OdorType) -> f32 {
+    pub fn value(&self, odor: OdorKind) -> f32 {
         let attend_value = self.value_pair(odor);
 
         attend_value.value * attend_value.attend
     }
 
-    pub fn value_pair(&self, odor: OdorType) -> AttendValue {
+    pub fn value_pair(&self, odor: OdorKind) -> AttendValue {
         if let Some(index) = self.odor_map.get(&odor) {
             let glom = &self.glomerules[*index];
 
@@ -128,9 +128,10 @@ impl SeekInput for OlfactoryBulb {
         for id in &self.active_odors {
             let glom = &self.glomerules[id.0];
 
-            if glom.odor.is_food() {
-                return Some(glom.vector);
-            }
+            //if glom.odor.is_food() {
+            //    return Some(glom.vector);
+            //}
+            todo!();
         }
 
         None
@@ -139,7 +140,7 @@ impl SeekInput for OlfactoryBulb {
 
 fn update_olfactory(
     body: Res<Body>, 
-    odors: Query<&Odor>, 
+    odors: Query<&Odor<OdorKind>>, 
     mut olf_bulb: ResMut<OlfactoryBulb>,
 ) {
     olf_bulb.pre_update();
@@ -179,12 +180,12 @@ impl OdorId {
 }
 
 struct OdorItem {
-    _odor: OdorType,
+    _odor: OdorKind,
     dir: Angle,
 }
 
 impl OdorItem {
-    fn _new(odor: OdorType, dir: Angle) -> Self {
+    fn _new(odor: OdorKind, dir: Angle) -> Self {
         Self {
             _odor: odor,
             dir,
@@ -193,7 +194,7 @@ impl OdorItem {
 }
 
 struct Glomerule {
-    odor: OdorType,
+    odor: OdorKind,
     vector: EgoVector,
     attend_id: AttendId,
     attend: f32,
@@ -202,7 +203,7 @@ struct Glomerule {
 impl Glomerule {
     const MIN : f32 = 0.;
 
-    fn new(odor: OdorType, attend_id: AttendId) -> Self {
+    fn new(odor: OdorKind, attend_id: AttendId) -> Self {
         Self {
             odor,
             vector: EgoVector::zero(),
@@ -243,11 +244,11 @@ impl Glomerule {
 
 #[derive(Clone, Copy, Debug, Event)]
 pub enum ObEvent {
-    Odor(OdorType, EgoVector),
+    Odor(OdorKind, EgoVector),
 }
 
 pub struct OlfactoryBulbPlugin {
-    odors: Vec<OdorType>,
+    odors: Vec<OdorKind>,
 }
 
 impl OlfactoryBulbPlugin {
@@ -257,7 +258,7 @@ impl OlfactoryBulbPlugin {
         }
     }
 
-    pub fn odor(&mut self, odor: OdorType) -> &mut Self {
+    pub fn odor(&mut self, odor: OdorKind) -> &mut Self {
         self.odors.push(odor);
 
         self

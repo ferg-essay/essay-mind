@@ -1,6 +1,6 @@
-mod olfactory;
+mod odor_cortex;
 pub mod olfactory_bulb;
-pub mod olfactory_context;
+pub mod odor_place;
 
-pub use olfactory::{OlfactoryCortex, OlfactoryCortexPlugin};
+pub use odor_cortex::{OdorCortex, OlfactoryCortexPlugin};
 // pub use olfactory_context::{OlfactoryCortex, OlfactoryCortexPlugin};

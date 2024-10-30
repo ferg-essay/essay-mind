@@ -1,16 +1,22 @@
 use essay_ecs::prelude::*;
-use vertebrate::world::{WorldPlugin, OdorType, FloorType};
+use vertebrate::world::{FloorType, FoodPlugin, OdorKind, OdorPlugin, WorldPlugin};
 
 pub fn world_block(app: &mut App) {
     app.plugin(
         WorldPlugin::new(20, 10)
         .wall((4, 5), (4, 1))
         .wall((4, 0), (1, 5))
-        .food_odor(1, 1, OdorType::FoodA)
-        .food_odor(8, 2, OdorType::FoodB)
-        .odor(14, 8, OdorType::FoodB)
-        .odor(0, 9, OdorType::AvoidA)
     );
+
+    let mut food = FoodPlugin::new();
+    food.food(1, 1).odor(OdorKind::FoodA);
+    food.food(8, 2).odor(OdorKind::FoodA);
+    app.plugin(food);
+
+    let mut odor = OdorPlugin::new();
+    odor.odor(14, 8, OdorKind::FoodB);
+    odor.odor(0, 9, OdorKind::AvoidA);
+    app.plugin(odor);
 }
 
 
@@ -41,10 +47,17 @@ pub fn slug_world(app: &mut App) {
         (20, 14), (21, 14), (22, 14), (26, 14), (27, 14)
     ]);
 
-    world = world.food_odor(4, 2, OdorType::FoodA)
-        .food_odor(20, 10, OdorType::FoodB);
+    //world = world.food_odor(4, 2, OdorKind::FoodA)
+    //    .food_odor(20, 10, OdorKind::FoodB);
 
     app.plugin(world);
+
+    let mut food = FoodPlugin::new();
+
+    food.food(4, 2).odor(OdorKind::FoodA);
+    food.food(20, 10).odor(OdorKind::FoodA);
+
+    app.plugin(food);
 }
 
 pub fn food_graph(_app: &mut App, _pos: (f32, f32), _extent: (f32, f32)) {

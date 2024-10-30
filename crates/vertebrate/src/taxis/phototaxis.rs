@@ -9,7 +9,7 @@ use crate::{
     body::Body, 
     hind_brain::HindMove, 
     util::{DecayValue, EgoVector, HalfLife, Heading, Seconds}, 
-    world::World
+    world::{Wall, World}
 };
 
 use super::{GoalVector, Taxis};
@@ -81,7 +81,7 @@ impl Default for Phototaxis {
 
 fn update_phototaxis(
     body: Res<Body>, 
-    world: Res<World>, 
+    world: Res<World<Wall>>, 
     mut hind_move: ResMut<HindMove>,
     mut phototaxis: ResMut<Phototaxis>,
     mut taxis: ResMut<Taxis>,

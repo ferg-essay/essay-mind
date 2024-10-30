@@ -1,16 +1,12 @@
-use essay_ecs::{app::{App, Plugin, Startup}, core::Commands};
+use essay_ecs::app::{App, Plugin};
 
-use crate::world::odor::Odor;
-
-use super::{food::FoodKind, FloorType, Food, OdorKind, OdorType, World, WorldCell, WorldHex};
+use super::{FloorType, OdorKind, World, Wall, WorldHex};
 
 pub struct WorldPlugin {
     width: usize,
     height: usize,
 
     walls: Vec<(usize, usize)>,
-    food: Vec<Food>,
-    odors: Vec<OdorItem>,
     floor: Vec<FloorItem>,
 
     loc_odor: Vec<LocOdorItem>,
@@ -24,8 +20,6 @@ impl WorldPlugin {
 
             walls: Vec::new(),
             floor: Vec::new(),
-            food: Vec::new(),
-            odors: Vec::new(),
 
             loc_odor: Vec::new(),
         }
@@ -71,61 +65,6 @@ impl WorldPlugin {
         self
     }
 
-    pub fn food(mut self, x: usize, y: usize) -> Self {
-        assert!(x < self.width);
-        assert!(y < self.height);
-
-        self.food.push(Food::new((x as f32 + 0.5, y as f32 + 0.5)));
-
-        self
-    }
-
-    pub fn food_mut(&mut self, x: usize, y: usize) -> &mut Food {
-        assert!(x < self.width);
-        assert!(y < self.height);
-
-        self.food.push(Food::new((x as f32 + 0.5, y as f32 + 0.5)));
-
-        self.food.last_mut().unwrap()
-    }
-
-    pub fn food_kind(mut self, x: usize, y: usize, kind: impl Into<FoodKind>) -> Self {
-        assert!(x < self.width);
-        assert!(y < self.height);
-
-        self.food.push(Food::new((x as f32 + 0.5, y as f32 + 0.5)).set_kind(kind.into()));
-
-        self
-    }
-
-    pub fn food_odor(self, x: usize, y: usize, odor: OdorType) -> Self {
-        self.food(x, y).odor(x, y, odor)
-    }
-
-    pub fn food_odor_r(self, x: usize, y: usize, food: FoodKind, r: usize, odor: OdorType) -> Self {
-        self.food_kind(x, y, food).odor_r(x, y, r, odor)
-    }
-
-    pub fn odor(mut self, x: usize, y: usize, odor: OdorType) -> Self {
-        assert!(x < self.width);
-        assert!(y < self.height);
-
-        let r = Odor::RADIUS as usize;
-
-        self.odors.push(OdorItem::new(x, y, r, odor));
-
-        self
-    }
-
-    pub fn odor_r(mut self, x: usize, y: usize, r: usize, odor: OdorType) -> Self {
-        assert!(x < self.width);
-        assert!(y < self.height);
-
-        self.odors.push(OdorItem::new(x, y, r, odor));
-
-        self
-    }
-
     pub fn loc_odor(mut self, x: usize, y: usize, r: usize, odor: OdorKind) -> Self {
         assert!(x < self.width);
         assert!(y < self.height);
@@ -135,15 +74,15 @@ impl WorldPlugin {
         self
     }
 
-    fn create_world(&self) -> World {
-        let mut world = World::new(self.width, self.height);
+    fn create_world(&self) -> World<Wall> {
+        let mut world = World::<Wall>::new(self.width, self.height);
 
         for floor in &self.floor {
             let (x, y) = floor.pos;
             let (w, h) = floor.extent;
             let cell = match floor.floor {
-                FloorType::Light => WorldCell::FloorLight,
-                FloorType::Dark => WorldCell::FloorDark,
+                FloorType::Light => Wall::FloorLight,
+                FloorType::Dark => Wall::FloorDark,
             };
 
             for j in y..y + h {
@@ -158,7 +97,7 @@ impl WorldPlugin {
         //}
 
         for wall in &self.walls {
-            world[*wall] = WorldCell::Wall;
+            world[*wall] = Wall::Wall;
         }
 
         world
@@ -173,28 +112,6 @@ impl WorldPlugin {
 
         world
     }
-
-    fn create_food(&self, app: &mut App) {
-        let mut foods : Vec<Food> = self.food.clone();
-
-        app.system(Startup, move |mut cmd: Commands| {
-            for food in foods.drain(..) {
-                cmd.spawn(food);
-            }
-        });
-    }
-
-    fn create_odors(&self, app: &mut App) {
-        let mut odors : Vec<Odor> = self.odors.iter().map(|odor| {
-            Odor::new_r(odor.pos.0, odor.pos.1, odor.r, odor.odor)
-        }).collect();
-
-        app.system(Startup, move |mut cmd: Commands| {
-            for odor in odors.drain(..) {
-                cmd.spawn(odor);
-            }
-        });
-    }
 }
 
 impl Plugin for WorldPlugin {
@@ -203,25 +120,11 @@ impl Plugin for WorldPlugin {
 
         app.insert_resource(self.create_world_hex());
 
-        self.create_odors(app);
+        // self.create_odors(app);
 
-        self.create_food(app);
-    }
-}
+        // self.create_food(app);
 
-struct OdorItem {
-    pos: (usize, usize),
-    r: usize,
-    odor: OdorType,
-}
-
-impl OdorItem {
-    fn new(x: usize, y: usize, r: usize, odor: OdorType) -> Self {
-        Self { 
-            pos: (x, y), 
-            r,
-            odor 
-        }
+        // app.system(Tick, update_food);
     }
 }
 

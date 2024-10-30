@@ -3,11 +3,29 @@ use mind_ecs::Tick;
 
 use crate::{body::Body, util::{Ticks, TimeoutValue}, world::Food};
 
-pub struct OlfactoryCortex {
+use super::odor_place::OdorPlace;
+
+fn update_odor_cortex(
+    mut odor_cortex: ResMut<OdorCortex>,
+    odor_place: ResMut<OdorPlace>,
+    body: Res<Body>,
+    food: Query<&Food>,
+) {
+    odor_cortex.pre_update();
+
+    let is_food = food.iter()
+        .any(|food| food.is_pos(body.head_pos()));
+
+    
+
+    odor_cortex.is_food_zone.set(is_food);
+}
+
+pub struct OdorCortex {
     is_food_zone: TimeoutValue<bool>,
 }
 
-impl OlfactoryCortex {
+impl OdorCortex {
     pub fn new() -> Self {
         Self {
             is_food_zone: TimeoutValue::<bool>::new(Ticks(3))
@@ -24,19 +42,6 @@ impl OlfactoryCortex {
     }
 }
 
-fn update_olfactory(
-    mut olfactory: ResMut<OlfactoryCortex>,
-    body: Res<Body>,
-    food: Query<&Food>,
-) {
-    olfactory.pre_update();
-
-    let is_food = food.iter()
-        .any(|food| food.is_pos(body.head_pos()));
-
-    olfactory.is_food_zone.set(is_food);
-}
-
 pub struct OlfactoryCortexPlugin {
 }
 
@@ -49,10 +54,10 @@ impl OlfactoryCortexPlugin {
 
 impl Plugin for OlfactoryCortexPlugin {
     fn build(&self, app: &mut App) {
-        let olfactory = OlfactoryCortex::new();
+        let olfactory = OdorCortex::new();
 
         app.insert_resource(olfactory);
 
-        app.system(Tick, update_olfactory);
+        app.system(Tick, update_odor_cortex);
     }
 }

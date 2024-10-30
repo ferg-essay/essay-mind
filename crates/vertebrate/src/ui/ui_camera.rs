@@ -5,31 +5,15 @@ use essay_plot::api::{
 };
 use ui_graphics::{UiCanvas, UiCanvasPlugin};
 
-use crate::{body::Body, retina::{self, Retina}, util::Point, world::{World, WorldPlugin}};
-
-struct UiCamera {
-    view: View<UiCameraView>,
-
-    fov: Angle,
-}
-
-impl UiCamera {
-    fn new(view: View<UiCameraView>) -> Self {
-        Self {
-            view,
-            fov: Angle::Deg(90.),
-        }
-    }
-
-    fn fov(&mut self, angle: impl Into<Angle>) -> &mut Self {
-        self.fov = angle.into();
-
-        self
-    }
-}
+use crate::{
+    body::Body, 
+    retina::{self, Retina}, 
+    util::Point, 
+    world::{Wall, World}
+};
 
 fn startup_camera(
-    world: Res<World>,
+    world: Res<World<Wall>>,
     mut canvas: ResMut<UiCanvas>,
     mut camera: ResMut<UiCamera>,
 ) {
@@ -59,6 +43,27 @@ fn draw_camera(
     ui_camera.view.write(|v| {
         v.camera = camera;
     });
+}
+
+struct UiCamera {
+    view: View<UiCameraView>,
+
+    fov: Angle,
+}
+
+impl UiCamera {
+    fn new(view: View<UiCameraView>) -> Self {
+        Self {
+            view,
+            fov: Angle::Deg(90.),
+        }
+    }
+
+    fn fov(&mut self, angle: impl Into<Angle>) -> &mut Self {
+        self.fov = angle.into();
+
+        self
+    }
 }
 
 struct UiCameraView {
@@ -118,7 +123,7 @@ impl UiCameraPlugin {
 impl Plugin for UiCameraPlugin {
     fn build(&self, app: &mut App) {
         if app.contains_plugin::<UiCanvasPlugin>() {
-            assert!(app.contains_plugin::<WorldPlugin>());
+            assert!(app.contains_resource::<World<Wall>>());
 
             let view = app.resource_mut::<UiCanvas>().view(self.bounds.clone(), UiCameraView::new());
             

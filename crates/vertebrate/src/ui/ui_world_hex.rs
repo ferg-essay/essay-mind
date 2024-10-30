@@ -11,9 +11,41 @@ use essay_plot::api::{
 use essay_tensor::Tensor;
 use ui_graphics::{HexSliceGenerator, TexId, TextureBuilder, TextureGenerator, Tile, UiCanvas};
 
-use crate::world::{WorldHex, OdorKind};
+use crate::world::{OdorKind, WorldHex};
 
 use super::ui_world_map::{UiWorld, UiWorldPlugin};
+
+fn update_hex_world(
+    mut ui_hex: ResMut<UiWorldHex<OdorKind>>,
+    world_hex: Res<WorldHex<OdorKind>>,
+) {
+    if ui_hex.update_count < world_hex.update_count() {
+        ui_hex.update_count = world_hex.update_count();
+
+        let mut shape = Shape::new();
+
+        let epsilon = 0.01;
+        let hex_gen = HexSliceGenerator::new(
+            2. / 3. - epsilon,
+            (PI / 6.).cos() * 2. / 3. - 2. * epsilon
+        );
+    
+        for j in 0..world_hex.height() {
+            for i in 0..world_hex.width() {
+                let key = world_hex[(i, j)];
+
+                let x = i as f32 + 0.5;
+                let y = j as f32 + if i % 2 == 0 { 0.5 } else { 0.0 };
+
+                if let Some(tile) = ui_hex.tex_gen.tile(&key) {
+                    hex_gen.hex(&mut shape, (x, y), tile);
+                }
+            }
+        }
+
+        ui_hex.view.write(|v| v.shape = Some(shape));
+    }
+}
 
 pub struct UiWorldHex<K: Eq + Hash> {
     view: View<HexView>,
@@ -328,39 +360,6 @@ impl Drawable for HexView {
         self.set_pos(bounds);
 
         bounds.clone()
-    }
-}
-
-fn update_hex_world(
-    mut ui_hex: ResMut<UiWorldHex<OdorKind>>,
-    world_hex: Res<WorldHex<OdorKind>>,
-) {
-    if ui_hex.update_count < world_hex.update_count() {
-        ui_hex.update_count = world_hex.update_count();
-
-        let mut shape = Shape::new();
-        // shape.texture(tex_gen.texture_id());
-        let epsilon = 0.01;
-        let hex_gen = HexSliceGenerator::new(
-            2. / 3. - epsilon,
-            (PI / 6.).cos() * 2. / 3. - 2. * epsilon
-        );
-    
-        for j in 0..world_hex.height() {
-            for i in 0..world_hex.width() {
-                let key = world_hex[(i, j)];
-                // let key = OdorKind::D;
-
-                let x = i as f32 + 0.5;
-                let y = j as f32 + if i % 2 == 0 { 0.5 } else { 0.0 };
-
-                if let Some(tile) = ui_hex.tex_gen.tile(&key) {
-                    hex_gen.hex(&mut shape, (x, y), tile);
-                }
-            }
-        }
-
-        ui_hex.view.write(|v| v.shape = Some(shape));
     }
 }
 

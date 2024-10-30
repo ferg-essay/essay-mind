@@ -170,12 +170,10 @@ impl BodyEat {
                         FoodKind::None => {
                         }
                         FoodKind::Plain => {
-                            // self.sated_cck.set_max_threshold();
                             self.sated_cck.add(1.);
                             self.is_food.set(1.);
                         }
                         FoodKind::Sweet => {
-                            // self.sated_cck.set_max_threshold();
                             self.sated_cck.add(1.);
                             self.is_sweet.set(1.);
                             self.is_food.set(1.);
@@ -187,8 +185,6 @@ impl BodyEat {
                         }
                     }
                 }
-            // } else {
-            //    error!("Eating without food");
             }
         }
     

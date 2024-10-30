@@ -1,20 +1,20 @@
 use std::fmt;
 
-use essay_ecs::core::Component;
+use essay_ecs::{app::{App, Plugin, Startup}, core::{Commands, Component}};
 
 use crate::util::Point;
 
 #[derive(Component)]
-pub struct Odor {
+pub struct Odor<T: OdorType> {
     pos: Point,
     r: f32,
-    odor: OdorType,
+    odor: T,
 }
 
-impl Odor {
+impl<T: OdorType> Odor<T> {
     pub const RADIUS: f32 = 3.;
 
-    pub(super) fn new_r(x: usize, y: usize, r:usize, odor: OdorType) -> Self {
+    pub(super) fn new_r(x: usize, y: usize, r:usize, odor: T) -> Self {
         Self {
             pos: Point(x as f32 + 0.5, y as f32 + 0.5),
             r: r as f32,
@@ -48,65 +48,142 @@ impl Odor {
     }
 
     pub fn is_food(&self) -> bool {
-        self.odor.is_food()
+        self.odor.innate().is_food()
     }
 
-    pub fn odor(&self) -> OdorType {
-        self.odor
+    pub fn odor(&self) -> &T {
+        &self.odor
     }
 }
 
-impl fmt::Debug for Odor {
+impl<T: OdorType> fmt::Debug for Odor<T> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_tuple("Food").field(&self.x()).field(&self.y()).finish()
+        f.debug_tuple("Food")
+        .field(&self.x())
+        .field(&self.y())
+        .field(&self.odor())
+        .finish()
     }
 }
 
 #[derive(Clone, Debug, Copy, PartialEq, Eq, Hash)]
-pub enum OdorType {
+pub enum OdorInnate {
+    None,
+    Food,
+    Avoid,
+}
+
+impl OdorInnate {
+    #[inline]
+    pub fn is_food(&self) -> bool {
+        match self {
+            OdorInnate::Food => true,
+            _ => false,
+        }
+    }
+
+    #[inline]
+    pub fn is_avoid(&self) -> bool {
+        match self {
+            OdorInnate::Avoid => true,
+            _ => false,
+        }
+    }
+}
+
+// #[derive(Clone, Debug, Copy, PartialEq, Eq, Hash)]
+pub trait OdorType : Clone + fmt::Debug + Send + Sync + 'static {
+    fn innate(&self) -> OdorInnate;
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum OdorKind {
+    None,
     FoodA,
     FoodB,
     AvoidA,
     AvoidB,
     OtherA,
-    OtherB,
+    Bogus,
 }
 
-impl OdorType {
-    pub fn is_food(&self) -> bool {
-        match self {
-            OdorType::FoodA => true,
-            OdorType::FoodB => true,
-            _ => false,
-        }
-    }
-
-    pub fn index(&self) -> usize {
-        match self {
-            OdorType::FoodA => 0,
-            OdorType::FoodB => 1,
-            OdorType::AvoidA => 2,
-            OdorType::AvoidB => 3,
-            OdorType::OtherA => 4,
-            OdorType::OtherB => 5,
-        }
-    }
-
-    pub fn count() -> usize {
-        Self::OtherB.index() + 1
+impl Default for OdorKind {
+    fn default() -> Self {
+        OdorKind::None
     }
 }
 
-impl From<usize> for OdorType {
-    fn from(value: usize) -> Self {
-        match value {
-            0 => OdorType::FoodA,
-            1 => OdorType::FoodB,
-            2 => OdorType::AvoidA,
-            3 => OdorType::AvoidB,
-            4 => OdorType::OtherA,
-            5 => OdorType::OtherB,
-            _ => todo!(),
+impl OdorType for OdorKind {
+    fn innate(&self) -> OdorInnate {
+        match self {
+            OdorKind::None => OdorInnate::None,
+            OdorKind::FoodA => OdorInnate::Food,
+            OdorKind::FoodB => OdorInnate::Food,
+            OdorKind::AvoidA => OdorInnate::Avoid,
+            OdorKind::AvoidB => OdorInnate::Avoid,
+            _ => OdorInnate::None,
+        }
+    }
+}
+
+pub struct OdorPlugin {
+    odors: Vec<OdorItem<OdorKind>>,
+}
+
+impl OdorPlugin {
+    pub fn new() -> Self {
+        Self {
+            odors: Vec::new(),
+        }
+    }
+
+    pub fn odor(&mut self, x: usize, y: usize, odor: OdorKind) -> &mut Self {
+        // assert!(x < self.width);
+        // assert!(y < self.height);
+
+        let r = Odor::<OdorKind>::RADIUS as usize;
+
+        self.odors.push(OdorItem::new(x, y, r, odor));
+
+        self
+    }
+
+    pub fn odor_r(&mut self, x: usize, y: usize, r: usize, odor: OdorKind) -> &mut Self {
+        // assert!(x < self.width);
+        // assert!(y < self.height);
+
+        self.odors.push(OdorItem::new(x, y, r, odor));
+
+        self
+    }
+}
+
+impl Plugin for OdorPlugin {
+    fn build(&self, app: &mut App) {
+        let mut odors : Vec<Odor<OdorKind>> = self.odors.iter().map(|odor| {
+            Odor::new_r(odor.pos.0, odor.pos.1, odor.r, odor.odor)
+        }).collect();
+    
+        app.system(Startup, move |mut cmd: Commands| {
+            for odor in odors.drain(..) {
+                cmd.spawn(odor);
+            }
+        });
+    }
+}
+
+struct OdorItem<T: OdorType> {
+    pos: (usize, usize),
+    r: usize,
+    odor: T,
+}
+
+impl<T: OdorType> OdorItem<T> {
+    fn new(x: usize, y: usize, r: usize, odor: T) -> Self {
+        Self { 
+            pos: (x, y), 
+            r,
+            odor 
         }
     }
 }

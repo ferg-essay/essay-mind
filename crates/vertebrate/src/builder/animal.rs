@@ -8,7 +8,7 @@ use crate::{
     hippocampus::HippocampusPlugin, 
     mid_brain::{MidMovePlugin, MidSeekContextPlugin, MidSeekPlugin}, 
     motive::{Dwell, Forage, Motive, MotiveAvoidPlugin, MotiveEatPlugin, MotiveForagePlugin, MotiveSleepPlugin}, 
-    olfactory::{olfactory_bulb::{OlfactoryBulb, OlfactoryBulbPlugin}, olfactory_context::OdorContext, OlfactoryCortexPlugin}, 
+    olfactory::{olfactory_bulb::{OlfactoryBulb, OlfactoryBulbPlugin}, odor_place::OdorPlace, OlfactoryCortexPlugin}, 
     retina::RetinaPlugin, 
     taxis::{klinotaxis::KlinotaxisPlugin, TaxisAvoidPlugin}, 
     tectum::{TectumLoomingPlugin, TectumPlugin}, util::Seconds 
@@ -112,7 +112,7 @@ impl AnimalBuilder {
 
             let is_context = true;
             if is_context {
-                app.plugin(MidSeekContextPlugin::<OlfactoryBulb, OdorContext, Forage>::new().decay(Seconds(180.)));
+                app.plugin(MidSeekContextPlugin::<OlfactoryBulb, OdorPlace, Forage>::new().decay(Seconds(180.)));
             } else {
                 app.plugin(MidSeekPlugin::<OlfactoryBulb, Forage>::new());
             }
