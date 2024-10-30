@@ -6,7 +6,7 @@ use util::random::random_uniform;
 use crate::body::touch::Touch;
 
 use crate::util::{Angle, Heading, Point, Seconds, Ticks, Turn};
-use crate::world::{Wall, World};
+use crate::world::World;
 
 ///
 /// Update the animal's position
@@ -14,7 +14,7 @@ use crate::world::{Wall, World};
 fn body_update(
     mut body: ResMut<Body>,
     mut touch_event: OutEvent<Touch>,
-    world: Res<World<Wall>>,
+    world: Res<World>,
 ) {
     body.update(world.get());
 
@@ -221,7 +221,7 @@ impl Body {
     ///
     /// Update the animal's position
     /// 
-    pub fn update(&mut self, world: &World<Wall>) {
+    pub fn update(&mut self, world: &World) {
         self.action.update();
 
         let speed = self.action.speed;
@@ -381,7 +381,7 @@ impl BodyPlugin {
 
 impl Plugin for BodyPlugin {
     fn build(&self, app: &mut App) {
-        assert!(app.contains_resource::<World<Wall>>(), "BodyPlugin requires World<Wall>");
+        assert!(app.contains_resource::<World>(), "BodyPlugin requires World<Wall>");
 
         let mut body = Body::new(Point(0.5, 0.5));
 
@@ -408,7 +408,7 @@ mod test {
 
     use crate::{
         util::{Heading, Point, Seconds, Ticks, Turn}, 
-        world::{Wall, World, WorldPlugin}
+        world::{World, WorldPlugin}
     };
 
     use super::{Body, BodyPlugin};
@@ -419,7 +419,7 @@ mod test {
         app.plugin(WorldPlugin::new(7, 13));
         app.plugin(BodyPlugin::new());
 
-        assert_eq!((7, 13), app.eval(|x: Res<World<Wall>>| x.extent())?);
+        assert_eq!((7, 13), app.eval(|x: Res<World>| x.extent())?);
 
         assert_eq!(1., app.eval(|x: Res<Body>| x.len())?);
         assert_eq!(0., app.eval(|x: Res<Body>| x.noise_threshold)?);
@@ -449,7 +449,7 @@ mod test {
             app.tick()?;
         }
         
-        assert_eq!((7, 13), app.eval(|x: Res<World<Wall>>| x.extent())?);
+        assert_eq!((7, 13), app.eval(|x: Res<World>| x.extent())?);
         assert_eq!(0.8, app.eval(|x: Res<Body>| x.len())?);
         assert_eq!(Point(0.5, 0.5), app.eval(|x: Res<Body>| x.pos())?);
         assert_eq!(Heading::unit(0.0), app.eval(|x: Res<Body>| x.dir())?);

@@ -2,17 +2,17 @@ use std::ops::{Index, IndexMut};
 
 use crate::util::Point;
 
-pub struct World<T: WorldType> {
+pub struct World {
     width: usize,
     height: usize,
-    cells: Vec<T>,
+    cells: Vec<Wall>,
 }
 
-impl<T: WorldType> World<T> {
+impl World {
     pub fn new(width: usize, height: usize) -> Self {
         let mut values = Vec::new();
 
-        values.resize_with(width * height, || T::default());
+        values.resize_with(width * height, || Wall::default());
 
         Self {
             width,
@@ -26,8 +26,8 @@ impl<T: WorldType> World<T> {
     }
 }
 
-impl<T: WorldType> Index<(usize, usize)> for World<T> {
-    type Output = T;
+impl Index<(usize, usize)> for World {
+    type Output = Wall;
 
     fn index(&self, index: (usize, usize)) -> &Self::Output {
         assert!(index.0 < self.width);
@@ -37,7 +37,7 @@ impl<T: WorldType> Index<(usize, usize)> for World<T> {
     }
 }
 
-impl<T: WorldType> IndexMut<(usize, usize)> for World<T> {
+impl IndexMut<(usize, usize)> for World {
     fn index_mut(&mut self, index: (usize, usize)) -> &mut Self::Output {
         assert!(index.0 < self.width);
         assert!(index.1 < self.height);
@@ -46,8 +46,8 @@ impl<T: WorldType> IndexMut<(usize, usize)> for World<T> {
     }
 }
 
-impl<T: WorldType> Index<(f32, f32)> for World<T> {
-    type Output = T;
+impl Index<(f32, f32)> for World {
+    type Output = Wall;
 
     fn index(&self, index: (f32, f32)) -> &Self::Output {
         assert!(index.0 >= 0.);
@@ -63,7 +63,7 @@ impl<T: WorldType> Index<(f32, f32)> for World<T> {
     }
 }
 
-impl<T: WorldType> IndexMut<(f32, f32)> for World<T> {
+impl IndexMut<(f32, f32)> for World {
     fn index_mut(&mut self, index: (f32, f32)) -> &mut Self::Output {
         assert!(index.0 >= 0.);
         assert!(index.1 >= 0.);
@@ -82,7 +82,7 @@ pub trait WorldType : Default + Send + Sync + 'static {
     fn is_collide(&self) -> bool;
 }
 
-impl World<Wall> {
+impl World {
     pub fn is_collide(&self, pt: impl Into<Point>) -> bool {
         let Point(x, y) = pt.into();
 
@@ -164,10 +164,10 @@ pub enum FloorType {
 
 #[cfg(test)]
 mod test {
-    use crate::world::{World, Wall};
+    use crate::world::World;
 
     #[test]
     fn world_extent() {
-        assert_eq!(World::<Wall>::new(7, 8).extent(), (7, 8));
+        assert_eq!(World::new(7, 8).extent(), (7, 8));
     }
 }

@@ -9,11 +9,11 @@ use crate::{
     body::Body, 
     retina::{self, Retina}, 
     util::Point, 
-    world::{Wall, World}
+    world::World
 };
 
 fn startup_camera(
-    world: Res<World<Wall>>,
+    world: Res<World>,
     mut canvas: ResMut<UiCanvas>,
     mut camera: ResMut<UiCamera>,
 ) {
@@ -123,7 +123,7 @@ impl UiCameraPlugin {
 impl Plugin for UiCameraPlugin {
     fn build(&self, app: &mut App) {
         if app.contains_plugin::<UiCanvasPlugin>() {
-            assert!(app.contains_resource::<World<Wall>>());
+            assert!(app.contains_resource::<World>());
 
             let view = app.resource_mut::<UiCanvas>().view(self.bounds.clone(), UiCameraView::new());
             

@@ -186,7 +186,7 @@ impl FoodPlugin {
 
 impl Plugin for FoodPlugin {
     fn build(&self, app: &mut App) {
-        assert!(app.contains_resource::<World<Wall>>(), "FoodPlugin requires World");
+        assert!(app.contains_resource::<World>(), "FoodPlugin requires World");
 
         self.create_food(app);
 

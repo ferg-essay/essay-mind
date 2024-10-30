@@ -74,8 +74,8 @@ impl WorldPlugin {
         self
     }
 
-    fn create_world(&self) -> World<Wall> {
-        let mut world = World::<Wall>::new(self.width, self.height);
+    fn create_world(&self) -> World {
+        let mut world = World::new(self.width, self.height);
 
         for floor in &self.floor {
             let (x, y) = floor.pos;

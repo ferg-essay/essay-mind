@@ -3,11 +3,8 @@ use mind_ecs::Tick;
 
 use crate::{body::Body, util::{Ticks, TimeoutValue}, world::Food};
 
-use super::odor_place::OdorPlace;
-
 fn update_odor_cortex(
     mut odor_cortex: ResMut<OdorCortex>,
-    odor_place: ResMut<OdorPlace>,
     body: Res<Body>,
     food: Query<&Food>,
 ) {
@@ -15,8 +12,6 @@ fn update_odor_cortex(
 
     let is_food = food.iter()
         .any(|food| food.is_pos(body.head_pos()));
-
-    
 
     odor_cortex.is_food_zone.set(is_food);
 }

@@ -6,7 +6,7 @@ use crate::{
     hind_brain::HindMove, 
     tectum::TectumMap, 
     util::{EgoVector, Heading, Line, Point}, 
-    world::{Wall, World}
+    world::World
 };
 
 fn _dist_point_line(
@@ -50,7 +50,7 @@ impl SenseArc {
         &mut self, 
         dx: f32, 
         dy: f32, 
-        world: &World<Wall>, 
+        world: &World, 
         tectum: &mut TectumMap,
     ) {
         let pos = self.point + Point(dx, dy);
@@ -147,7 +147,7 @@ fn best_vector(a: EgoVector, b: EgoVector) -> EgoVector {
 
 fn update_lateral_line(
     body: Res<Body>,
-    world: Res<World<Wall>>,
+    world: Res<World>,
     mut tectum: ResMut<TectumMap>,
     hind_move: ResMut<HindMove>,
 ) {

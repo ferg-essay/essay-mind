@@ -76,7 +76,7 @@ impl UiWorld {
         self.view.id()
     }
 
-    pub fn update(&mut self, _world: &World<Wall>, _renderer: &mut dyn Renderer) {
+    pub fn update(&mut self, _world: &World, _renderer: &mut dyn Renderer) {
         // self.hex.update_render(renderer, world.hex());
     }
 
@@ -89,7 +89,7 @@ impl UiWorld {
 impl Coord for UiWorld {}
 
 pub fn draw_world(
-    world: Res<World<Wall>>, 
+    world: Res<World>, 
     odors: Query<&Odor<OdorKind>>, 
     foods: Query<&Food>,
     mut ui_world: ResMut<UiWorld>, 

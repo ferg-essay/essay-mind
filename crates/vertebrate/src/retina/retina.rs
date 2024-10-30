@@ -99,7 +99,7 @@ impl Retina {
         self.brighten_right
     }
 
-    fn startup(&mut self, world: &World<Wall>) {
+    fn startup(&mut self, world: &World) {
         let mut startup = RetinaStartup {
             world,
             form_id: None,
@@ -157,7 +157,7 @@ impl Retina {
 }
 
 struct RetinaStartup<'a> {
-    world: &'a World<Wall>,
+    world: &'a World,
     form_id: Option<FormId>,
 }
 
@@ -173,7 +173,7 @@ impl Drawable for RetinaStartup<'_> {
     }
 }
 
-pub fn world_form(renderer: &mut dyn Renderer, world: &World<Wall>) -> FormId {
+pub fn world_form(renderer: &mut dyn Renderer, world: &World) -> FormId {
     let mut form = Form::new();
         
     form.texture(renderer.create_texture_rgba8(&texture_colors(&[
@@ -269,7 +269,7 @@ pub fn world_form(renderer: &mut dyn Renderer, world: &World<Wall>) -> FormId {
 }
 
 fn retina_startup(
-    world: Res<World<Wall>>,
+    world: Res<World>,
     mut retina: ResMut<Retina>,
 ) {
     retina.startup(world.as_ref());

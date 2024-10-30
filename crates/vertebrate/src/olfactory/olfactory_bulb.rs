@@ -12,7 +12,7 @@ use crate::{
     mid_brain::SeekInput, 
     subpallium::{AttendId, AttendValue, BasalForebrain}, 
     util::{Angle, EgoVector}, 
-    world::{Odor, OdorKind, OdorType}
+    world::{Odor, OdorKind}
 };
 
 pub struct OlfactoryBulb {
@@ -125,14 +125,14 @@ impl OlfactoryBulb {
 
 impl SeekInput for OlfactoryBulb {
     fn seek_dir(&self) -> Option<EgoVector> {
-        for id in &self.active_odors {
-            let glom = &self.glomerules[id.0];
+        //for id in &self.active_odors {
+            //let glom = &self.glomerules[id.0];
 
             //if glom.odor.is_food() {
             //    return Some(glom.vector);
             //}
-            todo!();
-        }
+        //    todo!();
+        //}
 
         None
     }
@@ -194,7 +194,7 @@ impl OdorItem {
 }
 
 struct Glomerule {
-    odor: OdorKind,
+    _odor: OdorKind,
     vector: EgoVector,
     attend_id: AttendId,
     attend: f32,
@@ -205,7 +205,7 @@ impl Glomerule {
 
     fn new(odor: OdorKind, attend_id: AttendId) -> Self {
         Self {
-            odor,
+            _odor: odor,
             vector: EgoVector::zero(),
             attend_id,
             attend: 1.,
