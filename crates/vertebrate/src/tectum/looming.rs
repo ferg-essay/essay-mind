@@ -25,12 +25,12 @@ impl Looming {
     fn new() -> Self {
         Self {
             threshold: Self::THRESHOLD,
-            dim_left: DecayValue::new(Self::DIM_TIME),
-            dim_right: DecayValue::new(Self::DIM_TIME),
+            dim_left: DecayValue::new(Self::DIM_TIME).fill_decay(),
+            dim_right: DecayValue::new(Self::DIM_TIME).fill_decay(),
 
-            light_mid: DecayValue::new(Self::AVG_TIME),
-            light_left: DecayValue::new(Self::AVG_TIME),
-            light_right: DecayValue::new(Self::AVG_TIME),
+            light_mid: DecayValue::new(Self::AVG_TIME).fill_decay(),
+            light_left: DecayValue::new(Self::AVG_TIME).fill_decay(),
+            light_right: DecayValue::new(Self::AVG_TIME).fill_decay(),
         }
     }
 

@@ -3,8 +3,13 @@ use mind_ecs::AppTick;
 use crate::util::{Seconds, Ticks};
 
 pub struct StriatumTimeout {
-    ltd_factor: f32,
+    ltd_rise: f32,
     ltd_decay: f32,
+
+    // hysteresis
+    threshold_high: f32,
+    threshold_low: f32,
+
     active_gap: Ticks,
 
     ltd: f32,
@@ -22,14 +27,22 @@ impl StriatumTimeout {
         let decay : Ticks = Seconds(Self::DECAY).into();
 
         Self {
-            ltd_factor: 1. / ltd.ticks().max(1) as f32,
+            ltd_rise: 1. / ltd.ticks().max(1) as f32,
             ltd_decay: 1. / decay.ticks().max(1) as f32,
+            threshold_high: 0.9,
+            threshold_low: 0.1,
             active_gap: Ticks(3),
 
             ltd: 0.,
             last_active: 0,
             last_time: 0,
         }
+    }
+
+    pub fn ltd(mut self, time: impl Into<Ticks>) -> Self {
+        self.ltd_rise = 1. / time.into().ticks().max(1) as f32;
+
+        self
     }
 
     pub fn decay(mut self, time: impl Into<Ticks>) -> Self {
@@ -40,19 +53,23 @@ impl StriatumTimeout {
 
     pub fn active(&mut self, tick: &AppTick) -> StriatumValue {
         let now = tick.ticks();
-        let last_time = self.last_time;
-        let delta = now - last_time;
-        self.last_time = now;
-        let last_active = self.last_active;
 
-        if (now - last_active) < self.active_gap.ticks() as u64 {
+        let last_time = self.last_time;
+        self.last_time = now;
+
+        let delta = now - last_time;
+
+        let last_active = self.last_active;
+        self.last_active = now;
+
+        let is_active = (now - last_active) < self.active_gap.ticks() as u64;
+
+        if is_active {
             // continuation of active
-            self.ltd += self.ltd_factor * delta as f32;
+            self.ltd += self.ltd_rise * delta as f32;
 
             // active not yet timed out
-            if self.ltd <= 1. {
-                self.last_active = now;
-
+            if self.ltd <= self.threshold_high {
                 StriatumValue::Active
             } else {
                 StriatumValue::Avoid
@@ -61,15 +78,17 @@ impl StriatumTimeout {
             // attempted new active
             self.ltd = (self.ltd - self.ltd_decay * delta as f32).max(0.);
 
-            if self.ltd <= 0. {
-                self.last_active = now;
-
+            if self.ltd <= self.threshold_low {
                 StriatumValue::Active
             } else {
                 StriatumValue::None
             }
         }
     }
+
+    pub fn is_active(&mut self, tick: &AppTick) -> bool {
+        self.active(tick) == StriatumValue::Active
+    } 
 
     pub fn is_valid(&self, tick: &AppTick) -> bool {
         let delta = (tick.ticks() - self.last_time) as f32;
@@ -78,7 +97,7 @@ impl StriatumTimeout {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum StriatumValue {
     None,
     Active,

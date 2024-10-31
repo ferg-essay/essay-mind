@@ -2,35 +2,15 @@ use essay_ecs::{
     app::{App, Plugin}, 
     core::{Res, ResMut}
 };
-use mind_ecs::Tick;
+use log::warn;
+use mind_ecs::{AppTick, Tick};
 use crate::{
-    hind_brain::{HindEat, HindSearch, Serotonin}, mid_brain::{MidMove, MidMovePlugin}, motive::eat::MotiveEatPlugin, olfactory::{OdorCortex, OlfactoryCortexPlugin}, util::{DecayValue, Seconds}
+    hind_brain::{HindEat, HindSearch, Serotonin}, mid_brain::{MidMove, MidMovePlugin}, motive::eat::MotiveEatPlugin, olfactory::{OdorCortex, OlfactoryCortexPlugin}, subpallium::StriatumTimeout, util::{DecayValue, Seconds}
 };
 
 use super::{
     eat::MotiveEat, Motive,MotiveTrait, Motives, Sleep,
 };
-
-//
-// Forage includes R.pb, H.l, H.pstn, H.pv, H.sum, S.a, P.bst
-// specifically the food-related portions of those nuclei
-//
-
-pub struct Forage {
-    timeout: DecayValue,
-}
-
-impl Forage {
-    fn new() -> Self {
-        Self {
-            timeout: DecayValue::new(2.),
-        }
-    }
-
-    fn pre_update(&mut self) {
-        self.timeout.update();
-    }
-}
 
 fn update_forage(
     mut forage: ResMut<Forage>,
@@ -40,6 +20,7 @@ fn update_forage(
     mut foraging: ResMut<Motive<Forage>>,
     mut serotonin_eat: ResMut<Serotonin<HindEat>>,
     mut serotonin_search: ResMut<Serotonin<HindSearch>>,
+    tick: Res<AppTick>,
     sleep: Res<Sleep>,
 ) {
     forage.pre_update();
@@ -55,8 +36,14 @@ fn update_forage(
         mid_move.roam();
         return;
     }
-    
-    if odor_cortex.is_food_zone() {
+
+    // necessary each time because of striatum side effects (timeout)
+    let is_food_zone = odor_cortex.is_food_zone() 
+        && forage.food_zone_timeout.is_active(tick.get());
+
+    if serotonin_eat.is_active() {
+        // active eating suppresses foraging
+    } else if is_food_zone {
         // H.l food zone from olfactory
         foraging.clear();
 
@@ -73,6 +60,31 @@ fn update_forage(
         // mid_move.roam();
         serotonin_search.excite(1.);
         serotonin_eat.excite(0.);
+    }
+}
+
+///
+/// Forage includes R.pb, H.l, H.pstn, H.pv, H.sum, S.a, P.bst
+/// specifically the food-related portions of those nuclei
+///
+
+pub struct Forage {
+    timeout: DecayValue,
+    food_zone_timeout: StriatumTimeout,
+}
+
+impl Forage {
+    fn new() -> Self {
+        let food_zone = StriatumTimeout::new().ltd(Seconds(2.)).decay(Seconds(2.));
+
+        Self {
+            timeout: DecayValue::new(2.),
+            food_zone_timeout: food_zone,
+        }
+    }
+
+    fn pre_update(&mut self) {
+        self.timeout.update();
     }
 }
 pub struct Eat;

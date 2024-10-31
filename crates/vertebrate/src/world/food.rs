@@ -1,5 +1,4 @@
 use essay_ecs::{app::{App, Plugin, Startup}, core::{entity::EntityId, Commands, Component, Query, Res}};
-use log::warn;
 use mind_ecs::Tick;
 use util::random::Rand32;
 

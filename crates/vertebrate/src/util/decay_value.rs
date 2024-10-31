@@ -35,6 +35,12 @@ impl DecayValue {
         self
     }
 
+    pub fn fill_decay(mut self) -> Self {
+        self.fill = 1. - self.decay;
+
+        self
+    }
+
     #[inline]
     pub fn decay(&self) -> f32 {
         self.decay

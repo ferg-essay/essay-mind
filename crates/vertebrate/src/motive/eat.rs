@@ -230,6 +230,30 @@ use super::Sleep;
 /// ## S.v references
 /// 
 
+fn update_eat(
+    mut motive_eat: ResMut<MotiveEat>,
+    hind_eat: Res<HindEat>,
+    mut serotonin_eat: ResMut<Serotonin<HindEat>>,
+    body_eat: Res<BodyEat>,
+    sleep: Res<Sleep>,
+) {
+    motive_eat.pre_update();
+
+    motive_eat.update_hunger(body_eat.get(), hind_eat.get(), sleep.get());
+
+    if sleep.is_sleep()
+    || ! motive_eat.is_food_zone()
+    || motive_eat.is_alarm() {
+        return;
+    }
+
+    if ! motive_eat.is_sated_gut() && ! motive_eat.is_cgrp_bitter() {
+        serotonin_eat.excite(1.);
+    }
+
+    // TODO: check current moving
+}
+
 pub struct MotiveEat {
     // food_zone derives from H.l (Forage)
     is_food_zone: TimeoutValue<bool>,
@@ -417,30 +441,6 @@ impl Default for MotiveEat {
             is_cgrp_sick: TimeoutValue::new(Seconds(30.)),
         }
     }
-}
-
-fn update_eat(
-    mut motive_eat: ResMut<MotiveEat>,
-    hind_eat: Res<HindEat>,
-    mut serotonin_eat: ResMut<Serotonin<HindEat>>,
-    body_eat: Res<BodyEat>,
-    sleep: Res<Sleep>,
-) {
-    motive_eat.pre_update();
-
-    motive_eat.update_hunger(body_eat.get(), hind_eat.get(), sleep.get());
-
-    if sleep.is_sleep()
-    || ! motive_eat.is_food_zone()
-    || motive_eat.is_alarm() {
-        return;
-    }
-
-    if ! motive_eat.is_sated_gut() && ! motive_eat.is_cgrp_bitter() {
-        serotonin_eat.excite(1.);
-    }
-
-    // TODO: check current moving
 }
 
 pub struct MotiveEatPlugin;

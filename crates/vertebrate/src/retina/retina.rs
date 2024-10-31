@@ -14,6 +14,35 @@ use image::Pixel;
 
 use crate::{body::Body, util::{Angle, Heading}, world::{World, Wall}};
 
+fn retina_update(
+    body: Res<Body>,
+    mut retina: ResMut<Retina>
+) {
+    retina.draw_and_load(body.get());
+
+    let light_left = if let Some(tensor) = &retina.data_left {
+        tensor.reduce_mean(())[0]
+    } else {
+        0.
+    };
+
+    let light_right = if let Some(tensor) = &retina.data_right {
+        tensor.reduce_mean(())[0]
+    } else {
+        0.
+    };
+
+    retina.brighten_left = (light_left - retina.light_left) / light_left.max(0.01);
+    retina.brighten_right = (light_right - retina.light_right) / light_right.max(0.01);
+    retina.light_left = light_left;
+    retina.light_right = light_right;
+
+    // println!("Avg {:.2}({:.2}) {:.2}({:.2})", 
+    //    retina.light_left, retina.brighten_left, 
+    //    retina.light_right, retina.brighten_right
+    //);
+}
+
 pub struct Retina {
     width: u32,
     size: u32,
@@ -355,35 +384,6 @@ fn texture_colors(colors: &[Color]) -> Tensor<u8> {
     }
 
     Tensor::from(vec).reshape([colors.len() * size, size, 4])
-}
-
-fn retina_update(
-    body: Res<Body>,
-    mut retina: ResMut<Retina>
-) {
-    retina.draw_and_load(body.get());
-
-    let light_left = if let Some(tensor) = &retina.data_left {
-        tensor.reduce_mean(())[0]
-    } else {
-        0.
-    };
-
-    let light_right = if let Some(tensor) = &retina.data_right {
-        tensor.reduce_mean(())[0]
-    } else {
-        0.
-    };
-
-    retina.brighten_left = (light_left - retina.light_left) / light_left.max(0.01);
-    retina.brighten_right = (light_right - retina.light_right) / light_right.max(0.01);
-    retina.light_left = light_left;
-    retina.light_right = light_right;
-
-    // println!("Avg {:.2}({:.2}) {:.2}({:.2})", 
-    //    retina.light_left, retina.brighten_left, 
-    //    retina.light_right, retina.brighten_right
-    //);
 }
 
 
