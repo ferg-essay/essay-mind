@@ -1,6 +1,6 @@
 use essay_ecs::app::{App, Plugin};
 
-use super::{FloorType, OdorKind, World, Wall, WorldHex};
+use super::{FloorType, World, Wall};
 
 pub struct WorldPlugin {
     width: usize,
@@ -8,8 +8,6 @@ pub struct WorldPlugin {
 
     walls: Vec<(usize, usize)>,
     floor: Vec<FloorItem>,
-
-    loc_odor: Vec<LocOdorItem>,
 }
 
 impl WorldPlugin {
@@ -20,15 +18,15 @@ impl WorldPlugin {
 
             walls: Vec::new(),
             floor: Vec::new(),
-
-            loc_odor: Vec::new(),
         }
     }
 
+    #[inline]
     pub fn width(&self) -> usize {
         self.width
     }
 
+    #[inline]
     pub fn height(&self) -> usize {
         self.height
     }
@@ -65,15 +63,6 @@ impl WorldPlugin {
         self
     }
 
-    pub fn loc_odor(mut self, x: usize, y: usize, r: usize, odor: OdorKind) -> Self {
-        assert!(x < self.width);
-        assert!(y < self.height);
-
-        self.loc_odor.push(LocOdorItem::new(x, y, r, odor));
-
-        self
-    }
-
     fn create_world(&self) -> World {
         let mut world = World::new(self.width, self.height);
 
@@ -92,22 +81,8 @@ impl WorldPlugin {
             }
         }
 
-        //for food in &self.food {
-        //    world[*food] = WorldCell::Food;
-        //}
-
         for wall in &self.walls {
             world[*wall] = Wall::Wall;
-        }
-
-        world
-    }
-
-    fn create_world_hex(&self) -> WorldHex<OdorKind> {
-        let mut world = WorldHex::<OdorKind>::new(self.width, self.height, 1.);
-
-        for item in &self.loc_odor {
-            item.fill(&mut world);
         }
 
         world
@@ -117,50 +92,6 @@ impl WorldPlugin {
 impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(self.create_world());
-
-        app.insert_resource(self.create_world_hex());
-
-        // self.create_odors(app);
-
-        // self.create_food(app);
-
-        // app.system(Tick, update_food);
-    }
-}
-
-struct LocOdorItem {
-    pos: (usize, usize),
-    r: usize,
-    odor: OdorKind,
-}
-
-impl LocOdorItem {
-    fn new(x: usize, y: usize, r: usize, odor: OdorKind) -> Self {
-        Self { 
-            pos: (x, y), 
-            r,
-            odor 
-        }
-    }
-
-    fn fill(&self, world: &mut WorldHex<OdorKind>) {
-        let x = self.pos.0 as i32;
-        let y = self.pos.1 as i32;
-        let r = self.r as i32;
-
-        let x0 = x as f32;
-        let y0 = y as f32 + if x % 2 == 0 { 0.5 } else { 0. };
-
-        for j in (y - r).max(0)..(y + r).min(world.height() as i32) {
-            for i in (x - r).max(0)..(x + r).min(world.width() as i32) {
-                let x1 = i as f32;
-                let y1 = j as f32 + if i % 2 == 0 { 0.5 } else { 0. };
-
-                if (x1 - x0).hypot(y1 - y0) < r as f32 - 0.5 {
-                    world[(i as usize, j as usize)] = self.odor.clone();
-                }
-            }
-        }
     }
 }
 

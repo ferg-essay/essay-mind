@@ -4,9 +4,9 @@ use std::{collections::HashMap, hash::Hash};
 use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}};
 use mind_ecs::Tick;
 
-use crate::{body::Body, hippocampus::Engram64, mid_brain::SeekContext, util::base64_rev, world::WorldHex};
+use crate::{body::Body, hippocampus::Engram64, mid_brain::SeekContext, util::base64_rev, world::{WorldHex, WorldHexTrait}};
 
-fn update_odor_place<K: Eq + Hash + fmt::Debug + 'static>(
+fn update_odor_place<K: WorldHexTrait + Eq + Hash + fmt::Debug + 'static>(
     mut odor_context: ResMut<OdorPlace>, 
     odor_map: Res<OdorPlaceMap<K, OdorItem>>,
     body: Res<Body>,
@@ -89,7 +89,7 @@ impl<K: Eq + Hash + Send + fmt::Debug> OdorPlacePlugin<K> {
     }
 }
 
-impl<K: Eq + Hash + fmt::Debug + Clone + Send + 'static> Plugin for OdorPlacePlugin<K> {
+impl<K: WorldHexTrait + Eq + Hash + fmt::Debug + Send> Plugin for OdorPlacePlugin<K> {
     fn build(&self, app: &mut App) {
         let odor_map: OdorPlaceMap<K, OdorItem> = OdorPlaceMap {
             loc_map: self.loc_map.clone(),

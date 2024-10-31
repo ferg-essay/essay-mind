@@ -11,13 +11,13 @@ use essay_plot::api::{
 use essay_tensor::Tensor;
 use ui_graphics::{HexSliceGenerator, TexId, TextureBuilder, TextureGenerator, Tile, UiCanvas};
 
-use crate::world::{OdorKind, WorldHex};
+use crate::world::{WorldHex, WorldHexTrait};
 
 use super::ui_world_map::{UiWorld, UiWorldPlugin};
 
-fn update_hex_world(
-    mut ui_hex: ResMut<UiWorldHex<OdorKind>>,
-    world_hex: Res<WorldHex<OdorKind>>,
+fn update_hex_world<T: WorldHexTrait + Hash + Eq>(
+    mut ui_hex: ResMut<UiWorldHex<T>>,
+    world_hex: Res<WorldHex<T>>,
 ) {
     if ui_hex.update_count < world_hex.update_count() {
         ui_hex.update_count = world_hex.update_count();
@@ -32,7 +32,7 @@ fn update_hex_world(
     
         for j in 0..world_hex.height() {
             for i in 0..world_hex.width() {
-                let key = world_hex[(i, j)];
+                let key = &world_hex[(i, j)];
 
                 let x = i as f32 + 0.5;
                 let y = j as f32 + if i % 2 == 0 { 0.5 } else { 0.0 };
@@ -47,7 +47,7 @@ fn update_hex_world(
     }
 }
 
-pub struct UiWorldHex<K: Eq + Hash> {
+pub struct UiWorldHex<K: WorldHexTrait + Eq + Hash> {
     view: View<HexView>,
 
     shape: Shape,
@@ -59,20 +59,11 @@ pub struct UiWorldHex<K: Eq + Hash> {
     update_count: usize,
 }
 
-impl<K: Eq + Hash> UiWorldHex<K> {
+impl<T: WorldHexTrait + Eq + Hash> UiWorldHex<T> {
     fn new(
         mut view: View<HexView>,
-        mut gen: HexGenerator<K>,
+        mut gen: HexGenerator<T>,
     ) -> Self {
-        // let tex = HexBuilder::<K>::new(64, 64);
-
-        //tex.none(OdorKind::None);
-        //tex.tile(OdorKind::A).fill("teal");
-
-        //tex.tile(OdorKind::B).fill("orange");
-
-        //tex.tile(OdorKind::C).pattern(Pattern::CheckerBoard(6), "red");
-
         let tex = gen.texture();
 
         view.write(|v| v.tex = tex);
@@ -88,32 +79,12 @@ impl<K: Eq + Hash> UiWorldHex<K> {
         }
     }
 
-    /*
-    pub fn none(&mut self, key: K) {
-        if let Some(builder) = &mut self.tex {
-            builder.none(key);
-        }
-    }
-
-    pub fn tile(&mut self, key: K) -> TileBuilder {
-        if let Some(builder) = &mut self.tex {
-            builder.tile(key)
-        } else {
-            panic!()
-        }
-    }
-    */
-
-    pub fn update_render(&mut self, renderer: &mut dyn Renderer, world: &WorldHex<K>) {
-        //if let Some(tex) = self.tex.take() {
-        //    self.tex_gen = Some(tex.gen(renderer));
-        //}
-
+    pub fn update_render(&mut self, renderer: &mut dyn Renderer, world: &WorldHex<T>) {
         if self.shape_id.is_none() || self.update_count < world.update_count() {
             self.update_count = world.update_count();
 
             let mut shape = Shape::new();
-            // shape.texture(tex_gen.texture_id());
+
             let epsilon = 0.01;
             let hex_gen = HexSliceGenerator::new(
                 2. / 3. - epsilon,
@@ -148,13 +119,13 @@ impl<K: Eq + Hash> UiWorldHex<K> {
     }
 }
 
-pub struct HexBuilder<K: Eq + Hash + Clone> {
+pub struct HexBuilder<T: Eq + Hash + Clone> {
     tex: TextureBuilder,
-    tex_map: HashMap<K, TexId>,
+    tex_map: HashMap<T, TexId>,
     id_missing: TexId,
 }
 
-impl<K: Eq + Hash + Clone> HexBuilder<K> {
+impl<T: Eq + Hash + Clone> HexBuilder<T> {
     pub fn new(width: usize, height: usize) -> Self {
         let mut tex = TextureBuilder::new(width, height);
 
@@ -171,11 +142,11 @@ impl<K: Eq + Hash + Clone> HexBuilder<K> {
         }
     }
 
-    pub fn none(&mut self, key: K) {
+    pub fn none(&mut self, key: T) {
         self.tex_map.insert(key, TexId(0));
     }
 
-    pub fn tile<'a>(&'a mut self, key: K) -> TileBuilder<'a> {
+    pub fn tile<'a>(&'a mut self, key: T) -> TileBuilder<'a> {
         let id = self.tex.create_tile();
         self.tex_map.insert(key, id);
 
@@ -185,7 +156,7 @@ impl<K: Eq + Hash + Clone> HexBuilder<K> {
         }
     }
 
-    fn gen(&self) -> HexGenerator<K> {
+    fn gen(&self) -> HexGenerator<T> {
         let gen = self.tex.gen();
 
         // let texture = gen.texture();
@@ -274,9 +245,9 @@ impl Pattern {
     }
 }
 
-pub struct HexGenerator<K: Eq + Hash> {
+pub struct HexGenerator<T: Eq + Hash> {
     gen: TextureGenerator,
-    tex_map: HashMap<K, TexId>,
+    tex_map: HashMap<T, TexId>,
     id_missing: TexId,
 }
 
@@ -363,27 +334,27 @@ impl Drawable for HexView {
     }
 }
 
-pub struct UiWorldHexPlugin {
-    builder: HexBuilder<OdorKind>,
+pub struct UiWorldHexPlugin<T: WorldHexTrait + Hash + Eq> {
+    builder: HexBuilder<T>,
 }
 
-impl UiWorldHexPlugin {
+impl<T: WorldHexTrait + Hash + Eq> UiWorldHexPlugin<T> {
     pub fn new() -> Self {
         Self {
             builder: HexBuilder::new(64, 64),
         }
     }
 
-    pub fn none(&mut self, key: OdorKind) {
+    pub fn none(&mut self, key: T) {
         self.builder.none(key);
     }
 
-    pub fn tile(&mut self, key: OdorKind) -> TileBuilder {
+    pub fn tile(&mut self, key: T) -> TileBuilder {
         self.builder.tile(key)
     }
 }
 
-impl Plugin for UiWorldHexPlugin {
+impl<T: WorldHexTrait + Hash + Eq> Plugin for UiWorldHexPlugin<T> {
     fn build(&self, app: &mut App) {
         if app.contains_plugin::<UiWorldPlugin>() {
             let world_bounds = app.resource::<UiWorld>().bounds();
@@ -393,25 +364,13 @@ impl Plugin for UiWorldHexPlugin {
 
             let view = app.resource_mut::<UiCanvas>().subview(world_id, 2, view);
 
-            // let mut hex_builder = HexBuilder::new(64, 64);
-            
-            // hex_builder.none(OdorKind::None);
-
             let gen = self.builder.gen();
 
-            let hex = UiWorldHex::<OdorKind>::new(view, gen);
+            let hex = UiWorldHex::<T>::new(view, gen);
 
             app.insert_resource(hex);
 
-            // let box_id = app.resource_mut::<UiLayout>().add_box(self.bounds.clone());
-            // app.insert_resource(ui_world);
-
-            // app.phase(Update, (DrawWorld, DrawItem, DrawAgent).chain());
-            //app.system(Update, draw_world.phase(DrawWorld));
-            // app.system(PreUpdate, world_resize);
-
-            // app.system(Startup, spawn_ui_world);
-            app.system(Update, update_hex_world);
+            app.system(Update, update_hex_world::<T>);
         }
     }
 }

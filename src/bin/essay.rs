@@ -30,7 +30,7 @@ use vertebrate::{
     }, 
     util::{self, Seconds}, 
     world::{
-        FoodKind, FoodPlugin, OdorKind, OdorPlugin, World, WorldPlugin
+        FoodKind, FoodPlugin, OdorKind, OdorPlugin, World, WorldHexPlugin, WorldPlugin
     }
 };
 use essay_ecs::prelude::App;
@@ -46,8 +46,9 @@ pub fn main() {
 
     app.plugin(TickSchedulePlugin::new().ticks(2));
 
+    let (w, h) = (15, 11);
     // let odor_r = 2;
-    app.plugin(world_roam(15, 11)
+    app.plugin(world_roam(w, h)
         //.loc_odor(2, 4, 3, OdorKind::FoodA)
 
         //.loc_odor(2, 10, 3, OdorKind::FoodB)
@@ -62,9 +63,9 @@ pub fn main() {
         //.food_odor_r(14, 4, FoodKind::Plain, odor_r, OdorType::FoodA)
     );
 
-    let mut food = FoodPlugin::new();
-    food.gen_count(1).gen_radius(2.).gen_value(Seconds(120.)).gen_kind(FoodKind::Poor);
-    app.plugin(food);
+    let mut place = WorldHexPlugin::<OdorKind>::new(w, h);
+    place.circle((2., 4.), 3., OdorKind::FoodA);
+    app.plugin(place);
 
     app.plugin(OdorPlacePlugin::<OdorKind>::new()
         .add(OdorKind::FoodA, "a")
@@ -73,6 +74,10 @@ pub fn main() {
         .add(OdorKind::AvoidB, "d")
         .add(OdorKind::OtherA, "e")
     );
+
+    let mut food = FoodPlugin::new();
+    food.gen_count(1).gen_radius(2.).gen_value(Seconds(120.)).gen_kind(FoodKind::Poor);
+    app.plugin(food);
 
     //app.plugin(world_roam(21, 15)
         // .food_odor_r(5, 5, 4, OdorType::FoodA)

@@ -21,8 +21,19 @@ impl World {
         }
     }
 
+    #[inline]
     pub fn extent(&self) -> (usize, usize) {
         (self.width, self.height)
+    }
+
+    #[inline]
+    pub fn width(&self) -> usize {
+        self.width
+    }
+
+    #[inline]
+    pub fn height(&self) -> usize {
+        self.height
     }
 }
 

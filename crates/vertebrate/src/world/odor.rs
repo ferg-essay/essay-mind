@@ -4,6 +4,8 @@ use essay_ecs::{app::{App, Plugin, Startup}, core::{Commands, Component}};
 
 use crate::util::Point;
 
+use super::WorldHexTrait;
+
 #[derive(Component)]
 pub struct Odor<T: OdorType> {
     pos: Point,
@@ -112,6 +114,8 @@ impl Default for OdorKind {
         OdorKind::None
     }
 }
+
+impl WorldHexTrait for OdorKind {}
 
 impl OdorType for OdorKind {
     fn innate(&self) -> OdorInnate {
