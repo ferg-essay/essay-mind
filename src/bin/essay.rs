@@ -30,7 +30,7 @@ use vertebrate::{
     }, 
     util::{self, Seconds}, 
     world::{
-        FoodKind, FoodPlugin, OdorKind, OdorPlugin, World, WorldHexPlugin, WorldPlugin
+        FoodKind, FoodPlugin, OdorKind, OdorPlugin, World, WorldHexPlugin, WorldHexTrait, WorldPlugin
     }
 };
 use essay_ecs::prelude::App;
@@ -63,25 +63,21 @@ pub fn main() {
         //.food_odor_r(14, 4, FoodKind::Plain, odor_r, OdorType::FoodA)
     );
 
-    let mut place = WorldHexPlugin::<OdorKind>::new(w, h);
-    place.circle((2., 4.), 3., OdorKind::FoodA);
+    let mut place = WorldHexPlugin::<PlaceKind>::new(w, h);
+    place.circle((2., 4.), 3., PlaceKind::FoodA);
     app.plugin(place);
 
-    app.plugin(OdorPlacePlugin::<OdorKind>::new()
-        .add(OdorKind::FoodA, "a")
-        .add(OdorKind::FoodB, "b")
-        .add(OdorKind::AvoidA, "c")
-        .add(OdorKind::AvoidB, "d")
-        .add(OdorKind::OtherA, "e")
+    app.plugin(OdorPlacePlugin::<PlaceKind>::new()
+        .add(PlaceKind::FoodA, "a")
+        .add(PlaceKind::FoodB, "b")
+        .add(PlaceKind::AvoidA, "c")
+        .add(PlaceKind::AvoidB, "d")
+        .add(PlaceKind::OtherA, "e")
     );
 
     let mut food = FoodPlugin::new();
     food.gen_count(1).gen_radius(2.).gen_value(Seconds(120.)).gen_kind(FoodKind::Poor);
     app.plugin(food);
-
-    //app.plugin(world_roam(21, 15)
-        // .food_odor_r(5, 5, 4, OdorType::FoodA)
-    //);
 
     let mut animal = AnimalBuilder::new();
 
@@ -108,6 +104,25 @@ pub fn main() {
 
 pub struct Dummy;
 impl MotiveTrait for Dummy {}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum PlaceKind {
+    None,
+    FoodA,
+    FoodB,
+    AvoidA,
+    AvoidB,
+    OtherA,
+    OtherB,
+}
+
+impl Default for PlaceKind {
+    fn default() -> Self {
+        Self::None
+    }
+}
+
+impl WorldHexTrait for PlaceKind {}
 
 pub fn world_lateral_line() -> WorldPlugin {
     let w = 15;
@@ -287,10 +302,10 @@ fn ui_eat_flat(app: &mut App) {
 
     let alpha = 0.25;
     let mut hex = UiWorldHexPlugin::new();
-    hex.tile(OdorKind::None);
-    hex.tile(OdorKind::FoodA).pattern(Pattern::CheckerBoard(8), Color::from("red").set_alpha(alpha));
-    hex.tile(OdorKind::FoodB).pattern(Pattern::CheckerBoard(8), Color::from("teal").set_alpha(alpha));
-    hex.tile(OdorKind::OtherA).pattern(Pattern::CheckerBoard(8), "orange");
+    hex.tile(PlaceKind::None);
+    hex.tile(PlaceKind::FoodA).pattern(Pattern::CheckerBoard(8), Color::from("red").set_alpha(alpha));
+    hex.tile(PlaceKind::FoodB).pattern(Pattern::CheckerBoard(8), Color::from("teal").set_alpha(alpha));
+    hex.tile(PlaceKind::OtherA).pattern(Pattern::CheckerBoard(8), "orange");
 
     app.plugin(hex);
 
