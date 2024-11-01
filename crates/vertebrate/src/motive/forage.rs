@@ -2,10 +2,14 @@ use essay_ecs::{
     app::{App, Plugin}, 
     core::{Res, ResMut}
 };
-use log::warn;
 use mind_ecs::{AppTick, Tick};
 use crate::{
-    hind_brain::{HindEat, HindSearch, Serotonin}, mid_brain::{MidMove, MidMovePlugin}, motive::eat::MotiveEatPlugin, olfactory::{OdorCortex, OlfactoryCortexPlugin}, subpallium::StriatumTimeout, util::{DecayValue, Seconds}
+    hind_brain::{HindAvoid, HindEat, HindSearch, Serotonin}, 
+    mid_brain::{MidMove, MidMovePlugin}, 
+    motive::eat::MotiveEatPlugin, 
+    olfactory::{OdorCortex, OlfactoryCortexPlugin}, 
+    subpallium::StriatumTimeout, 
+    util::{DecayValue, Seconds}
 };
 
 use super::{
@@ -18,6 +22,7 @@ fn update_forage(
     mid_move: Res<MidMove>,
     mut motive_eat: ResMut<MotiveEat>,
     mut foraging: ResMut<Motive<Forage>>,
+    serotonin_avoid: Res<Serotonin<HindAvoid>>,
     mut serotonin_eat: ResMut<Serotonin<HindEat>>,
     mut serotonin_search: ResMut<Serotonin<HindSearch>>,
     tick: Res<AppTick>,
@@ -41,7 +46,10 @@ fn update_forage(
     let is_food_zone = odor_cortex.is_food_zone() 
         && forage.food_zone_timeout.is_active(tick.get());
 
-    if serotonin_eat.is_active() {
+    if serotonin_avoid.is_active() {
+        // avoidance higher priority
+        // TODO: priority with hunger?
+    } else if serotonin_eat.is_active() {
         // active eating suppresses foraging
     } else if is_food_zone {
         // H.l food zone from olfactory

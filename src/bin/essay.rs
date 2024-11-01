@@ -5,7 +5,7 @@ use log::LevelFilter;
 use vertebrate::{
     body::{Body, BodyEat}, 
     builder::AnimalBuilder, 
-    hind_brain::{HindEat, HindMove, HindSearch, MoveKind, Serotonin}, 
+    hind_brain::{AvoidPlacePlugin, HindAvoid, HindEat, HindMove, HindSearch, MoveKind, Serotonin}, 
     motive::{
         Dwell, Forage, Motive, MotiveEat, MotiveTrait, Sleep, Wake
     }, 
@@ -64,7 +64,7 @@ pub fn main() {
     );
 
     let mut place = WorldHexPlugin::<PlaceKind>::new(w, h);
-    place.circle((2., 4.), 3., PlaceKind::FoodA);
+    place.circle((2., 4.), 3., PlaceKind::AvoidA);
     app.plugin(place);
 
     app.plugin(OdorPlacePlugin::<PlaceKind>::new()
@@ -73,6 +73,11 @@ pub fn main() {
         .add(PlaceKind::AvoidA, "c")
         .add(PlaceKind::AvoidB, "d")
         .add(PlaceKind::OtherA, "e")
+    );
+
+    app.plugin(AvoidPlacePlugin::<PlaceKind>::new()
+        .avoid(PlaceKind::AvoidA, true)
+        .avoid(PlaceKind::AvoidB, true)
     );
 
     let mut food = FoodPlugin::new();
@@ -276,6 +281,7 @@ fn ui_motive(app: &mut App, xy: impl Into<Point>, wh: impl Into<Point>) {
         .row()
         .item(Emoji::FaceCowboy, |m: &Serotonin<HindSearch>| m.active_value())
         .item(Emoji::ForkAndKnife, |m: &Serotonin<HindEat>| m.active_value())
+        .item(Emoji::Warning, |m: &Serotonin<HindAvoid>| m.active_value())
     );
 }
 
@@ -300,12 +306,13 @@ fn ui_eat_flat(app: &mut App) {
     app.plugin(UiBodyPlugin); // ::new((0., 0.5), (0.25, 0.5)));
     app.plugin(UiBodyTrailPlugin);
 
-    let alpha = 0.25;
+    let alpha = 0.4;
     let mut hex = UiWorldHexPlugin::new();
     hex.tile(PlaceKind::None);
     hex.tile(PlaceKind::FoodA).pattern(Pattern::CheckerBoard(8), Color::from("red").set_alpha(alpha));
     hex.tile(PlaceKind::FoodB).pattern(Pattern::CheckerBoard(8), Color::from("teal").set_alpha(alpha));
-    hex.tile(PlaceKind::OtherA).pattern(Pattern::CheckerBoard(8), "orange");
+    hex.tile(PlaceKind::OtherA).pattern(Pattern::CheckerBoard(8), Color::from("orange").set_alpha(alpha));
+    hex.tile(PlaceKind::AvoidA).pattern(Pattern::CheckerBoard(4), Color::from("purple").set_alpha(alpha));
 
     app.plugin(hex);
 

@@ -478,7 +478,7 @@ impl OpticMid {
         Self {
             escape,
             escape_kind: MoveKind::None,
-            u_turn: DecayValue::default(),
+            u_turn: DecayValue::new(Seconds(1.)),
         }
     }
 
@@ -489,11 +489,15 @@ impl OpticMid {
 
     pub fn escape(&mut self, turn: Turn) {
         self.escape.set_max(1.);
-        self.escape_kind = MoveKind::Escape(turn);
+
+        if ! self.u_turn.is_active() {
+            self.escape_kind = MoveKind::Escape(turn);
+        }
     }
 
     pub fn u_turn(&mut self, turn: Turn) {
         self.escape.set_max(1.);
+        self.u_turn.set_max(1.);
         self.escape_kind = MoveKind::UTurn(turn);
     }
 

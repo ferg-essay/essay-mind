@@ -4,11 +4,11 @@ use mind_ecs::Tick;
 
 use crate::{
     body::{BodyEatPlugin, BodyPlugin}, 
-    hind_brain::{HindEat, HindEatPlugin, HindMovePlugin, HindSearchPlugin}, 
+    hind_brain::{HindAvoidPlugin, HindEat, HindEatPlugin, HindMovePlugin, HindSearchPlugin}, 
     hippocampus::HippocampusPlugin, 
     mid_brain::{MidMovePlugin, MidSeekContextPlugin, MidSeekPlugin}, 
     motive::{Dwell, Forage, Motive, MotiveAvoidPlugin, MotiveEatPlugin, MotiveForagePlugin, MotiveSleepPlugin}, 
-    olfactory::{olfactory_bulb::{OlfactoryBulb, OlfactoryBulbPlugin}, odor_place::OdorPlace, OlfactoryCortexPlugin}, 
+    olfactory::{odor_place::OdorPlace, olfactory_bulb::{OlfactoryBulb, OlfactoryBulbPlugin}, OlfactoryCortexPlugin}, 
     retina::RetinaPlugin, 
     taxis::{klinotaxis::KlinotaxisPlugin, TaxisAvoidPlugin}, 
     tectum::{TectumLoomingPlugin, TectumPlugin}, util::Seconds 
@@ -18,8 +18,9 @@ pub struct AnimalBuilder {
     body: BodyPlugin,
     body_eat: BodyEatPlugin,
 
-    hind_move: HindMovePlugin,
+    hind_avoid: HindAvoidPlugin,
     hind_eat: HindEatPlugin,
+    hind_move: HindMovePlugin,
     hind_search: HindSearchPlugin,
 
     olfactory_bulb: OlfactoryBulbPlugin,
@@ -39,8 +40,9 @@ impl AnimalBuilder {
             body: BodyPlugin::new(),
             body_eat: BodyEatPlugin,
 
-            hind_move: HindMovePlugin,
+            hind_avoid: HindAvoidPlugin::new(),
             hind_eat: HindEatPlugin::new(),
+            hind_move: HindMovePlugin,
             hind_search: HindSearchPlugin::new(),
 
             olfactory_bulb: OlfactoryBulbPlugin::new(),
@@ -87,8 +89,9 @@ impl AnimalBuilder {
         app.plugin(self.body);
         app.plugin(self.body_eat);
 
-        app.plugin(self.hind_move);
+        app.plugin(self.hind_avoid);
         app.plugin(self.hind_eat);
+        app.plugin(self.hind_move);
         app.plugin(self.hind_search);
 
         app.plugin(self.olfactory_bulb);
