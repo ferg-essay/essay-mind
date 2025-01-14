@@ -251,9 +251,9 @@ impl UiCanvas {
             None, // Some(&view.view)
         );
 
-        self.layout.get_layout_mut().event(
-            &mut renderer, 
-            &Event::Resize(Bounds::from([width as f32, height as f32]))
+        self.layout.get_layout_mut().resize(
+            &mut renderer,
+            &Bounds::from([width as f32, height as f32])
         );
     }
 

@@ -3,12 +3,12 @@ use mind_ecs::Tick;
 
 use crate::{hind_brain::SerotoninManager, util::{Seconds, Ticks, Turn}};
 
-use super::{AvoidPlace, HindEat, HindMove, Serotonin, SerotoninTrait};
+use super::{AvoidHere, HindEat, HindMove, Serotonin, SerotoninTrait};
 
 fn update_hind_avoid(
     mut hind_avoid: ResMut<HindAvoid>,
     mut hind_move: ResMut<HindMove>,
-    avoid_place: Option<Res<AvoidPlace>>,
+    avoid_place: Option<Res<AvoidHere>>,
     mut serotonin_avoid: ResMut<Serotonin<HindAvoid>>,
     mut serotonin_eat: ResMut<Serotonin<HindEat>>,
 ) {

@@ -5,7 +5,7 @@ use log::LevelFilter;
 use vertebrate::{
     body::{Body, BodyEat}, 
     builder::AnimalBuilder, 
-    hind_brain::{AvoidPlacePlugin, HindAvoid, HindEat, HindMove, HindSearch, MoveKind, Serotonin}, 
+    hind_brain::{AvoidHerePlugin, HindAvoid, HindEat, HindMove, HindSearch, MoveKind, Serotonin}, 
     motive::{
         Dwell, Forage, Motive, MotiveEat, MotiveTrait, Sleep, Wake
     }, 
@@ -75,7 +75,7 @@ pub fn main() {
         .add(PlaceKind::OtherA, "e")
     );
 
-    app.plugin(AvoidPlacePlugin::<PlaceKind>::new()
+    app.plugin(AvoidHerePlugin::<PlaceKind>::new()
         .avoid(PlaceKind::AvoidA, true)
         .avoid(PlaceKind::AvoidB, true)
     );
