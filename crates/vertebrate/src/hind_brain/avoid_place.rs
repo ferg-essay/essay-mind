@@ -26,6 +26,10 @@ fn update_avoid_here<K: WorldHexTrait + Eq + Hash + fmt::Debug + 'static>(
 /// R.pb has at least two distinct negative triggers: tac1 and cgrp, which
 /// project to distinct areas.
 /// 
+/// This function is named AvoidHere not AvoidPlace because R.pb doesn't have
+/// a general knowledge of place, but only that the current location is 
+/// bad.
+/// 
 #[derive(Default)]
 pub struct AvoidHere {
     avoid: AvoidItem,

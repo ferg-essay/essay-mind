@@ -4,7 +4,6 @@ mod hind_eat;
 mod hind_move;
 mod hind_search;
 pub mod lateral_line;
-mod random_walk;
 mod serotonin;
 mod startle;
 

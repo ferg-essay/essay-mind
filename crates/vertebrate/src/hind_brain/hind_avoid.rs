@@ -60,13 +60,9 @@ impl HindAvoidPlugin {
 
 impl Plugin for HindAvoidPlugin {
     fn build(&self, app: &mut App) {
-        // assert!(app.contains_plugin::<BodyAvoidPlugin>(), "HindAvoidPlugin requires BodyEatPlugin");
-
         SerotoninManager::insert::<HindAvoid>(app, self.avoid_time);
 
         let hind_avoid = HindAvoid::new();
-
-        // hind_search.is_eating = TimeoutValue::new(self.search_time);
 
         app.insert_resource(hind_avoid);
 

@@ -7,7 +7,7 @@ use crate::{
     util::{DecayValue, Seconds, Ticks, TimeoutValue, Turn}
 };
 
-use super::{random_walk::OscillatorArs, startle::StartleMrs, HindEat};
+use super::{hind_search::OscillatorArs, startle::StartleMrs, HindEat};
 
 //
 // Barandela et al 2023 - Lamprey early R.mrrn only from M.nmlf, DLR, MLR
