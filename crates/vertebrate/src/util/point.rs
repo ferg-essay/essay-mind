@@ -1,4 +1,4 @@
-use std::{f32::consts::{PI, TAU}, ops::{Add, Mul, Sub}};
+use std::{f32::consts::{PI, TAU}, ops::{Add, Mul, Neg, Sub}};
 
 use essay_graphics::api;
 
@@ -429,6 +429,30 @@ impl From<f32> for Turn {
     #[inline]
     fn from(value: f32) -> Self {
         Turn::Unit(value)
+    }
+}
+
+impl Neg for Turn {
+    type Output = Turn;
+
+    fn neg(self) -> Self::Output {
+        Turn::unit(- self.to_unit())
+    }
+}
+
+impl Add for Turn {
+    type Output = Turn;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Turn::unit(self.to_unit() + rhs.to_unit())
+    }
+}
+
+impl Mul<Turn> for f32 {
+    type Output = Turn;
+
+    fn mul(self, rhs: Turn) -> Self::Output {
+        Turn::unit(self * rhs.to_unit())
     }
 }
 

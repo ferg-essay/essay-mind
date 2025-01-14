@@ -32,17 +32,18 @@ fn looming_update(
         let sum_dim = left_dim.max(0.) + right_dim.max(0.);
         
         if sum_dim * 0.75 < left_dim {
-            hind_move.optic().escape(Turn::Unit(Looming::TURN));
+            hind_move.optic().escape(Looming::TURN);
             hind_move.set_ss_left(0.75);
         } else if sum_dim * 0.75 < right_dim {
-            hind_move.optic().escape(Turn::Unit(-Looming::TURN));
+            hind_move.optic().escape(- Looming::TURN);
             hind_move.set_ss_right(0.75);
         } else {
             if left_dim < right_dim {
-                hind_move.optic().u_turn(Turn::Unit(-Looming::U_TURN));
+                hind_move.optic().u_turn(- Looming::U_TURN);
             } else {
-                hind_move.optic().u_turn(Turn::Unit(Looming::U_TURN));
+                hind_move.optic().u_turn(Looming::U_TURN);
             }
+            
             hind_move.set_ss_forward(0.75);
         }
     }
@@ -64,8 +65,8 @@ impl Looming {
     const DIM_TIME : Seconds = Seconds(0.2);
     const AVG_TIME : Seconds = Seconds(1.);
 
-    const TURN : f32 = 0.20;
-    const U_TURN : f32 = 0.40;
+    const TURN : Turn = Turn::Unit(0.20);
+    const U_TURN : Turn = Turn::Unit(0.40);
 
     fn new() -> Self {
         Self {
@@ -73,7 +74,9 @@ impl Looming {
             dim_left: DecayValue::new(Self::DIM_TIME).fill_decay(),
             dim_right: DecayValue::new(Self::DIM_TIME).fill_decay(),
 
+            // light_mid represents the M.tl average light level
             light_mid: DecayValue::new(Self::AVG_TIME).fill_decay(),
+
             light_left: DecayValue::new(Self::AVG_TIME).fill_decay(),
             light_right: DecayValue::new(Self::AVG_TIME).fill_decay(),
         }
