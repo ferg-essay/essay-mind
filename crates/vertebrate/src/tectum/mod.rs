@@ -1,3 +1,4 @@
+mod looming_zebrafish_mtl;
 mod looming;
 mod tectum_map;
 mod attention;

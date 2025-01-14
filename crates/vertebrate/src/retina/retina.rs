@@ -128,6 +128,14 @@ impl Retina {
         self.brighten_right
     }
 
+    pub fn dim_left(&self) -> f32 {
+        (- self.brighten_left).max(0.)
+    }
+
+    pub fn dim_right(&self) -> f32 {
+        (- self.brighten_right).max(0.)
+    }
+
     fn startup(&mut self, world: &World) {
         let mut startup = RetinaStartup {
             world,
