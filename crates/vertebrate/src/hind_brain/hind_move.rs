@@ -7,7 +7,7 @@ use crate::{
     util::{DecayValue, Seconds, Ticks, TimeoutValue, Turn}
 };
 
-use super::{hind_search::OscillatorArs, startle::StartleMrs, HindEat};
+use super::{hind_search::OscillatorArs, startle::StartleR4, HindEat};
 
 //
 // Barandela et al 2023 - Lamprey early R.mrrn only from M.nmlf, DLR, MLR
@@ -144,7 +144,7 @@ pub struct HindMove {
     oscillator_r3: Option<OscillatorArs>,
 
     // r4 Mauthner cell - acoustic startle escape
-    startle_r4: Option<StartleMrs>,
+    startle_r4: Option<StartleR4>,
 
     // r5/r6 MRS/MRRN - Zebrafish MiD2
     // mammal LPGi
@@ -780,7 +780,7 @@ impl Plugin for HindMovePlugin {
 
         let mut hind_move = HindMove::new();
         hind_move.oscillator_r3 = Some(OscillatorArs::new());
-        hind_move.startle_r4 = Some(StartleMrs::new());
+        hind_move.startle_r4 = Some(StartleR4::new());
 
         app.insert_resource(hind_move);
 
