@@ -1,7 +1,6 @@
 use std::{cell::RefCell, any::type_name};
 
 use essay_ecs::prelude::*;
-use essay_graphics::layout::Layout;
 use essay_plot::prelude::*;
 
 use mind_ecs::{PostTick, PreTick};
@@ -15,6 +14,8 @@ pub struct UiGraph {
 
 impl UiGraph {
     fn new(canvas: &mut UiCanvas) -> Self {
+        todo!();
+        /*
         let mut plot = UiPlot::new(canvas.chart([1., 1.]));
         plot.lim(256);
 
@@ -23,6 +24,7 @@ impl UiGraph {
         Self {
             plot,
         }
+        */
     }
 
     fn line(&mut self, label: &str) -> PlotKeyId {
@@ -47,19 +49,17 @@ pub fn ui_plot_update(
 pub struct BodyPlot;
 
 pub struct UiGraphPlugin {
-    _pos: Bounds<Layout>,
-
     colors: Vec<Color>,
 
     items: Vec<(String, Box<dyn Item>)>,
 }
 
 impl UiGraphPlugin {
-    pub fn new(pos: impl Into<Bounds<Layout>>) -> Self {
+    pub fn new() -> Self {
         Self {
-            _pos: pos.into(),
             colors: Vec::new(),
             items: Vec::new(),
+            // view: None,
         }
     }
 

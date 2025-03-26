@@ -2,19 +2,19 @@ use std::cell::RefCell;
 
 use renderer::{Drawable, Event, Renderer};
 use essay_ecs::prelude::*;
-use essay_graphics::layout::{Layout, View};
+use essay_graphics::layout::View;
 use essay_plot::{
     prelude::*, 
     artist::{paths::Unit, PathStyle, ColorMaps, ColorMap}
 };
 
 use renderer::Canvas;
-use ui_graphics::UiCanvas;
+use ui_graphics::{UiCanvas, ViewPlugin};
 use crate::ui::ui_world_map::UiWorldPlugin;
 
 use super::ui_emoji::{Emoji, SymbolDraw};
 
-struct MotiveView {
+pub struct MotiveView {
     size: f32,
     items: Vec<UiMotiveItem>,
 
@@ -146,12 +146,14 @@ impl UiMotiveItem {
 //
 
 pub struct UiMotivePlugin {
-    bounds: Bounds::<Layout>,
+    // bounds: Bounds::<Layout>,
     size: f32,
     items: Vec<Box<dyn PluginItem>>,
 
     x: usize,
     y: usize,
+
+    view: Option<View<MotiveView>>,
 }
 
 impl UiMotivePlugin {
@@ -160,11 +162,12 @@ impl UiMotivePlugin {
         let wh = wh.into();
 
         Self {
-            bounds: Bounds::new(xy, (xy.0 + wh.0, xy.1 + wh.1)),
+            // bounds: Bounds::new(xy, (xy.0 + wh.0, xy.1 + wh.1)),
             size: 12.,
             items: Vec::new(),
             x: 0,
             y: 0,
+            view: None,
         }
     }
 
@@ -210,6 +213,44 @@ impl UiMotivePlugin {
 
         self
 
+    }
+}
+
+impl ViewPlugin<MotiveView> for UiMotivePlugin {
+    fn view(&mut self, app: &mut App) -> Option<&View<MotiveView>> {
+        let mut motives = MotiveView::new();
+        motives.size = self.size;
+
+        for item in &self.items {
+            let id = motives.push(UiMotiveItem::new(item));
+
+            item.system(id, app);
+        }
+
+        self.view = Some(View::from(motives));
+
+        self.view.as_ref()
+    }
+}
+
+impl Plugin for UiMotivePlugin {
+    fn build(&self, app: &mut App) {
+        if let Some(view) = &self.view {
+            /*
+            let mut motives = MotiveView::new();
+            motives.size = self.size;
+
+            for item in &self.items {
+                let id = motives.push(UiMotiveItem::new(item));
+
+                item.system(id, app);
+            }
+            */
+
+            // let view = app.resource_mut::<UiCanvas>().view(&self.bounds, motives);
+
+            app.insert_resource(view.clone());
+        }
     }
 }
 
@@ -264,22 +305,3 @@ impl<T: Default + Send + Sync + 'static> PluginItem for Item<T> {
         );
     }
 } 
-
-impl Plugin for UiMotivePlugin {
-    fn build(&self, app: &mut App) {
-        if app.contains_plugin::<UiWorldPlugin>() {
-            let mut motives = MotiveView::new();
-            motives.size = self.size;
-
-            for item in &self.items {
-                let id = motives.push(UiMotiveItem::new(item));
-
-                item.system(id, app);
-            }
-
-            let view = app.resource_mut::<UiCanvas>().view(&self.bounds, motives);
-
-            app.insert_resource(view);
-        }
-    }
-}

@@ -2,7 +2,7 @@ use essay_plot::prelude::*;
 
 fn main() {
     let mut figure = Figure::new();
-    let mut chart = figure.chart(());
+    let mut chart = figure.chart();
 
     chart.title("Start and Sustain").size(14.);
 

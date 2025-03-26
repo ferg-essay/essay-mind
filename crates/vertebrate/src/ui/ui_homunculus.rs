@@ -3,13 +3,13 @@ use std::cell::RefCell;
 use mind_ecs::AfterTicks;
 use renderer::{Canvas, Drawable, Event, Renderer};
 use essay_ecs::prelude::*;
-use essay_graphics::layout::{Layout, View};
+use essay_graphics::layout::{View};
 use essay_plot::{
     prelude::*, 
     artist::{paths::Unit, PathStyle, ColorMaps, ColorMap}
 };
 
-use ui_graphics::{UiCanvas, ui_canvas::UiRender};
+use ui_graphics::{ui_canvas::UiRender, UiCanvas, ViewPlugin};
 use crate::{
     body::Body, 
     hind_brain::{HindMove, MoveKind}, 
@@ -117,7 +117,7 @@ pub fn ui_homunculus_draw(
     });
 }
 
-struct UiHomunculusView {
+pub struct UiHomunculusView {
     body_head_dir: Heading,
     body_turn: Turn,
 
@@ -138,6 +138,7 @@ struct UiHomunculusView {
 
     bounds: Bounds<Unit>,
     pos: Bounds<Canvas>,
+    cache_pos: Bounds<Canvas>,
 
     paths_unit: UiHomunculusPath<Unit>,
     paths_canvas: UiHomunculusPath<Canvas>,
@@ -187,6 +188,7 @@ impl UiHomunculusView {
 
             bounds: Bounds::unit(),
             pos: Bounds::zero(),
+            cache_pos: Bounds::zero(),
 
             paths_unit,
             paths_canvas,
@@ -203,8 +205,18 @@ impl UiHomunculusView {
         }
     }
 
-    fn resize(&mut self, pos: &Bounds<Canvas>) {
-        // let pos = self.view.pos();
+    fn resize(&mut self, ui: &mut dyn Renderer) {
+        let pos = ui.pos().clone();
+
+        if self.emoji.is_none() {
+            let emoji_family = "/Users/ferg/wsp/essay-mind/assets/font/NotoEmoji-Bold.ttf";
+
+            let mut style = FontStyle::new();
+    
+            style.family(emoji_family);
+    
+            self.emoji = Some(ui.font(&style).unwrap());
+        }
 
         self.pos = Bounds::from((
             pos.xmin() + 0.05 * pos.width(),
@@ -233,6 +245,11 @@ impl UiHomunculusView {
 
 impl Drawable for UiHomunculusView {
     fn draw(&mut self, ui: &mut dyn Renderer) -> renderer::Result<()> {
+        if &self.cache_pos != ui.pos() {
+            self.cache_pos = ui.pos().clone();
+            self.resize(ui);
+        }
+
         let paths = &self.paths_canvas;
 
         let mut style = PathStyle::new();
@@ -342,7 +359,7 @@ impl Drawable for UiHomunculusView {
                 self.emoji = Some(ui.font(&style).unwrap());
             }
 
-            self.resize(pos);
+            self.resize(ui);
         }
     }
 }
@@ -748,9 +765,11 @@ pub trait UiState {
 //
 
 pub struct UiHomunculusPlugin {
-    bounds: Bounds::<Layout>,
+    // bounds: Bounds::<Layout>,
 
     emoji_items: Vec<Box<dyn PluginItem>>,
+
+    view: Option<View<UiHomunculusView>>,
 }
 
 impl UiHomunculusPlugin {
@@ -759,8 +778,9 @@ impl UiHomunculusPlugin {
         let wh = wh.into();
 
         Self {
-            bounds: Bounds::new(xy, (xy.0 + wh.0, xy.1 + wh.1)),
+            // bounds: Bounds::new(xy, (xy.0 + wh.0, xy.1 + wh.1)),
             emoji_items: Vec::new(),
+            view: None,
         }
     }
 
@@ -779,6 +799,33 @@ impl UiHomunculusPlugin {
         self
     }
 }
+
+impl ViewPlugin<UiHomunculusView> for UiHomunculusPlugin {
+    fn view(&mut self, app: &mut App) -> Option<&View<UiHomunculusView>> {
+        self.view = Some(View::from(UiHomunculusView::new()));
+
+        self.view.as_ref()
+    }
+}
+
+impl Plugin for UiHomunculusPlugin {
+    fn build(&self, app: &mut App) {
+        if let Some(view) = &self.view {
+            let ui_homunculus = UiHomunculus::new(view.clone());
+
+            app.init_resource::<Taxis>();
+
+            app.insert_resource(ui_homunculus);
+
+            for (i, item) in self.emoji_items.iter().enumerate() {
+                item.system(i, app);
+            }
+
+            app.system(AfterTicks, ui_homunculus_draw);
+        }
+    }
+}
+
 
 struct Item<T: Send + Sync + 'static> {
     emoji: Emoji,
@@ -801,26 +848,5 @@ impl<T: Default + Send + Sync + 'static> PluginItem for Item<T> {
                 hom.emoji(id, emoji, fun(item.get()));
             }
         );
-    }
-}
-
-impl Plugin for UiHomunculusPlugin {
-    fn build(&self, app: &mut App) {
-        if app.contains_plugin::<UiWorldPlugin>() {
-            let view = UiHomunculusView::new();
-            let view = app.resource_mut::<UiCanvas>().view(self.bounds.clone(), view);
-
-            let ui_homunculus = UiHomunculus::new(view);
-
-            app.init_resource::<Taxis>();
-
-            app.insert_resource(ui_homunculus);
-
-            for (i, item) in self.emoji_items.iter().enumerate() {
-                item.system(i, app);
-            }
-
-            app.system(AfterTicks, ui_homunculus_draw);
-        }
     }
 }

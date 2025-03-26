@@ -4,10 +4,11 @@ mod winit_loop;
 
 pub use ui_canvas::{
     UiCanvas,
-    UiCanvasPlugin,
+    UiBuilder, UiSubBuilder,
     UiWindowEvent,
     UiRender,
     UiView,
+    ViewPlugin,
 };
 
 pub(crate) use wgpu_canvas::{

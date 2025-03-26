@@ -3,7 +3,7 @@ use std::cell::RefCell;
 use essay_ecs::{core::{Component, ResMut, Res}, app::{event::InEvent, Plugin, App, Update, PreUpdate}};
 use essay_plot::api::{renderer::Canvas, Bounds, Clip, Coord, HorizAlign, Point, TextStyle, VertAlign};
 use mind_ecs::PostTick;
-use ui_graphics::{ui_layout::{BoxId, UiLayout, UiLayoutEvent, UiLayoutPlugin}, UiCanvas, UiCanvasPlugin};
+use ui_graphics::{ui_layout::{BoxId, UiLayout, UiLayoutEvent, UiLayoutPlugin}, UiCanvas};
 
 use crate::{body::Body, world::World};
 
@@ -144,6 +144,8 @@ impl UiTablePlugin {
 
 impl Plugin for UiTablePlugin {
     fn build(&self, app: &mut App) {
+        todo!();
+        /*
         if app.contains_plugin::<UiCanvasPlugin>() {
             if ! app.contains_plugin::<UiLayoutPlugin>() {
                 app.plugin(UiLayoutPlugin);
@@ -164,6 +166,7 @@ impl Plugin for UiTablePlugin {
             app.system(Update, ui_peptide_draw);
             app.system(PreUpdate, ui_peptide_resize);
         }
+        */
     }
 }
 

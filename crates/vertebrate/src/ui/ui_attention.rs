@@ -2,9 +2,9 @@ use std::cell::RefCell;
 
 use renderer::{Canvas, Drawable, Event, Renderer};
 use essay_ecs::prelude::*;
-use essay_graphics::layout::{Layout, View};
+use essay_graphics::layout::View;
 use essay_plot::{artist::{paths::{self, Unit}, ColorMap, ColorMaps, PathStyle}, chart::Data, prelude::*};
-use ui_graphics::{ui_layout::UiLayoutPlugin, UiCanvas, UiCanvasPlugin};
+use ui_graphics::{ui_canvas::ViewPlugin, UiCanvas};
 
 use crate::subpallium::AttendValue;
 
@@ -34,7 +34,7 @@ impl Coord for UiAttention {}
 
 type UpdateBox<T> = Box<dyn Fn(&T) -> AttendValue + Sync + Send>;
 
-struct AttentionDraw {
+pub struct AttentionDraw {
     pos: Bounds<Canvas>,
     clip: Clip,
     bounds: Bounds<Data>,
@@ -159,10 +159,11 @@ impl UiAttentionId {
 //
 
 pub struct UiAttentionPlugin {
-    bounds: Bounds::<Layout>,
+    // bounds: Bounds::<Layout>,
     colors: Vec<Color>,
 
     items: Vec<Box<dyn Item>>,
+    view: Option<View<AttentionDraw>>,
 }
 
 impl UiAttentionPlugin {
@@ -171,9 +172,10 @@ impl UiAttentionPlugin {
         let wh = wh.into();
 
         Self {
-            bounds: Bounds::new(xy, (xy.0 + wh.0, xy.1 + wh.1)),
+            // bounds: Bounds::new(xy, (xy.0 + wh.0, xy.1 + wh.1)),
             colors: Vec::new(),
             items: Vec::new(),
+            view: None,
         }
     }
 
@@ -196,38 +198,40 @@ impl UiAttentionPlugin {
     }
 }
 
+impl ViewPlugin<AttentionDraw> for UiAttentionPlugin {
+    fn view(&mut self, app: &mut App) -> Option<&View<AttentionDraw>> {
+        let mut ui_view = AttentionDraw::new();
+
+        let colors = if self.colors.len() > 0 {
+            self.colors.clone()
+        } else {
+            vec!(
+                Color::from("sky"),
+                Color::from("red"),
+                Color::from("beige"),
+                Color::from("purple"),
+                Color::from("olive"),
+            )
+        };
+
+        for (i, item) in self.items.iter().enumerate() {
+            let color = colors[i % colors.len()];
+
+            let id = ui_view.add(color);
+
+            item.add(id, app);
+        }
+
+        self.view = Some(View::from(ui_view));
+
+        self.view.as_ref()
+    }
+}
+
 impl Plugin for UiAttentionPlugin {
     fn build(&self, app: &mut App) {
-        if app.contains_plugin::<UiCanvasPlugin>() {
-            if ! app.contains_plugin::<UiLayoutPlugin>() {
-                app.plugin(UiLayoutPlugin);
-            }
-
-            let mut ui_view = AttentionDraw::new();
-
-            let colors = if self.colors.len() > 0 {
-                self.colors.clone()
-            } else {
-                vec!(
-                    Color::from("sky"),
-                    Color::from("red"),
-                    Color::from("beige"),
-                    Color::from("purple"),
-                    Color::from("olive"),
-                )
-            };
-
-            for (i, item) in self.items.iter().enumerate() {
-                let color = colors[i % colors.len()];
-
-                let id = ui_view.add(color);
-
-                item.add(id, app);
-            }
-
-            let view = app.resource_mut::<UiCanvas>().view(&self.bounds, ui_view);
-
-            let ui_attention = UiAttention::new(view);
+        if let Some(view) = &self.view {
+            let ui_attention = UiAttention::new(view.clone());
 
             app.insert_resource(ui_attention);
         }

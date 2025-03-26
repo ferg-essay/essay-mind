@@ -9,7 +9,7 @@ use essay_plot::api::{
     Affine2d, Bounds, Color, TextureId
 };
 use essay_tensor::Tensor;
-use ui_graphics::{HexSliceGenerator, TexId, TextureBuilder, TextureGenerator, Tile, UiCanvas};
+use ui_graphics::{HexSliceGenerator, TexId, TextureBuilder, TextureGenerator, Tile, UiCanvas, ViewPlugin};
 
 use crate::world::{WorldHex, WorldHexTrait};
 
@@ -273,7 +273,7 @@ impl<K: Eq + Hash> HexGenerator<K> {
     }
 }
 
-struct HexView {
+pub struct HexView {
     bounds: Bounds<UiWorld>,
     
     shape: Option<Shape>,
@@ -286,9 +286,9 @@ struct HexView {
 }
 
 impl HexView {
-    fn new(bounds: Bounds<UiWorld>) -> Self {
+    fn new() -> Self {
         Self {
-            bounds,
+            bounds: Bounds::none(),
 
             shape: None,
             shape_id: None,
@@ -336,12 +336,15 @@ impl Drawable for HexView {
 
 pub struct UiWorldHexPlugin<T: WorldHexTrait + Hash + Eq> {
     builder: HexBuilder<T>,
+
+    view: Option<View<HexView>>,
 }
 
 impl<T: WorldHexTrait + Hash + Eq> UiWorldHexPlugin<T> {
     pub fn new() -> Self {
         Self {
             builder: HexBuilder::new(64, 64),
+            view: None,
         }
     }
 
@@ -354,19 +357,31 @@ impl<T: WorldHexTrait + Hash + Eq> UiWorldHexPlugin<T> {
     }
 }
 
+impl<T: WorldHexTrait + Hash + Eq> ViewPlugin<HexView> for UiWorldHexPlugin<T> {
+    fn view(&mut self, app: &mut App) -> Option<&View<HexView>> {
+        self.view = Some(View::from(HexView::new()));
+
+        self.view.as_ref()
+    }
+}
+
 impl<T: WorldHexTrait + Hash + Eq> Plugin for UiWorldHexPlugin<T> {
     fn build(&self, app: &mut App) {
-        if app.contains_plugin::<UiWorldPlugin>() {
+        if let Some(view) = &self.view {
             let world_bounds = app.resource::<UiWorld>().bounds();
-            let world_id = app.resource::<UiWorld>().view_id();
 
-            let view = HexView::new(world_bounds);
+            let mut view = view.clone();
 
-            let view = app.resource_mut::<UiCanvas>().subview(world_id, 2, view);
+            view.write(|v| { v.bounds = world_bounds; });
+            // let world_id = app.resource::<UiWorld>().view_id();
+
+            // let view = HexView::new(world_bounds);
+
+            // let view = app.resource_mut::<UiCanvas>().subview(world_id, 2, view);
 
             let gen = self.builder.gen();
 
-            let hex = UiWorldHex::<T>::new(view, gen);
+            let hex = UiWorldHex::<T>::new(view.clone(), gen);
 
             app.insert_resource(hex);
 

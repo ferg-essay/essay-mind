@@ -5,7 +5,7 @@ use essay_plot::{prelude::*, artist::{paths::{self, Unit}, PathStyle}};
 use renderer::Canvas;
 use ui_graphics::{
     ui_layout::{UiLayout, UiLayoutEvent, BoxId, UiLayoutPlugin}, 
-    UiCanvas, UiCanvasPlugin
+    UiCanvas, 
 };
 
 #[derive(Component)]
@@ -200,6 +200,8 @@ impl UiPeptidePlugin {
 
 impl Plugin for UiPeptidePlugin {
     fn build(&self, app: &mut App) {
+        todo!();
+        /*
         if app.contains_plugin::<UiCanvasPlugin>() {
             if ! app.contains_plugin::<UiLayoutPlugin>() {
                 app.plugin(UiLayoutPlugin);
@@ -234,6 +236,7 @@ impl Plugin for UiPeptidePlugin {
             app.system(Update, ui_peptide_draw);
             app.system(PreUpdate, ui_peptide_resize);
         }
+        */
     }
 }
 

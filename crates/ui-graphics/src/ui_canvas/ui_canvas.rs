@@ -2,18 +2,17 @@ use std::ops::{Deref, DerefMut};
 use std::time::Duration;
 
 use essay_ecs::prelude::*;
-use essay_graphics::layout::ViewId;
 use essay_graphics::{
     api::{
         renderer::{Canvas, Drawable, Event, Renderer, Result},
         Point, Path, Bounds, Color, ImageId,
     },
-    layout::{Layout, View},
+    layout::{View, PageBuilder, Page},
     wgpu::{PlotCanvas, PlotRenderer},
 };
 use essay_plot::artist::PathStyle;
 use essay_plot::api::{FontStyle, FontTypeId, TextStyle};
-use essay_plot::chart::{Chart, ChartBuilder};
+use essay_plot::chart::Chart;
 use essay_tensor::Tensor;
 use winit::event_loop::EventLoop;
 
@@ -23,14 +22,15 @@ use super::winit_loop::{main_loop, WinitEvents};
 pub struct UiCanvas {
     wgpu: WgpuCanvas,
     canvas: PlotCanvas,
-    layout: ChartBuilder,
+    // layout: ChartBuilder,
+    page: Page,
 
     view: Option<CanvasView>,
     is_stale: bool,
 }
 
 impl UiCanvas {
-    pub(crate) fn new(wgpu: WgpuCanvas) -> Self {
+    pub(crate) fn new(wgpu: WgpuCanvas, page: Page) -> Self {
         let canvas = PlotCanvas::new(
             &wgpu.device,
             &wgpu.queue,
@@ -42,7 +42,8 @@ impl UiCanvas {
         Self {
             wgpu,
             canvas,
-            layout: ChartBuilder::new(Layout::new()),
+            // layout: ChartBuilder::new(Layout::new()),
+            page,
             view: None,
             is_stale: true,
         }
@@ -70,7 +71,7 @@ impl UiCanvas {
                 Some(&view.view)
             );
 
-            self.layout.get_layout_mut().draw(&mut renderer).unwrap();
+            self.page.draw(&mut renderer).unwrap();
         }
     }
 
@@ -78,6 +79,7 @@ impl UiCanvas {
         self.view.take();
     }
 
+    /*
     pub fn chart(&mut self, pos: impl Into<Bounds<Layout>>) -> Chart {
         self.layout.chart(pos)
     }
@@ -98,6 +100,7 @@ impl UiCanvas {
     ) -> View<T> {
         self.layout.get_layout_mut().subview(id, index, view)
     }
+    */
 
     pub fn renderer<'a>(&'a mut self) -> Option<UiRender<'a>> {
         match &self.view {
@@ -250,11 +253,12 @@ impl UiCanvas {
             &self.wgpu.queue, 
             None, // Some(&view.view)
         );
-
+        /*
         self.layout.get_layout_mut().resize(
             &mut renderer,
             &Bounds::from([width as f32, height as f32])
         );
+        */
     }
 
     pub(crate) fn set_stale(&mut self) {
@@ -381,17 +385,112 @@ impl Drawable for UiView {
     }
 }
 
-pub struct UiCanvasPlugin {
+pub struct UiBuilder<'a> {
+    app: &'a mut App,
+    page: PageBuilder,
+
     time: Duration,
 }
 
-impl UiCanvasPlugin {
-    pub fn new() -> Self {
+impl<'a> UiBuilder<'a> {
+    pub fn new(app: &'a mut App) -> Self {
         Self {
+            app,
             time: Duration::from_millis(30),
+            page: Page::builder(),
         }
     }
 
+    pub fn view<T>(&mut self, mut plugin: impl ViewPlugin<T> + 'static)
+    where
+        T: Drawable + Send + 'static
+    {
+        if let Some(view) = plugin.view(self.app) {
+            self.page.view(view.clone());
+        }
+
+        self.app.plugin(plugin);
+    }
+
+    pub fn horizontal(&mut self, builder: impl FnOnce(&mut UiSubBuilder)) {
+        let sub_page = self.page.horizontal();
+        let mut sub_ui = UiSubBuilder {
+            app: self.app,
+            page: sub_page,
+        };
+
+        (builder)(&mut sub_ui);
+    }
+
+    pub fn vertical(&mut self, builder: impl FnOnce(&mut UiSubBuilder)) {
+        let sub_page = self.page.vertical();
+        let mut sub_ui = UiSubBuilder {
+            app: self.app,
+            page: sub_page,
+        };
+
+        (builder)(&mut sub_ui);
+    }
+
+    pub fn build(self) {
+        let ui_canvas = UiCanvasPlugin {
+            time: self.time,
+            page: self.page.build(),
+        };
+
+        self.app.plugin(ui_canvas);
+    }
+}
+
+pub struct UiSubBuilder<'a> {
+    app: &'a mut App,
+    page: &'a mut PageBuilder,
+}
+
+impl UiSubBuilder<'_> {
+    pub fn view<T>(&mut self, mut plugin: impl ViewPlugin<T> + 'static)
+    where
+        T: Drawable + Send + 'static
+    {
+        if let Some(view) = plugin.view(self.app) {
+            self.page.view(view.clone());
+        }
+
+        self.app.plugin(plugin);
+    }
+
+    pub fn horizontal(&mut self, builder: impl FnOnce(&mut UiSubBuilder)) {
+        let sub_page = self.page.horizontal();
+        let mut sub_ui = UiSubBuilder {
+            app: self.app,
+            page: sub_page,
+        };
+
+        (builder)(&mut sub_ui);
+    }
+
+    pub fn vertical(&mut self, builder: impl FnOnce(&mut UiSubBuilder)) {
+        let sub_page = self.page.vertical();
+        let mut sub_ui = UiSubBuilder {
+            app: self.app,
+            page: sub_page,
+        };
+
+        (builder)(&mut sub_ui);
+    }
+
+}
+
+pub trait ViewPlugin<T> : Plugin {
+    fn view(&mut self, app: &mut App) -> Option<&View<T>>;
+}
+
+struct UiCanvasPlugin {
+    time: Duration,
+    page: Page,
+}
+
+impl UiCanvasPlugin {
     pub fn frame_ms(self, time: impl Into<Duration>) -> Self {
         Self {
             time: time.into(),
@@ -407,7 +506,7 @@ impl Plugin for UiCanvasPlugin {
         let event_loop = EventLoop::new().unwrap();
 
         let wgpu = WgpuCanvas::new(&event_loop);
-        let ui_canvas = UiCanvas::new(wgpu);
+        let ui_canvas = UiCanvas::new(wgpu, self.page.clone());
 
         app.event::<UiWindowEvent>();
         app.system(First, ui_canvas_window);

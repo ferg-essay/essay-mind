@@ -1,7 +1,7 @@
 use essay_plot::wgpu::WgpuMainLoop;
 use essay_graphics::api::form::{Shape, ShapeId};
 use renderer::{Canvas, Drawable, Renderer};
-use essay_graphics::{layout::Layout, prelude::*};
+use essay_graphics::{prelude::*};
 use ui_graphics::{HexSliceGenerator, TexId, TextureBuilder, TextureGenerator};
 
 fn main() { 

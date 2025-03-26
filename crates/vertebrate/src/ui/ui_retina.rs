@@ -1,9 +1,9 @@
 use essay_ecs::prelude::*;
-use essay_graphics::layout::{Layout, View};
+use essay_graphics::layout::{View};
 use essay_plot::api::{renderer::{self, Canvas, Drawable, Event, Renderer}, Bounds, Color};
 use essay_tensor::Tensor;
 use mind_ecs::PostTick;
-use ui_graphics::UiCanvas;
+use ui_graphics::{UiCanvas, ViewPlugin};
 use crate::retina::Retina;
 
 struct UiRetina {
@@ -175,29 +175,37 @@ impl Drawable for RetinaView {
 }
 
 pub struct UiRetinaPlugin {
-    pos: Bounds<Layout>,
+    // pos: Bounds<Layout>,
+    view: Option<View<RetinaView>>,
 }
 
 impl UiRetinaPlugin {
-    pub fn new(pos: impl Into<Bounds<Layout>>) -> Self {
+    pub fn new() -> Self {
         Self {
-            pos: pos.into(),
+            // pos: pos.into(),
+            view: None,
         }
     }
 }
 
+impl ViewPlugin<RetinaView> for UiRetinaPlugin {
+    fn view(&mut self, app: &mut App) -> Option<&View<RetinaView>> {
+        if let Some(retina) = app.get_resource::<Retina>() {
+            let size = retina.get_size();
+
+            self.view = Some(View::from(RetinaView::new(size)));
+        }
+
+        self.view.as_ref()
+     }
+}
+
 impl Plugin for UiRetinaPlugin {
     fn build(&self, app: &mut App) {
-        if app.contains_resource::<Retina>() {
-            let size = app.get_resource::<Retina>().unwrap().get_size();
+        if let Some(view) = &self.view {
+            app.insert_resource(UiRetina::new(view.clone()));
 
-            if let Some(ui_canvas) = app.get_mut_resource::<UiCanvas>() {
-                let view = ui_canvas.view(&self.pos, RetinaView::new(size));
-
-                app.insert_resource(UiRetina::new(view));
-
-                app.system(PostTick, ui_retina_update);
-            }
+            app.system(PostTick, ui_retina_update);
         }
     }
 }

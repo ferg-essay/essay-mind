@@ -104,12 +104,12 @@ impl Looming {
     }
 }
 
-pub struct LoomingZebrafishMtl;
+pub struct LoomingBilateral;
 
-impl LoomingStrategy for LoomingZebrafishMtl {
+impl LoomingStrategy for LoomingBilateral {
     fn build(&self, app: &mut App) {
         if ! app.contains_resource::<Retina>() {
-            panic!("Looming requires Retina");
+            panic!("LoomingBilateral requires Retina");
         }
 
         app.insert_resource(Looming::new());
