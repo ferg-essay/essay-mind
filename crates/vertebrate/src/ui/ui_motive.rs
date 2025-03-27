@@ -13,6 +13,10 @@ use ui_graphics::ViewPlugin;
 
 use super::ui_emoji::{Emoji, SymbolDraw};
 
+//
+// ui_motive is a table of emojis that represent internal state
+//
+
 pub struct MotiveView {
     size: f32,
     items: Vec<UiMotiveItem>,
@@ -234,19 +238,6 @@ impl ViewPlugin for UiMotivePlugin {
 impl Plugin for UiMotivePlugin {
     fn build(&self, app: &mut App) {
         if let Some(view) = &self.view {
-            /*
-            let mut motives = MotiveView::new();
-            motives.size = self.size;
-
-            for item in &self.items {
-                let id = motives.push(UiMotiveItem::new(item));
-
-                item.system(id, app);
-            }
-            */
-
-            // let view = app.resource_mut::<UiCanvas>().view(&self.bounds, motives);
-
             app.insert_resource(view.clone());
         }
     }
@@ -265,10 +256,6 @@ struct Item<T: Send + Sync + 'static> {
     emoji: Emoji,
     colormap: Option<ColorMap>,
     fun: RefCell<Option<Box<dyn Fn(&T) -> f32 + Send + Sync + 'static>>>,
-}
-
-impl<T: Send + Sync + 'static> Item<T> {
-    
 }
 
 impl<T: Default + Send + Sync + 'static> PluginItem for Item<T> {

@@ -15,7 +15,7 @@ use vertebrate::{
         phototaxis::Phototaxis
     }, 
     ui::{
-        ui_attention::UiAttentionPlugin, ui_body::{UiBodyPlugin, UiBodyTrailPlugin}, ui_camera::UiCameraPlugin, ui_emoji::Emoji, ui_graph::UiGraphPlugin, ui_heatmap::UiHeatmapPlugin, ui_homunculus::UiHomunculusPlugin, ui_motive::UiMotivePlugin, ui_peptide::UiPeptidePlugin, ui_retina::UiRetinaPlugin, ui_table::UiTablePlugin, ui_world_hex::{Pattern, UiWorldHexPlugin}, ui_world_map::UiWorldPlugin
+        ui_attention::UiAttentionPlugin, ui_body::{UiBodyPlugin, UiBodyTrailPlugin}, ui_camera::UiCameraPlugin, ui_emoji::Emoji, ui_graph::UiGraphPlugin, ui_heatmap::UiHeatmapPlugin, ui_homunculus::UiHomunculusPlugin, ui_motive::UiMotivePlugin, ui_bar::UiBarPlugin, ui_retina::UiRetinaPlugin, ui_table::UiTablePlugin, ui_world_hex::{Pattern, UiWorldHexPlugin}, ui_world_map::UiWorldPlugin
     }, 
     util::{self, Seconds}, 
     world::{
@@ -237,45 +237,6 @@ fn ui_eat(ui: &mut UiBuilder) {
     */
 }
 
-fn ui_motive(ui: &mut UiSubBuilder) {
-    ui.view(UiMotivePlugin::new()
-        .size(12.)
-        .item(Emoji::Footprints, |m: &HindMove| if m.action_kind() == MoveKind::Roam { 1. } else { 0. })
-        .item(Emoji::MagnifyingGlassLeft, |m: &Motive<Dwell>| m.value())
-        .item(Emoji::DirectHit, |m: &HindMove| if m.action_kind() == MoveKind::Seek { 1. } else { 0. })
-        .item(Emoji::NoEntry, |m: &HindMove| if m.action_kind() == MoveKind::Avoid { 1. } else { 0. })
-        .item(Emoji::FaceDisappointed, |m: &Motive<Dummy>| m.value())
-        //.item(Emoji::FaceGrinning, |m: &Motive<Wake>| m.value())
-        .item(Emoji::Coffee, |m: &Sleep| {
-            if m.is_forage() { 
-                1. 
-            } else if m.is_wake() { 
-                0.5 
-            } else {
-                0.
-            }
-        })
-        .item(Emoji::FaceSleeping, |m: &Sleep| if m.is_wake() { 0. } else { 1. })
-        .row()
-        .item(Emoji::FaceCowboy, |m: &Motive<Forage>| m.value())
-        .item(Emoji::ForkAndKnife, |m: &HindEat| if m.is_eating() { 1. } else { 0. })
-        .item(Emoji::Pig, |m: &MotiveEat| m.sated())
-        .item(Emoji::FaceGrimacing, |m: &HindEat| if m.is_gaping() { 1. } else { 0. })
-        .item(Emoji::FaceVomiting, |m: &HindEat| if m.is_vomiting() { 1. } else { 0. })
-        .item(Emoji::Warning, |m: &MotiveEat| if m.is_alarm() { 1. } else { 0. })
-        .row()
-        .item(Emoji::Candy, |m: &BodyEat| m.sweet())
-        .item(Emoji::Cheese, |m: &BodyEat| m.umami())
-        .item(Emoji::Lemon, |m: &BodyEat| m.bitter())
-        .item(Emoji::FaceVomiting, |m: &BodyEat| m.sickness())
-        // .item(Emoji::FaceAstonished, |m: &Motive<Hunger>| m.value())
-        .row()
-        .item(Emoji::FaceCowboy, |m: &Serotonin<HindSearch>| m.active_value())
-        .item(Emoji::ForkAndKnife, |m: &Serotonin<HindEat>| m.active_value())
-        .item(Emoji::Warning, |m: &Serotonin<HindAvoid>| m.active_value())
-    );
-}
-
 fn ui_homunculus(ui: &mut UiSubBuilder) {
     ui.view(UiHomunculusPlugin::new()
         .item(Emoji::FaceVomiting, |m: &HindEat| m.is_vomiting())
@@ -297,9 +258,14 @@ fn ui_builder(app: &mut App) {
     UiBuilder::build(app, |ui| {
         ui.horizontal_size(0.5, |ui| {
             ui.horizontal(|ui| {
-                ui.view(UiGraphPlugin::new()
+                // ui.view(UiGraphPlugin::new()
+                //    .item("v", |b: &Body| b.speed())
+                // );
+                ui.view(UiBarPlugin::new()
                     .item("v", |b: &Body| b.speed())
+                    .item("hd", |b: &Body| b.head_dir().to_unit())
                 );
+
                 ui_motive(ui);
             });
 
@@ -425,4 +391,44 @@ fn ui_phototaxis(ui: &mut UiBuilder) {
 
     ui.view(UiMotivePlugin::new((2.5, 1.), (0.5, 1.)));
     */
+}
+
+
+fn ui_motive(ui: &mut UiSubBuilder) {
+    ui.view(UiMotivePlugin::new()
+        .size(12.)
+        .item(Emoji::Footprints, |m: &HindMove| if m.action_kind() == MoveKind::Roam { 1. } else { 0. })
+        .item(Emoji::MagnifyingGlassLeft, |m: &Motive<Dwell>| m.value())
+        .item(Emoji::DirectHit, |m: &HindMove| if m.action_kind() == MoveKind::Seek { 1. } else { 0. })
+        .item(Emoji::NoEntry, |m: &HindMove| if m.action_kind() == MoveKind::Avoid { 1. } else { 0. })
+        .item(Emoji::FaceDisappointed, |m: &Motive<Dummy>| m.value())
+        //.item(Emoji::FaceGrinning, |m: &Motive<Wake>| m.value())
+        .item(Emoji::Coffee, |m: &Sleep| {
+            if m.is_forage() { 
+                1. 
+            } else if m.is_wake() { 
+                0.5 
+            } else {
+                0.
+            }
+        })
+        .item(Emoji::FaceSleeping, |m: &Sleep| if m.is_wake() { 0. } else { 1. })
+        .row()
+        .item(Emoji::FaceCowboy, |m: &Motive<Forage>| m.value())
+        .item(Emoji::ForkAndKnife, |m: &HindEat| if m.is_eating() { 1. } else { 0. })
+        .item(Emoji::Pig, |m: &MotiveEat| m.sated())
+        .item(Emoji::FaceGrimacing, |m: &HindEat| if m.is_gaping() { 1. } else { 0. })
+        .item(Emoji::FaceVomiting, |m: &HindEat| if m.is_vomiting() { 1. } else { 0. })
+        .item(Emoji::Warning, |m: &MotiveEat| if m.is_alarm() { 1. } else { 0. })
+        .row()
+        .item(Emoji::Candy, |m: &BodyEat| m.sweet())
+        .item(Emoji::Cheese, |m: &BodyEat| m.umami())
+        .item(Emoji::Lemon, |m: &BodyEat| m.bitter())
+        .item(Emoji::FaceVomiting, |m: &BodyEat| m.sickness())
+        // .item(Emoji::FaceAstonished, |m: &Motive<Hunger>| m.value())
+        .row()
+        .item(Emoji::FaceCowboy, |m: &Serotonin<HindSearch>| m.active_value())
+        .item(Emoji::ForkAndKnife, |m: &Serotonin<HindEat>| m.active_value())
+        .item(Emoji::Warning, |m: &Serotonin<HindAvoid>| m.active_value())
+    );
 }
