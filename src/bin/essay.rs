@@ -261,7 +261,7 @@ fn ui_builder(app: &mut App) {
                 // ui.view(UiGraphPlugin::new()
                 //    .item("v", |b: &Body| b.speed())
                 // );
-                ui.view(UiBarPlugin::new()
+                ui.view(UiTablePlugin::new()
                     .item("v", |b: &Body| b.speed())
                     .item("hd", |b: &Body| b.head_dir().to_unit())
                 );
