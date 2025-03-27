@@ -1,10 +1,10 @@
 use std::cell::RefCell;
 
-use renderer::{Canvas, Drawable, Event, Renderer};
+use renderer::{Canvas, Drawable, Renderer};
 use essay_ecs::prelude::*;
 use essay_graphics::layout::{View, ViewArc};
 use essay_plot::{artist::{paths::{self, Unit}, ColorMap, ColorMaps, PathStyle}, chart::Data, prelude::*};
-use ui_graphics::{ui_canvas::ViewPlugin, UiCanvas};
+use ui_graphics::ui_canvas::ViewPlugin;
 
 use crate::subpallium::AttendValue;
 
@@ -43,6 +43,8 @@ pub struct AttentionDraw {
     boxes: Vec<Path<Canvas>>,
 
     colors: ColorMap,
+
+    canvas_pos: Bounds<Canvas>,
 }
 
 impl AttentionDraw {
@@ -55,6 +57,8 @@ impl AttentionDraw {
             boxes: Vec::new(),
 
             colors: ColorMap::from(ColorMaps::BlueOrange),
+
+            canvas_pos: Bounds::none(),
         }
     }
 
@@ -70,6 +74,11 @@ impl AttentionDraw {
 
 
     fn set_pos(&mut self, set_pos: &Bounds<Canvas>) {
+        if &self.canvas_pos == set_pos {
+            return;
+        }
+        self.canvas_pos = set_pos.clone();
+
         let aspect = 1.;
         let size = (aspect * set_pos.width()).min(set_pos.height()) * 0.95;
 
@@ -100,6 +109,7 @@ impl AttentionDraw {
 
         self.boxes = boxes;
         self.clip = Clip::from(&self.pos);
+
     }
 
     fn to_canvas(&self) -> Affine2d {
@@ -109,6 +119,8 @@ impl AttentionDraw {
 
 impl Drawable for AttentionDraw {
     fn draw(&mut self, renderer: &mut dyn Renderer) -> renderer::Result<()> {
+        self.set_pos(renderer.pos());
+
         let mut style = PathStyle::new();
         style.line_width(1.);
 
@@ -120,12 +132,6 @@ impl Drawable for AttentionDraw {
         }
 
         Ok(())
-    }
-
-    fn event(&mut self, _renderer: &mut dyn Renderer, event: &Event) {
-        if let Event::Resize(pos) = event {
-            self.set_pos(pos);
-        }
     }
 }
 
@@ -159,7 +165,6 @@ impl UiAttentionId {
 //
 
 pub struct UiAttentionPlugin {
-    // bounds: Bounds::<Layout>,
     colors: Vec<Color>,
 
     items: Vec<Box<dyn Item>>,
@@ -167,12 +172,8 @@ pub struct UiAttentionPlugin {
 }
 
 impl UiAttentionPlugin {
-    pub fn new(xy: impl Into<Point>, wh: impl Into<Point>) -> Self {
-        let xy = xy.into();
-        let wh = wh.into();
-
+    pub fn new() -> Self {
         Self {
-            // bounds: Bounds::new(xy, (xy.0 + wh.0, xy.1 + wh.1)),
             colors: Vec::new(),
             items: Vec::new(),
             view: None,

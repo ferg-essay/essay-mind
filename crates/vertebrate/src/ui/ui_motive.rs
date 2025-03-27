@@ -9,8 +9,7 @@ use essay_plot::{
 };
 
 use renderer::Canvas;
-use ui_graphics::{UiCanvas, ViewPlugin};
-use crate::ui::ui_world_map::UiWorldPlugin;
+use ui_graphics::ViewPlugin;
 
 use super::ui_emoji::{Emoji, SymbolDraw};
 
@@ -159,10 +158,7 @@ pub struct UiMotivePlugin {
 }
 
 impl UiMotivePlugin {
-    pub fn new(xy: impl Into<Point>, wh: impl Into<Point>) -> Self {
-        let xy = xy.into();
-        let wh = wh.into();
-
+    pub fn new() -> Self {
         Self {
             // bounds: Bounds::new(xy, (xy.0 + wh.0, xy.1 + wh.1)),
             size: 12.,

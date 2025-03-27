@@ -1,13 +1,12 @@
 use essay_ecs::prelude::*;
-use essay_graphics::layout::{View, ViewArc};
+use essay_graphics::layout::ViewArc;
 use essay_plot::{
-    api::Bounds, 
     artist::{ColorMaps, GridColor, GridColorOpt}, 
-    chart::{Chart, ChartFrame}, 
+    chart::Chart, 
 };
 use essay_tensor::Tensor;
 use mind_ecs::PostTick;
-use ui_graphics::{UiCanvas, ViewPlugin};
+use ui_graphics::ViewPlugin;
 use crate::world::World;
 use crate::body::Body;
 use crate::ui::ui_world_map::UiWorldPlugin;
@@ -75,9 +74,9 @@ impl UiHeatmapPlugin {
 }
 
 impl ViewPlugin for UiHeatmapPlugin {
-    fn view(&mut self, app: &mut App) -> Option<&ViewArc> {
+    fn view(&mut self, _app: &mut App) -> Option<&ViewArc> {
         let mut chart = Chart::default();
-        let mut data = Vec::<f32>::new();
+        let data = Vec::<f32>::new();
         // data.resize(extent.0 * extent.1 * factor * factor, 0.);
 
         chart.flip_y(true);

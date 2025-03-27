@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 
 use mind_ecs::AfterTicks;
-use renderer::{Canvas, Drawable, Event, Renderer};
+use renderer::{Canvas, Drawable, Renderer};
 use essay_ecs::prelude::*;
 use essay_graphics::layout::{View, ViewArc};
 use essay_plot::{
@@ -9,7 +9,7 @@ use essay_plot::{
     artist::{paths::Unit, PathStyle, ColorMaps, ColorMap}
 };
 
-use ui_graphics::{ui_canvas::UiRender, UiCanvas, ViewPlugin};
+use ui_graphics::{ui_canvas::UiRender, ViewPlugin};
 use crate::{
     body::Body, 
     hind_brain::{HindMove, MoveKind}, 
@@ -17,7 +17,7 @@ use crate::{
     tectum::TectumMap,
     util::Turn 
 };
-use crate::ui::ui_world_map::UiWorldPlugin;
+
 use crate::util::{Angle, Heading};
 
 use super::ui_emoji::Emoji;
@@ -345,22 +345,6 @@ impl Drawable for UiHomunculusView {
         ui.draw_path(&paths.outline, &style)?;
 
         Ok(())
-    }
-
-    fn event(&mut self, ui: &mut dyn Renderer, event: &Event) {
-        if let Event::Resize(pos) = event {
-            if self.emoji.is_none() {
-                let emoji_family = "/Users/ferg/wsp/essay-mind/assets/font/NotoEmoji-Bold.ttf";
-
-                let mut style = FontStyle::new();
-        
-                style.family(emoji_family);
-        
-                self.emoji = Some(ui.font(&style).unwrap());
-            }
-
-            self.resize(ui);
-        }
     }
 }
 
@@ -765,20 +749,14 @@ pub trait UiState {
 //
 
 pub struct UiHomunculusPlugin {
-    // bounds: Bounds::<Layout>,
-
     emoji_items: Vec<Box<dyn PluginItem>>,
 
     view: Option<View<UiHomunculusView>>,
 }
 
 impl UiHomunculusPlugin {
-    pub fn new(xy: impl Into<Point>, wh: impl Into<Point>) -> Self {
-        let xy = xy.into();
-        let wh = wh.into();
-
+    pub fn new() -> Self {
         Self {
-            // bounds: Bounds::new(xy, (xy.0 + wh.0, xy.1 + wh.1)),
             emoji_items: Vec::new(),
             view: None,
         }
@@ -801,7 +779,7 @@ impl UiHomunculusPlugin {
 }
 
 impl ViewPlugin for UiHomunculusPlugin {
-    fn view(&mut self, app: &mut App) -> Option<&ViewArc> {
+    fn view(&mut self, _app: &mut App) -> Option<&ViewArc> {
         self.view = Some(View::from(UiHomunculusView::new()));
 
         self.view.as_ref().map(|v| v.arc())

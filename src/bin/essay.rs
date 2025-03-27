@@ -51,14 +51,14 @@ pub fn main() {
     app.plugin(world_roam(w, h)
         //.loc_odor(2, 4, 3, OdorKind::FoodA)
 
-        //.loc_odor(2, 10, 3, OdorKind::FoodB)
+       //.loc_odor(2, 10, 3, OdorKind::FoodB)
 
         //.loc_odor(8, 4, 3, OdorKind::FoodA)
 
         //.loc_odor(8, 10, 3, OdorKind::FoodB)
 
         //.loc_odor(14, 10, 3, OdorKind::FoodA)
-        // .odor_r(15, 5, 4, OdorType::FoodA)
+        //.odor_r(15, 5, 4, OdorType::FoodA)
 
         //.food_odor_r(14, 4, FoodKind::Plain, odor_r, OdorType::FoodA)
     );
@@ -101,8 +101,8 @@ pub fn main() {
 
     animal.build(&mut app);
 
-    ui_eat_flat(&mut app);
-    app.plugin(UiRetinaPlugin::new()); // ((2.0, 0.0), [0.5, 0.5])));
+    ui_builder(&mut app);
+    //app.plugin(UiRetinaPlugin::new()); // ((2.0, 0.0), [0.5, 0.5])));
 
     app.run().unwrap();
 }
@@ -248,8 +248,8 @@ fn ui_eat(ui: &mut UiBuilder) {
     */
 }
 
-fn ui_motive(ui: &mut UiSubBuilder, xy: impl Into<Point>, wh: impl Into<Point>) {
-    ui.view(UiMotivePlugin::new(xy, wh)
+fn ui_motive(ui: &mut UiSubBuilder) {
+    ui.view(UiMotivePlugin::new()
         .size(12.)
         .item(Emoji::Footprints, |m: &HindMove| if m.action_kind() == MoveKind::Roam { 1. } else { 0. })
         .item(Emoji::MagnifyingGlassLeft, |m: &Motive<Dwell>| m.value())
@@ -287,8 +287,8 @@ fn ui_motive(ui: &mut UiSubBuilder, xy: impl Into<Point>, wh: impl Into<Point>) 
     );
 }
 
-fn ui_homunculus(ui: &mut UiSubBuilder, xy: (f32, f32), wh: (f32, f32)) {
-    ui.view(UiHomunculusPlugin::new(xy, wh)
+fn ui_homunculus(ui: &mut UiSubBuilder) {
+    ui.view(UiHomunculusPlugin::new()
         .item(Emoji::FaceVomiting, |m: &HindEat| m.is_vomiting())
         .item(Emoji::FaceGrimacing, |m: &HindEat| m.is_gaping())
         .item(Emoji::ForkAndKnife, |m: &HindEat| m.is_eating())
@@ -300,7 +300,7 @@ fn ui_homunculus(ui: &mut UiSubBuilder, xy: (f32, f32), wh: (f32, f32)) {
     );
 }
 
-fn ui_eat_flat(app: &mut App) {
+fn ui_builder(app: &mut App) {
     // UiCanvasPlugin enables graphics
     // app.plugin(UiCanvasPlugin::new().frame_ms(Duration::from_millis(50)));
     let odor_colors = Colors::from(["green", "azure"]);
@@ -308,11 +308,14 @@ fn ui_eat_flat(app: &mut App) {
     UiBuilder::build(app, |ui| {
         ui.horizontal_size(0.5, |ui| {
             ui.horizontal(|ui| {
-                ui_motive(ui, (2.0, 0.5), (0.5, 0.5));
+                ui.view(UiGraphPlugin::new()
+                    .item("v", |b: &Body| b.speed())
+                );
+                ui_motive(ui);
             });
 
             ui.horizontal_size(0.5, |ui| {
-                ui_homunculus(ui, (2.5, 0.5), (0.5, 0.5));
+                ui_homunculus(ui);
             });
         });
 
@@ -329,18 +332,23 @@ fn ui_eat_flat(app: &mut App) {
 
             ui.view((
                 hex,
-                UiWorldPlugin::new((0., 0.), (2., 1.0)),
+                UiWorldPlugin::new(),
                 UiBodyPlugin::new()
             ));
 
         
             ui.vertical_size(0.5, |ui| {
-                ui.view(UiAttentionPlugin::new((2.5, 0.), (0.5, 0.5))
+                ui.view(UiAttentionPlugin::new()
                     .colors(odor_colors)
                     // .item("v", |p: &Phototaxis| p.value())
                     .item(|ob: &OlfactoryBulb| ob.value_pair(OdorKind::FoodA))
                     .item(|ob: &OlfactoryBulb| ob.value_pair(OdorKind::FoodB))
                 );
+
+                ui.view(UiRetinaPlugin::new());
+
+                ui.view(UiHeatmapPlugin::new());
+
             });
         });
     });

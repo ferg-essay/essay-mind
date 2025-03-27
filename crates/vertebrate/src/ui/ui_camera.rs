@@ -1,14 +1,13 @@
 use essay_ecs::{app::{App, Plugin, Startup, Update}, core::{Res, ResMut}};
 use essay_graphics::layout::{View, ViewArc};
 use essay_plot::api::{
-    form::{FormId, Matrix4}, renderer::{Result, Drawable, Renderer}, Angle, Bounds,
+    form::{FormId, Matrix4}, renderer::{Result, Drawable, Renderer}, Angle,
 };
 use ui_graphics::{UiCanvas, ViewPlugin};
 
 use crate::{
     body::Body, 
     retina::{self, Retina}, 
-    util::Point, 
     world::World
 };
 
@@ -105,10 +104,7 @@ pub struct UiCameraPlugin {
 }
 
 impl UiCameraPlugin {
-    pub fn new(xy: impl Into<Point>, wh: impl Into<Point>) -> Self {
-        let xy = xy.into();
-        let wh = wh.into();
-
+    pub fn new() -> Self {
         Self {
             // bounds: Bounds::new(xy, (xy.0 + wh.0, xy.1 + wh.1)),
             fov: Angle::Deg(90.),

@@ -9,11 +9,11 @@ use essay_plot::api::{
     Affine2d, Bounds, Color, TextureId
 };
 use essay_tensor::Tensor;
-use ui_graphics::{HexSliceGenerator, TexId, TextureBuilder, TextureGenerator, Tile, UiCanvas, ViewPlugin};
+use ui_graphics::{HexSliceGenerator, TexId, TextureBuilder, TextureGenerator, Tile, ViewPlugin};
 
 use crate::world::{World, WorldHex, WorldHexTrait};
 
-use super::ui_world_map::{UiWorld, UiWorldPlugin};
+use super::ui_world_map::UiWorld;
 
 fn update_hex_world<T: WorldHexTrait + Hash + Eq>(
     mut ui_hex: ResMut<UiWorldHex<T>>,
@@ -306,6 +306,8 @@ impl HexView {
 
 impl Drawable for HexView {
     fn draw(&mut self, renderer: &mut dyn Renderer) -> renderer::Result<()> {
+        self.set_pos(renderer.pos());
+
         if let Some(tex) = self.tex.take() {
             self.tex_id = Some(renderer.create_texture_rgba8(&tex));
         }
@@ -358,7 +360,7 @@ impl<T: WorldHexTrait + Hash + Eq> UiWorldHexPlugin<T> {
 }
 
 impl<T: WorldHexTrait + Hash + Eq> ViewPlugin for UiWorldHexPlugin<T> {
-    fn view(&mut self, app: &mut App) -> Option<&ViewArc> {
+    fn view(&mut self, _app: &mut App) -> Option<&ViewArc> {
         self.view = Some(View::from(HexView::new()));
 
         self.view.as_ref().map(|v| v.arc())
@@ -377,11 +379,6 @@ impl<T: WorldHexTrait + Hash + Eq> Plugin for UiWorldHexPlugin<T> {
             let mut view = view.clone();
 
             view.write(|v| { v.bounds = world_bounds; });
-            // let world_id = app.resource::<UiWorld>().view_id();
-
-            // let view = HexView::new(world_bounds);
-
-            // let view = app.resource_mut::<UiCanvas>().subview(world_id, 2, view);
 
             let gen = self.builder.gen();
 
