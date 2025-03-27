@@ -1,14 +1,13 @@
 use essay_ecs::{app::{App, Plugin, Startup, Update}, core::{Res, ResMut}};
-use essay_graphics::layout::{Layout, View};
+use essay_graphics::layout::{View, ViewArc};
 use essay_plot::api::{
-    form::{FormId, Matrix4}, renderer::{Result, Drawable, Renderer}, Angle, Bounds,
+    form::{FormId, Matrix4}, renderer::{Result, Drawable, Renderer}, Angle,
 };
-use ui_graphics::{UiCanvas, UiCanvasPlugin};
+use ui_graphics::{UiCanvas, ViewPlugin};
 
 use crate::{
     body::Body, 
     retina::{self, Retina}, 
-    util::Point, 
     world::World
 };
 
@@ -98,18 +97,18 @@ impl Drawable for UiCameraView {
 }
 
 pub struct UiCameraPlugin {
-    bounds: Bounds::<Layout>,
+    // bounds: Bounds::<Layout>,
     fov: Angle,
+
+    view: Option<View<UiCameraView>>,
 }
 
 impl UiCameraPlugin {
-    pub fn new(xy: impl Into<Point>, wh: impl Into<Point>) -> Self {
-        let xy = xy.into();
-        let wh = wh.into();
-
+    pub fn new() -> Self {
         Self {
-            bounds: Bounds::new(xy, (xy.0 + wh.0, xy.1 + wh.1)),
+            // bounds: Bounds::new(xy, (xy.0 + wh.0, xy.1 + wh.1)),
             fov: Angle::Deg(90.),
+            view: None,
         }
     }
 
@@ -120,14 +119,20 @@ impl UiCameraPlugin {
     }
 }
 
+impl ViewPlugin for UiCameraPlugin {
+    fn view(&mut self, _app: &mut App) -> Option<&ViewArc> {
+        self.view = Some(View::from(UiCameraView::new()));
+
+        self.view.as_ref().map(|v| v.arc())
+    }
+}
+
 impl Plugin for UiCameraPlugin {
     fn build(&self, app: &mut App) {
-        if app.contains_plugin::<UiCanvasPlugin>() {
-            assert!(app.contains_resource::<World>());
+        assert!(app.contains_resource::<World>());
 
-            let view = app.resource_mut::<UiCanvas>().view(self.bounds.clone(), UiCameraView::new());
-            
-            let mut ui_camera = UiCamera::new(view);
+        if let Some(view) = &self.view {
+            let mut ui_camera = UiCamera::new(view.clone());
             ui_camera.fov(self.fov);
             app.insert_resource(ui_camera);
 

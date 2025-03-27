@@ -1,65 +1,94 @@
 use std::{cell::RefCell, any::type_name};
 
 use essay_ecs::prelude::*;
-use essay_graphics::layout::Layout;
-use essay_plot::prelude::*;
+use essay_graphics::layout::ViewArc;
+use essay_plot::{artist::LinesOpt, chart::Chart, prelude::*};
 
 use mind_ecs::{PostTick, PreTick};
-use ui_graphics::{ui_plot::{PlotKeyId, UiPlot}, UiCanvas};
+use ui_graphics::ViewPlugin;
 
-#[derive(Component)]
+pub fn ui_plot_update(
+    mut graph: ResMut<UiGraph>,
+) {
+    graph.tick();
+}
+
 pub struct UiGraph {
-    plot: UiPlot,
-
+    tick: usize,
+    x: LineData,
 }
 
 impl UiGraph {
-    fn new(canvas: &mut UiCanvas) -> Self {
-        let mut plot = UiPlot::new(canvas.chart([1., 1.]));
-        plot.lim(256);
+    const LIM : usize = 256;
 
-        plot.chart_mut().ylim(-0.1, 1.1);
-
+    fn new() -> Self {
         Self {
-            plot,
+            tick: 0,
+            x: LineData::new(),
         }
     }
 
-    fn line(&mut self, label: &str) -> PlotKeyId {
-        self.plot.line(label)
+    fn tick(&mut self) {
+        self.x.push(self.tick as f32);
+    
+        self.tick += 1;
+    
     }
 
-    fn _push(&mut self, id: PlotKeyId, value: f32) {
-        self.plot.push(id, value);
-    }
+    fn update(&self, line: &mut LinesOpt, y: &mut LineData, value: f32) {
+        y.push(value);
+        y.trim(&self.x);
 
-    fn color(&mut self, id: PlotKeyId, color: Color) {
-        self.plot.color(id, color);
+        line.set_xy(&self.x.data, &y.data);
     }
 }
 
-pub fn ui_plot_update(
-    mut ui_body: ResMut<UiGraph>,
-) {
-    ui_body.plot.tick();
+struct LineData {
+    lim: usize,
+    data: Vec<f32>,
 }
 
-pub struct BodyPlot;
+impl LineData {
+    fn new() -> Self {
+        Self {
+            lim: UiGraph::LIM,
+            data: Vec::new(),
+        }
+    }
+
+    fn push(&mut self, value: f32) {
+        self.data.push(value);
+
+        while self.lim < self.data.len() {
+            self.data.remove(0);
+        }
+    }
+
+    fn trim(&mut self, x: &LineData) {
+        while self.data.len() < x.data.len() {
+            self.data.push(0.);
+        }
+
+        while x.data.len() < self.data.len() {
+            self.data.remove(0);
+        }
+    }
+}
 
 pub struct UiGraphPlugin {
-    _pos: Bounds<Layout>,
-
     colors: Vec<Color>,
 
     items: Vec<(String, Box<dyn Item>)>,
+
+    view: Option<Chart>,
 }
 
 impl UiGraphPlugin {
-    pub fn new(pos: impl Into<Bounds<Layout>>) -> Self {
+    pub fn new() -> Self {
         Self {
-            _pos: pos.into(),
             colors: Vec::new(),
             items: Vec::new(),
+            view: None,
         }
     }
 
@@ -76,7 +105,6 @@ impl UiGraphPlugin {
         label: &str,
         item: impl IntoItem<T>
     ) -> Self {
-
         let item = IntoItem::into_item(item);
 
         self.items.push((String::from(label), item));
@@ -85,74 +113,72 @@ impl UiGraphPlugin {
     }
 }
 
+impl ViewPlugin for UiGraphPlugin {
+    fn view(&mut self, _app: &mut App) -> Option<&ViewArc> {
+        let chart = Chart::default();
+
+        self.view = Some(chart);
+        
+        self.view.as_ref().map(|v| v.view().arc())
+    }
+}
+
 impl Plugin for UiGraphPlugin {
     fn build(&self, app: &mut App) {
-        //let figure = UiFigurePlugin::<BodyPlot>::new(self.xy, self.wh);
-        //figure.build(app);
+        if let Some(chart) = &self.view {
+            let mut chart = chart.clone();
 
-        let colors = self.colors.clone();
+            let colors = self.colors.clone();
+
+            chart.ylim(-0.1, 1.1);
         
-        let mut graph = UiGraph::new(app.resource_mut::<UiCanvas>());
+            let graph = UiGraph::new();
 
-        for (i, (label, item)) in self.items.iter().enumerate() {
-            let color = colors[i % colors.len()];
+            app.insert_resource(graph);
+            app.system(PreTick, ui_plot_update);
+        
+            for (i, (label, item)) in self.items.iter().enumerate() {
 
-            let id = graph.line(label);
-                
-            graph.color(id, color);
+                let mut line = chart.plot([0.], [0.]);
 
-            item.add(id, app);
+                if colors.len() > 0 {
+                    let color = colors[i % colors.len()];
+                    line.color(color);
+                }
+                line.label(label);
+
+                item.add(line, app);
+            }
         }
-
-        app.insert_resource(graph);
-        
-        //app.system(PostUpdate, ui_plot_peptide);
-        app.system(PreTick, ui_plot_update);
     }
 }
 
 pub trait Item {
-    fn add(&self, id: PlotKeyId, app: &mut App);
+    fn add(&self, id: LinesOpt, app: &mut App);
 }
 
 type UpdateBox<T> = Box<dyn Fn(&T) -> f32 + Sync + Send>;
-
-pub struct PeptideUpdates<T> {
-    updates: Vec<(PlotKeyId, UpdateBox<T>)>,
-}
-
-impl<T> PeptideUpdates<T> {
-    fn add(&mut self, id: PlotKeyId, fun: Option<UpdateBox<T>>) {
-        self.updates.push((id, fun.unwrap()));
-    }
-}
 
 struct ItemImpl<T> {
     update: RefCell<Option<UpdateBox<T>>>,
 }
 
 impl<T: Send + Sync + 'static> Item for ItemImpl<T> {
-    fn add(&self, id: PlotKeyId, app: &mut App) {
+    fn add(&self, line: LinesOpt, app: &mut App) {
         assert!(app.contains_resource::<T>(),
             "{:?} is an unregistered resource", type_name::<T>());
 
-        if ! app.contains_resource::<PeptideUpdates<T>>() {
-            let updates: PeptideUpdates<T> = PeptideUpdates {
-                updates: Vec::new(),
-            };
-
-            app.insert_resource(updates);
+        if let Some(fun) = self.update.take() {
+            let mut y = LineData::new();
+            let mut line = line;
 
             app.system(
                 PostTick,
-                |updates: Res<PeptideUpdates<T>>, res: Res<T>, mut ui: ResMut<UiGraph>| {
-                    for (id, fun) in &updates.updates {
-                        ui.plot.push(*id, fun(res.get()));
-                    }
-            });
+                move |res: Res<T>, graph: Res<UiGraph>| {
+                    graph.update(&mut line, &mut y, fun(res.get()));
+                }
+            );
         }
-
-        app.resource_mut::<PeptideUpdates<T>>().add(id, self.update.take());
     }
 } 
 

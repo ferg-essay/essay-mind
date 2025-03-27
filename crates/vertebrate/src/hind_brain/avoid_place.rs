@@ -6,43 +6,47 @@ use mind_ecs::Tick;
 
 use crate::{body::Body, world::{WorldHex, WorldHexTrait}};
 
-fn update_avoid_place<K: WorldHexTrait + Eq + Hash + fmt::Debug + 'static>(
-    mut avoid_place: ResMut<AvoidPlace>, 
-    avoid_map: Res<AvoidPlaceMap<K, AvoidItem>>,
+fn update_avoid_here<K: WorldHexTrait + Eq + Hash + fmt::Debug + 'static>(
+    mut avoid_here: ResMut<AvoidHere>, 
+    avoid_map: Res<AvoidHereMap<K, AvoidItem>>,
     body: Res<Body>,
     world_hex: Res<WorldHex<K>>,
 ) {
     let pos = body.head_pos();
 
     if let Some(item) = avoid_map.find(&world_hex[pos]) {
-        avoid_place.avoid = item.clone();
+        avoid_here.avoid = item.clone();
     } else {
-        avoid_place.avoid = AvoidItem::default();
+        avoid_here.avoid = AvoidItem::default();
     }
 }
 
 ///
-/// AvoidPlace represents R.pb triggers from irritation/painful areas.
+/// AvoidHere represents R.pb triggers from irritation/painful areas.
 /// R.pb has at least two distinct negative triggers: tac1 and cgrp, which
 /// project to distinct areas.
 /// 
+/// This function is named AvoidHere not AvoidPlace because R.pb doesn't have
+/// a general knowledge of place, but only that the current location is 
+/// bad.
+/// 
 #[derive(Default)]
-pub struct AvoidPlace {
+pub struct AvoidHere {
     avoid: AvoidItem,
 }
 
-impl AvoidPlace {
+impl AvoidHere {
     #[inline]
     pub fn is_avoid(&self) -> bool {
         self.avoid.is_avoid
     }
 }
 
-pub struct AvoidPlaceMap<K: Eq + Hash, T> {
+pub struct AvoidHereMap<K: Eq + Hash, T> {
     avoid_map: HashMap<K, T>,
 }
 
-impl<K: Eq + Hash, T> AvoidPlaceMap<K, T> {
+impl<K: Eq + Hash, T> AvoidHereMap<K, T> {
     fn find(&self, key: &K) -> Option<&T> {
         self.avoid_map.get(key)
     }
@@ -53,11 +57,11 @@ struct AvoidItem {
     is_avoid: bool,
 }
 
-pub struct AvoidPlacePlugin<K> {
+pub struct AvoidHerePlugin<K> {
     avoid_map: HashMap<K, AvoidItem>,
 }
 
-impl<K: Eq + Hash + Send + fmt::Debug> AvoidPlacePlugin<K> {
+impl<K: Eq + Hash + Send + fmt::Debug> AvoidHerePlugin<K> {
     pub fn new() -> Self {
         Self {
             avoid_map: HashMap::default(),
@@ -73,15 +77,15 @@ impl<K: Eq + Hash + Send + fmt::Debug> AvoidPlacePlugin<K> {
     }
 }
 
-impl<K: WorldHexTrait + Eq + Hash + fmt::Debug + Send> Plugin for AvoidPlacePlugin<K> {
+impl<K: WorldHexTrait + Eq + Hash + fmt::Debug + Send> Plugin for AvoidHerePlugin<K> {
     fn build(&self, app: &mut App) {
-        let avoid_map: AvoidPlaceMap<K, AvoidItem> = AvoidPlaceMap {
+        let avoid_map: AvoidHereMap<K, AvoidItem> = AvoidHereMap {
             avoid_map: self.avoid_map.clone(),
         };
 
         app.insert_resource(avoid_map);
-        app.insert_resource(AvoidPlace::default());
+        app.insert_resource(AvoidHere::default());
 
-        app.system(Tick, update_avoid_place::<K>);
+        app.system(Tick, update_avoid_here::<K>);
     }
 }

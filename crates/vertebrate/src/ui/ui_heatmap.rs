@@ -1,13 +1,12 @@
 use essay_ecs::prelude::*;
-use essay_graphics::layout::Layout;
+use essay_graphics::layout::ViewArc;
 use essay_plot::{
-    api::Bounds, 
     artist::{ColorMaps, GridColor, GridColorOpt}, 
     chart::Chart, 
 };
 use essay_tensor::Tensor;
 use mind_ecs::PostTick;
-use ui_graphics::UiCanvas;
+use ui_graphics::ViewPlugin;
 use crate::world::World;
 use crate::body::Body;
 use crate::ui::ui_world_map::UiWorldPlugin;
@@ -22,7 +21,7 @@ struct UiHeatmap {
 
 impl UiHeatmap {
     fn new(
-        mut chart: Chart,
+        mut grid_plot: GridColorOpt,
         extent: (usize, usize)
     ) -> Self {
         let factor = 1;
@@ -30,15 +29,9 @@ impl UiHeatmap {
         let mut data = Vec::<f32>::new();
         data.resize(extent.0 * extent.1 * factor * factor, 0.);
 
-        chart.flip_y(true);
-        chart.aspect(1.);
-        chart.x().visible(false);
-        chart.y().visible(false);
-        // graph.colorbar();
         let init_data = Tensor::from(&data).reshape([extent.0, extent.1]);
-        let colormesh = GridColor::new(init_data);
-        let mut grid_plot = chart.artist(colormesh);
-        grid_plot.color_map(ColorMaps::RedYellow);
+
+        grid_plot.data(init_data);
 
         Self {
             factor: 1,
@@ -67,25 +60,48 @@ fn ui_heatmap_update(
 }
 
 pub struct UiHeatmapPlugin {
-    pos: Bounds<Layout>,
+    view: Option<Chart>,
+    grid_plot: Option<GridColorOpt>,
 }
 
 impl UiHeatmapPlugin {
-    pub fn new(pos: impl Into<Bounds<Layout>>) -> Self {
+    pub fn new() -> Self {
         Self {
-            pos: pos.into(),
+            view: None,
+            grid_plot: None,
         }
+    }
+}
+
+impl ViewPlugin for UiHeatmapPlugin {
+    fn view(&mut self, _app: &mut App) -> Option<&ViewArc> {
+        let mut chart = Chart::default();
+        let data = Vec::<f32>::new();
+        // data.resize(extent.0 * extent.1 * factor * factor, 0.);
+
+        chart.flip_y(true);
+        chart.aspect(1.);
+        chart.x().visible(false);
+        chart.y().visible(false);
+        // graph.colorbar();
+        let init_data = Tensor::from(&data).reshape([0, 0]);
+        let colormesh = GridColor::new(init_data);
+        let mut grid_plot = chart.artist(colormesh);
+        grid_plot.color_map(ColorMaps::RedYellow);
+
+        self.grid_plot = Some(grid_plot);
+        self.view = Some(chart);
+
+        self.view.as_ref().map(|v| v.view().arc())
     }
 }
 
 impl Plugin for UiHeatmapPlugin {
     fn build(&self, app: &mut App) {
         if app.contains_plugin::<UiWorldPlugin>() {
-            if let Some(ui_canvas) = app.get_mut_resource::<UiCanvas>() {
-                let graph = ui_canvas.chart(&self.pos);
-
+            if let Some(grid_plot) = &self.grid_plot {
                 let world = app.resource::<World>();
-                app.insert_resource(UiHeatmap::new(graph, world.extent()));
+                app.insert_resource(UiHeatmap::new(grid_plot.clone(), world.extent()));
 
                 app.system(PostTick, ui_heatmap_update);
             }

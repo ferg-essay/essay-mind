@@ -3,12 +3,12 @@ use mind_ecs::Tick;
 
 use crate::{hind_brain::SerotoninManager, util::{Seconds, Ticks, Turn}};
 
-use super::{AvoidPlace, HindEat, HindMove, Serotonin, SerotoninTrait};
+use super::{AvoidHere, HindEat, HindMove, Serotonin, SerotoninTrait};
 
 fn update_hind_avoid(
     mut hind_avoid: ResMut<HindAvoid>,
     mut hind_move: ResMut<HindMove>,
-    avoid_place: Option<Res<AvoidPlace>>,
+    avoid_place: Option<Res<AvoidHere>>,
     mut serotonin_avoid: ResMut<Serotonin<HindAvoid>>,
     mut serotonin_eat: ResMut<Serotonin<HindEat>>,
 ) {
@@ -60,13 +60,9 @@ impl HindAvoidPlugin {
 
 impl Plugin for HindAvoidPlugin {
     fn build(&self, app: &mut App) {
-        // assert!(app.contains_plugin::<BodyAvoidPlugin>(), "HindAvoidPlugin requires BodyEatPlugin");
-
         SerotoninManager::insert::<HindAvoid>(app, self.avoid_time);
 
         let hind_avoid = HindAvoid::new();
-
-        // hind_search.is_eating = TimeoutValue::new(self.search_time);
 
         app.insert_resource(hind_avoid);
 

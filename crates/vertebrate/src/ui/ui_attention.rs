@@ -1,10 +1,10 @@
 use std::cell::RefCell;
 
-use renderer::{Canvas, Drawable, Event, Renderer};
+use renderer::{Canvas, Drawable, Renderer};
 use essay_ecs::prelude::*;
-use essay_graphics::layout::{Layout, View};
+use essay_graphics::layout::{View, ViewArc};
 use essay_plot::{artist::{paths::{self, Unit}, ColorMap, ColorMaps, PathStyle}, chart::Data, prelude::*};
-use ui_graphics::{ui_layout::UiLayoutPlugin, UiCanvas, UiCanvasPlugin};
+use ui_graphics::ui_canvas::ViewPlugin;
 
 use crate::subpallium::AttendValue;
 
@@ -34,7 +34,7 @@ impl Coord for UiAttention {}
 
 type UpdateBox<T> = Box<dyn Fn(&T) -> AttendValue + Sync + Send>;
 
-struct AttentionDraw {
+pub struct AttentionDraw {
     pos: Bounds<Canvas>,
     clip: Clip,
     bounds: Bounds<Data>,
@@ -43,6 +43,8 @@ struct AttentionDraw {
     boxes: Vec<Path<Canvas>>,
 
     colors: ColorMap,
+
+    canvas_pos: Bounds<Canvas>,
 }
 
 impl AttentionDraw {
@@ -55,6 +57,8 @@ impl AttentionDraw {
             boxes: Vec::new(),
 
             colors: ColorMap::from(ColorMaps::BlueOrange),
+
+            canvas_pos: Bounds::none(),
         }
     }
 
@@ -70,6 +74,11 @@ impl AttentionDraw {
 
 
     fn set_pos(&mut self, set_pos: &Bounds<Canvas>) {
+        if &self.canvas_pos == set_pos {
+            return;
+        }
+        self.canvas_pos = set_pos.clone();
+
         let aspect = 1.;
         let size = (aspect * set_pos.width()).min(set_pos.height()) * 0.95;
 
@@ -100,6 +109,7 @@ impl AttentionDraw {
 
         self.boxes = boxes;
         self.clip = Clip::from(&self.pos);
+
     }
 
     fn to_canvas(&self) -> Affine2d {
@@ -109,6 +119,8 @@ impl AttentionDraw {
 
 impl Drawable for AttentionDraw {
     fn draw(&mut self, renderer: &mut dyn Renderer) -> renderer::Result<()> {
+        self.set_pos(renderer.pos());
+
         let mut style = PathStyle::new();
         style.line_width(1.);
 
@@ -120,12 +132,6 @@ impl Drawable for AttentionDraw {
         }
 
         Ok(())
-    }
-
-    fn event(&mut self, _renderer: &mut dyn Renderer, event: &Event) {
-        if let Event::Resize(pos) = event {
-            self.set_pos(pos);
-        }
     }
 }
 
@@ -159,21 +165,18 @@ impl UiAttentionId {
 //
 
 pub struct UiAttentionPlugin {
-    bounds: Bounds::<Layout>,
     colors: Vec<Color>,
 
     items: Vec<Box<dyn Item>>,
+    view: Option<View<AttentionDraw>>,
 }
 
 impl UiAttentionPlugin {
-    pub fn new(xy: impl Into<Point>, wh: impl Into<Point>) -> Self {
-        let xy = xy.into();
-        let wh = wh.into();
-
+    pub fn new() -> Self {
         Self {
-            bounds: Bounds::new(xy, (xy.0 + wh.0, xy.1 + wh.1)),
             colors: Vec::new(),
             items: Vec::new(),
+            view: None,
         }
     }
 
@@ -196,38 +199,40 @@ impl UiAttentionPlugin {
     }
 }
 
+impl ViewPlugin for UiAttentionPlugin {
+    fn view(&mut self, app: &mut App) -> Option<&ViewArc> {
+        let mut ui_view = AttentionDraw::new();
+
+        let colors = if self.colors.len() > 0 {
+            self.colors.clone()
+        } else {
+            vec!(
+                Color::from("sky"),
+                Color::from("red"),
+                Color::from("beige"),
+                Color::from("purple"),
+                Color::from("olive"),
+            )
+        };
+
+        for (i, item) in self.items.iter().enumerate() {
+            let color = colors[i % colors.len()];
+
+            let id = ui_view.add(color);
+
+            item.add(id, app);
+        }
+
+        self.view = Some(View::from(ui_view));
+
+        self.view.as_ref().map(|v| v.arc())
+    }
+}
+
 impl Plugin for UiAttentionPlugin {
     fn build(&self, app: &mut App) {
-        if app.contains_plugin::<UiCanvasPlugin>() {
-            if ! app.contains_plugin::<UiLayoutPlugin>() {
-                app.plugin(UiLayoutPlugin);
-            }
-
-            let mut ui_view = AttentionDraw::new();
-
-            let colors = if self.colors.len() > 0 {
-                self.colors.clone()
-            } else {
-                vec!(
-                    Color::from("sky"),
-                    Color::from("red"),
-                    Color::from("beige"),
-                    Color::from("purple"),
-                    Color::from("olive"),
-                )
-            };
-
-            for (i, item) in self.items.iter().enumerate() {
-                let color = colors[i % colors.len()];
-
-                let id = ui_view.add(color);
-
-                item.add(id, app);
-            }
-
-            let view = app.resource_mut::<UiCanvas>().view(&self.bounds, ui_view);
-
-            let ui_attention = UiAttention::new(view);
+        if let Some(view) = &self.view {
+            let ui_attention = UiAttention::new(view.clone());
 
             app.insert_resource(ui_attention);
         }
@@ -238,16 +243,6 @@ pub trait Item {
     fn add(&self, id: UiAttentionId, app: &mut App);
 }
 
-pub struct AttentionUpdates<T> {
-    updates: Vec<(UiAttentionId, UpdateBox<T>)>,
-}
-
-impl<T> AttentionUpdates<T> {
-    fn add(&mut self, id: UiAttentionId, fun: Option<UpdateBox<T>>) {
-        self.updates.push((id, fun.unwrap()));
-    }
-}
-
 struct ItemImpl<T> {
     update: RefCell<Option<UpdateBox<T>>>,
 }
@@ -256,25 +251,15 @@ impl<T: Send + Sync + 'static> Item for ItemImpl<T> {
     fn add(&self, id: UiAttentionId, app: &mut App) {
         assert!(app.contains_resource::<T>());
 
-        if ! app.contains_resource::<AttentionUpdates<T>>() {
-            let updates: AttentionUpdates<T> = AttentionUpdates {
-                updates: Vec::new(),
-            };
-
-            app.insert_resource(updates);
-
+        if let Some(fun) = self.update.take() {
             app.system(
                 PreUpdate, // TODO: PostTick?
-                |updates: Res<AttentionUpdates<T>>, res: Res<T>, mut ui: ResMut<UiAttention>| {
-                    for (id, fun) in &updates.updates {
-                        let value = fun(res.get());
+                move |res: Res<T>, mut ui: ResMut<UiAttention>| {
+                    let value = fun(res.get());
 
-                        ui.set_value(*id, value);
-                    }
+                    ui.set_value(id, value);
             });
         }
-
-        app.resource_mut::<AttentionUpdates<T>>().add(id, self.update.take());
     }
 } 
 

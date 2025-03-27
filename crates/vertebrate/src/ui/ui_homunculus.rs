@@ -1,15 +1,15 @@
 use std::cell::RefCell;
 
 use mind_ecs::AfterTicks;
-use renderer::{Canvas, Drawable, Event, Renderer};
+use renderer::{Canvas, Drawable, Renderer};
 use essay_ecs::prelude::*;
-use essay_graphics::layout::{Layout, View};
+use essay_graphics::layout::{View, ViewArc};
 use essay_plot::{
     prelude::*, 
     artist::{paths::Unit, PathStyle, ColorMaps, ColorMap}
 };
 
-use ui_graphics::{UiCanvas, ui_canvas::UiRender};
+use ui_graphics::ViewPlugin;
 use crate::{
     body::Body, 
     hind_brain::{HindMove, MoveKind}, 
@@ -17,7 +17,7 @@ use crate::{
     tectum::TectumMap,
     util::Turn 
 };
-use crate::ui::ui_world_map::UiWorldPlugin;
+
 use crate::util::{Angle, Heading};
 
 use super::ui_emoji::Emoji;
@@ -117,7 +117,7 @@ pub fn ui_homunculus_draw(
     });
 }
 
-struct UiHomunculusView {
+pub struct UiHomunculusView {
     body_head_dir: Heading,
     body_turn: Turn,
 
@@ -138,6 +138,7 @@ struct UiHomunculusView {
 
     bounds: Bounds<Unit>,
     pos: Bounds<Canvas>,
+    cache_pos: Bounds<Canvas>,
 
     paths_unit: UiHomunculusPath<Unit>,
     paths_canvas: UiHomunculusPath<Canvas>,
@@ -187,6 +188,7 @@ impl UiHomunculusView {
 
             bounds: Bounds::unit(),
             pos: Bounds::zero(),
+            cache_pos: Bounds::zero(),
 
             paths_unit,
             paths_canvas,
@@ -203,8 +205,20 @@ impl UiHomunculusView {
         }
     }
 
-    fn resize(&mut self, pos: &Bounds<Canvas>) {
-        // let pos = self.view.pos();
+    fn resize(&mut self, ui: &mut dyn Renderer) {
+        let pos = ui.pos().clone();
+
+        let pos = pos.with_aspect(0.75);
+
+        if self.emoji.is_none() {
+            let emoji_family = "/Users/ferg/wsp/essay-mind/assets/font/NotoEmoji-Bold.ttf";
+
+            let mut style = FontStyle::new();
+    
+            style.family(emoji_family);
+    
+            self.emoji = Some(ui.font(&style).unwrap());
+        }
 
         self.pos = Bounds::from((
             pos.xmin() + 0.05 * pos.width(),
@@ -233,6 +247,11 @@ impl UiHomunculusView {
 
 impl Drawable for UiHomunculusView {
     fn draw(&mut self, ui: &mut dyn Renderer) -> renderer::Result<()> {
+        if &self.cache_pos != ui.pos() {
+            self.cache_pos = ui.pos().clone();
+            self.resize(ui);
+        }
+
         let paths = &self.paths_canvas;
 
         let mut style = PathStyle::new();
@@ -328,22 +347,6 @@ impl Drawable for UiHomunculusView {
         ui.draw_path(&paths.outline, &style)?;
 
         Ok(())
-    }
-
-    fn event(&mut self, ui: &mut dyn Renderer, event: &Event) {
-        if let Event::Resize(pos) = event {
-            if self.emoji.is_none() {
-                let emoji_family = "/Users/ferg/wsp/essay-mind/assets/font/NotoEmoji-Bold.ttf";
-
-                let mut style = FontStyle::new();
-        
-                style.family(emoji_family);
-        
-                self.emoji = Some(ui.font(&style).unwrap());
-            }
-
-            self.resize(pos);
-        }
     }
 }
 
@@ -678,33 +681,6 @@ impl HeadDir {
 
         Ok(())
     }
-
-    fn _draw<'a>(&self, ui: &mut UiRender<'a>, dir: Angle, value: f32) {
-        let mut style = PathStyle::new();
-    
-        let da = 1. / self.paths.len() as f32;
-    
-        for (i, path) in self.paths.iter().enumerate() {
-            let angle = Angle::Unit((i as f32 + 0.5) * da + dir.to_unit());
-    
-            if self.is_head {
-                let cos = angle.cos().max(0.);
-                let v = value * cos * cos.abs().powi(3);
-    
-                if Self::_MIN <= v {
-                    style.color(self.colors.map(v));
-                    ui.draw_path(path, &style);
-                }
-            } else {
-                if Self::_MIN <= value || true {
-                    let v = (value * angle.cos()).clamp(0., 1.);
-    
-                    style.color(self.colors.map(v));
-                    ui.draw_path(path, &style);
-                }
-            };
-        }
-    }
 }
 
 fn head_dir_vec(n: usize, dir: Heading, value: f32) -> Vec<f32> {
@@ -739,28 +715,21 @@ fn approach_vec(n: usize, dir: Heading, value: f32) -> Vec<f32> {
     vec
 }
 
-pub trait UiState {
-    fn draw(&self, ui: &mut UiRender, pos: Point, style: &mut TextStyle);
-}
-
 //
 // UiHomunculusPlugin
 //
 
 pub struct UiHomunculusPlugin {
-    bounds: Bounds::<Layout>,
-
     emoji_items: Vec<Box<dyn PluginItem>>,
+
+    view: Option<View<UiHomunculusView>>,
 }
 
 impl UiHomunculusPlugin {
-    pub fn new(xy: impl Into<Point>, wh: impl Into<Point>) -> Self {
-        let xy = xy.into();
-        let wh = wh.into();
-
+    pub fn new() -> Self {
         Self {
-            bounds: Bounds::new(xy, (xy.0 + wh.0, xy.1 + wh.1)),
             emoji_items: Vec::new(),
+            view: None,
         }
     }
 
@@ -779,6 +748,33 @@ impl UiHomunculusPlugin {
         self
     }
 }
+
+impl ViewPlugin for UiHomunculusPlugin {
+    fn view(&mut self, _app: &mut App) -> Option<&ViewArc> {
+        self.view = Some(View::from(UiHomunculusView::new()));
+
+        self.view.as_ref().map(|v| v.arc())
+    }
+}
+
+impl Plugin for UiHomunculusPlugin {
+    fn build(&self, app: &mut App) {
+        if let Some(view) = &self.view {
+            let ui_homunculus = UiHomunculus::new(view.clone());
+
+            app.init_resource::<Taxis>();
+
+            app.insert_resource(ui_homunculus);
+
+            for (i, item) in self.emoji_items.iter().enumerate() {
+                item.system(i, app);
+            }
+
+            app.system(AfterTicks, ui_homunculus_draw);
+        }
+    }
+}
+
 
 struct Item<T: Send + Sync + 'static> {
     emoji: Emoji,
@@ -801,26 +797,5 @@ impl<T: Default + Send + Sync + 'static> PluginItem for Item<T> {
                 hom.emoji(id, emoji, fun(item.get()));
             }
         );
-    }
-}
-
-impl Plugin for UiHomunculusPlugin {
-    fn build(&self, app: &mut App) {
-        if app.contains_plugin::<UiWorldPlugin>() {
-            let view = UiHomunculusView::new();
-            let view = app.resource_mut::<UiCanvas>().view(self.bounds.clone(), view);
-
-            let ui_homunculus = UiHomunculus::new(view);
-
-            app.init_resource::<Taxis>();
-
-            app.insert_resource(ui_homunculus);
-
-            for (i, item) in self.emoji_items.iter().enumerate() {
-                item.system(i, app);
-            }
-
-            app.system(AfterTicks, ui_homunculus_draw);
-        }
     }
 }

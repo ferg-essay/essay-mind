@@ -5,7 +5,9 @@ pub mod ui_canvas;
 
 pub use ui_canvas::{
     UiCanvas,
-    UiCanvasPlugin,
+    // UiCanvasPlugin,
+    UiBuilder,
+    ViewPlugin,
 };
 
 pub use hex_tile::{

@@ -2,19 +2,22 @@ use std::cell::RefCell;
 
 use renderer::{Drawable, Event, Renderer};
 use essay_ecs::prelude::*;
-use essay_graphics::layout::{Layout, View};
+use essay_graphics::layout::{View, ViewArc};
 use essay_plot::{
     prelude::*, 
     artist::{paths::Unit, PathStyle, ColorMaps, ColorMap}
 };
 
 use renderer::Canvas;
-use ui_graphics::UiCanvas;
-use crate::ui::ui_world_map::UiWorldPlugin;
+use ui_graphics::ViewPlugin;
 
 use super::ui_emoji::{Emoji, SymbolDraw};
 
-struct MotiveView {
+//
+// ui_motive is a table of emojis that represent internal state
+//
+
+pub struct MotiveView {
     size: f32,
     items: Vec<UiMotiveItem>,
 
@@ -75,6 +78,8 @@ impl MotiveView {
 
 impl Drawable for MotiveView {
     fn draw(&mut self, renderer: &mut dyn Renderer) -> renderer::Result<()> {
+        self.set_pos(renderer.pos());
+
         if self.emoji.is_none() {
             let emoji_path = "/Users/ferg/wsp/essay-mind/assets/font/NotoEmoji-Bold.ttf";
 
@@ -146,25 +151,25 @@ impl UiMotiveItem {
 //
 
 pub struct UiMotivePlugin {
-    bounds: Bounds::<Layout>,
+    // bounds: Bounds::<Layout>,
     size: f32,
     items: Vec<Box<dyn PluginItem>>,
 
     x: usize,
     y: usize,
+
+    view: Option<View<MotiveView>>,
 }
 
 impl UiMotivePlugin {
-    pub fn new(xy: impl Into<Point>, wh: impl Into<Point>) -> Self {
-        let xy = xy.into();
-        let wh = wh.into();
-
+    pub fn new() -> Self {
         Self {
-            bounds: Bounds::new(xy, (xy.0 + wh.0, xy.1 + wh.1)),
+            // bounds: Bounds::new(xy, (xy.0 + wh.0, xy.1 + wh.1)),
             size: 12.,
             items: Vec::new(),
             x: 0,
             y: 0,
+            view: None,
         }
     }
 
@@ -213,6 +218,31 @@ impl UiMotivePlugin {
     }
 }
 
+impl ViewPlugin for UiMotivePlugin {
+    fn view(&mut self, app: &mut App) -> Option<&ViewArc> {
+        let mut motives = MotiveView::new();
+        motives.size = self.size;
+
+        for item in &self.items {
+            let id = motives.push(UiMotiveItem::new(item));
+
+            item.system(id, app);
+        }
+
+        self.view = Some(View::from(motives));
+
+        self.view.as_ref().map(|v| v.arc())
+    }
+}
+
+impl Plugin for UiMotivePlugin {
+    fn build(&self, app: &mut App) {
+        if let Some(view) = &self.view {
+            app.insert_resource(view.clone());
+        }
+    }
+}
+
 trait PluginItem {
     fn pos(&self) -> Point;
     fn emoji(&self) -> Emoji;
@@ -226,10 +256,6 @@ struct Item<T: Send + Sync + 'static> {
     emoji: Emoji,
     colormap: Option<ColorMap>,
     fun: RefCell<Option<Box<dyn Fn(&T) -> f32 + Send + Sync + 'static>>>,
-}
-
-impl<T: Send + Sync + 'static> Item<T> {
-    
 }
 
 impl<T: Default + Send + Sync + 'static> PluginItem for Item<T> {
@@ -264,22 +290,3 @@ impl<T: Default + Send + Sync + 'static> PluginItem for Item<T> {
         );
     }
 } 
-
-impl Plugin for UiMotivePlugin {
-    fn build(&self, app: &mut App) {
-        if app.contains_plugin::<UiWorldPlugin>() {
-            let mut motives = MotiveView::new();
-            motives.size = self.size;
-
-            for item in &self.items {
-                let id = motives.push(UiMotiveItem::new(item));
-
-                item.system(id, app);
-            }
-
-            let view = app.resource_mut::<UiCanvas>().view(&self.bounds, motives);
-
-            app.insert_resource(view);
-        }
-    }
-}

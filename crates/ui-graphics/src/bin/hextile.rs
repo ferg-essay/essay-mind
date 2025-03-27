@@ -1,11 +1,11 @@
 use essay_plot::wgpu::WgpuMainLoop;
-use essay_graphics::api::form::{Shape, ShapeId};
+use essay_graphics::{api::form::{Shape, ShapeId}, layout::MainLoop};
 use renderer::{Canvas, Drawable, Renderer};
-use essay_graphics::{layout::Layout, prelude::*};
+use essay_graphics::{prelude::*};
 use ui_graphics::{HexSliceGenerator, TexId, TextureBuilder, TextureGenerator};
 
 fn main() { 
-    let mut layout = Layout::new();
+    // let mut layout = Layout::new();
 
     let colors = [
         Color::from("red"),
@@ -47,11 +47,13 @@ fn main() {
     gen.hex(&mut form, (0.55, 0.25), tex.tile(TexId(2)));
     gen.hex(&mut form, (0.40, 0.25 - 0.0866), tex.tile(TexId(3)));
 
+    /*
     layout.view(((0.5, 0.5), [0.5, 0.5]),
         ShapeView::new(form, tex)
     );
+    */
 
-    WgpuMainLoop::new().main_loop(Box::new(layout)).unwrap();
+    MainLoop::new().show(ShapeView::new(form, tex));
 }
 
 struct ShapeView {

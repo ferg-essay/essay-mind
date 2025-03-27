@@ -1,9 +1,9 @@
 use essay_ecs::prelude::*;
-use essay_graphics::layout::{Layout, View};
-use essay_plot::api::{renderer::{self, Canvas, Drawable, Event, Renderer}, Bounds, Color};
+use essay_graphics::layout::{View, ViewArc};
+use essay_plot::api::{renderer::{self, Canvas, Drawable, Renderer}, Bounds, Color};
 use essay_tensor::Tensor;
 use mind_ecs::PostTick;
-use ui_graphics::UiCanvas;
+use ui_graphics::ViewPlugin;
 use crate::retina::Retina;
 
 struct UiRetina {
@@ -65,6 +65,8 @@ struct RetinaView {
     right_vertices: Tensor,
     right_triangles: Tensor<u32>,
     right_colors: Tensor<u32>,
+
+    pos_canvas: Bounds<Canvas>,
 }
 
 impl RetinaView {
@@ -85,7 +87,38 @@ impl RetinaView {
             right_vertices: vertices.clone(),
             right_triangles: triangles.clone(),
             right_colors: colors.clone(),
+
+            pos_canvas: Bounds::none(),
         }
+    }
+
+    fn set_pos(&mut self, pos: &Bounds<Canvas>) {
+        if pos == &self.pos_canvas {
+            return;
+        }
+
+        let w = 0.5 * (pos.width() - 5.);
+        let h = pos.height();
+
+        let s = w.min(h);
+
+        let y0 = pos.ymin() + 0.5 * (h - s);
+
+        let pos_left = Bounds::<Canvas>::from(((pos.xmin(), y0), [s, s]));
+
+        let (vertices, triangles) = build_grid(self.size, &pos_left);
+        
+        self.left_vertices = vertices;
+        self.left_triangles = triangles;
+
+        let pos_right = Bounds::<Canvas>::from(((pos.xmin() + s + 5., y0), [s, s]));
+
+        let (vertices, triangles) = build_grid(self.size, &pos_right);
+        
+        self.right_vertices = vertices;
+        self.right_triangles = triangles;
+
+        self.pos_canvas = pos.clone();
     }
 }
 
@@ -133,6 +166,8 @@ fn add_square(
 
 impl Drawable for RetinaView {
     fn draw(&mut self, renderer: &mut dyn Renderer) -> renderer::Result<()> {
+        self.set_pos(renderer.pos());
+
         renderer.draw_triangles(
             self.left_vertices.clone(), 
             self.left_colors.clone(), 
@@ -147,57 +182,40 @@ impl Drawable for RetinaView {
         
         Ok(())
     }
-
-    fn event(&mut self, _renderer: &mut dyn Renderer, event: &Event) {
-        if let Event::Resize(pos) = event {
-            let w = 0.5 * (pos.width() - 5.);
-            let h = pos.height();
-
-            let s = w.min(h);
-
-            let y0 = pos.ymin() + 0.5 * (h - s);
-
-            let pos_left = Bounds::<Canvas>::from(((pos.xmin(), y0), [s, s]));
-
-            let (vertices, triangles) = build_grid(self.size, &pos_left);
-            
-            self.left_vertices = vertices;
-            self.left_triangles = triangles;
-
-            let pos_right = Bounds::<Canvas>::from(((pos.xmin() + s + 5., y0), [s, s]));
-
-            let (vertices, triangles) = build_grid(self.size, &pos_right);
-            
-            self.right_vertices = vertices;
-            self.right_triangles = triangles;
-        }
-    }
 }
 
 pub struct UiRetinaPlugin {
-    pos: Bounds<Layout>,
+    // pos: Bounds<Layout>,
+    view: Option<View<RetinaView>>,
 }
 
 impl UiRetinaPlugin {
-    pub fn new(pos: impl Into<Bounds<Layout>>) -> Self {
+    pub fn new() -> Self {
         Self {
-            pos: pos.into(),
+            // pos: pos.into(),
+            view: None,
         }
     }
+}
+
+impl ViewPlugin for UiRetinaPlugin {
+    fn view(&mut self, app: &mut App) -> Option<&ViewArc> {
+        if let Some(retina) = app.get_resource::<Retina>() {
+            let size = retina.get_size();
+
+            self.view = Some(View::from(RetinaView::new(size)));
+        }
+
+        self.view.as_ref().map(|v| v.arc())
+     }
 }
 
 impl Plugin for UiRetinaPlugin {
     fn build(&self, app: &mut App) {
-        if app.contains_resource::<Retina>() {
-            let size = app.get_resource::<Retina>().unwrap().get_size();
+        if let Some(view) = &self.view {
+            app.insert_resource(UiRetina::new(view.clone()));
 
-            if let Some(ui_canvas) = app.get_mut_resource::<UiCanvas>() {
-                let view = ui_canvas.view(&self.pos, RetinaView::new(size));
-
-                app.insert_resource(UiRetina::new(view));
-
-                app.system(PostTick, ui_retina_update);
-            }
+            app.system(PostTick, ui_retina_update);
         }
     }
 }
