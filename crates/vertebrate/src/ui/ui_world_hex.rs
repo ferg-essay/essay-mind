@@ -2,7 +2,7 @@ use std::{collections::HashMap, f32::consts::PI};
 use core::hash::Hash;
 
 use essay_ecs::{app::{App, Plugin, Update}, core::{Res, ResMut}};
-use essay_graphics::layout::View;
+use essay_graphics::layout::{View, ViewArc};
 use essay_plot::api::{
     form::{Shape, ShapeId}, 
     renderer::{self, Canvas, Drawable, Renderer}, 
@@ -357,11 +357,11 @@ impl<T: WorldHexTrait + Hash + Eq> UiWorldHexPlugin<T> {
     }
 }
 
-impl<T: WorldHexTrait + Hash + Eq> ViewPlugin<HexView> for UiWorldHexPlugin<T> {
-    fn view(&mut self, app: &mut App) -> Option<&View<HexView>> {
+impl<T: WorldHexTrait + Hash + Eq> ViewPlugin for UiWorldHexPlugin<T> {
+    fn view(&mut self, app: &mut App) -> Option<&ViewArc> {
         self.view = Some(View::from(HexView::new()));
 
-        self.view.as_ref()
+        self.view.as_ref().map(|v| v.arc())
     }
 }
 

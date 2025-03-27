@@ -101,7 +101,7 @@ pub fn main() {
 
     animal.build(&mut app);
 
-    ui_eat_flat(&mut app).build();
+    ui_eat_flat(&mut app);
     app.plugin(UiRetinaPlugin::new()); // ((2.0, 0.0), [0.5, 0.5])));
 
     app.run().unwrap();
@@ -300,23 +300,24 @@ fn ui_homunculus(ui: &mut UiSubBuilder, xy: (f32, f32), wh: (f32, f32)) {
     );
 }
 
-fn ui_eat_flat(app: &mut App) -> UiBuilder {
-    let mut ui = UiBuilder::new(app);
+fn ui_eat_flat(app: &mut App) {
     // UiCanvasPlugin enables graphics
     // app.plugin(UiCanvasPlugin::new().frame_ms(Duration::from_millis(50)));
     let odor_colors = Colors::from(["green", "azure"]);
 
-    ui.vertical(|ui| {
-        ui.horizontal(|ui| {
+    UiBuilder::build(app, |ui| {
+        ui.horizontal_height(0.5, |ui| {
             ui_motive(ui, (2.0, 0.5), (0.5, 0.5));
-    
+
             ui_homunculus(ui, (2.5, 0.5), (0.5, 0.5));
         });
 
         ui.horizontal(|ui| {
             // Main
-            ui.view(UiWorldPlugin::new((0., 0.), (2., 1.0)));
-            ui.view(UiBodyPlugin::new());
+            ui.view((
+                UiWorldPlugin::new((0., 0.), (2., 1.0)),
+                UiBodyPlugin::new()
+            ));
             // ui.view(UiBodyTailPlugin);
 
             let alpha = 0.4;
@@ -329,7 +330,7 @@ fn ui_eat_flat(app: &mut App) -> UiBuilder {
         
             ui.view(hex);
         
-            ui.vertical(|ui| {
+            ui.vertical_width(0.5, |ui| {
                 ui.view(UiAttentionPlugin::new((2.5, 0.), (0.5, 0.5))
                     .colors(odor_colors)
                     // .item("v", |p: &Phototaxis| p.value())
@@ -358,8 +359,6 @@ fn ui_eat_flat(app: &mut App) -> UiBuilder {
         .item(|ob: &OlfactoryBulb| ob.value_pair(OdorType::FoodB))
     );
     */
-
-    ui
 }
 
 

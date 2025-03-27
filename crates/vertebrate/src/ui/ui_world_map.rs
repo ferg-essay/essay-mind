@@ -1,6 +1,6 @@
 use essay_ecs::core::Query;
 use essay_ecs::prelude::*;
-use essay_graphics::layout::{View};
+use essay_graphics::layout::{View, ViewArc};
 use essay_plot::artist::PathStyle;
 use essay_plot::{prelude::*, artist::paths};
 use essay_tensor::Tensor;
@@ -419,8 +419,8 @@ impl UiWorldPlugin {
     //}
 }
 
-impl ViewPlugin<UiWorldView> for UiWorldPlugin {
-    fn view(&mut self, app: &mut App) -> Option<&View<UiWorldView>> {
+impl ViewPlugin for UiWorldPlugin {
+    fn view(&mut self, app: &mut App) -> Option<&ViewArc> {
         let (width, height) = {
             let world = app.get_plugin::<WorldPlugin>().unwrap();
             (world.width(), world.height())
@@ -430,7 +430,7 @@ impl ViewPlugin<UiWorldView> for UiWorldPlugin {
 
         self.view = Some(View::from(view));
 
-        self.view.as_ref()
+        self.view.as_ref().map(|v| v.arc())
 
     }
 }

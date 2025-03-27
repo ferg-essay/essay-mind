@@ -1,5 +1,5 @@
 use essay_ecs::prelude::*;
-use essay_graphics::layout::View;
+use essay_graphics::layout::{View, ViewArc};
 use essay_plot::{
     api::Bounds, 
     artist::{ColorMaps, GridColor, GridColorOpt}, 
@@ -61,7 +61,7 @@ fn ui_heatmap_update(
 }
 
 pub struct UiHeatmapPlugin {
-    view: Option<View<ChartFrame>>,
+    view: Option<Chart>,
     grid_plot: Option<GridColorOpt>,
 }
 
@@ -74,8 +74,8 @@ impl UiHeatmapPlugin {
     }
 }
 
-impl ViewPlugin<ChartFrame> for UiHeatmapPlugin {
-    fn view(&mut self, app: &mut App) -> Option<&View<ChartFrame>> {
+impl ViewPlugin for UiHeatmapPlugin {
+    fn view(&mut self, app: &mut App) -> Option<&ViewArc> {
         let mut chart = Chart::default();
         let mut data = Vec::<f32>::new();
         // data.resize(extent.0 * extent.1 * factor * factor, 0.);
@@ -91,9 +91,9 @@ impl ViewPlugin<ChartFrame> for UiHeatmapPlugin {
         grid_plot.color_map(ColorMaps::RedYellow);
 
         self.grid_plot = Some(grid_plot);
-        self.view = Some(chart.view().clone());
+        self.view = Some(chart);
 
-        self.view.as_ref()
+        self.view.as_ref().map(|v| v.view().arc())
     }
 }
 

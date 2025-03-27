@@ -2,7 +2,7 @@ use std::cell::RefCell;
 
 use renderer::{Canvas, Drawable, Event, Renderer};
 use essay_ecs::prelude::*;
-use essay_graphics::layout::View;
+use essay_graphics::layout::{View, ViewArc};
 use essay_plot::{artist::{paths::{self, Unit}, ColorMap, ColorMaps, PathStyle}, chart::Data, prelude::*};
 use ui_graphics::{ui_canvas::ViewPlugin, UiCanvas};
 
@@ -198,8 +198,8 @@ impl UiAttentionPlugin {
     }
 }
 
-impl ViewPlugin<AttentionDraw> for UiAttentionPlugin {
-    fn view(&mut self, app: &mut App) -> Option<&View<AttentionDraw>> {
+impl ViewPlugin for UiAttentionPlugin {
+    fn view(&mut self, app: &mut App) -> Option<&ViewArc> {
         let mut ui_view = AttentionDraw::new();
 
         let colors = if self.colors.len() > 0 {
@@ -224,7 +224,7 @@ impl ViewPlugin<AttentionDraw> for UiAttentionPlugin {
 
         self.view = Some(View::from(ui_view));
 
-        self.view.as_ref()
+        self.view.as_ref().map(|v| v.arc())
     }
 }
 

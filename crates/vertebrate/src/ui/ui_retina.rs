@@ -1,5 +1,5 @@
 use essay_ecs::prelude::*;
-use essay_graphics::layout::{View};
+use essay_graphics::layout::{View, ViewArc};
 use essay_plot::api::{renderer::{self, Canvas, Drawable, Event, Renderer}, Bounds, Color};
 use essay_tensor::Tensor;
 use mind_ecs::PostTick;
@@ -188,15 +188,15 @@ impl UiRetinaPlugin {
     }
 }
 
-impl ViewPlugin<RetinaView> for UiRetinaPlugin {
-    fn view(&mut self, app: &mut App) -> Option<&View<RetinaView>> {
+impl ViewPlugin for UiRetinaPlugin {
+    fn view(&mut self, app: &mut App) -> Option<&ViewArc> {
         if let Some(retina) = app.get_resource::<Retina>() {
             let size = retina.get_size();
 
             self.view = Some(View::from(RetinaView::new(size)));
         }
 
-        self.view.as_ref()
+        self.view.as_ref().map(|v| v.arc())
      }
 }
 

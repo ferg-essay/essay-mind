@@ -1,5 +1,5 @@
 use essay_ecs::{app::{App, Plugin, Startup, Update}, core::{Res, ResMut}};
-use essay_graphics::layout::{View};
+use essay_graphics::layout::{View, ViewArc};
 use essay_plot::api::{
     form::{FormId, Matrix4}, renderer::{Result, Drawable, Renderer}, Angle, Bounds,
 };
@@ -123,11 +123,11 @@ impl UiCameraPlugin {
     }
 }
 
-impl ViewPlugin<UiCameraView> for UiCameraPlugin {
-    fn view(&mut self, _app: &mut App) -> Option<&View<UiCameraView>> {
+impl ViewPlugin for UiCameraPlugin {
+    fn view(&mut self, _app: &mut App) -> Option<&ViewArc> {
         self.view = Some(View::from(UiCameraView::new()));
 
-        self.view.as_ref()
+        self.view.as_ref().map(|v| v.arc())
     }
 }
 

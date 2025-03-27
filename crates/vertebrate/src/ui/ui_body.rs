@@ -1,7 +1,7 @@
 use std::f32::consts::TAU;
 
 use essay_ecs::prelude::*;
-use essay_graphics::layout::View;
+use essay_graphics::layout::{View, ViewArc};
 use essay_plot::api::renderer::{self, Drawable, Renderer};
 use essay_plot::api::{Affine2d, Bounds, CapStyle, Color, JoinStyle, Path, PathCode};
 use essay_plot::artist::{PathStyle, Markers};
@@ -285,11 +285,11 @@ impl UiBodyPlugin {
     }
 }
 
-impl ViewPlugin<UiBodyView> for UiBodyPlugin {
-    fn view(&mut self, _app: &mut App) -> Option<&View<UiBodyView>> {
+impl ViewPlugin for UiBodyPlugin {
+    fn view(&mut self, _app: &mut App) -> Option<&ViewArc> {
         self.view = Some(View::from(UiBodyView::default()));
 
-        self.view.as_ref()
+        self.view.as_ref().map(|v| v.arc())
     }
 }
 

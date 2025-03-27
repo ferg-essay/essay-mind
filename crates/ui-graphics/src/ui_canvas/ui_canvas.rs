@@ -7,7 +7,7 @@ use essay_graphics::{
         renderer::{Canvas, Drawable, Event, Renderer, Result},
         Point, Path, Bounds, Color, ImageId,
     },
-    layout::{View, PageBuilder, Page},
+    layout::{View, ViewArc, PageBuilder, Page},
     wgpu::{PlotCanvas, PlotRenderer},
 };
 use essay_plot::artist::PathStyle;
@@ -389,18 +389,31 @@ pub struct UiBuilder<'a> {
     app: &'a mut App,
     page: PageBuilder,
 
+    sub: UiSubBuilder<'a>,
+
     time: Duration,
 }
 
 impl<'a> UiBuilder<'a> {
-    pub fn new(app: &'a mut App) -> Self {
-        Self {
-            app,
-            time: Duration::from_millis(30),
-            page: Page::builder(),
-        }
-    }
+    pub fn build(app: &'a mut App, f: impl FnOnce(&mut UiSubBuilder)) {
+        let time = Duration::from_millis(30);
+        let mut page = Page::builder();
 
+        let mut builder = UiSubBuilder {
+            app,
+            page: page.vertical(),
+        };
+
+        (f)(&mut builder);
+
+        let ui_canvas = UiCanvasPlugin {
+            time: time,
+            page: page.build(),
+        };
+
+        app.plugin(ui_canvas);
+    }
+    /*
     pub fn view<T>(&mut self, mut plugin: impl ViewPlugin<T> + 'static)
     where
         T: Drawable + Send + 'static
@@ -414,6 +427,16 @@ impl<'a> UiBuilder<'a> {
 
     pub fn horizontal(&mut self, builder: impl FnOnce(&mut UiSubBuilder)) {
         let sub_page = self.page.horizontal();
+        let mut sub_ui = UiSubBuilder {
+            app: self.app,
+            page: sub_page,
+        };
+
+        (builder)(&mut sub_ui);
+    }
+
+    pub fn horizontal_height(&mut self, height: f32, builder: impl FnOnce(&mut UiSubBuilder)) {
+        let sub_page = self.page.horizontal_height(height);
         let mut sub_ui = UiSubBuilder {
             app: self.app,
             page: sub_page,
@@ -440,6 +463,7 @@ impl<'a> UiBuilder<'a> {
 
         self.app.plugin(ui_canvas);
     }
+    */
 }
 
 pub struct UiSubBuilder<'a> {
@@ -448,25 +472,33 @@ pub struct UiSubBuilder<'a> {
 }
 
 impl UiSubBuilder<'_> {
-    pub fn view<T>(&mut self, mut plugin: impl ViewPlugin<T> + 'static)
-    where
-        T: Drawable + Send + 'static
+    pub fn view(&mut self, mut plugin: impl IntoViewPlugin)
     {
-        if let Some(view) = plugin.view(self.app) {
+        if let Some(view) = plugin.build_view(self.app) {
             self.page.view(view.clone());
         }
 
-        self.app.plugin(plugin);
+        plugin.build(self.app); // .plugin(plugin);
     }
 
-    pub fn horizontal(&mut self, builder: impl FnOnce(&mut UiSubBuilder)) {
+    pub fn horizontal(&mut self, f: impl FnOnce(&mut UiSubBuilder)) {
         let sub_page = self.page.horizontal();
         let mut sub_ui = UiSubBuilder {
             app: self.app,
             page: sub_page,
         };
 
-        (builder)(&mut sub_ui);
+        (f)(&mut sub_ui);
+    }
+
+    pub fn horizontal_height(&mut self, h: f32, f: impl FnOnce(&mut UiSubBuilder)) {
+        let sub_page = self.page.horizontal_height(h);
+        let mut sub_ui = UiSubBuilder {
+            app: self.app,
+            page: sub_page,
+        };
+
+        (f)(&mut sub_ui);
     }
 
     pub fn vertical(&mut self, builder: impl FnOnce(&mut UiSubBuilder)) {
@@ -479,10 +511,108 @@ impl UiSubBuilder<'_> {
         (builder)(&mut sub_ui);
     }
 
+    pub fn vertical_width(&mut self, w: f32, f: impl FnOnce(&mut UiSubBuilder)) {
+        let sub_page = self.page.vertical_width(w);
+        let mut sub_ui = UiSubBuilder {
+            app: self.app,
+            page: sub_page,
+        };
+
+        (f)(&mut sub_ui);
+    }
+
 }
 
-pub trait ViewPlugin<T> : Plugin {
-    fn view(&mut self, app: &mut App) -> Option<&View<T>>;
+pub trait ViewPlugin : Plugin {
+    fn view(&mut self, app: &mut App) -> Option<&ViewArc>;
+}
+
+pub trait IntoViewPlugin {
+    fn build_view(&mut self, app: &mut App) -> Option<ViewArc>;
+    fn build(self, app: &mut App);
+}
+
+impl<T: ViewPlugin + 'static> IntoViewPlugin for T {
+    fn build_view(&mut self, app: &mut App) -> Option<ViewArc> {
+        self.view(app).map(|v| v.clone())
+    }
+
+    fn build(self, app: &mut App) {
+        app.plugin(self);
+    }
+}
+
+impl<T1, T2> IntoViewPlugin for (T1, T2)
+where
+    T1: IntoViewPlugin,
+    T2: IntoViewPlugin,
+{
+    fn build_view(&mut self, app: &mut App) -> Option<ViewArc> {
+        poly_arc(&[
+            self.0.build_view(app),
+            self.1.build_view(app),
+        ])
+    }
+
+    fn build(self, app: &mut App) {
+        self.0.build(app);
+        self.1.build(app);
+    }
+}
+
+impl<T1, T2, T3> IntoViewPlugin for (T1, T2, T3)
+where
+    T1: IntoViewPlugin,
+    T2: IntoViewPlugin,
+    T3: IntoViewPlugin,
+{
+    fn build_view(&mut self, app: &mut App) -> Option<ViewArc> {
+        poly_arc(&[
+            self.0.build_view(app),
+            self.1.build_view(app),
+            self.2.build_view(app),
+        ])
+    }
+
+    fn build(self, app: &mut App) {
+        self.0.build(app);
+        self.1.build(app);
+        self.2.build(app);
+    }
+}
+
+fn poly_arc(views: &[Option<ViewArc>]) -> Option<ViewArc> {
+    let mut vec = Vec::<ViewArc>::new();
+
+    for view in views {
+        if let Some(view) = view {
+            vec.push(view.clone())
+        }
+    }
+
+    if vec.len() == 0 {
+        None
+    } else if vec.len() == 1 {
+        vec.pop()
+    } else {
+        Some(ViewArc::from(PolyDraw {
+            vec,
+        }))
+    }
+}
+
+struct PolyDraw {
+    vec: Vec<ViewArc>
+}
+
+impl Drawable for PolyDraw {
+    fn draw(&mut self, renderer: &mut dyn Renderer) -> Result<()> {
+        for arc in &self.vec {
+            arc.drawable().draw(renderer)?;
+        }
+
+        Ok(())
+    }
 }
 
 struct UiCanvasPlugin {

@@ -2,7 +2,7 @@ use std::cell::RefCell;
 
 use renderer::{Drawable, Event, Renderer};
 use essay_ecs::prelude::*;
-use essay_graphics::layout::View;
+use essay_graphics::layout::{View, ViewArc};
 use essay_plot::{
     prelude::*, 
     artist::{paths::Unit, PathStyle, ColorMaps, ColorMap}
@@ -216,8 +216,8 @@ impl UiMotivePlugin {
     }
 }
 
-impl ViewPlugin<MotiveView> for UiMotivePlugin {
-    fn view(&mut self, app: &mut App) -> Option<&View<MotiveView>> {
+impl ViewPlugin for UiMotivePlugin {
+    fn view(&mut self, app: &mut App) -> Option<&ViewArc> {
         let mut motives = MotiveView::new();
         motives.size = self.size;
 
@@ -229,7 +229,7 @@ impl ViewPlugin<MotiveView> for UiMotivePlugin {
 
         self.view = Some(View::from(motives));
 
-        self.view.as_ref()
+        self.view.as_ref().map(|v| v.arc())
     }
 }
 

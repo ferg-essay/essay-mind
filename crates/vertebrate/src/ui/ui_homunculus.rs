@@ -3,7 +3,7 @@ use std::cell::RefCell;
 use mind_ecs::AfterTicks;
 use renderer::{Canvas, Drawable, Event, Renderer};
 use essay_ecs::prelude::*;
-use essay_graphics::layout::{View};
+use essay_graphics::layout::{View, ViewArc};
 use essay_plot::{
     prelude::*, 
     artist::{paths::Unit, PathStyle, ColorMaps, ColorMap}
@@ -800,11 +800,11 @@ impl UiHomunculusPlugin {
     }
 }
 
-impl ViewPlugin<UiHomunculusView> for UiHomunculusPlugin {
-    fn view(&mut self, app: &mut App) -> Option<&View<UiHomunculusView>> {
+impl ViewPlugin for UiHomunculusPlugin {
+    fn view(&mut self, app: &mut App) -> Option<&ViewArc> {
         self.view = Some(View::from(UiHomunculusView::new()));
 
-        self.view.as_ref()
+        self.view.as_ref().map(|v| v.arc())
     }
 }
 
