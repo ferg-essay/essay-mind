@@ -243,16 +243,6 @@ pub trait Item {
     fn add(&self, id: UiAttentionId, app: &mut App);
 }
 
-pub struct AttentionUpdates<T> {
-    updates: Vec<(UiAttentionId, UpdateBox<T>)>,
-}
-
-impl<T> AttentionUpdates<T> {
-    fn add(&mut self, id: UiAttentionId, fun: Option<UpdateBox<T>>) {
-        self.updates.push((id, fun.unwrap()));
-    }
-}
-
 struct ItemImpl<T> {
     update: RefCell<Option<UpdateBox<T>>>,
 }
@@ -261,25 +251,15 @@ impl<T: Send + Sync + 'static> Item for ItemImpl<T> {
     fn add(&self, id: UiAttentionId, app: &mut App) {
         assert!(app.contains_resource::<T>());
 
-        if ! app.contains_resource::<AttentionUpdates<T>>() {
-            let updates: AttentionUpdates<T> = AttentionUpdates {
-                updates: Vec::new(),
-            };
-
-            app.insert_resource(updates);
-
+        if let Some(fun) = self.update.take() {
             app.system(
                 PreUpdate, // TODO: PostTick?
-                |updates: Res<AttentionUpdates<T>>, res: Res<T>, mut ui: ResMut<UiAttention>| {
-                    for (id, fun) in &updates.updates {
-                        let value = fun(res.get());
+                move |res: Res<T>, mut ui: ResMut<UiAttention>| {
+                    let value = fun(res.get());
 
-                        ui.set_value(*id, value);
-                    }
+                    ui.set_value(id, value);
             });
         }
-
-        app.resource_mut::<AttentionUpdates<T>>().add(id, self.update.take());
     }
 } 
 

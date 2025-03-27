@@ -15,18 +15,7 @@ use vertebrate::{
         phototaxis::Phototaxis
     }, 
     ui::{
-        ui_attention::UiAttentionPlugin, 
-        ui_body::{UiBodyPlugin, UiBodyTrailPlugin}, 
-        ui_emoji::Emoji, 
-        ui_graph::UiGraphPlugin, 
-        ui_heatmap::UiHeatmapPlugin, 
-        ui_homunculus::UiHomunculusPlugin, 
-        ui_motive::UiMotivePlugin, 
-        ui_peptide::UiPeptidePlugin, 
-        ui_retina::UiRetinaPlugin, 
-        ui_table::UiTablePlugin, 
-        ui_world_hex::{Pattern, UiWorldHexPlugin}, 
-        ui_world_map::UiWorldPlugin
+        ui_attention::UiAttentionPlugin, ui_body::{UiBodyPlugin, UiBodyTrailPlugin}, ui_camera::UiCameraPlugin, ui_emoji::Emoji, ui_graph::UiGraphPlugin, ui_heatmap::UiHeatmapPlugin, ui_homunculus::UiHomunculusPlugin, ui_motive::UiMotivePlugin, ui_peptide::UiPeptidePlugin, ui_retina::UiRetinaPlugin, ui_table::UiTablePlugin, ui_world_hex::{Pattern, UiWorldHexPlugin}, ui_world_map::UiWorldPlugin
     }, 
     util::{self, Seconds}, 
     world::{
@@ -346,31 +335,13 @@ fn ui_builder(app: &mut App) {
                 );
 
                 ui.view(UiRetinaPlugin::new());
+                // ui.view(UiCameraPlugin::new());
 
                 ui.view(UiHeatmapPlugin::new());
 
             });
         });
     });
-
-
-    //app.plugin(UiWorldPlugin::new((0., 0.), (2., 1.0)));
-    //app.plugin(UiBodyPlugin); // ::new((0., 0.5), (0.25, 0.5)));
-    //app.plugin(UiBodyTrailPlugin);
-
-    // app.plugin(hex);
-
-    // let colors = Colors::from(["amber", "azure", "red", "purple", "blue", "green", "olive"]);
-    //app.plugin(UiCameraPlugin::new((2., -1.), (0.5, 0.5)).fov(Angle::Deg(120.)));
-
-    // app.plugin(UiHeatmapPlugin::new(((2.0, -0.5), [1.0, 0.5])));
-    /*
-        .colors(odor_colors)
-        // .item("v", |p: &Phototaxis| p.value())
-        .item(|ob: &OlfactoryBulb| ob.value_pair(OdorType::FoodA))
-        .item(|ob: &OlfactoryBulb| ob.value_pair(OdorType::FoodB))
-    );
-    */
 }
 
 
