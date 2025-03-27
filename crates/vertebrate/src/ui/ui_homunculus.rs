@@ -9,7 +9,7 @@ use essay_plot::{
     artist::{paths::Unit, PathStyle, ColorMaps, ColorMap}
 };
 
-use ui_graphics::{ui_canvas::UiRender, ViewPlugin};
+use ui_graphics::ViewPlugin;
 use crate::{
     body::Body, 
     hind_brain::{HindMove, MoveKind}, 
@@ -207,6 +207,8 @@ impl UiHomunculusView {
 
     fn resize(&mut self, ui: &mut dyn Renderer) {
         let pos = ui.pos().clone();
+
+        let pos = pos.with_aspect(0.75);
 
         if self.emoji.is_none() {
             let emoji_family = "/Users/ferg/wsp/essay-mind/assets/font/NotoEmoji-Bold.ttf";
@@ -679,33 +681,6 @@ impl HeadDir {
 
         Ok(())
     }
-
-    fn _draw<'a>(&self, ui: &mut UiRender<'a>, dir: Angle, value: f32) {
-        let mut style = PathStyle::new();
-    
-        let da = 1. / self.paths.len() as f32;
-    
-        for (i, path) in self.paths.iter().enumerate() {
-            let angle = Angle::Unit((i as f32 + 0.5) * da + dir.to_unit());
-    
-            if self.is_head {
-                let cos = angle.cos().max(0.);
-                let v = value * cos * cos.abs().powi(3);
-    
-                if Self::_MIN <= v {
-                    style.color(self.colors.map(v));
-                    ui.draw_path(path, &style);
-                }
-            } else {
-                if Self::_MIN <= value || true {
-                    let v = (value * angle.cos()).clamp(0., 1.);
-    
-                    style.color(self.colors.map(v));
-                    ui.draw_path(path, &style);
-                }
-            };
-        }
-    }
 }
 
 fn head_dir_vec(n: usize, dir: Heading, value: f32) -> Vec<f32> {
@@ -738,10 +713,6 @@ fn approach_vec(n: usize, dir: Heading, value: f32) -> Vec<f32> {
     }
 
     vec
-}
-
-pub trait UiState {
-    fn draw(&self, ui: &mut UiRender, pos: Point, style: &mut TextStyle);
 }
 
 //

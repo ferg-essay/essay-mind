@@ -197,6 +197,7 @@ impl Drawable for UiBodyView {
     }
 }
 
+/*
 pub fn update_trail(
     mut ui_trail: ResMut<UiTrail>,
     body: Res<Body>,
@@ -221,6 +222,7 @@ pub fn draw_trail(
 
     ui.draw_path(&trail, &style);
 }
+*/
 
 pub struct UiTrail {
     points: Vec<plot::Point>,
@@ -310,8 +312,8 @@ impl Plugin for UiBodyTrailPlugin {
     fn build(&self, app: &mut App) {
         if app.contains_plugin::<UiWorldPlugin>() {
             app.insert_resource(UiTrail::new(400));
-            app.system(PostTick, update_trail);
-            app.system(Update, draw_trail.phase(DrawAgent));
+            // app.system(PostTick, update_trail);
+            // app.system(Update, draw_trail.phase(DrawAgent));
         }
     }
 }

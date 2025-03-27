@@ -1,5 +1,4 @@
 use essay_ecs::{app::App, core::{Res, ResMut}};
-use log::warn;
 use mind_ecs::Tick;
 
 use crate::{hind_brain::HindMove, retina::Retina, util::{DecayValue, Seconds, Turn}};

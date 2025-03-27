@@ -6,8 +6,8 @@ pub use ui_canvas::{
     UiCanvas,
     UiBuilder, UiSubBuilder,
     UiWindowEvent,
-    UiRender,
-    UiView,
+    // UiRender,
+    //UiView,
     ViewPlugin,
 };
 

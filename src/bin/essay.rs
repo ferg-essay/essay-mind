@@ -266,6 +266,12 @@ fn ui_builder(app: &mut App) {
                     .item("hd", |b: &Body| b.head_dir().to_unit())
                 );
 
+                //ui.system::<Dummy>(|ui: ResMut<UiSystem<Dummy>>, mut body: ResMut<Body>| {
+                //    ui.draw(|ui| {
+                //        ui.label(&format!("head {}", body.head_dir()));
+                //    });
+                //});
+
                 ui_motive(ui);
             });
 

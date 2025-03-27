@@ -1,19 +1,11 @@
-use std::ops::{Deref, DerefMut};
 use std::time::Duration;
 
 use essay_ecs::prelude::*;
 use essay_graphics::{
-    api::{
-        renderer::{Canvas, Drawable, Event, Renderer, Result},
-        Point, Path, Bounds, Color, ImageId,
-    },
-    layout::{View, ViewArc, PageBuilder, Page},
+    api::renderer::{Drawable, Renderer, Result},
+    layout::{ViewArc, PageBuilder, Page},
     wgpu::{PlotCanvas, PlotRenderer},
 };
-use essay_plot::artist::PathStyle;
-use essay_plot::api::{FontStyle, FontTypeId, TextStyle};
-use essay_plot::chart::Chart;
-use essay_tensor::Tensor;
 use winit::event_loop::EventLoop;
 
 use super::{WgpuCanvas, CanvasView};
@@ -22,7 +14,6 @@ use super::winit_loop::{main_loop, WinitEvents};
 pub struct UiCanvas {
     wgpu: WgpuCanvas,
     canvas: PlotCanvas,
-    // layout: ChartBuilder,
     page: Page,
 
     view: Option<CanvasView>,
@@ -42,7 +33,6 @@ impl UiCanvas {
         Self {
             wgpu,
             canvas,
-            // layout: ChartBuilder::new(Layout::new()),
             page,
             view: None,
             is_stale: true,
@@ -79,167 +69,12 @@ impl UiCanvas {
         self.view.take();
     }
 
-    /*
-    pub fn chart(&mut self, pos: impl Into<Bounds<Layout>>) -> Chart {
-        self.layout.chart(pos)
-    }
-
-    pub fn view<T: Drawable + Send + 'static>(
-        &mut self, 
-        pos: impl Into<Bounds<Layout>>, 
-        view: T
-    ) -> View<T> {
-        self.layout.get_layout_mut().view(pos, view)
-    }
-
-    pub fn subview<T: Drawable + Send + 'static>(
-        &mut self, 
-        id: ViewId,
-        index: usize,
-        view: T
-    ) -> View<T> {
-        self.layout.get_layout_mut().subview(id, index, view)
-    }
-    */
-
-    pub fn renderer<'a>(&'a mut self) -> Option<UiRender<'a>> {
-        match &self.view {
-            Some(view) => {
-                Some(UiRender::new(self.canvas.renderer(
-                    &self.wgpu.device,
-                    &self.wgpu.queue,
-                    Some(&view.view)    
-                )))
-            },
-            None => None
-        }
-    }
-
     pub fn renderer_viewless<'a>(&'a mut self) -> PlotRenderer<'a> {
         self.canvas.renderer(
             &self.wgpu.device, 
             &self.wgpu.queue, 
             None,
         )
-    }
-
-    pub fn renderer_draw<'a>(&'a mut self) -> Option<PlotRenderer<'a>> {
-        match &self.view {
-            Some(view) => {
-                Some(self.canvas.renderer(
-                    &self.wgpu.device, 
-                    &self.wgpu.queue, 
-                    Some(&view.view)
-                ))
-            },
-            None => None
-        }
-    }
-
-    fn plot_renderer<'a>(&'a mut self) -> Option<PlotRenderer<'a>> {
-        match &self.view {
-            Some(view) => {
-                Some(self.canvas.renderer(
-                    &self.wgpu.device, 
-                    &self.wgpu.queue, 
-                    Some(&view.view)
-                ))
-            },
-            None => None
-        }
-    }
-
-    pub fn draw_path(&mut self, path: &Path<Canvas>, style: &PathStyle) {
-        if let Some(mut renderer) = self.plot_renderer() {
-            renderer.draw_path(path, style).unwrap();
-
-            renderer.flush();
-        }
-    }
-
-    pub fn draw_text(
-        &mut self, 
-        xy: impl Into<Point>, 
-        text: &str, 
-        text_style: &TextStyle
-    ) {
-        if let Some(view) = &self.view {
-            let mut plot_renderer = self.canvas.renderer(
-                &self.wgpu.device, 
-                &self.wgpu.queue, 
-                Some(&view.view)
-            );
-
-            let style = PathStyle::new();
-    
-            plot_renderer.draw_text(xy.into(), text, 0., &style, text_style).unwrap();
-
-            plot_renderer.flush();
-        }
-    }
-
-    pub fn create_image(&mut self, colors: Tensor<u8>) -> Option<ImageId> {
-        if let Some(view) = &self.view {
-            let mut plot_renderer = self.canvas.renderer(
-                &self.wgpu.device, 
-                &self.wgpu.queue, 
-                Some(&view.view)
-            );
-
-            //canvas.clear_screen(&view);
-
-            //let style = PathStyle::new();
-    
-            Some(plot_renderer.create_image(&colors))
-        } else {
-            None
-        }
-    }
-
-    pub fn draw_image(&mut self, pos: &Bounds<Canvas>, image: ImageId) {
-        if let Some(view) = &self.view {
-            let mut plot_renderer = self.canvas.renderer(
-                &self.wgpu.device, 
-                &self.wgpu.queue, 
-                Some(&view.view)
-            );
-
-            //canvas.clear_screen(&view);
-
-            //let style = PathStyle::new();
-    
-            plot_renderer.draw_image_ref(pos, image).unwrap();
-            plot_renderer.flush();
-        }
-    }
-
-    pub fn draw_markers(
-        &mut self, 
-        path: &Path<Canvas>,
-        xy: impl Into<Tensor>,
-        sizes: impl Into<Tensor>,
-        colors: &Vec<Color>,
-    ) {
-        if let Some(view) = &self.view {
-            let mut plot_renderer = self.canvas.renderer(
-                &self.wgpu.device, 
-                &self.wgpu.queue, 
-                Some(&view.view)
-            );
-
-            let color: Tensor<u32> = colors.iter().map(|c| c.to_rgba()).collect();
-            let style = PathStyle::new();
-    
-            plot_renderer.draw_markers(
-                path, 
-                &xy.into(), 
-                &sizes.into(), 
-                &color,
-                &style,
-            ).unwrap();
-
-            plot_renderer.flush();
-        }
     }
 
     pub(crate) fn window_bounds(&mut self, width: u32, height: u32) {
@@ -263,125 +98,6 @@ impl UiCanvas {
 
     pub(crate) fn set_stale(&mut self) {
         self.is_stale = true;
-    }
-}
-
-pub struct UiRender<'a> {
-    renderer: PlotRenderer<'a>,
-}
-
-impl<'a> UiRender<'a> {
-    fn new(renderer: PlotRenderer<'a>) -> Self {
-        Self {
-            renderer,
-        }
-    }
-
-    pub fn renderer(&mut self) -> &mut PlotRenderer<'a> {
-        &mut self.renderer
-    }
-
-    pub fn draw_path(&mut self, path: &Path<Canvas>, style: &PathStyle) {
-        self.renderer.draw_path(path, style).unwrap();
-
-        // self.renderer.flush(&seClip::None);
-    }
-
-    pub fn draw_markers(
-        &mut self, 
-        path: &Path<Canvas>,
-        xy: impl Into<Tensor>,
-        sizes: impl Into<Tensor>,
-        colors: &Vec<Color>,
-    ) {
-        let color: Tensor<u32> = colors.iter().map(|c| c.to_rgba()).collect();
-        let style = PathStyle::new();
-
-        self.renderer.draw_markers(
-            path, 
-            &xy.into(), 
-            &sizes.into(), 
-            &color,
-            &style,
-        ).unwrap();
-
-        // plot_renderer.flush(clip);
-    }
-
-    pub fn draw_text(
-        &mut self, 
-        xy: impl Into<Point>, 
-        text: &str, 
-        path_style: &PathStyle,
-        text_style: &TextStyle
-    ) {
-        //canvas.clear_screen(&view);
-    
-        self.renderer.draw_text(
-            xy.into(), 
-            text,
-            0., 
-            path_style, 
-            text_style, 
-        ).unwrap();
-    }
-
-    pub fn draw_image(&mut self, pos: &Bounds<Canvas>, image: ImageId) {
-        self.renderer.draw_image_ref(pos, image).unwrap();
-    }
-
-    pub fn flush(&mut self) {
-        self.renderer.flush();
-    }
-
-    pub fn font(&mut self, family: &str) -> FontTypeId {
-        let mut style = FontStyle::new();
-        
-        style.family(family);
-        
-        self.renderer.font(&style).unwrap()
-    }
-}
-
-impl<'a> Deref for UiRender<'a> {
-    type Target = dyn Renderer + 'a;
-
-    #[inline]
-    fn deref(&self) -> &Self::Target {
-        &self.renderer
-    }
-}
-
-impl<'a> DerefMut for UiRender<'a> {
-    #[inline]
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.renderer
-    }
-}
-
-impl<'a> Drop for UiRender<'a> {
-    fn drop(&mut self) {
-        self.flush();
-    }
-}
-
-pub struct UiView {
-
-}
-
-impl UiView {
-    pub fn new() -> Self {
-        Self {
-        }
-    }
-}
-
-impl Drawable for UiView {
-    fn draw(&mut self, _renderer: &mut dyn Renderer) -> Result<()> {
-        Ok(())
-    }
-
-    fn event(&mut self, _renderer: &mut dyn Renderer, _event: &Event) {
     }
 }
 
@@ -413,57 +129,6 @@ impl<'a> UiBuilder<'a> {
 
         app.plugin(ui_canvas);
     }
-    /*
-    pub fn view<T>(&mut self, mut plugin: impl ViewPlugin<T> + 'static)
-    where
-        T: Drawable + Send + 'static
-    {
-        if let Some(view) = plugin.view(self.app) {
-            self.page.view(view.clone());
-        }
-
-        self.app.plugin(plugin);
-    }
-
-    pub fn horizontal(&mut self, builder: impl FnOnce(&mut UiSubBuilder)) {
-        let sub_page = self.page.horizontal();
-        let mut sub_ui = UiSubBuilder {
-            app: self.app,
-            page: sub_page,
-        };
-
-        (builder)(&mut sub_ui);
-    }
-
-    pub fn horizontal_height(&mut self, height: f32, builder: impl FnOnce(&mut UiSubBuilder)) {
-        let sub_page = self.page.horizontal_height(height);
-        let mut sub_ui = UiSubBuilder {
-            app: self.app,
-            page: sub_page,
-        };
-
-        (builder)(&mut sub_ui);
-    }
-
-    pub fn vertical(&mut self, builder: impl FnOnce(&mut UiSubBuilder)) {
-        let sub_page = self.page.vertical();
-        let mut sub_ui = UiSubBuilder {
-            app: self.app,
-            page: sub_page,
-        };
-
-        (builder)(&mut sub_ui);
-    }
-
-    pub fn build(self) {
-        let ui_canvas = UiCanvasPlugin {
-            time: self.time,
-            page: self.page.build(),
-        };
-
-        self.app.plugin(ui_canvas);
-    }
-    */
 }
 
 pub struct UiSubBuilder<'a> {
@@ -621,7 +286,7 @@ struct UiCanvasPlugin {
 }
 
 impl UiCanvasPlugin {
-    pub fn frame_ms(self, time: impl Into<Duration>) -> Self {
+    pub fn _frame_ms(self, time: impl Into<Duration>) -> Self {
         Self {
             time: time.into(),
             .. self
