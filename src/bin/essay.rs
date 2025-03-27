@@ -306,19 +306,18 @@ fn ui_eat_flat(app: &mut App) {
     let odor_colors = Colors::from(["green", "azure"]);
 
     UiBuilder::build(app, |ui| {
-        ui.horizontal_height(0.5, |ui| {
-            ui_motive(ui, (2.0, 0.5), (0.5, 0.5));
+        ui.horizontal_size(0.5, |ui| {
+            ui.horizontal(|ui| {
+                ui_motive(ui, (2.0, 0.5), (0.5, 0.5));
+            });
 
-            ui_homunculus(ui, (2.5, 0.5), (0.5, 0.5));
+            ui.horizontal_size(0.5, |ui| {
+                ui_homunculus(ui, (2.5, 0.5), (0.5, 0.5));
+            });
         });
 
         ui.horizontal(|ui| {
             // Main
-            ui.view((
-                UiWorldPlugin::new((0., 0.), (2., 1.0)),
-                UiBodyPlugin::new()
-            ));
-            // ui.view(UiBodyTailPlugin);
 
             let alpha = 0.4;
             let mut hex = UiWorldHexPlugin::new();
@@ -327,10 +326,15 @@ fn ui_eat_flat(app: &mut App) {
             hex.tile(PlaceKind::FoodB).pattern(Pattern::CheckerBoard(8), Color::from("teal").set_alpha(alpha));
             hex.tile(PlaceKind::OtherA).pattern(Pattern::CheckerBoard(8), Color::from("orange").set_alpha(alpha));
             hex.tile(PlaceKind::AvoidA).pattern(Pattern::CheckerBoard(4), Color::from("purple").set_alpha(alpha));
+
+            ui.view((
+                hex,
+                UiWorldPlugin::new((0., 0.), (2., 1.0)),
+                UiBodyPlugin::new()
+            ));
+
         
-            ui.view(hex);
-        
-            ui.vertical_width(0.5, |ui| {
+            ui.vertical_size(0.5, |ui| {
                 ui.view(UiAttentionPlugin::new((2.5, 0.), (0.5, 0.5))
                     .colors(odor_colors)
                     // .item("v", |p: &Phototaxis| p.value())

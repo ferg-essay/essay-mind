@@ -491,8 +491,8 @@ impl UiSubBuilder<'_> {
         (f)(&mut sub_ui);
     }
 
-    pub fn horizontal_height(&mut self, h: f32, f: impl FnOnce(&mut UiSubBuilder)) {
-        let sub_page = self.page.horizontal_height(h);
+    pub fn horizontal_size(&mut self, size: f32, f: impl FnOnce(&mut UiSubBuilder)) {
+        let sub_page = self.page.horizontal_size(size);
         let mut sub_ui = UiSubBuilder {
             app: self.app,
             page: sub_page,
@@ -511,8 +511,8 @@ impl UiSubBuilder<'_> {
         (builder)(&mut sub_ui);
     }
 
-    pub fn vertical_width(&mut self, w: f32, f: impl FnOnce(&mut UiSubBuilder)) {
-        let sub_page = self.page.vertical_width(w);
+    pub fn vertical_size(&mut self, size: f32, f: impl FnOnce(&mut UiSubBuilder)) {
+        let sub_page = self.page.vertical_size(size);
         let mut sub_ui = UiSubBuilder {
             app: self.app,
             page: sub_page,

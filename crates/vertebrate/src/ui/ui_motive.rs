@@ -75,6 +75,8 @@ impl MotiveView {
 
 impl Drawable for MotiveView {
     fn draw(&mut self, renderer: &mut dyn Renderer) -> renderer::Result<()> {
+        self.set_pos(renderer.pos());
+
         if self.emoji.is_none() {
             let emoji_path = "/Users/ferg/wsp/essay-mind/assets/font/NotoEmoji-Bold.ttf";
 

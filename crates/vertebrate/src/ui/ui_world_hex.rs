@@ -11,7 +11,7 @@ use essay_plot::api::{
 use essay_tensor::Tensor;
 use ui_graphics::{HexSliceGenerator, TexId, TextureBuilder, TextureGenerator, Tile, UiCanvas, ViewPlugin};
 
-use crate::world::{WorldHex, WorldHexTrait};
+use crate::world::{World, WorldHex, WorldHexTrait};
 
 use super::ui_world_map::{UiWorld, UiWorldPlugin};
 
@@ -368,7 +368,11 @@ impl<T: WorldHexTrait + Hash + Eq> ViewPlugin for UiWorldHexPlugin<T> {
 impl<T: WorldHexTrait + Hash + Eq> Plugin for UiWorldHexPlugin<T> {
     fn build(&self, app: &mut App) {
         if let Some(view) = &self.view {
-            let world_bounds = app.resource::<UiWorld>().bounds();
+            let (width, height) = app.resource::<World>().extent();
+            let world_bounds = Bounds::from([
+                width as f32,
+                height as f32,
+            ]);
 
             let mut view = view.clone();
 
