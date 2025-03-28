@@ -1,11 +1,10 @@
-use std::time::Duration;
+use std::{marker::PhantomData, time::Duration};
 
-use essay_ecs::prelude::*;
+use essay_ecs::{core::{schedule::{SystemMeta, UnsafeStore}, Local, Store}, prelude::*};
 use essay_graphics::{
-    api::renderer::{Drawable, Renderer, Result},
-    layout::{ViewArc, PageBuilder, Page},
-    wgpu::{PlotCanvas, PlotRenderer},
+    api::renderer::{Drawable, Renderer, Result}, layout::{Page, PageBuilder, ViewArc, ViewId}, ui::{Ui, UiState}, wgpu::{PlotCanvas, PlotRenderer}
 };
+use essay_plot::api::{renderer, Bounds};
 use winit::event_loop::EventLoop;
 
 use super::{WgpuCanvas, CanvasView};
@@ -35,6 +34,168 @@ fn ui_canvas_window(
         }
     }
 
+}
+
+pub struct UiBuilder;
+
+impl UiBuilder {
+    pub fn build<R>(app: &mut App, f: impl FnOnce(&mut UiSubBuilder) -> R) -> R {
+        assert!(! app.contains_resource::<UiCanvas>(), "UiCanvas already exists");
+
+        let time = Duration::from_millis(30);
+        let mut page = PageBuilder::new();
+
+        let mut builder = UiSubBuilder {
+            app,
+            page: &mut page,
+            tags: Vec::new(),
+        };
+
+        let result = (f)(&mut builder);
+        let tags = builder.tags.drain(..)
+            .collect::<Vec<Box<dyn TagBuilder>>>();
+        let page = page.build();
+
+        for tag in &tags {
+            tag.build(&page, app);
+        }
+
+        app.init_resource::<WinitEvents>();
+
+        let event_loop = EventLoop::new().unwrap();
+
+        let wgpu = WgpuCanvas::new(&event_loop);
+        let ui_canvas = UiCanvas::new(wgpu, page);
+
+        app.event::<UiWindowEvent>();
+        app.system(First, ui_canvas_window);
+
+        app.insert_resource(ui_canvas);
+        app.insert_resource_non_send(event_loop);
+
+        app.system(PreUpdate, ui_canvas_pre_update);
+        app.system(Update, ui_canvas_draw);
+        app.system(PostUpdate, ui_canvas_post_update);
+
+        // let time = self.time.clone();
+        let time = time;
+        app.runner(move |app| {
+            main_loop(app, time, 1)
+        });
+
+        result
+    }
+}
+
+pub struct UiSubBuilder<'a> {
+    app: &'a mut App,
+    page: &'a mut PageBuilder,
+    tags: Vec<Box<dyn TagBuilder>>,
+}
+
+impl UiSubBuilder<'_> {
+    pub fn app(&mut self) -> &mut App {
+        self.app
+    }
+
+    pub fn plugin(&mut self, mut plugin: impl IntoViewPlugin) {
+        if let Some(view) = plugin.build_view(self.app) {
+            let view_id = self.page.view(view.drawable());
+
+            plugin.set_view_id(view_id);
+        }
+
+        plugin.build(self.app); // .plugin(plugin);
+    }
+
+    pub fn canvas<T: 'static>(&mut self) {
+        let view_id = self.page.view(Empty);
+
+        self.tags.push(Box::new(Tag {
+            id: view_id,
+            marker: PhantomData::<fn(T)>::default(),
+        }));
+    }
+
+    pub fn horizontal<R>(&mut self, f: impl FnOnce(&mut UiSubBuilder) -> R) -> R {
+        self.page.horizontal(|ui| {
+            sub_builder(ui, f, &mut self.tags, &mut self.app)
+        })
+    }
+
+    pub fn horizontal_size<R>(&mut self, size: f32, f: impl FnOnce(&mut UiSubBuilder) -> R) -> R {
+        self.page.horizontal_size(size, |ui| {
+            sub_builder(ui, f, &mut self.tags, &mut self.app)
+        })
+    }
+
+    pub fn vertical<R>(&mut self, f: impl FnOnce(&mut UiSubBuilder) -> R) -> R {
+        self.page.vertical(|ui| {
+            sub_builder(ui, f, &mut self.tags, &mut self.app)
+        })
+    }
+
+    pub fn vertical_size<R>(&mut self, size: f32, f: impl FnOnce(&mut UiSubBuilder) -> R) -> R {
+        self.page.vertical_size(size, |ui| {
+            sub_builder(ui, f, &mut self.tags, &mut self.app)
+        })
+    }
+}
+
+fn sub_builder<R>(
+    ui: &mut PageBuilder, 
+    f: impl FnOnce(&mut UiSubBuilder) -> R,
+    tags: &mut Vec<Box<dyn TagBuilder>>,
+    app: &mut App,
+) -> R {
+    let mut sub_ui = UiSubBuilder {
+        app,
+        page: ui,
+        tags: Vec::new(),
+    };
+
+    let result = (f)(&mut sub_ui);
+
+    tags.append(&mut sub_ui.tags);
+
+    result
+}
+
+trait TagBuilder {
+    fn build(&self, page: &Page, app: &mut App);
+}
+
+struct Tag<T: 'static> {
+    id: ViewId,
+    marker: PhantomData<fn(T)>,
+}
+
+impl<T: 'static> TagBuilder for Tag<T> {
+    fn build(&self, page: &Page, app: &mut App) {
+        let bounds = page.view_bounds(self.id);
+
+        app.insert_resource(ViewPos {
+            id: self.id,
+            bounds,
+            marker: PhantomData::<fn(T)>::default(),
+        });
+    }
+}
+
+pub struct ViewPos<T> {
+    id: ViewId,
+    bounds: Bounds<Page>,
+    marker: PhantomData<fn(T)>,
+}
+
+impl<T> ViewPos<T> {
+    pub fn id(&self) -> ViewId {
+        self.id
+    }
+
+    pub fn bounds(&self) -> &Bounds<Page> {
+        &self.bounds
+    }
 }
 
 pub struct UiCanvas {
@@ -91,6 +252,25 @@ impl UiCanvas {
         }
     }
 
+    pub(crate) fn render<R>(
+        &mut self, 
+        id: ViewId,
+        f: impl FnOnce(&mut dyn Renderer) -> renderer::Result<R>
+    ) -> renderer::Result<R> {
+        if let Some(view) = &self.view {
+            let mut renderer = self.canvas.renderer(
+                &self.wgpu.device, 
+                &self.wgpu.queue, 
+                Some(&view.view)
+            );
+
+            self.page.render(id, &mut renderer, f)
+        } else {
+            // todo: cleanup error handling
+            Err(renderer::RenderErr::NotImplemented)
+        }
+    }
+
     pub(crate) fn close_view(&mut self) {
         self.view.take();
     }
@@ -115,106 +295,11 @@ impl UiCanvas {
     }
 }
 
-pub struct UiBuilder;
+struct Empty;
 
-impl UiBuilder {
-    pub fn build<R>(app: &mut App, f: impl FnOnce(&mut UiSubBuilder) -> R) -> R {
-        assert!(! app.contains_resource::<UiCanvas>(), "UiCanvas already exists");
-
-        let time = Duration::from_millis(30);
-        let mut page = PageBuilder::new();
-
-        let mut builder = UiSubBuilder {
-            app,
-            page: &mut page,
-        };
-
-        let result = (f)(&mut builder);
-
-        app.init_resource::<WinitEvents>();
-
-        let event_loop = EventLoop::new().unwrap();
-
-        let wgpu = WgpuCanvas::new(&event_loop);
-        let ui_canvas = UiCanvas::new(wgpu, page.build());
-
-        app.event::<UiWindowEvent>();
-        app.system(First, ui_canvas_window);
-
-        app.insert_resource(ui_canvas);
-        app.insert_resource_non_send(event_loop);
-
-        app.system(PreUpdate, ui_canvas_pre_update);
-        app.system(Update, ui_canvas_draw);
-        app.system(PostUpdate, ui_canvas_post_update);
-
-        // let time = self.time.clone();
-        let time = time;
-        app.runner(move |app| {
-            main_loop(app, time, 1)
-        });
-
-        result
-    }
-}
-
-pub struct UiSubBuilder<'a> {
-    app: &'a mut App,
-    page: &'a mut PageBuilder,
-}
-
-impl UiSubBuilder<'_> {
-    pub fn view(&mut self, mut plugin: impl IntoViewPlugin)
-    {
-        if let Some(view) = plugin.build_view(self.app) {
-            self.page.view(view.drawable());
-        }
-
-        plugin.build(self.app); // .plugin(plugin);
-    }
-
-    pub fn horizontal<R>(&mut self, f: impl FnOnce(&mut UiSubBuilder) -> R) -> R {
-        self.page.horizontal(|ui| {
-            let mut sub_ui = UiSubBuilder {
-                app: self.app,
-                page: ui,
-            };
-
-            (f)(&mut sub_ui)
-        })
-    }
-
-    pub fn horizontal_size<R>(&mut self, size: f32, f: impl FnOnce(&mut UiSubBuilder) -> R) -> R {
-        self.page.horizontal_size(size, |ui| {
-            let mut sub_ui = UiSubBuilder {
-                app: self.app,
-                page: ui,
-            };
-
-            (f)(&mut sub_ui)
-        })
-    }
-
-    pub fn vertical<R>(&mut self, builder: impl FnOnce(&mut UiSubBuilder) -> R) -> R {
-        self.page.vertical(|ui| {
-            let mut sub_ui = UiSubBuilder {
-                app: self.app,
-                page: ui,
-            };
-
-            (builder)(&mut sub_ui)
-        })
-    }
-
-    pub fn vertical_size<R>(&mut self, size: f32, f: impl FnOnce(&mut UiSubBuilder) -> R) -> R {
-        self.page.vertical_size(size, |ui| {
-            let mut sub_ui = UiSubBuilder {
-                app: self.app,
-                page: ui,
-            };
-
-            (f)(&mut sub_ui)
-        })
+impl Drawable for Empty {
+    fn draw(&mut self, _renderer: &mut dyn Renderer) -> Result<()> {
+        Ok(())
     }
 }
 
@@ -225,6 +310,10 @@ pub trait ViewPlugin : Plugin {
 pub trait IntoViewPlugin {
     fn build_view(&mut self, app: &mut App) -> Option<ViewArc>;
     fn build(self, app: &mut App);
+
+    #[allow(unused_variables)]
+    fn set_view_id(&mut self, id: ViewId) {
+    }
 }
 
 impl<T: ViewPlugin + 'static> IntoViewPlugin for T {
@@ -307,6 +396,57 @@ impl Drawable for PolyDraw {
         }
 
         Ok(())
+    }
+}
+
+pub struct UiPos<'w, 's, T> {
+    canvas: ResMut<'w, UiCanvas>,
+    pos: Res<'w, ViewPos<T>>,
+    state: Local<'s, UiState>,
+
+    // renderer: &'a dyn Renderer,
+}
+
+impl<T: 'static> UiPos<'_, '_, T> {
+    pub fn draw<R>(&mut self, f: impl FnOnce(&mut Ui) -> R) -> R {
+        self.canvas.render(self.pos.id(), |renderer| {
+            self.state.draw(renderer, |ui| {
+                Ok((f)(ui))
+            })
+        }).unwrap()
+    }
+}
+
+// TODO: create #[derive(Param)]
+
+impl<'w, 's, T: 'static> Param for UiPos<'w, 's, T> {
+    type Arg<'w1, 's1> = UiPos<'w1, 's1, T>;
+
+    type Local = (
+        <ResMut<'w, UiCanvas> as Param>::Local, 
+        <Res<'w, ViewPos<T>> as Param>::Local, 
+        <Local<'s, UiState> as Param>::Local,
+    );
+
+    fn init(meta: &mut SystemMeta, world: &mut Store) -> essay_ecs::core::error::Result<Self::Local> {
+        Ok((
+            ResMut::<UiCanvas>::init(meta, world)?,
+            Res::<ViewPos<T>>::init(meta, world)?,
+            Local::<UiState>::init(meta, world)?
+        ))
+    }
+
+    fn arg<'w1, 's1>(
+        world: &'w1 UnsafeStore,
+        state: &'s1 mut Self::Local, 
+    ) -> essay_ecs::core::error::Result<Self::Arg<'w1, 's1>> {
+        let (c_st, v_st, s_st) = state;
+
+        Ok(UiPos {
+            canvas: ResMut::<UiCanvas>::arg(world, c_st)?,
+            pos: Res::<ViewPos<T>>::arg(world, v_st)?,
+            state: Local::<UiState>::arg(world, s_st)?,
+        })
     }
 }
 
