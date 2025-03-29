@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use essay_graphics::ui::Ui;
 use essay_plot::api::{Color, Colors, Point};
 use log::LevelFilter;
 use vertebrate::{
@@ -22,9 +23,9 @@ use vertebrate::{
         FoodKind, FoodPlugin, OdorKind, OdorPlugin, World, WorldHexPlugin, WorldHexTrait, WorldPlugin
     }
 };
-use essay_ecs::prelude::App;
+use essay_ecs::{app::Update, core::{Res, ResMut}, prelude::App};
 use mind_ecs::TickSchedulePlugin;
-use ui_graphics::ui_canvas::{UiBuilder, UiSubBuilder};
+use ui_graphics::ui_canvas::{UiBuilder, UiPos, UiSubBuilder};
 
 // 
 
@@ -238,7 +239,7 @@ fn ui_eat(ui: &mut UiBuilder) {
 }
 
 fn ui_homunculus(ui: &mut UiSubBuilder) {
-    ui.view(UiHomunculusPlugin::new()
+    ui.plugin(UiHomunculusPlugin::new()
         .item(Emoji::FaceVomiting, |m: &HindEat| m.is_vomiting())
         .item(Emoji::FaceGrimacing, |m: &HindEat| m.is_gaping())
         .item(Emoji::ForkAndKnife, |m: &HindEat| m.is_eating())
@@ -253,6 +254,7 @@ fn ui_homunculus(ui: &mut UiSubBuilder) {
 fn ui_builder(app: &mut App) {
     // UiCanvasPlugin enables graphics
     // app.plugin(UiCanvasPlugin::new().frame_ms(Duration::from_millis(50)));
+    // <div style="background-color:rgb(236, 254, 255); width: 10px; padding: 10px; border: 1px solid;"></div>
     let odor_colors = Colors::from(["green", "azure"]);
 
     UiBuilder::build(app, |ui| {
@@ -261,16 +263,21 @@ fn ui_builder(app: &mut App) {
                 // ui.view(UiGraphPlugin::new()
                 //    .item("v", |b: &Body| b.speed())
                 // );
-                ui.view(UiTablePlugin::new()
+                ui.plugin(UiTablePlugin::new()
                     .item("v", |b: &Body| b.speed())
                     .item("hd", |b: &Body| b.head_dir().to_unit())
                 );
 
-                //ui.system::<Dummy>(|ui: ResMut<UiSystem<Dummy>>, mut body: ResMut<Body>| {
-                //    ui.draw(|ui| {
-                //        ui.label(&format!("head {}", body.head_dir()));
-                //    });
-                //});
+                ui.canvas::<Dummy>();
+
+                let mut button = false;
+                
+                ui.app().system(Update, move |mut ui: UiPos<Dummy>, body: Res<Body>| {
+                    ui.draw(|ui| {
+                        ui.label(&format!("head {}", body.head_dir().to_unit()));
+                        ui.button("press", button).onclick(|| button=!button);
+                    });
+                });
 
                 ui_motive(ui);
             });
@@ -291,7 +298,7 @@ fn ui_builder(app: &mut App) {
             hex.tile(PlaceKind::OtherA).pattern(Pattern::CheckerBoard(8), Color::from("orange").set_alpha(alpha));
             hex.tile(PlaceKind::AvoidA).pattern(Pattern::CheckerBoard(4), Color::from("purple").set_alpha(alpha));
 
-            ui.view((
+            ui.plugin((
                 hex,
                 UiWorldPlugin::new(),
                 UiBodyPlugin::new()
@@ -299,17 +306,17 @@ fn ui_builder(app: &mut App) {
 
         
             ui.vertical_size(0.5, |ui| {
-                ui.view(UiAttentionPlugin::new()
+                ui.plugin(UiAttentionPlugin::new()
                     .colors(odor_colors)
                     // .item("v", |p: &Phototaxis| p.value())
                     .item(|ob: &OlfactoryBulb| ob.value_pair(OdorKind::FoodA))
                     .item(|ob: &OlfactoryBulb| ob.value_pair(OdorKind::FoodB))
                 );
 
-                ui.view(UiRetinaPlugin::new());
+                ui.plugin(UiRetinaPlugin::new());
                 // ui.view(UiCameraPlugin::new());
 
-                ui.view(UiHeatmapPlugin::new());
+                ui.plugin(UiHeatmapPlugin::new());
 
             });
         });
@@ -401,7 +408,7 @@ fn ui_phototaxis(ui: &mut UiBuilder) {
 
 
 fn ui_motive(ui: &mut UiSubBuilder) {
-    ui.view(UiMotivePlugin::new()
+    ui.plugin(UiMotivePlugin::new()
         .size(12.)
         .item(Emoji::Footprints, |m: &HindMove| if m.action_kind() == MoveKind::Roam { 1. } else { 0. })
         .item(Emoji::MagnifyingGlassLeft, |m: &Motive<Dwell>| m.value())

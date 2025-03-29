@@ -40,7 +40,9 @@ impl Drawable for UiTable {
                     ui.label(&format!(": {}", item.value));
                 });
             }
-        })
+        });
+
+        Ok(())
     }
 }
 
