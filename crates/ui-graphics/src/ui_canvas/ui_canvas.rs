@@ -1,6 +1,6 @@
 use std::{marker::PhantomData, time::Duration};
 
-use essay_ecs::{core::{schedule::{SystemMeta, UnsafeStore}, Local, Store}, prelude::*};
+use essay_ecs::prelude::*;
 use essay_graphics::{
     api::renderer::{Drawable, Renderer, Result}, layout::{Page, PageBuilder, ViewArc, ViewId}, ui::{Ui, UiState}, wgpu::{PlotCanvas, PlotRenderer}
 };
@@ -399,54 +399,21 @@ impl Drawable for PolyDraw {
     }
 }
 
-pub struct UiPos<'w, 's, T> {
+#[derive(Param)]
+pub struct UiPos<'w, 's, T: 'static> {
     canvas: ResMut<'w, UiCanvas>,
     pos: Res<'w, ViewPos<T>>,
     state: Local<'s, UiState>,
-
-    // renderer: &'a dyn Renderer,
 }
 
 impl<T: 'static> UiPos<'_, '_, T> {
+    #[inline]
     pub fn draw<R>(&mut self, f: impl FnOnce(&mut Ui) -> R) -> R {
         self.canvas.render(self.pos.id(), |renderer| {
             self.state.draw(renderer, |ui| {
                 Ok((f)(ui))
             })
         }).unwrap()
-    }
-}
-
-// TODO: create #[derive(Param)]
-
-impl<'w, 's, T: 'static> Param for UiPos<'w, 's, T> {
-    type Arg<'w1, 's1> = UiPos<'w1, 's1, T>;
-
-    type Local = (
-        <ResMut<'w, UiCanvas> as Param>::Local, 
-        <Res<'w, ViewPos<T>> as Param>::Local, 
-        <Local<'s, UiState> as Param>::Local,
-    );
-
-    fn init(meta: &mut SystemMeta, world: &mut Store) -> essay_ecs::core::error::Result<Self::Local> {
-        Ok((
-            ResMut::<UiCanvas>::init(meta, world)?,
-            Res::<ViewPos<T>>::init(meta, world)?,
-            Local::<UiState>::init(meta, world)?
-        ))
-    }
-
-    fn arg<'w1, 's1>(
-        world: &'w1 UnsafeStore,
-        state: &'s1 mut Self::Local, 
-    ) -> essay_ecs::core::error::Result<Self::Arg<'w1, 's1>> {
-        let (c_st, v_st, s_st) = state;
-
-        Ok(UiPos {
-            canvas: ResMut::<UiCanvas>::arg(world, c_st)?,
-            pos: Res::<ViewPos<T>>::arg(world, v_st)?,
-            state: Local::<UiState>::arg(world, s_st)?,
-        })
     }
 }
 

@@ -254,6 +254,7 @@ fn ui_homunculus(ui: &mut UiSubBuilder) {
 fn ui_builder(app: &mut App) {
     // UiCanvasPlugin enables graphics
     // app.plugin(UiCanvasPlugin::new().frame_ms(Duration::from_millis(50)));
+    // <div style="background-color:rgb(236, 254, 255); width: 10px; padding: 10px; border: 1px solid;"></div>
     let odor_colors = Colors::from(["green", "azure"]);
 
     UiBuilder::build(app, |ui| {
@@ -268,10 +269,13 @@ fn ui_builder(app: &mut App) {
                 );
 
                 ui.canvas::<Dummy>();
+
+                let mut button = false;
                 
-                ui.app().system(Update, |mut ui: UiPos<Dummy>, body: Res<Body>| {
+                ui.app().system(Update, move |mut ui: UiPos<Dummy>, body: Res<Body>| {
                     ui.draw(|ui| {
                         ui.label(&format!("head {}", body.head_dir().to_unit()));
+                        ui.button("press", button).onclick(|| button=!button);
                     });
                 });
 
