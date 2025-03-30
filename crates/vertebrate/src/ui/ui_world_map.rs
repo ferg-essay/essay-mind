@@ -310,47 +310,6 @@ impl Drawable for UiWorldView {
 
         Ok(())
     }
-
-    fn resize(
-        &mut self, 
-        _renderer: &mut dyn Renderer, 
-        pos: &Bounds<Canvas>
-    ) -> Bounds<Canvas> {
-        let aspect = self.bounds.width() / self.bounds.height();
-
-        // force bounds to match aspect ratio
-        let (c_width, c_height) = if aspect * pos.height() <= pos.width() {
-            (aspect * pos.height(), pos.height())
-        } else {
-            (pos.width(), pos.width() / aspect)
-        };
-
-        // center the box
-        let xmin = pos.xmin() + 0.5 * (pos.width() - c_width);
-        let ymin = pos.ymin() + 0.5 * (pos.height() - c_height);
-
-        let xmin = xmin.max(10.);
-        let ymin = ymin.max(10.);
-
-        //let xmin = pos.xmin();
-        //let ymin = pos.ymin();
-
-        let c_width = c_width - xmin - pos.xmin();
-        let c_height = c_height - xmin - pos.xmin();
-
-        let pos = Bounds::<Canvas>::new(
-            Point(xmin, ymin),
-            Point(xmin + c_width, ymin + c_height),
-        );
-
-        self.pos = pos;
-        self.clip = Clip::from(&self.pos);
-        let extent = Bounds::<Canvas>::from([xmin + c_width, ymin + c_height]);
-        self.to_canvas = self.bounds.affine_to(&self.pos);
-        self.to_canvas_view = self.bounds.affine_to(&extent);
-
-        self.pos.clone()
-    }
 }
 
 pub struct UiWorldPlugin {

@@ -3,7 +3,7 @@ use essay_graphics::api;
 use essay_plot::{
     api::{
         form::{Form, FormId, Matrix4}, 
-        renderer::{self, Canvas, Drawable, Event, Renderer, Result}, 
+        renderer::{self, Canvas, Drawable, Renderer}, 
         Bounds, Color, Point 
     },
     wgpu::{wgpu::hardcopy::SurfaceId, WgpuHardcopy},
@@ -137,19 +137,22 @@ impl Retina {
     }
 
     fn startup(&mut self, world: &World) {
-        let mut startup = RetinaStartup {
-            world,
-            form_id: None,
-        };
+        //let mut startup = RetinaStartup {
+        //    world,
+        //    form_id: None,
+        //};
 
         let mut renderer = self.wgpu.renderer_viewless();
 
-        startup.event(
-            &mut renderer, 
-            &Event::Resize(Bounds::from([self.size as f32, self.size as f32]))
-        );
+        let form_id = Some(world_form(&mut renderer, world));
 
-        self.form_id = startup.form_id;
+        // startup.event(
+        //    &mut renderer, 
+        //    &Event::Resize(Bounds::from([self.size as f32, self.size as f32]))
+        // );
+
+        //self.form_id = startup.form_id;
+        self.form_id = form_id;
 
         assert!(self.form_id.is_some());
     }
@@ -193,22 +196,20 @@ impl Retina {
     }
 }
 
-struct RetinaStartup<'a> {
-    world: &'a World,
-    form_id: Option<FormId>,
-}
+// struct RetinaStartup<'a> {
+//    world: &'a World,
+//    form_id: Option<FormId>,
+// }
 
-impl Drawable for RetinaStartup<'_> {
-    fn draw(&mut self, _renderer: &mut dyn Renderer) -> Result<()> {
-        Ok(())
-    }
-
-    fn event(&mut self, renderer: &mut dyn Renderer, event: &Event) {
-        if let Event::Resize(_pos) = event {
-            self.form_id = Some(world_form(renderer, self.world));
-        }
-    }
-}
+// impl Drawable for RetinaStartup<'_> {
+//    fn draw(&mut self, renderer: &mut dyn Renderer) -> Result<()> {
+//        if self.form_id.is_none() {
+//            self.form_id = Some(world_form(renderer, self.world));
+//        }
+//
+//        Ok(())
+//    }
+// }
 
 pub fn world_form(renderer: &mut dyn Renderer, world: &World) -> FormId {
     let mut form = Form::new();

@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 
-use renderer::{Drawable, Event, Renderer};
+use renderer::{Drawable, Renderer};
 use essay_ecs::prelude::*;
 use essay_graphics::layout::{View, ViewArc};
 use essay_plot::{
@@ -117,12 +117,6 @@ impl Drawable for MotiveView {
         }
 
         Ok(())
-    }
-
-    fn event(&mut self, _renderer: &mut dyn Renderer, event: &Event) {
-        if let Event::Resize(pos) = event {
-            self.set_pos(pos);
-        }
     }
 }
 
