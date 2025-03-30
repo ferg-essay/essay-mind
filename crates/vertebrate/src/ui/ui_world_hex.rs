@@ -328,12 +328,6 @@ impl Drawable for HexView {
             Ok(())
         }
     }
-
-    fn resize(&mut self, _renderer: &mut dyn Renderer, bounds: &Bounds<Canvas>) -> Bounds<Canvas> {
-        self.set_pos(bounds);
-
-        bounds.clone()
-    }
 }
 
 pub struct UiWorldHexPlugin<T: WorldHexTrait + Hash + Eq> {

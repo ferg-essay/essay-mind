@@ -4,7 +4,7 @@ use essay_ecs::prelude::*;
 use essay_graphics::{
     api::renderer::{Drawable, Renderer, Result}, layout::{Page, PageBuilder, ViewArc, ViewId}, ui::{Ui, UiState}, wgpu::{PlotCanvas, PlotRenderer}
 };
-use essay_plot::api::{renderer, Bounds};
+use essay_plot::api::{input::Input, renderer, Bounds};
 use winit::event_loop::EventLoop;
 
 use super::{WgpuCanvas, CanvasView};
@@ -238,6 +238,10 @@ impl UiCanvas {
 
             self.view = Some(view);
         }
+    }
+
+    pub(crate) fn input_mut(&mut self) -> &mut Input {
+        self.canvas.input_mut()
     }
 
     pub(crate) fn draw(&mut self) {

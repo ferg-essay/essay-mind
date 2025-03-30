@@ -9,14 +9,11 @@ use essay_plot::artist::paths::Unit;
 mod plot { pub use essay_plot::prelude::*; }
 use renderer::Canvas;
 
-use mind_ecs::PostTick;
-use ui_graphics::{UiCanvas, ViewPlugin};
+use ui_graphics::ViewPlugin;
 use crate::body::Body;
 use crate::ui::ui_world_map::{UiWorldPlugin, UiWorld};
 use crate::util::{Heading, Point, Turn};
 use crate::world::World;
-
-use super::ui_world_map::DrawAgent;
 
 fn draw_body(
     body: Res<Body>, 
@@ -224,6 +221,7 @@ pub fn draw_trail(
 }
 */
 
+#[allow(unused)]
 pub struct UiTrail {
     points: Vec<plot::Point>,
     head: usize,
@@ -242,7 +240,7 @@ impl UiTrail {
         }
     }
 
-    fn add(&mut self, point: impl Into<plot::Point>) -> &mut Self {
+    fn _add(&mut self, point: impl Into<plot::Point>) -> &mut Self {
         self.points[self.head] = point.into();
 
         self.head = (self.head + 1) % self.points.len();
@@ -250,7 +248,7 @@ impl UiTrail {
         self
     }
 
-    fn path(&self, step: usize) -> Path<Canvas> {
+    fn _path(&self, step: usize) -> Path<Canvas> {
         let mut path_codes = Vec::<PathCode>::new();
 
         path_codes.push(PathCode::MoveTo(self.points[self.head]));
