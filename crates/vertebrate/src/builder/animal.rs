@@ -138,7 +138,7 @@ impl AnimalBuilder {
         // app.plugin(CoreExplorePlugin);
         // app.plugin(CorePeptidesPlugin);
 
-        for dwell in &self.dwell {
+        if let Some(dwell) = &self.dwell {
             match dwell {
                 DwellMode::Eat => {
                     app.system(Tick, dwell_eat);

@@ -1,12 +1,13 @@
 use std::{sync::{Arc, Mutex}, time::{Duration, Instant}};
 
+use essay_plot::api::{input::Input, Point, Size};
 use mind_ecs::TickConfig;
 use winit::{
     dpi::PhysicalPosition, event::{ElementState, Event, MouseButton, StartCause, WindowEvent}, event_loop::{ControlFlow, EventLoop, EventLoopWindowTarget}, keyboard::{Key, NamedKey}
 };
 use essay_ecs::{prelude::*, core::error::{Error, Result}};
 
-use super::ui_canvas::UiWindowEvent;
+use super::{ui_canvas::UiWindowEvent, UiCanvas};
 
 pub fn main_loop(mut app: App, tick_ms: Duration, ticks_per_cycle: usize) -> Result<()> {
     // env_logger::init();
@@ -17,6 +18,7 @@ pub fn main_loop(mut app: App, tick_ms: Duration, ticks_per_cycle: usize) -> Res
 
     let mut wait_until = Instant::now();
     let mut is_run = true;
+    let mut size = Size(0., 0.);
 
     let result_handle = Arc::new(Mutex::new(ResultHandle::default()));
     let mut result_inner = result_handle.clone();
@@ -117,21 +119,24 @@ pub fn main_loop(mut app: App, tick_ms: Duration, ticks_per_cycle: usize) -> Res
                 }
             }
             Event::WindowEvent {
-                event: WindowEvent::Resized(size),
+                event: WindowEvent::Resized(new_size),
                 ..
             } => {
-                app.resource_mut::<Events<UiWindowEvent>>().send(UiWindowEvent::Resized(size.width, size.height));
+                app.resource_mut::<Events<UiWindowEvent>>().send(UiWindowEvent::Resized(new_size.width, new_size.height));
+                size = Size(new_size.width as f32, new_size.height as f32);
             }
             Event::WindowEvent {
                 event: WindowEvent::MouseInput { state, button, .. },
                 ..
             } => {
-                app.resource_mut::<WinitEvents>().mouse_button(state, button);
+                mouse_button(app.resource_mut::<UiCanvas>().input_mut(), state, button);
             }
             Event::WindowEvent {
                 event: WindowEvent::CursorMoved { position, .. },
                 ..
             } => {
+                let pos = Point(position.x as f32, size.height() as f32 - position.y as f32);
+                app.resource_mut::<UiCanvas>().input_mut().cursor = Some(pos);
                 app.resource_mut::<WinitEvents>().cursor_event(position);
             }
             Event::WindowEvent {
@@ -152,6 +157,24 @@ pub fn main_loop(mut app: App, tick_ms: Duration, ticks_per_cycle: usize) -> Res
     }
 }
 
+fn mouse_button(input: &mut Input, state: ElementState, button: MouseButton) {
+    match button {
+        MouseButton::Left => {
+            match state {
+                ElementState::Pressed => {
+                    input.left_press = true;
+                    input.left_click = true;
+                }
+                ElementState::Released => {
+                    input.left_release = true;
+                    input.left_press = false;
+                }
+            }
+        },
+        _ => {}
+    }
+}
+
 fn win_tick(
     app: &mut App, 
     result_inner: &Mutex<ResultHandle>, 
@@ -162,18 +185,20 @@ fn win_tick(
     });
 }
 
+
 #[derive(Default)]
 struct ResultHandle {
     err: Option<Error>
 }
 
 pub struct WinitEvents {
+    input: Input,
 }
 
 impl Default for WinitEvents {
     fn default() -> Self {
         Self {  
-
+            input: Input::default(),
         }
     }
 }
@@ -181,22 +206,6 @@ impl Default for WinitEvents {
 impl WinitEvents {
     pub fn clear(&mut self) {
         
-    }
-
-    fn mouse_button(&mut self, state: ElementState, button: MouseButton) {
-        match button {
-            MouseButton::Left => {
-            }
-            MouseButton::Right => {
-                match state {
-                    ElementState::Pressed => {
-                    }
-                    ElementState::Released => {
-                    }
-                }
-            }
-            _ => {}
-        }
     }
 
     fn cursor_event(&mut self, _position: PhysicalPosition<f64>) {
