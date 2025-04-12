@@ -16,7 +16,14 @@ use vertebrate::{
         phototaxis::Phototaxis
     }, 
     ui::{
-        ui_attention::UiAttentionPlugin, ui_body::{UiBodyPlugin, UiBodyTrailPlugin}, ui_camera::UiCameraPlugin, ui_emoji::Emoji, ui_graph::UiGraphPlugin, ui_heatmap::UiHeatmapPlugin, ui_homunculus::UiHomunculusPlugin, ui_motive::UiMotivePlugin, ui_bar::UiBarPlugin, ui_retina::UiRetinaPlugin, ui_table::UiTablePlugin, ui_world_hex::{Pattern, UiWorldHexPlugin}, ui_world_map::UiWorldPlugin
+        ui_attention::UiAttentionPlugin, 
+        ui_body::{UiBodyPlugin, UiBodyTrailPlugin}, 
+        ui_camera::UiCameraPlugin, ui_emoji::Emoji, ui_graph::UiGraphPlugin, 
+        ui_heatmap::UiHeatmapPlugin, ui_homunculus::UiHomunculusPlugin, 
+        ui_motive::UiMotivePlugin, ui_bar::UiBarPlugin, 
+        ui_retina::UiRetinaPlugin, ui_table::UiTablePlugin, 
+        ui_world_hex::{Pattern, UiWorldHexPlugin}, 
+        ui_world_map::UiWorldPlugin
     }, 
     util::{self, Seconds}, 
     world::{

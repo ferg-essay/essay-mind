@@ -147,7 +147,7 @@ impl UiSubBuilder<'_> {
 
 fn sub_builder<R>(
     ui: &mut PageBuilder, 
-    f: impl FnOnce(&mut UiSubBuilder) -> R,
+    add_content: impl FnOnce(&mut UiSubBuilder) -> R,
     tags: &mut Vec<Box<dyn TagBuilder>>,
     app: &mut App,
 ) -> R {
@@ -157,7 +157,7 @@ fn sub_builder<R>(
         tags: Vec::new(),
     };
 
-    let result = (f)(&mut sub_ui);
+    let result = (add_content)(&mut sub_ui);
 
     tags.append(&mut sub_ui.tags);
 
