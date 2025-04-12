@@ -42,10 +42,10 @@ fn main() {
 
     let gen = HexSliceGenerator::new(0.1, 0.1);
 
-    gen.hex(&mut form, (0.251, 0.25), tex.tile(TexId(0)));
-    gen.hex(&mut form, (0.40, 0.25 + 0.0866), tex.tile(TexId(1)));
-    gen.hex(&mut form, (0.55, 0.25), tex.tile(TexId(2)));
-    gen.hex(&mut form, (0.40, 0.25 - 0.0866), tex.tile(TexId(3)));
+    gen.hex(&mut form, [0.251, 0.25], tex.tile(TexId(0)));
+    gen.hex(&mut form, [0.40, 0.25 + 0.0866], tex.tile(TexId(1)));
+    gen.hex(&mut form, [0.55, 0.25], tex.tile(TexId(2)));
+    gen.hex(&mut form, [0.40, 0.25 - 0.0866], tex.tile(TexId(3)));
 
     /*
     layout.view(((0.5, 0.5), [0.5, 0.5]),
@@ -91,7 +91,7 @@ impl Drawable for ShapeView {
 
         if let Some(id) = self.form_id {
             let canvas = renderer.pos().clone();
-            let bounds = Bounds::<Canvas>::from(((0., 0.), [1., 1.]));
+            let bounds = Bounds::<Canvas>::from(([0., 0.], [1., 1.]));
             let camera = bounds.affine_to(&canvas);
             
             renderer.draw_shape(

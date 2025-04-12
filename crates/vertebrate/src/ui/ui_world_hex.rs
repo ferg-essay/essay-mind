@@ -8,7 +8,7 @@ use essay_plot::api::{
     renderer::{self, Canvas, Drawable, Renderer}, 
     Affine2d, Bounds, Color, TextureId
 };
-use essay_tensor::Tensor;
+use essay_tensor::tensor::Tensor;
 use ui_graphics::{HexSliceGenerator, TexId, TextureBuilder, TextureGenerator, Tile, ViewPlugin};
 
 use crate::world::{World, WorldHex, WorldHexTrait};
@@ -38,7 +38,7 @@ fn update_hex_world<T: WorldHexTrait + Hash + Eq>(
                 let y = j as f32 + if i % 2 == 0 { 0.5 } else { 0.0 };
 
                 if let Some(tile) = ui_hex.tex_gen.tile(&key) {
-                    hex_gen.hex(&mut shape, (x, y), tile);
+                    hex_gen.hex(&mut shape, [x, y], tile);
                 }
             }
         }
@@ -97,7 +97,7 @@ impl<T: WorldHexTrait + Eq + Hash> UiWorldHex<T> {
                     let y = j as f32 + if i % 2 == 0 { 0.5 } else { 0.0 };
 
                     if let Some(tile) = self.tex_gen.tile(&world[(i, j)]) {
-                        hex_gen.hex(&mut shape, (x, y), tile);
+                        hex_gen.hex(&mut shape, [x, y], tile);
                     }
                 }
             }
@@ -299,7 +299,7 @@ impl HexView {
         }
     }
 
-    fn set_pos(&mut self, pos: &Bounds<Canvas>) {
+    fn set_pos(&mut self, pos: Bounds<Canvas>) {
         self.camera = self.bounds.affine_to(pos);
     }
 }

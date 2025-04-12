@@ -3,8 +3,8 @@ use std::f32::consts::TAU;
 use essay_ecs::prelude::*;
 use essay_graphics::layout::{View, ViewArc};
 use essay_plot::api::renderer::{self, Drawable, Renderer};
-use essay_plot::api::{Affine2d, Bounds, CapStyle, Color, JoinStyle, Path, PathCode};
-use essay_plot::artist::{PathStyle, Markers};
+use essay_plot::api::{Affine2d, Bounds, CapStyle, Color, JoinStyle, Path, PathCode, PathStyle};
+use essay_plot::artist::Markers;
 use essay_plot::artist::paths::Unit;
 mod plot { pub use essay_plot::prelude::*; }
 use renderer::Canvas;

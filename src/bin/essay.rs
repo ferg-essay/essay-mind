@@ -293,10 +293,10 @@ fn ui_builder(app: &mut App) {
             let alpha = 0.4;
             let mut hex = UiWorldHexPlugin::new();
             hex.tile(PlaceKind::None);
-            hex.tile(PlaceKind::FoodA).pattern(Pattern::CheckerBoard(8), Color::from("red").set_alpha(alpha));
-            hex.tile(PlaceKind::FoodB).pattern(Pattern::CheckerBoard(8), Color::from("teal").set_alpha(alpha));
-            hex.tile(PlaceKind::OtherA).pattern(Pattern::CheckerBoard(8), Color::from("orange").set_alpha(alpha));
-            hex.tile(PlaceKind::AvoidA).pattern(Pattern::CheckerBoard(4), Color::from("purple").set_alpha(alpha));
+            hex.tile(PlaceKind::FoodA).pattern(Pattern::CheckerBoard(8), Color::from("red").with_alpha(alpha));
+            hex.tile(PlaceKind::FoodB).pattern(Pattern::CheckerBoard(8), Color::from("teal").with_alpha(alpha));
+            hex.tile(PlaceKind::OtherA).pattern(Pattern::CheckerBoard(8), Color::from("orange").with_alpha(alpha));
+            hex.tile(PlaceKind::AvoidA).pattern(Pattern::CheckerBoard(4), Color::from("purple").with_alpha(alpha));
 
             ui.plugin((
                 hex,

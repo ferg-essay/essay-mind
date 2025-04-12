@@ -4,8 +4,7 @@ use renderer::{Drawable, Renderer};
 use essay_ecs::prelude::*;
 use essay_graphics::layout::{View, ViewArc};
 use essay_plot::{
-    prelude::*, 
-    artist::{paths::Unit, PathStyle, ColorMaps, ColorMap}
+    artist::paths::Unit, palette::{ColorMap, EssayColors}, prelude::*
 };
 
 use renderer::Canvas;
@@ -60,13 +59,13 @@ impl MotiveView {
         id
     }
 
-    fn set_pos(&mut self, pos: &Bounds<Canvas>) {
-        self.pos = Bounds::from((
-            pos.xmin() + 0.05 * pos.width(),
-            pos.ymin() + 0.05 * pos.height(),
-            pos.xmax() - 0.05 * pos.width(),
-            pos.ymax() - 0.05 * pos.height()
-        ));
+    fn set_pos(&mut self, pos: Bounds<Canvas>) {
+        self.pos = Bounds::from([
+            [pos.xmin() + 0.05 * pos.width(),
+            pos.ymin() + 0.05 * pos.height()],
+            [pos.xmax() - 0.05 * pos.width(),
+            pos.ymax() - 0.05 * pos.height()]
+        ]);
 
         self.clip = Clip::from(&self.pos);
     }
@@ -89,7 +88,7 @@ impl Drawable for MotiveView {
             self.emoji = Some(renderer.font(&style).unwrap());
         }
 
-        let color_map: ColorMap = ColorMaps::WhiteBlue.into();
+        let color_map: ColorMap = EssayColors::WhiteBlue.into();
 
         let mut style = PathStyle::new();
 

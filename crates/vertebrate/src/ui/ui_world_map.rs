@@ -1,9 +1,8 @@
 use essay_ecs::core::Query;
 use essay_ecs::prelude::*;
 use essay_graphics::layout::{View, ViewArc};
-use essay_plot::artist::PathStyle;
 use essay_plot::{prelude::*, artist::paths};
-use essay_tensor::Tensor;
+use essay_tensor::tensor::Tensor;
 use renderer::{Canvas, Drawable, Renderer};
 use ui_graphics::ViewPlugin;
 
@@ -288,7 +287,7 @@ impl Drawable for UiWorldView {
             // todo!()
 
         if let Some(image) = &self.image {
-            renderer.draw_image_ref(&pos, image.clone())?;
+            renderer.draw_image_ref(pos, image.clone())?;
         }
 
         if let Some(food) = &self.food {

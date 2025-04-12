@@ -1,7 +1,7 @@
 use essay_ecs::prelude::*;
 use essay_graphics::layout::{View, ViewArc};
 use essay_plot::api::{renderer::{self, Canvas, Drawable, Renderer}, Bounds, Color};
-use essay_tensor::Tensor;
+use essay_tensor::tensor::Tensor;
 use mind_ecs::PostTick;
 use ui_graphics::ViewPlugin;
 use crate::retina::Retina;
@@ -92,8 +92,8 @@ impl RetinaView {
         }
     }
 
-    fn set_pos(&mut self, pos: &Bounds<Canvas>) {
-        if pos == &self.pos_canvas {
+    fn set_pos(&mut self, pos: Bounds<Canvas>) {
+        if pos == self.pos_canvas {
             return;
         }
 
@@ -104,14 +104,14 @@ impl RetinaView {
 
         let y0 = pos.ymin() + 0.5 * (h - s);
 
-        let pos_left = Bounds::<Canvas>::from(((pos.xmin(), y0), [s, s]));
+        let pos_left = Bounds::<Canvas>::from(([pos.xmin(), y0], [s, s]));
 
         let (vertices, triangles) = build_grid(self.size, &pos_left);
         
         self.left_vertices = vertices;
         self.left_triangles = triangles;
 
-        let pos_right = Bounds::<Canvas>::from(((pos.xmin() + s + 5., y0), [s, s]));
+        let pos_right = Bounds::<Canvas>::from(([pos.xmin() + s + 5., y0], [s, s]));
 
         let (vertices, triangles) = build_grid(self.size, &pos_right);
         
@@ -169,15 +169,15 @@ impl Drawable for RetinaView {
         self.set_pos(renderer.pos());
 
         renderer.draw_triangles(
-            self.left_vertices.clone(), 
-            self.left_colors.clone(), 
-            self.left_triangles.clone(), 
+            &self.left_vertices,
+            &self.left_colors,
+            &self.left_triangles,
         )?;
 
         renderer.draw_triangles(
-            self.right_vertices.clone(), 
-            self.right_colors.clone(), 
-            self.right_triangles.clone(), 
+            &self.right_vertices,
+            &self.right_colors,
+            &self.right_triangles,
         )?;
         
         Ok(())

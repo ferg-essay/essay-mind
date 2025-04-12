@@ -4,7 +4,7 @@ use essay_ecs::prelude::*;
 use essay_graphics::layout::{View, ViewArc};
 use essay_plot::{
     api::renderer::Drawable, 
-    artist::{paths::{self, Unit}, PathStyle}, 
+    artist::paths::{self, Unit}, 
     prelude::*
 };
 use renderer::Canvas;
@@ -38,11 +38,11 @@ impl UiBar {
         id
     }
 
-    fn set_pos(&mut self, set_pos: &Bounds<Canvas>) {
+    fn set_pos(&mut self, set_pos: Bounds<Canvas>) {
         self.pos = Bounds::new(
-            (set_pos.xmin(), set_pos.ymin()), 
-            (set_pos.xmin() + set_pos.width() * 0.95,  
-            set_pos.ymin() + set_pos.height() * 0.95),  
+            [set_pos.xmin(), set_pos.ymin()], 
+            [set_pos.xmin() + set_pos.width() * 0.95,  
+            set_pos.ymin() + set_pos.height() * 0.95],  
         );
         self.clip = Clip::from(&self.pos);
     }

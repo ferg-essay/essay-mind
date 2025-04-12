@@ -85,7 +85,7 @@ impl Drawable for UiCameraView {
             let pos = renderer.pos();
 
             let bounds = renderer.extent();
-            let to = Matrix4::view_to_canvas_unit(&pos, bounds);
+            let to = Matrix4::view_to_canvas_unit(pos, bounds);
     
             let camera = to.matmul(&self.camera);
 

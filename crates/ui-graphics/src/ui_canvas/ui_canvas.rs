@@ -2,7 +2,10 @@ use std::{marker::PhantomData, time::Duration};
 
 use essay_ecs::prelude::*;
 use essay_graphics::{
-    api::renderer::{Drawable, Renderer, Result}, layout::{Page, PageBuilder, ViewArc, ViewId}, ui::{Ui, UiState}, wgpu::{PlotCanvas, PlotRenderer}
+    api::renderer::{Drawable, Renderer, Result}, 
+    layout::{Page, PageBuilder, ViewArc, ViewId}, 
+    ui::{Ui, UiTop, UiView}, 
+    wgpu::{PlotCanvas, PlotRenderer}
 };
 use essay_plot::api::{input::Input, renderer, Bounds};
 use winit::event_loop::EventLoop;
@@ -407,12 +410,12 @@ impl Drawable for PolyDraw {
 pub struct UiPos<'w, 's, T: 'static> {
     canvas: ResMut<'w, UiCanvas>,
     pos: Res<'w, ViewPos<T>>,
-    state: Local<'s, UiState>,
+    state: Local<'s, UiTop>,
 }
 
 impl<T: 'static> UiPos<'_, '_, T> {
     #[inline]
-    pub fn draw<R>(&mut self, f: impl FnOnce(&mut Ui) -> R) -> R {
+    pub fn draw<R>(&mut self, mut f: impl FnMut(&mut Ui) -> R) -> R {
         self.canvas.render(self.pos.id(), |renderer| {
             self.state.draw(renderer, |ui| {
                 Ok((f)(ui))

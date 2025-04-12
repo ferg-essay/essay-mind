@@ -2,7 +2,7 @@ use std::f32::consts::TAU;
 
 use essay_graphics::api::form::Shape;
 use essay_graphics::prelude::*;
-use essay_tensor::Tensor;
+use essay_tensor::tensor::Tensor;
 use renderer::Renderer;
 
 pub struct HexSliceGenerator {
