@@ -4,29 +4,14 @@ use essay_graphics::ui::Ui;
 use essay_plot::api::{Color, Colors, Point};
 use log::LevelFilter;
 use vertebrate::{
-    body::{Body, BodyEat}, 
-    builder::AnimalBuilder, 
-    hind_brain::{AvoidHerePlugin, HindAvoid, HindEat, HindMove, HindSearch, MoveKind, Serotonin}, 
-    motive::{
+    body::{Body, BodyEat}, builder::AnimalBuilder, hind_brain::{AvoidHerePlugin, HindAvoid, HindEat, HindMove, HindSearch, MoveKind, Serotonin}, motive::{
         Dwell, Forage, Motive, MotiveEat, MotiveTrait, Sleep, Wake
-    }, 
-    olfactory::{odor_place::OdorPlacePlugin, olfactory_bulb::OlfactoryBulb}, 
-    taxis::{
+    }, olfactory::{odor_place::OdorPlacePlugin, olfactory_bulb::OlfactoryBulb}, retina::Retina, taxis::{
         chemotaxis::Chemotaxis, 
         phototaxis::Phototaxis
-    }, 
-    ui::{
-        ui_attention::UiAttentionPlugin, 
-        ui_body::{UiBodyPlugin, UiBodyTrailPlugin}, 
-        ui_camera::UiCameraPlugin, ui_emoji::Emoji, ui_graph::UiGraphPlugin, 
-        ui_heatmap::UiHeatmapPlugin, ui_homunculus::UiHomunculusPlugin, 
-        ui_motive::UiMotivePlugin, ui_bar::UiBarPlugin, 
-        ui_retina::UiRetinaPlugin, ui_table::UiTablePlugin, 
-        ui_world_hex::{Pattern, UiWorldHexPlugin}, 
-        ui_world_map::UiWorldPlugin
-    }, 
-    util::{self, Seconds}, 
-    world::{
+    }, ui::{
+        ui_attention::UiAttentionPlugin, ui_bar::UiBarPlugin, ui_body::{UiBodyPlugin, UiBodyTrailPlugin}, ui_camera::UiCameraPlugin, ui_emoji::Emoji, ui_graph::UiGraphPlugin, ui_heatmap::UiHeatmapPlugin, ui_homunculus::UiHomunculusPlugin, ui_lateral_line::UiLateralLinePlugin, ui_motive::UiMotivePlugin, ui_retina::UiRetinaPlugin, ui_table::UiTablePlugin, ui_world_hex::{Pattern, UiWorldHexPlugin}, ui_world_map::UiWorldPlugin
+    }, util::{self, Seconds}, world::{
         FoodKind, FoodPlugin, OdorKind, OdorPlugin, World, WorldHexPlugin, WorldHexTrait, WorldPlugin
     }
 };
@@ -44,20 +29,8 @@ pub fn main() {
     app.plugin(TickSchedulePlugin::new().ticks(2));
 
     let (w, h) = (15, 11);
-    // let odor_r = 2;
-    app.plugin(world_roam(w, h)
-        //.loc_odor(2, 4, 3, OdorKind::FoodA)
-
-       //.loc_odor(2, 10, 3, OdorKind::FoodB)
-
-        //.loc_odor(8, 4, 3, OdorKind::FoodA)
-
-        //.loc_odor(8, 10, 3, OdorKind::FoodB)
-
-        //.loc_odor(14, 10, 3, OdorKind::FoodA)
-        //.odor_r(15, 5, 4, OdorType::FoodA)
-
-        //.food_odor_r(14, 4, FoodKind::Plain, odor_r, OdorType::FoodA)
+    
+    app.plugin(world_lateral_line(w, h)
     );
 
     let mut place = WorldHexPlugin::<PlaceKind>::new(w, h);
@@ -83,13 +56,15 @@ pub fn main() {
 
     let mut animal = AnimalBuilder::new();
 
+    animal.lateral_line();
+
     animal.olfactory()
         .odor(OdorKind::FoodA)
         .odor(OdorKind::FoodB);
 
     animal.retina()
-        .size(8)
-        .fov(util::Angle::Deg(120.))
+        .size(Retina::SIZE as u32)
+        .fov(util::Angle::Deg(150.))// fov
         .eye_angle(util::Angle::Deg(45.));
 
     animal.seek().seek(false);
@@ -126,30 +101,18 @@ impl Default for PlaceKind {
 
 impl WorldHexTrait for PlaceKind {}
 
-pub fn world_lateral_line() -> WorldPlugin {
-    let w = 15;
-    let h = 11;
-
+pub fn world_lateral_line(w: usize, h: usize) -> WorldPlugin {
     let h1 = h / 2 - 1;
-
-    // let w1 = w / 2;
-    // let w2 = w1;
-
+    let w1 = w / 3 - 1;
     WorldPlugin::new(w, h)
-        .wall((2, 0), (1, h1 + 1))
-        .wall((5, h1), (1, h - h1))
-        .wall((8, 0), (1, h1 + 2))
-        //.wall(((w - 1) / 2, h - h1), (2, h1))
-        //.floor((0, 0), (w1, h), FloorType::Light)
-        //.floor((w2, 0), (w - w2, h), FloorType::Dark)
+    .wall((w1, 0), (1, h1 + 1))
+    .wall((2 * w1, h1), (1, h - h1))
 }
 
-pub fn world_roam(w: usize, h: usize) -> WorldPlugin {
+pub fn world_empty(w: usize, h: usize) -> WorldPlugin {
     let h1 = h / 2 - 1;
+    let w1 = w / 3 - 1;
     WorldPlugin::new(w, h)
-    .wall((2, 0), (1, h1 + 1))
-    .wall((5, h1), (1, h - h1))
-    .wall((8, 0), (1, h1 + 2))
 }
 
 pub fn world_food_and_non_food(app: &mut App) {
@@ -281,14 +244,17 @@ fn ui_builder(app: &mut App) {
 
                 ui.canvas::<Dummy>();
 
+                /*
                 let mut button = false;
-                
                 ui.app().system(Update, move |mut ui: UiPos<Dummy>, body: Res<Body>| {
                     ui.draw(|ui| {
                         ui.label(&format!("head {}", body.head_dir().to_unit()));
                         ui.button("press", button).onclick(|| button=!button);
                     });
                 });
+                */
+
+                ui.plugin(UiLateralLinePlugin::new());
 
                 ui_motive(ui);
             });

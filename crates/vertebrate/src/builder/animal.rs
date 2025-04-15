@@ -4,7 +4,7 @@ use mind_ecs::Tick;
 
 use crate::{
     body::{BodyEatPlugin, BodyPlugin}, 
-    hind_brain::{HindAvoidPlugin, HindEat, HindEatPlugin, HindMovePlugin, HindSearchPlugin}, 
+    hind_brain::{lateral_line2::LateralLine2Plugin, HindAvoidPlugin, HindEat, HindEatPlugin, HindMovePlugin, HindSearchPlugin}, 
     hippocampus::HippocampusPlugin, 
     mid_brain::{MidMovePlugin, MidSeekContextPlugin, MidSeekPlugin}, 
     motive::{Dwell, Forage, Motive, MotiveAvoidPlugin, MotiveEatPlugin, MotiveForagePlugin, MotiveSleepPlugin}, 
@@ -23,6 +23,7 @@ pub struct AnimalBuilder {
     hind_move: HindMovePlugin,
     hind_search: HindSearchPlugin,
 
+    lateral_line: LateralLine2Plugin,
     olfactory_bulb: OlfactoryBulbPlugin,
     olfactory_cortex: OlfactoryCortexPlugin,
     retina: RetinaPlugin,
@@ -45,6 +46,8 @@ impl AnimalBuilder {
             hind_move: HindMovePlugin,
             hind_search: HindSearchPlugin::new(),
 
+            lateral_line: LateralLine2Plugin,
+
             olfactory_bulb: OlfactoryBulbPlugin::new(),
             olfactory_cortex: OlfactoryCortexPlugin::new(),
             retina: RetinaPlugin::new(),
@@ -55,6 +58,10 @@ impl AnimalBuilder {
 
             dwell: None,
         }
+    }
+
+    pub fn lateral_line(&mut self) -> &mut LateralLine2Plugin {
+        &mut self.lateral_line
     }
 
     pub fn olfactory(&mut self) -> &mut OlfactoryBulbPlugin {
@@ -94,6 +101,7 @@ impl AnimalBuilder {
         app.plugin(self.hind_move);
         app.plugin(self.hind_search);
 
+        app.plugin(self.lateral_line);
         app.plugin(self.olfactory_bulb);
         app.plugin(self.retina);
 

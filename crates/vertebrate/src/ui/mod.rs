@@ -6,6 +6,7 @@ pub mod ui_body;
 pub mod ui_heatmap;
 pub mod ui_graph;
 pub mod ui_homunculus;
+pub mod ui_lateral_line;
 pub mod ui_motive;
 pub mod ui_bar;
 pub mod ui_retina;
