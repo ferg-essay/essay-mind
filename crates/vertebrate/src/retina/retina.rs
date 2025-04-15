@@ -142,9 +142,9 @@ impl Retina {
         //    form_id: None,
         //};
 
-        let mut renderer = self.wgpu.renderer_viewless();
-
-        let form_id = Some(world_form(&mut renderer, world));
+        let form_id = self.wgpu.draw_viewless(|ui| {
+            Ok(Some(world_form(ui, world)))
+        }).unwrap();
 
         // startup.event(
         //    &mut renderer, 
@@ -190,7 +190,7 @@ impl Retina {
                 (left, right)
             }
         );
-
+        
         self.data_left = Some(left);
         self.data_right = Some(right);
     }
@@ -417,10 +417,12 @@ impl Drawable for DoubleDrawable {
 
         let pos = Bounds::<Canvas>::from([self.size, self.size]);
 
-        renderer.draw_with(pos, &mut RetinaDraw {
-            form_id: self.form_id,
-            camera: left_camera,
-        })?;
+        renderer.draw_with(pos, Box::new(|ui| {
+            RetinaDraw {
+                form_id: self.form_id,
+                camera: left_camera,
+            }.draw(ui)
+        }))?;
 
         let eye_angle = Angle::Unit(- self.eye_angle.to_unit());
         let right_camera = camera(self.head_pos, self.head_dir, eye_angle, self.fov)
@@ -429,10 +431,12 @@ impl Drawable for DoubleDrawable {
 
         let pos = Bounds::<Canvas>::from(([self.size, 0.], [self.size, self.size]));
 
-        renderer.draw_with(pos, &mut RetinaDraw {
-            form_id: self.form_id,
-            camera: right_camera,
-        })?;
+        renderer.draw_with(pos, Box::new(|ui| {
+            RetinaDraw {
+                form_id: self.form_id,
+                camera: right_camera,
+            }.draw(ui)
+        }))?;
 
         Ok(())
     }

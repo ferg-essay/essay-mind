@@ -1,6 +1,6 @@
 use essay_ecs::prelude::*;
 use essay_graphics::layout::{View, ViewArc};
-use essay_plot::api::{renderer::{self, Canvas, Drawable, Renderer}, Bounds, Color};
+use essay_plot::api::{renderer::{self, Canvas, Drawable, Renderer}, Bounds, Color, Mesh2dColor};
 use essay_tensor::tensor::Tensor;
 use mind_ecs::PostTick;
 use ui_graphics::ViewPlugin;
@@ -38,32 +38,25 @@ fn ui_retina_update(
 }
 
 fn fill_colors(data: Tensor) -> Tensor<u32> {
-    assert_eq!(data.rank(), 2);
-    // assert_eq!(data.rows(), Retina::SIZE);
-    // assert_eq!(data.cols(), Retina::SIZE);
+    assert_eq!(data.rows(), Retina::SIZE);
+    assert_eq!(data.cols(), Retina::SIZE);
 
-    let mut colors = Vec::<u32>::new();
+    let colors: Vec<u32> = data.as_slice().iter().map(|v| {
+        Color::from_grey(*v).to_rgba()
+    }).collect();
 
-    for value in data.as_slice() {
-        let color = Color::from_grey(*value).to_rgba();
-
-        for _ in 0..4 {
-            colors.push(color);
-        }
-    }
-
-    Tensor::from(colors)
+    Tensor::from(colors).reshape([Retina::SIZE, Retina::SIZE])
 }
 
 struct RetinaView {
     size: usize,
 
-    left_vertices: Tensor,
-    left_triangles: Tensor<u32>,
+    //left_vertices: Tensor,
+    //left_triangles: Tensor<u32>,
     left_colors: Tensor<u32>,
 
-    right_vertices: Tensor,
-    right_triangles: Tensor<u32>,
+    //right_vertices: Tensor,
+    //right_triangles: Tensor<u32>,
     right_colors: Tensor<u32>,
 
     pos_canvas: Bounds<Canvas>,
@@ -71,21 +64,21 @@ struct RetinaView {
 
 impl RetinaView {
     fn new(size: usize) -> Self {
-        let (vertices, triangles) = build_grid(size, &Bounds::from([100., 100.]));
+        // let (vertices, triangles) = build_grid(size, &Bounds::from([100., 100.]));
 
         let mut colors = Vec::<u32>::new();
-        colors.resize(4 * size * size, Color::black().to_rgba()); 
+        colors.resize(size * size, Color::from("red").to_rgba()); 
         let colors = Tensor::from(colors);
         
         Self {
             size: size,
 
-            left_vertices: vertices.clone(),
-            left_triangles: triangles.clone(),
+            //left_vertices: vertices.clone(),
+            //left_triangles: triangles.clone(),
             left_colors: colors.clone(),
 
-            right_vertices: vertices.clone(),
-            right_triangles: triangles.clone(),
+            //right_vertices: vertices.clone(),
+            //right_triangles: triangles.clone(),
             right_colors: colors.clone(),
 
             pos_canvas: Bounds::none(),
@@ -106,28 +99,68 @@ impl RetinaView {
 
         let pos_left = Bounds::<Canvas>::from(([pos.xmin(), y0], [s, s]));
 
-        let (vertices, triangles) = build_grid(self.size, &pos_left);
+        //let (vertices, triangles) = build_grid(self.size, &pos_left);
         
-        self.left_vertices = vertices;
-        self.left_triangles = triangles;
+        //self.left_vertices = vertices;
+        //self.left_triangles = triangles;
 
         let pos_right = Bounds::<Canvas>::from(([pos.xmin() + s + 5., y0], [s, s]));
 
-        let (vertices, triangles) = build_grid(self.size, &pos_right);
+        //let (vertices, triangles) = build_grid(self.size, &pos_right);
         
-        self.right_vertices = vertices;
-        self.right_triangles = triangles;
+        //self.right_vertices = vertices;
+        //self.right_triangles = triangles;
 
         self.pos_canvas = pos.clone();
     }
 }
 
-fn build_grid(size: usize, pos: &Bounds<Canvas>) -> (Tensor, Tensor<u32>) {
+impl Drawable for RetinaView {
+    fn draw(&mut self, ui: &mut dyn Renderer) -> renderer::Result<()> {
+        self.set_pos(ui.pos());
+        let pos = ui.pos();
+
+        let w = 0.5 * (pos.width() - 5.);
+        let h = pos.height();
+
+        let s = w.min(h);
+
+        let y0 = pos.ymin() + 0.5 * (h - s);
+
+        let pos_left = Bounds::<Canvas>::from(([pos.xmin(), y0], [s, s]));
+        let left = build_grid(self.size, &pos_left, &self.left_colors);
+        ui.draw_mesh2d_color(&left)?;
+
+
+        let pos_right = Bounds::<Canvas>::from(([pos.xmin() + s + 5., y0], [s, s]));
+        let right = build_grid(self.size, &pos_right, &self.right_colors);
+        ui.draw_mesh2d_color(&right)?;
+
+
+        // TODO:
+        /*
+        renderer.draw_triangles(
+            &self.left_vertices,
+            &self.left_colors,
+            &self.left_triangles,
+        )?;
+
+        renderer.draw_triangles(
+            &self.right_vertices,
+            &self.right_colors,
+            &self.right_triangles,
+        )?;
+        */
+        
+        Ok(())
+    }
+}
+
+fn build_grid(size: usize, pos: &Bounds<Canvas>, colors: &Tensor<u32>) -> Mesh2dColor {
     let (x, y) = (pos.xmin(), pos.ymin());
     let (w, h) = (pos.width(), pos.height());
 
-    let mut vertices = Vec::<[f32; 2]>::new();
-    let mut triangles = Vec::<[u32; 3]>::new();
+    let mut mesh = Mesh2dColor::new();
 
     let dw = w / size as f32;
     let dh = h / size as f32;
@@ -139,11 +172,23 @@ fn build_grid(size: usize, pos: &Bounds<Canvas>) -> (Tensor, Tensor<u32>) {
             let x1 = x0 + dw;
             let y1 = y0 + dh;
 
-            add_square(&mut vertices, &mut triangles, x0, y0, x1, y1);
+            let color = Color(colors[(j, i)]);
+
+            mesh.triangle(
+                ([x0, y0], color),
+                ([x0, y1], color),
+                ([x1, y1], color),
+            );
+
+            mesh.triangle(
+                ([x0, y0], color),
+                ([x1, y0], color),
+                ([x1, y1], color),
+            );
         }
     }
 
-    (Tensor::from(vertices), Tensor::from(triangles))
+    mesh
 }
 
 fn add_square(
@@ -162,26 +207,6 @@ fn add_square(
 
     triangles.push([v0 + 0, v0 + 1, v0 + 2]);
     triangles.push([v0 + 3, v0 + 2, v0 + 1]);
-}
-
-impl Drawable for RetinaView {
-    fn draw(&mut self, renderer: &mut dyn Renderer) -> renderer::Result<()> {
-        self.set_pos(renderer.pos());
-
-        renderer.draw_triangles(
-            &self.left_vertices,
-            &self.left_colors,
-            &self.left_triangles,
-        )?;
-
-        renderer.draw_triangles(
-            &self.right_vertices,
-            &self.right_colors,
-            &self.right_triangles,
-        )?;
-        
-        Ok(())
-    }
 }
 
 pub struct UiRetinaPlugin {

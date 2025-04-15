@@ -145,7 +145,11 @@ pub fn world_lateral_line() -> WorldPlugin {
 }
 
 pub fn world_roam(w: usize, h: usize) -> WorldPlugin {
+    let h1 = h / 2 - 1;
     WorldPlugin::new(w, h)
+    .wall((2, 0), (1, h1 + 1))
+    .wall((5, h1), (1, h - h1))
+    .wall((8, 0), (1, h1 + 2))
 }
 
 pub fn world_food_and_non_food(app: &mut App) {
@@ -321,7 +325,7 @@ fn ui_builder(app: &mut App) {
                 );
 
                 ui.plugin(UiRetinaPlugin::new());
-                // ui.view(UiCameraPlugin::new());
+                // ui.plugin(UiCameraPlugin::new());
 
                 ui.plugin(UiHeatmapPlugin::new());
 

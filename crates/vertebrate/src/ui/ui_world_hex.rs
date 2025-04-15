@@ -1,12 +1,14 @@
 use std::{collections::HashMap, f32::consts::PI};
 use core::hash::Hash;
 
-use essay_ecs::{app::{App, Plugin, Update}, core::{Res, ResMut}};
+use essay_ecs::{
+    app::{App, Plugin, Update}, 
+    core::{Res, ResMut}
+};
 use essay_graphics::layout::{View, ViewArc};
 use essay_plot::api::{
-    form::{Shape, ShapeId}, 
     renderer::{self, Canvas, Drawable, Renderer}, 
-    Affine2d, Bounds, Color, TextureId
+    Affine2d, Bounds, Color, Mesh2d, TextureId
 };
 use essay_tensor::tensor::Tensor;
 use ui_graphics::{HexSliceGenerator, TexId, TextureBuilder, TextureGenerator, Tile, ViewPlugin};
@@ -22,7 +24,7 @@ fn update_hex_world<T: WorldHexTrait + Hash + Eq>(
     if ui_hex.update_count < world_hex.update_count() {
         ui_hex.update_count = world_hex.update_count();
 
-        let mut shape = Shape::new();
+        let mut shape = Mesh2d::new();
 
         let epsilon = 0.01;
         let hex_gen = HexSliceGenerator::new(
@@ -50,9 +52,7 @@ fn update_hex_world<T: WorldHexTrait + Hash + Eq>(
 pub struct UiWorldHex<K: WorldHexTrait + Eq + Hash> {
     view: View<HexView>,
 
-    shape: Shape,
-
-    shape_id: Option<ShapeId>,
+    shape: Mesh2d,
 
     tex_gen: HexGenerator<K>,
 
@@ -71,8 +71,7 @@ impl<T: WorldHexTrait + Eq + Hash> UiWorldHex<T> {
         Self {
             view,
 
-            shape: Shape::new(),
-            shape_id: None,
+            shape: Mesh2d::new(),
             update_count: 0,
 
             tex_gen: gen,
@@ -80,11 +79,10 @@ impl<T: WorldHexTrait + Eq + Hash> UiWorldHex<T> {
     }
 
     pub fn update_render(&mut self, renderer: &mut dyn Renderer, world: &WorldHex<T>) {
-        if self.shape_id.is_none() || self.update_count < world.update_count() {
-            self.update_count = world.update_count();
+        if self.update_count < world.update_count() {
+            self.update_count = world.update_count() + 1;
 
-            let mut shape = Shape::new();
-
+            let mut shape = Mesh2d::new();
             let epsilon = 0.01;
             let hex_gen = HexSliceGenerator::new(
                 2. / 3. - epsilon,
@@ -102,20 +100,12 @@ impl<T: WorldHexTrait + Eq + Hash> UiWorldHex<T> {
                 }
             }
 
-            self.shape_id = Some(renderer.create_shape(&shape));
+            self.shape = shape;
         }
     }
 
     pub fn draw(&mut self, renderer: &mut dyn Renderer, camera: &Affine2d) -> renderer::Result<()> {
-        if self.shape_id.is_none() {
-            self.shape_id = Some(renderer.create_shape(&self.shape));
-        }
-
-        if let Some(shape_id) = &self.shape_id {
-            renderer.draw_shape(*shape_id, camera)
-        } else {
-            Ok(())
-        }
+        renderer.draw_mesh2d(&self.shape, TextureId::default(), &[camera.into()])
     }
 }
 
@@ -276,8 +266,8 @@ impl<K: Eq + Hash> HexGenerator<K> {
 pub struct HexView {
     bounds: Bounds<UiWorld>,
     
-    shape: Option<Shape>,
-    shape_id: Option<ShapeId>,
+    shape: Option<Mesh2d>,
+    // shape_id: Option<ShapeId>,
 
     tex: Option<Tensor<u8>>,
     tex_id: Option<TextureId>,
@@ -291,7 +281,6 @@ impl HexView {
             bounds: Bounds::none(),
 
             shape: None,
-            shape_id: None,
             tex: None,
             tex_id: None,
 
@@ -312,6 +301,7 @@ impl Drawable for HexView {
             self.tex_id = Some(renderer.create_texture_rgba8(&tex));
         }
 
+        /*
         if self.shape_id.is_none() {
             if let Some(mut shape) = self.shape.take() {
                 if let Some(tex_id) = &self.tex_id {
@@ -321,9 +311,15 @@ impl Drawable for HexView {
                 self.shape_id = Some(renderer.create_shape(&shape));
             }
         }
+        */
 
-        if let Some(shape_id) = &self.shape_id {
-            renderer.draw_shape(*shape_id, &self.camera)
+        if let Some(texture) = &self.tex_id {
+            if let Some(shape) = &self.shape {
+                renderer.draw_mesh2d(&shape, *texture, &[(Color::from("azure"), (&self.camera)).into()])
+                //renderer.draw_mesh2d(&shape, TextureId::default(), &[(Color::from("azure"), (&self.camera)).into()])
+            } else {
+                Ok(())
+            }
         } else {
             Ok(())
         }

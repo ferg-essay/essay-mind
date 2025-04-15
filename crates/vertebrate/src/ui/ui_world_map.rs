@@ -144,11 +144,11 @@ struct UiFood {
 impl From<&Wall> for Color {
     fn from(value: &Wall) -> Self {
         match value {
-            Wall::Empty => Color::from_hsv(0.25, 0.0, 0.98),
+            Wall::Empty => Color::from_hsv(0.25, 0.0, 0.98).with_alpha(0.1),
             Wall::Food => Color::from("green"),
             Wall::Wall => Color::from("dark beige"),
 
-            Wall::FloorLight => Color::from(0xf8f8f8),
+            Wall::FloorLight => Color(0xf8f8f800),
             Wall::FloorDark => Color::from(0x606060),
         }
     }
@@ -183,7 +183,7 @@ pub struct UiWorldView {
     to_canvas_view: Affine2d,
 
     colors: Option<Tensor<u8>>,
-    image: Option<ImageId>,
+    image: Option<TextureId>,
     food: Option<UiFood>,
 
     food_x: f32,
@@ -272,14 +272,14 @@ impl UiWorldView {
 }
 
 impl Drawable for UiWorldView {
-    fn draw(&mut self, renderer: &mut dyn Renderer) -> renderer::Result<()> {
-        let pos = renderer.pos().clone();
+    fn draw(&mut self, ui: &mut dyn Renderer) -> renderer::Result<()> {
+        let pos = ui.pos().clone();
 
         self.resize(&pos);
 
         if self.image.is_none() {
             if let Some(colors) = &self.colors {
-                self.image = Some(renderer.create_image(colors));
+                self.image = Some(ui.create_texture_rgba8(colors));
             }
             // ui_world.image = image.clone();
             // ui_world.view.write(|v| v.image = image);
@@ -287,7 +287,24 @@ impl Drawable for UiWorldView {
             // todo!()
 
         if let Some(image) = &self.image {
-            renderer.draw_image_ref(pos, image.clone())?;
+            let mut mesh = Mesh2d::new();
+
+            let (x0, y0) = (pos.xmin(), pos.ymin());
+            let (x1, y1) = (pos.xmax(), pos.ymax());
+
+            mesh.triangle_uv(
+                ([x0, y0], [0., 0.]),
+                ([x0, y1], [0., 1.]),
+                ([x1, y1], [1., 1.]),
+            );
+
+            mesh.triangle_uv(
+                ([x0, y0], [0., 0.]),
+                ([x1, y0], [1., 0.]),
+                ([x1, y1], [1., 1.]),
+            );
+
+            ui.draw_mesh2d(&mesh, *image, &[Color::white().with_alpha(1.).into()])?;
         }
 
         if let Some(food) = &self.food {
@@ -302,7 +319,8 @@ impl Drawable for UiWorldView {
                     self.food_x = food.xy[0];
                 }
                 let style = PathStyle::new();
-                renderer.draw_markers(&star, &xy, &food.sizes, &food.colors, &style)?;
+                // TODO:
+                //ui.draw_markers(&star, &style, &xy, &food.sizes, &food.colors, &style)?;
         
             }
         }
