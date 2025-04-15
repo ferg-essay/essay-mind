@@ -1,9 +1,15 @@
 use std::{sync::{Arc, Mutex}, time::{Duration, Instant}};
 
-use essay_plot::{api::{input::Input, renderer, Point, Size}, wgpu::wgpu::{run_event_loop, MainLoopHandle}};
+use essay_plot::{
+    api::{input::Input, renderer, Point, Size}, 
+    wgpu::wgpu::{run_event_loop, MainLoopHandle}
+};
 use mind_ecs::TickConfig;
 use winit::{
-    dpi::PhysicalPosition, event::{ElementState, Event, MouseButton, StartCause, WindowEvent}, event_loop::{ControlFlow, EventLoop, EventLoopWindowTarget}, keyboard::{Key, NamedKey}
+    dpi::PhysicalPosition, 
+    event::{ElementState, Event, MouseButton, StartCause, WindowEvent}, 
+    event_loop::{ControlFlow, EventLoop, EventLoopWindowTarget}, 
+    keyboard::{Key, NamedKey}
 };
 use essay_ecs::{prelude::*, core::error::{Error, Result}};
 
@@ -19,6 +25,7 @@ pub fn main_loop(app: App, _tick_ms: Duration, _ticks_per_cycle: usize) -> Resul
     let handle = AppHandle {
         app,
         result: result.clone(),
+        last_start_time: None,
     };
 
     if let Err(render_err) = run_event_loop(event_loop, handle) {
@@ -38,6 +45,7 @@ pub fn main_loop(app: App, _tick_ms: Duration, _ticks_per_cycle: usize) -> Resul
 struct AppHandle {
     app: App,
     result: Arc<Mutex<ResultHandle>>,
+    last_start_time: Option<Instant>,
 }
 
 impl AppHandle {
@@ -61,6 +69,8 @@ impl MainLoopHandle for AppHandle {
     }
 
     fn about_to_wait(&mut self) -> renderer::Result<()> {
+        self.last_start_time = Some(Instant::now());
+
         match self.app.tick() {
             Ok(_) => Ok(()),
             Err(err) => {
@@ -74,6 +84,17 @@ impl MainLoopHandle for AppHandle {
             window_target.exit();
         });
         */
+    }
+
+    fn get_wait_until(&mut self) -> Option<Instant> {
+        match self.last_start_time {
+            Some(start_time) => {
+                Some(start_time + Duration::from_millis(30))
+            },
+            None => {
+                Some(Instant::now())
+            }
+        }
     }
 }
 

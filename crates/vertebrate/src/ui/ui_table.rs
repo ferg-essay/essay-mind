@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 
 use essay_ecs::prelude::*;
-use essay_graphics::{layout::{View, ViewArc}, ui::UiState};
+use essay_graphics::{layout::{View, ViewArc}, ui::UiTop};
 use essay_plot::{
     api::renderer::Drawable, 
     prelude::*
@@ -10,14 +10,14 @@ use ui_graphics::ViewPlugin;
 
 pub struct UiTable {
     values: Vec<TableItem>,
-    state: UiState,
+    state: UiTop,
 }
 
 impl UiTable {
     pub fn new() -> Self {
         Self {
             values: Vec::new(),
-            state: UiState::new(),
+            state: UiTop::default(),
         }
     }
 

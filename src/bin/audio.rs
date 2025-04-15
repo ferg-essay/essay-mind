@@ -1,8 +1,12 @@
 use std::collections::VecDeque;
 
 use audio::AudioReader;
-use essay_plot::{api::JoinStyle, artist::{ColorMaps, Norm, Norms}, chart::{Figure, Chart}};
-use essay_tensor::{array::stack, signal::rfft_norm, tensor::TensorVec, Tensor};
+use essay_plot::{api::JoinStyle, artist::{Norm, Norms}, chart::{Chart, Figure}, palette::EssayColors};
+use essay_tensor::{
+    array::{stack, stack_axis}, 
+    signal::rfft_norm, 
+    tensor::Tensor
+};
 
 pub fn main() {
     audio_display();
@@ -312,7 +316,7 @@ fn avg_fft(tensor: &Tensor, nfft: usize, n: usize) -> Tensor {
         fft_vec4.push(avg_fft.fft());
     }
 
-    stack(fft_vec4, 1)
+    stack_axis(1, fft_vec4)
 }
 
 fn graph_fft(chart: &mut Chart, tensor: &Tensor, minmax: Option<(f32, f32)>) -> (f32, f32) {
@@ -334,7 +338,7 @@ fn graph_fft(chart: &mut Chart, tensor: &Tensor, minmax: Option<(f32, f32)>) -> 
     let ymax = ms * 1.0e-3 * tensor.rows() as f32;
 
     //graph.grid_color(tensor).color_map(ColorMaps::BlueOrange).norm(norm);
-    chart.image(tensor).color_map(ColorMaps::BlueOrange).norm(norm).extent([xmax, ymax]);
+    chart.image(tensor).color_map(EssayColors::BlueOrange).norm(norm).extent([xmax, ymax]);
     //graph.image(tensor);
 
     (min, max)
@@ -398,7 +402,7 @@ impl AvgFft {
     }
 
     fn fft(&self) -> Tensor {
-        let mut vec: TensorVec<f32> = TensorVec::<f32>::new();
+        let mut vec: Vec<f32> = Vec::<f32>::new();
 
         for item in &self.vec {
             for v in item {
@@ -406,7 +410,7 @@ impl AvgFft {
             }
         }
 
-        let value = vec.into_tensor();
+        let value = Tensor::from(vec);
 
         let result = rfft_norm(value, ());
 

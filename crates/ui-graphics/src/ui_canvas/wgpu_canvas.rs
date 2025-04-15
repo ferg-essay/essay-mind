@@ -47,7 +47,7 @@ impl WgpuCanvas {
     pub fn create_view(&mut self) -> CanvasView {
         let frame = self.surface
             .get_current_texture()
-            .expect("Failed to get next swap chain texture");
+            .expect("Failed to get current texture");
 
         let view = frame
             .texture

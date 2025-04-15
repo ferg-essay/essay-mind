@@ -3,7 +3,7 @@ use std::cell::RefCell;
 use renderer::{Canvas, Drawable, Renderer};
 use essay_ecs::prelude::*;
 use essay_graphics::layout::{View, ViewArc};
-use essay_plot::{artist::{paths::{self, Unit}, ColorMap, ColorMaps, PathStyle}, chart::Data, prelude::*};
+use essay_plot::{artist::paths::{self, Unit}, chart::Data, palette::{ColorMap, EssayColors}, prelude::*};
 use ui_graphics::ui_canvas::ViewPlugin;
 
 use crate::subpallium::AttendValue;
@@ -56,7 +56,7 @@ impl AttentionDraw {
             bounds: Bounds::from([1., 1.]),
             boxes: Vec::new(),
 
-            colors: ColorMap::from(ColorMaps::BlueOrange),
+            colors: ColorMap::from(EssayColors::BlueOrange),
 
             canvas_pos: Bounds::none(),
         }
@@ -73,8 +73,8 @@ impl AttentionDraw {
     }
 
 
-    fn set_pos(&mut self, set_pos: &Bounds<Canvas>) {
-        if &self.canvas_pos == set_pos {
+    fn set_pos(&mut self, set_pos: Bounds<Canvas>) {
+        if self.canvas_pos == set_pos {
             return;
         }
         self.canvas_pos = set_pos.clone();
@@ -86,8 +86,8 @@ impl AttentionDraw {
         let dh = 0.5 * (set_pos.height() - size);
 
         self.pos = Bounds::new(
-            (set_pos.xmin() + dw, set_pos.ymin() + dh), 
-            (set_pos.xmax() - dw, set_pos.ymax() - dh),
+            [set_pos.xmin() + dw, set_pos.ymin() + dh], 
+            [set_pos.xmax() - dw, set_pos.ymax() - dh],
         );
 
         let mut boxes = Vec::new();
@@ -100,8 +100,8 @@ impl AttentionDraw {
             let y = 0.;
 
             let path: Path<Canvas> = paths::rect::<Unit>(
-                (x, y), 
-                (x + dx * 0.9, y + dx * 0.9)
+                [x, y], 
+                [x + dx * 0.9, y + dx * 0.9]
             ).transform(&self.to_canvas());
 
             boxes.push(path);
@@ -125,7 +125,7 @@ impl Drawable for AttentionDraw {
         style.line_width(1.);
 
         for (item, path) in self.attention.iter().zip(&self.boxes) {
-            style.face_color(item.color.set_alpha(item.value));
+            style.face_color(item.color.with_alpha(item.value));
             style.edge_color(self.colors.map(item.attend));
 
             renderer.draw_path(&path, &style)?;

@@ -5,8 +5,7 @@ use renderer::{Canvas, Drawable, Renderer};
 use essay_ecs::prelude::*;
 use essay_graphics::layout::{View, ViewArc};
 use essay_plot::{
-    prelude::*, 
-    artist::{paths::Unit, PathStyle, ColorMaps, ColorMap}
+    artist::paths::Unit, palette::{ColorMap, EssayColors}, prelude::*
 };
 
 use ui_graphics::ViewPlugin;
@@ -165,7 +164,7 @@ impl UiHomunculusView {
         inner_dir.set_head(false);
         
         let mut outer_dir = HeadDir::new(UiHomunculus::N_DIR, 1.);
-        outer_dir.set_colors(ColorMaps::OrangeBlue.into());
+        outer_dir.set_colors(EssayColors::OrangeBlue.into());
         outer_dir.set_head(false);
 
         Self {
@@ -220,12 +219,12 @@ impl UiHomunculusView {
             self.emoji = Some(ui.font(&style).unwrap());
         }
 
-        self.pos = Bounds::from((
-            pos.xmin() + 0.05 * pos.width(),
-            pos.ymin() + 0.05 * pos.height(),
-            pos.xmax() - 0.05 * pos.width(),
-            pos.ymax() - 0.05 * pos.height()
-        ));
+        self.pos = Bounds::from([
+            [pos.xmin() + 0.05 * pos.width(),
+            pos.ymin() + 0.05 * pos.height()],
+            [pos.xmax() - 0.05 * pos.width(),
+            pos.ymax() - 0.05 * pos.height()]
+        ]);
 
         let to_canvas = self.to_canvas();
 
@@ -247,7 +246,7 @@ impl UiHomunculusView {
 
 impl Drawable for UiHomunculusView {
     fn draw(&mut self, ui: &mut dyn Renderer) -> renderer::Result<()> {
-        if &self.cache_pos != ui.pos() {
+        if self.cache_pos != ui.pos() {
             self.cache_pos = ui.pos().clone();
             self.resize(ui);
         }
@@ -353,13 +352,13 @@ impl Drawable for UiHomunculusView {
 fn head_colormap() -> ColorMap {
     // ColorMap::from(ColorMaps::BlueOrange)
     ColorMap::from([
-        ColorMap::from(ColorMaps::BlueOrange).map(0.5),
+        ColorMap::from(EssayColors::BlueOrange).map(0.5),
         Color::from("midnight blue")
     ])
 }
 
 fn sensorimotor_colormap() -> ColorMap {
-    ColorMap::from(ColorMaps::BlueOrange)
+    ColorMap::from(EssayColors::BlueOrange)
 }
 
 fn motor_colormap() -> ColorMap {
@@ -376,11 +375,11 @@ fn motor_colormap() -> ColorMap {
 }
 
 fn _avoid_colormap() -> ColorMap {
-    ColorMap::from(ColorMaps::WhiteRed)
+    ColorMap::from(EssayColors::WhiteRed)
 }
 
 fn approach_colormap() -> ColorMap {
-    ColorMap::from(ColorMaps::WhiteBlue)
+    ColorMap::from(EssayColors::WhiteBlue)
     //ColorMap::from(ColorMaps::BlueOrange)
 }
 
@@ -587,13 +586,13 @@ impl HeadDir {
         let h = h - 0.05;
         // let h = UiHomunculusPath::<Unit>::H;
 
-        let unit = Bounds::<Unit>::new((-1., -1.), (1., 1.));
+        let unit = Bounds::<Unit>::new([-1., -1.], [1., 1.]);
         
         let pos = Bounds::<Unit>::new(
             //(-0.25, h - 0.2),
             //(0.25, h + 0.2)
-            (-0.5, h - 0.2),
-            (0.5, h + 0.2)
+            [-0.5, h - 0.2],
+            [0.5, h + 0.2]
         );
 
         let to_pos = unit.affine_to(&pos);
@@ -629,9 +628,9 @@ impl HeadDir {
                 .to_path();
             */
             let path = Path::<Unit>::move_to(x1 * h1, y1 * h1)
-                .bezier2_to((xm * (h1 + hm), ym * (h1 + hm)), (x0 * h1, y0 * h1))
+                .bezier2_to([xm * (h1 + hm), ym * (h1 + hm)], [x0 * h1, y0 * h1])
                 .line_to(x0 * h2, y0 * h2)
-                .bezier2_to((xm * (h2 + hm), ym * (h2 + hm)), (x1 * h2, y1 * h2))
+                .bezier2_to([xm * (h2 + hm), ym * (h2 + hm)], [x1 * h2, y1 * h2])
                 .close_poly(x1 * h1, y1 * h1)
                 .to_path();
 

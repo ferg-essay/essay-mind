@@ -16,10 +16,10 @@ fn startup_camera(
     mut canvas: ResMut<UiCanvas>,
     mut camera: ResMut<UiCamera>,
 ) {
-    let mut renderer = canvas.renderer_viewless();
-
-    camera.view.write(|v| {
-        v.form_id = Some(retina::world_form(&mut renderer, &world))
+    canvas.draw_viewless(|ui| {
+       camera.view.write(|v| {
+            v.form_id = Some(retina::world_form(ui, &world))
+        });
     });
 }
 
@@ -85,7 +85,7 @@ impl Drawable for UiCameraView {
             let pos = renderer.pos();
 
             let bounds = renderer.extent();
-            let to = Matrix4::view_to_canvas_unit(&pos, bounds);
+            let to = Matrix4::view_to_canvas_unit(pos, bounds);
     
             let camera = to.matmul(&self.camera);
 

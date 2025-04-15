@@ -2,9 +2,12 @@ use std::{marker::PhantomData, time::Duration};
 
 use essay_ecs::prelude::*;
 use essay_graphics::{
-    api::renderer::{Drawable, Renderer, Result}, layout::{Page, PageBuilder, ViewArc, ViewId}, ui::{Ui, UiState}, wgpu::{PlotCanvas, PlotRenderer}
+    api::renderer::{Drawable, Renderer, Result}, 
+    layout::{Page, PageBuilder, ViewArc, ViewId}, 
+    ui::{Ui, UiTop, UiView}, 
+    wgpu::{PlotCanvas, PlotRenderer}
 };
-use essay_plot::api::{input::Input, renderer, Bounds};
+use essay_plot::api::{input::Input, renderer, Bounds, Color, Path, PathStyle};
 use winit::event_loop::EventLoop;
 
 use super::{WgpuCanvas, CanvasView};
@@ -144,7 +147,7 @@ impl UiSubBuilder<'_> {
 
 fn sub_builder<R>(
     ui: &mut PageBuilder, 
-    f: impl FnOnce(&mut UiSubBuilder) -> R,
+    add_content: impl FnOnce(&mut UiSubBuilder) -> R,
     tags: &mut Vec<Box<dyn TagBuilder>>,
     app: &mut App,
 ) -> R {
@@ -154,7 +157,7 @@ fn sub_builder<R>(
         tags: Vec::new(),
     };
 
-    let result = (f)(&mut sub_ui);
+    let result = (add_content)(&mut sub_ui);
 
     tags.append(&mut sub_ui.tags);
 
@@ -234,7 +237,25 @@ impl UiCanvas {
 
             self.canvas.clear();
             let view = self.wgpu.create_view();
-            self.wgpu.clear_screen(&view.view);
+            //self.wgpu.clear_screen(&view.view);
+
+
+            /*
+            let path = Path::from(self.canvas.bounds());
+            // clear screen
+            self.canvas.draw(
+                &self.wgpu.device, 
+                &self.wgpu.queue, 
+                Some(&view.view),
+                false,
+                |ui| {
+                    let mut style = PathStyle::new();
+                    style.color(Color::white());
+                    ui.draw_path(&path, &style)?;
+                    Ok(())
+                }
+            ).unwrap();
+        */
 
             self.view = Some(view);
         }
@@ -246,29 +267,60 @@ impl UiCanvas {
 
     pub(crate) fn draw(&mut self) {
         if let Some(view) = &self.view {
-            let mut renderer = self.canvas.renderer(
+            self.canvas.draw(
                 &self.wgpu.device, 
                 &self.wgpu.queue, 
-                Some(&view.view)
-            );
-
-            self.page.draw(&mut renderer).unwrap();
+                Some(&view.view),
+                false,
+                |ui| {
+                    self.page.draw(ui)
+                }
+            ).unwrap();
         }
+    }
+
+    pub(crate) fn flush(&mut self) {
+        if let Some(view) = &self.view {
+            self.canvas.draw(
+                &self.wgpu.device, 
+                &self.wgpu.queue, 
+                Some(&view.view),
+                true,
+                |ui| {
+                    Ok(())
+                }
+            ).unwrap();
+        }
+    }
+
+    pub fn draw_viewless(&mut self, draw: impl FnOnce(&mut dyn Renderer)) {
+        self.canvas.draw(
+            &self.wgpu.device, 
+            &self.wgpu.queue, 
+            None,
+            true,
+            |ui| {
+                Ok((draw)(ui))
+            }
+        ).unwrap();
     }
 
     pub(crate) fn render<R>(
         &mut self, 
         id: ViewId,
-        f: impl FnOnce(&mut dyn Renderer) -> renderer::Result<R>
+        draw: impl FnOnce(&mut dyn Renderer) -> renderer::Result<R>
     ) -> renderer::Result<R> {
         if let Some(view) = &self.view {
-            let mut renderer = self.canvas.renderer(
+            self.canvas.draw(
                 &self.wgpu.device, 
                 &self.wgpu.queue, 
-                Some(&view.view)
-            );
+                Some(&view.view),
+                false,
+                |ui| {
+                    self.page.render(id, ui, draw)
+                }
+            )
 
-            self.page.render(id, &mut renderer, f)
         } else {
             // todo: cleanup error handling
             Err(renderer::RenderErr::NotImplemented)
@@ -278,7 +330,7 @@ impl UiCanvas {
     pub(crate) fn close_view(&mut self) {
         self.view.take();
     }
-
+    /*
     pub fn renderer_viewless<'a>(&'a mut self) -> PlotRenderer<'a> {
         self.canvas.renderer(
             &self.wgpu.device, 
@@ -286,6 +338,7 @@ impl UiCanvas {
             None,
         )
     }
+    */
 
     pub(crate) fn window_bounds(&mut self, width: u32, height: u32) {
         self.wgpu.window_bounds(width, height);
@@ -407,12 +460,12 @@ impl Drawable for PolyDraw {
 pub struct UiPos<'w, 's, T: 'static> {
     canvas: ResMut<'w, UiCanvas>,
     pos: Res<'w, ViewPos<T>>,
-    state: Local<'s, UiState>,
+    state: Local<'s, UiTop>,
 }
 
 impl<T: 'static> UiPos<'_, '_, T> {
     #[inline]
-    pub fn draw<R>(&mut self, f: impl FnOnce(&mut Ui) -> R) -> R {
+    pub fn draw<R>(&mut self, mut f: impl FnMut(&mut Ui) -> R) -> R {
         self.canvas.render(self.pos.id(), |renderer| {
             self.state.draw(renderer, |ui| {
                 Ok((f)(ui))

@@ -1,8 +1,7 @@
 use std::f32::consts::TAU;
 
-use essay_graphics::api::form::Shape;
 use essay_graphics::prelude::*;
-use essay_tensor::Tensor;
+use essay_tensor::tensor::Tensor;
 use renderer::Renderer;
 
 pub struct HexSliceGenerator {
@@ -35,9 +34,9 @@ impl HexSliceGenerator {
         }
     }
 
-    pub fn hex(&self, shape: &mut Shape, pos: impl Into<Point>, tile: &Tile) {
+    pub fn hex(&self, shape: &mut Mesh2d, pos: impl Into<Point>, tile: &Tile) {
         let pos = pos.into();
-
+        
         self.tri(shape, pos, tile, (2, 4, 5));
         self.tri(shape, pos, tile, (1, 2, 5));
         self.tri(shape, pos, tile, (5, 0, 1));
@@ -46,7 +45,7 @@ impl HexSliceGenerator {
 
     pub fn tri(
         &self, 
-        shape: &mut Shape, 
+        shape: &mut Mesh2d, 
         pos: Point, 
         tile: &Tile, 
         (a, b, c): (usize, usize, usize)
@@ -61,17 +60,13 @@ impl HexSliceGenerator {
         let u = tile.u + 0.5 * du;
         let v = tile.v + 0.5 * dv;
 
-        shape.vertex(
-            [x + vs[a][0], y + vs[a][1]], 
-            [u + du * uvs[a][0], v + dv * uvs[a][1]]
-        );
-        shape.vertex(
-            [x + vs[b][0], y + vs[b][1]], 
-            [u + du * uvs[b][0], v + dv * uvs[b][1]]
-        );
-        shape.vertex(
-            [x + vs[c][0], y + vs[c][1]], 
-            [u + du * uvs[c][0], v + dv * uvs[c][1]]
+        shape.triangle_uv(
+            ([x + vs[a][0], y + vs[a][1]], 
+            [u + du * uvs[a][0], v + dv * uvs[a][1]]),
+            ([x + vs[b][0], y + vs[b][1]], 
+            [u + du * uvs[b][0], v + dv * uvs[b][1]]),
+            ([x + vs[c][0], y + vs[c][1]], 
+            [u + du * uvs[c][0], v + dv * uvs[c][1]])
         );
     }
 }

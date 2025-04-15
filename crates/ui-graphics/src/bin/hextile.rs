@@ -38,14 +38,14 @@ fn main() {
 
     let tex = tex_gen.gen();
 
-    let mut form = Shape::new();
+    let mut form = Mesh2d::new();
 
     let gen = HexSliceGenerator::new(0.1, 0.1);
 
-    gen.hex(&mut form, (0.251, 0.25), tex.tile(TexId(0)));
-    gen.hex(&mut form, (0.40, 0.25 + 0.0866), tex.tile(TexId(1)));
-    gen.hex(&mut form, (0.55, 0.25), tex.tile(TexId(2)));
-    gen.hex(&mut form, (0.40, 0.25 - 0.0866), tex.tile(TexId(3)));
+    gen.hex(&mut form, [0.251, 0.25], tex.tile(TexId(0)));
+    gen.hex(&mut form, [0.40, 0.25 + 0.0866], tex.tile(TexId(1)));
+    gen.hex(&mut form, [0.55, 0.25], tex.tile(TexId(2)));
+    gen.hex(&mut form, [0.40, 0.25 - 0.0866], tex.tile(TexId(3)));
 
     /*
     layout.view(((0.5, 0.5), [0.5, 0.5]),
@@ -57,7 +57,7 @@ fn main() {
 }
 
 struct ShapeView {
-    form: Shape,
+    form: Mesh2d,
     form_id: Option<ShapeId>,
     texture: TextureGenerator,
 
@@ -65,7 +65,7 @@ struct ShapeView {
 }
 
 impl ShapeView {
-    fn new(form: Shape, texture: TextureGenerator) -> Self {
+    fn new(form: Mesh2d, texture: TextureGenerator) -> Self {
         Self {
             form,
             form_id: None,
@@ -76,9 +76,9 @@ impl ShapeView {
 
     fn fill_model(&mut self, renderer: &mut dyn Renderer) {
         self.texture.bind(renderer);
-        self.form.texture(self.texture.texture_id());
+        //self.form.texture(self.texture.texture_id());
 
-        self.form_id = Some(renderer.create_shape(&self.form));
+        //self.form_id = Some(renderer.create_shape(&self.form));
     }
 }
 
@@ -89,16 +89,12 @@ impl Drawable for ShapeView {
             self.fill_model(renderer);
         }
 
-        if let Some(id) = self.form_id {
-            let canvas = renderer.pos().clone();
-            let bounds = Bounds::<Canvas>::from(((0., 0.), [1., 1.]));
-            let camera = bounds.affine_to(&canvas);
+        //if let Some(id) = self.form_id {
+        let canvas = renderer.pos().clone();
+        let bounds = Bounds::<Canvas>::from(([0., 0.], [1., 1.]));
+        let camera = bounds.affine_to(&canvas);
             
-            renderer.draw_shape(
-                id,
-                &camera,
-            )?;
-        }
+        renderer.draw_mesh2d(&self.form, self.texture.texture_id(), &[camera.into()])?;
 
         Ok(())
     }

@@ -16,7 +16,14 @@ use vertebrate::{
         phototaxis::Phototaxis
     }, 
     ui::{
-        ui_attention::UiAttentionPlugin, ui_body::{UiBodyPlugin, UiBodyTrailPlugin}, ui_camera::UiCameraPlugin, ui_emoji::Emoji, ui_graph::UiGraphPlugin, ui_heatmap::UiHeatmapPlugin, ui_homunculus::UiHomunculusPlugin, ui_motive::UiMotivePlugin, ui_bar::UiBarPlugin, ui_retina::UiRetinaPlugin, ui_table::UiTablePlugin, ui_world_hex::{Pattern, UiWorldHexPlugin}, ui_world_map::UiWorldPlugin
+        ui_attention::UiAttentionPlugin, 
+        ui_body::{UiBodyPlugin, UiBodyTrailPlugin}, 
+        ui_camera::UiCameraPlugin, ui_emoji::Emoji, ui_graph::UiGraphPlugin, 
+        ui_heatmap::UiHeatmapPlugin, ui_homunculus::UiHomunculusPlugin, 
+        ui_motive::UiMotivePlugin, ui_bar::UiBarPlugin, 
+        ui_retina::UiRetinaPlugin, ui_table::UiTablePlugin, 
+        ui_world_hex::{Pattern, UiWorldHexPlugin}, 
+        ui_world_map::UiWorldPlugin
     }, 
     util::{self, Seconds}, 
     world::{
@@ -138,7 +145,11 @@ pub fn world_lateral_line() -> WorldPlugin {
 }
 
 pub fn world_roam(w: usize, h: usize) -> WorldPlugin {
+    let h1 = h / 2 - 1;
     WorldPlugin::new(w, h)
+    .wall((2, 0), (1, h1 + 1))
+    .wall((5, h1), (1, h - h1))
+    .wall((8, 0), (1, h1 + 2))
 }
 
 pub fn world_food_and_non_food(app: &mut App) {
@@ -293,10 +304,10 @@ fn ui_builder(app: &mut App) {
             let alpha = 0.4;
             let mut hex = UiWorldHexPlugin::new();
             hex.tile(PlaceKind::None);
-            hex.tile(PlaceKind::FoodA).pattern(Pattern::CheckerBoard(8), Color::from("red").set_alpha(alpha));
-            hex.tile(PlaceKind::FoodB).pattern(Pattern::CheckerBoard(8), Color::from("teal").set_alpha(alpha));
-            hex.tile(PlaceKind::OtherA).pattern(Pattern::CheckerBoard(8), Color::from("orange").set_alpha(alpha));
-            hex.tile(PlaceKind::AvoidA).pattern(Pattern::CheckerBoard(4), Color::from("purple").set_alpha(alpha));
+            hex.tile(PlaceKind::FoodA).pattern(Pattern::CheckerBoard(8), Color::from("red").with_alpha(alpha));
+            hex.tile(PlaceKind::FoodB).pattern(Pattern::CheckerBoard(8), Color::from("teal").with_alpha(alpha));
+            hex.tile(PlaceKind::OtherA).pattern(Pattern::CheckerBoard(8), Color::from("orange").with_alpha(alpha));
+            hex.tile(PlaceKind::AvoidA).pattern(Pattern::CheckerBoard(4), Color::from("purple").with_alpha(alpha));
 
             ui.plugin((
                 hex,
@@ -314,7 +325,7 @@ fn ui_builder(app: &mut App) {
                 );
 
                 ui.plugin(UiRetinaPlugin::new());
-                // ui.view(UiCameraPlugin::new());
+                //ui.plugin(UiCameraPlugin::new());
 
                 ui.plugin(UiHeatmapPlugin::new());
 

@@ -1,10 +1,10 @@
 use essay_ecs::prelude::*;
 use essay_graphics::layout::ViewArc;
 use essay_plot::{
-    artist::{ColorMaps, GridColor, GridColorOpt}, 
-    chart::Chart, 
+    artist::{GridColor, GridColorOpt}, 
+    chart::Chart, palette::EssayColors, 
 };
-use essay_tensor::Tensor;
+use essay_tensor::tensor::Tensor;
 use mind_ecs::PostTick;
 use ui_graphics::ViewPlugin;
 use crate::world::World;
@@ -87,7 +87,7 @@ impl ViewPlugin for UiHeatmapPlugin {
         let init_data = Tensor::from(&data).reshape([0, 0]);
         let colormesh = GridColor::new(init_data);
         let mut grid_plot = chart.artist(colormesh);
-        grid_plot.color_map(ColorMaps::RedYellow);
+        grid_plot.color_map(EssayColors::RedYellow);
 
         self.grid_plot = Some(grid_plot);
         self.view = Some(chart);

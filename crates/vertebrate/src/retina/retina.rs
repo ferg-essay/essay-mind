@@ -8,7 +8,7 @@ use essay_plot::{
     },
     wgpu::{wgpu::hardcopy::SurfaceId, WgpuHardcopy},
 };
-use essay_tensor::Tensor;
+use essay_tensor::tensor::Tensor;
 use mind_ecs::Tick;
 use image::Pixel;
 
@@ -21,13 +21,13 @@ fn retina_update(
     retina.draw_and_load(body.get());
 
     let light_left = if let Some(tensor) = &retina.data_left {
-        tensor.reduce_mean(())[0]
+        tensor.reduce_mean()[0]
     } else {
         0.
     };
 
     let light_right = if let Some(tensor) = &retina.data_right {
-        tensor.reduce_mean(())[0]
+        tensor.reduce_mean()[0]
     } else {
         0.
     };
@@ -142,9 +142,9 @@ impl Retina {
         //    form_id: None,
         //};
 
-        let mut renderer = self.wgpu.renderer_viewless();
-
-        let form_id = Some(world_form(&mut renderer, world));
+        let form_id = self.wgpu.draw_viewless(|ui| {
+            Ok(Some(world_form(ui, world)))
+        }).unwrap();
 
         // startup.event(
         //    &mut renderer, 
@@ -190,7 +190,7 @@ impl Retina {
                 (left, right)
             }
         );
-
+        
         self.data_left = Some(left);
         self.data_right = Some(right);
     }
@@ -215,13 +215,13 @@ pub fn world_form(renderer: &mut dyn Renderer, world: &World) -> FormId {
     let mut form = Form::new();
         
     form.texture(renderer.create_texture_rgba8(&texture_colors(&[
-        Color::from((0x00, 0x40, 0x40)),
-        Color::from((0x00, 0x10, 0x10)),
-        Color::from((0x00, 0x20, 0x20)),
-        Color::from((0x00, 0x20, 0x30)),
-        Color::from((0xc0, 0xc0, 0xc0)),
+        Color::from([0x00, 0x40, 0x40]),
+        Color::from([0x00, 0x10, 0x10]),
+        Color::from([0x00, 0x20, 0x20]),
+        Color::from([0x00, 0x20, 0x30]),
+        Color::from([0xc0, 0xc0, 0xc0]),
 
-        Color::from((0xd0, 0xd0, 0xd0)),
+        Color::from([0xd0, 0xd0, 0xd0]),
         Color::from("green"),
         Color::from("green"),
         Color::from("green"),
@@ -244,56 +244,56 @@ pub fn world_form(renderer: &mut dyn Renderer, world: &World) -> FormId {
     let (w_f32, h_f32) = (width as f32, height as f32);
 
     for y in 0..height {
-        wall(&mut form, (0., y as f32), (0., y as f32 + 1.), c_n);
+        wall(&mut form, [0., y as f32], [0., y as f32 + 1.], c_n);
 
-        wall(&mut form, (w_f32, y as f32), (w_f32, y as f32 + 1.), c_s);
+        wall(&mut form, [w_f32, y as f32], [w_f32, y as f32 + 1.], c_s);
     }
 
     // out of bounds walls for clipping
-    wall(&mut form, (-1., -1.), (-1., h_f32 + 1.), c_k);                    
-    floor(&mut form, (-1., -1.), (0., h_f32 + 1.), c_k);                    
-    roof(&mut form, (-1., -1.), (0., h_f32 + 1.), c_k);                    
+    wall(&mut form, [-1., -1.], [-1., h_f32 + 1.], c_k);                    
+    floor(&mut form, [-1., -1.], [0., h_f32 + 1.], c_k);                    
+    roof(&mut form, [-1., -1.], [0., h_f32 + 1.], c_k);                    
 
-    wall(&mut form, (w_f32 + 1., -1.), (w_f32 + 1., h_f32 + 1.), c_k);                    
-    floor(&mut form, (w_f32, -1.), (w_f32 + 1., h_f32 + 1.), c_k);                    
-    roof(&mut form, (w_f32, -1.), (w_f32 + 1., h_f32 + 1.), c_k);                    
+    wall(&mut form, [w_f32 + 1., -1.], [w_f32 + 1., h_f32 + 1.], c_k);                    
+    floor(&mut form, [w_f32, -1.], [w_f32 + 1., h_f32 + 1.], c_k);                    
+    roof(&mut form, [w_f32, -1.], [w_f32 + 1., h_f32 + 1.], c_k);                    
 
     for x in 0..width {
-        wall(&mut form, (x as f32, 0.), (x as f32 + 1., 0.), c_e);
+        wall(&mut form, [x as f32, 0.], [x as f32 + 1., 0.], c_e);
 
-        wall(&mut form, (x as f32, height as f32), (x as f32 + 1., height as f32), c_w);
+        wall(&mut form, [x as f32, height as f32], [x as f32 + 1., height as f32], c_w);
         //wall(&mut form, (x as f32, 1.), (x as f32 + 1., 1.), 0.9);
     }
 
     // out of bounds walls for clipping
-    wall(&mut form, (-1., -1.), (w_f32 + 1., -1.), c_k);                    
-    floor(&mut form, (-1., -1.), (w_f32 + 1., 0.), c_k);                    
-    roof(&mut form, (-1., -1.), (w_f32 + 1., 0.), c_k);                    
+    wall(&mut form, [-1., -1.], [w_f32 + 1., -1.], c_k);                    
+    floor(&mut form, [-1., -1.], [w_f32 + 1., 0.], c_k);                    
+    roof(&mut form, [-1., -1.], [w_f32 + 1., 0.], c_k);                    
 
-    wall(&mut form, (-1., h_f32 + 1.), (w_f32 + 1., h_f32 + 1.), c_k);                    
-    floor(&mut form, (-1., h_f32), (w_f32 + 1., h_f32 + 1.), c_k);                    
-    roof(&mut form, (-1., h_f32), (w_f32 + 1., h_f32 + 1.), c_k);                    
+    wall(&mut form, [-1., h_f32 + 1.], [w_f32 + 1., h_f32 + 1.], c_k);                    
+    floor(&mut form, [-1., h_f32], [w_f32 + 1., h_f32 + 1.], c_k);                    
+    roof(&mut form, [-1., h_f32], [w_f32 + 1., h_f32 + 1.], c_k);                    
 
     for j in 0..height {
         for i in 0..width {
             match world[(i, j)] {
                 Wall::Food => {
-                    floor(&mut form, (i as f32, j as f32), (i as f32 + 1., j as f32 + 1.), c_food);                    
+                    floor(&mut form, [i as f32, j as f32], [i as f32 + 1., j as f32 + 1.], c_food);                    
                 },
                 Wall::Wall => {
-                    wall(&mut form, (i as f32, j as f32), (i as f32, j as f32 + 1.), c_n);                    
-                    wall(&mut form, (i as f32 + 1., j as f32), (i as f32 + 1., j as f32 + 1.), c_s);                    
-                    wall(&mut form, (i as f32, j as f32), (i as f32 + 1., j as f32), c_e);                    
-                    wall(&mut form, (i as f32, j as f32 + 1.), (i as f32 + 1., j as f32 + 1.), c_w);                    
+                    wall(&mut form, [i as f32, j as f32], [i as f32, j as f32 + 1.], c_n);                    
+                    wall(&mut form, [i as f32 + 1., j as f32], [i as f32 + 1., j as f32 + 1.], c_s);                    
+                    wall(&mut form, [i as f32, j as f32], [i as f32 + 1., j as f32], c_e);                    
+                    wall(&mut form, [i as f32, j as f32 + 1.], [i as f32 + 1., j as f32 + 1.], c_w);                    
 
-                    floor(&mut form, (i as f32, j as f32), (i as f32 + 1., j as f32 + 1.), c_k);                    
-                    roof(&mut form, (i as f32, j as f32), (i as f32 + 1., j as f32 + 1.), c_k);                    
+                    floor(&mut form, [i as f32, j as f32], [i as f32 + 1., j as f32 + 1.], c_k);                    
+                    roof(&mut form, [i as f32, j as f32], [i as f32 + 1., j as f32 + 1.], c_k);                    
                 },
                 Wall::Empty => {
                     if (i + j) % 2 == 0 {
-                        floor(&mut form, (i as f32, j as f32), (i as f32 + 1., j as f32 + 1.), c_gl);                    
+                        floor(&mut form, [i as f32, j as f32], [i as f32 + 1., j as f32 + 1.], c_gl);                    
                     } else {
-                        floor(&mut form, (i as f32, j as f32), (i as f32 + 1., j as f32 + 1.), c_gd);                    
+                        floor(&mut form, [i as f32, j as f32], [i as f32 + 1., j as f32 + 1.], c_gd);                    
 
                     }
                 },
@@ -407,7 +407,7 @@ struct DoubleDrawable {
 }
 
 impl Drawable for DoubleDrawable {
-    fn draw(&mut self, renderer: &mut dyn Renderer) -> renderer::Result<()> {
+    fn draw(&mut self, ui: &mut dyn Renderer) -> renderer::Result<()> {
         //let x0 = - self.size / self.width;
         let x0 = -(self.width - self.size) / self.width;
         let dw = 2. * self.size / self.width;
@@ -417,22 +417,27 @@ impl Drawable for DoubleDrawable {
 
         let pos = Bounds::<Canvas>::from([self.size, self.size]);
 
-        renderer.draw_with(&pos, &mut RetinaDraw {
-            form_id: self.form_id,
-            camera: left_camera,
-        })?;
+        ui.draw_with_clip(pos, Box::new(|ui| {
+            RetinaDraw {
+                form_id: self.form_id,
+                camera: left_camera,
+            }.draw(ui)
+        }))?;
 
         let eye_angle = Angle::Unit(- self.eye_angle.to_unit());
         let right_camera = camera(self.head_pos, self.head_dir, eye_angle, self.fov)
             .scale(self.size / self.width, 1., 1.)
             .translate(x0 + dw, 0., 0.);
 
-        let pos = Bounds::<Canvas>::from(((self.size, 0.), [self.size, self.size]));
+        let pos = Bounds::<Canvas>::from(([self.size, 0.], [self.size, self.size]));
 
-        renderer.draw_with(&pos, &mut RetinaDraw {
-            form_id: self.form_id,
-            camera: right_camera,
-        })?;
+        ui.draw_with_clip(pos, Box::new(|ui| {
+            RetinaDraw {
+                form_id: self.form_id,
+                camera: right_camera,
+            }.draw(ui)
+        }))?;
+    
 
         Ok(())
     }

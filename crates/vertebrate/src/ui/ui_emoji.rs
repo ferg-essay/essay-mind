@@ -1,4 +1,4 @@
-use essay_plot::{api::{renderer::{Renderer, Result}, Point, TextStyle}, artist::PathStyle};
+use essay_plot::api::{renderer::{Renderer, Result}, PathStyle, Point, TextStyle};
 
 
 #[derive(Clone, Copy, Debug)]
