@@ -325,7 +325,7 @@ fn ui_builder(app: &mut App) {
                 );
 
                 ui.plugin(UiRetinaPlugin::new());
-                // ui.plugin(UiCameraPlugin::new());
+                //ui.plugin(UiCameraPlugin::new());
 
                 ui.plugin(UiHeatmapPlugin::new());
 

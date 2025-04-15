@@ -407,7 +407,7 @@ struct DoubleDrawable {
 }
 
 impl Drawable for DoubleDrawable {
-    fn draw(&mut self, renderer: &mut dyn Renderer) -> renderer::Result<()> {
+    fn draw(&mut self, ui: &mut dyn Renderer) -> renderer::Result<()> {
         //let x0 = - self.size / self.width;
         let x0 = -(self.width - self.size) / self.width;
         let dw = 2. * self.size / self.width;
@@ -417,7 +417,7 @@ impl Drawable for DoubleDrawable {
 
         let pos = Bounds::<Canvas>::from([self.size, self.size]);
 
-        renderer.draw_with(pos, Box::new(|ui| {
+        ui.draw_with_clip(pos, Box::new(|ui| {
             RetinaDraw {
                 form_id: self.form_id,
                 camera: left_camera,
@@ -431,12 +431,13 @@ impl Drawable for DoubleDrawable {
 
         let pos = Bounds::<Canvas>::from(([self.size, 0.], [self.size, self.size]));
 
-        renderer.draw_with(pos, Box::new(|ui| {
+        ui.draw_with_clip(pos, Box::new(|ui| {
             RetinaDraw {
                 form_id: self.form_id,
                 camera: right_camera,
             }.draw(ui)
         }))?;
+    
 
         Ok(())
     }
