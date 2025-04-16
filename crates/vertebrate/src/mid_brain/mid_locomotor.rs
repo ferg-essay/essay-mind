@@ -11,33 +11,33 @@ use crate::{
     util::Command
 };
 
-pub struct MidMove {
-    commands: Command<MidMoveEvent>,
+pub struct MidLocomotor {
+    commands: Command<MidLocomotorEvent>,
 }
 
-impl MidMove {
+impl MidLocomotor {
     #[inline]
     pub fn eat(&self) {
-        self.commands.send(MidMoveEvent::Eat);
+        self.commands.send(MidLocomotorEvent::Eat);
     }
 
     #[inline]
     pub fn roam(&self) {
-        self.commands.send(MidMoveEvent::Roam);
+        self.commands.send(MidLocomotorEvent::Roam);
     }
 
     #[inline]
     pub fn avoid(&self) {
-        self.commands.send(MidMoveEvent::Avoid);
+        self.commands.send(MidLocomotorEvent::Avoid);
     }
 
     #[inline]
     pub fn seek(&self) {
-        self.commands.send(MidMoveEvent::Seek);
+        self.commands.send(MidLocomotorEvent::Seek);
     }
 
     #[inline]
-    fn commands(&mut self) -> Vec<MidMoveEvent> {
+    fn commands(&mut self) -> Vec<MidLocomotorEvent> {
         self.commands.drain()
     }
 
@@ -60,16 +60,16 @@ impl MidMove {
     ) {
         for event in self.commands() {
             match event {
-                MidMoveEvent::Eat => {
+                MidLocomotorEvent::Eat => {
                     self.on_eat(hind_move, serotonin_eat);
                 },
-                MidMoveEvent::Roam => {
+                MidLocomotorEvent::Roam => {
                     self.on_roam(hind_eat, serotonin_search);
                 }
-                MidMoveEvent::Avoid => {
+                MidLocomotorEvent::Avoid => {
                     self.on_avoid(hind_move, hind_eat);
                 }
-                MidMoveEvent::Seek => {
+                MidLocomotorEvent::Seek => {
                     self.on_seek(hind_move, hind_eat);
                 }
             }
@@ -124,7 +124,7 @@ impl MidMove {
     }
 }
 
-impl Default for MidMove {
+impl Default for MidLocomotor {
     fn default() -> Self {
         Self { 
             commands: Command::new(),
@@ -133,7 +133,7 @@ impl Default for MidMove {
 }
 
 #[derive(Clone, Copy, Debug, Event)]
-enum MidMoveEvent {
+enum MidLocomotorEvent {
     Eat,
     Roam,
     Avoid,
@@ -141,7 +141,7 @@ enum MidMoveEvent {
 }
 
 fn update_mid_motor(
-    mut mid_motor: ResMut<MidMove>,
+    mut mid_motor: ResMut<MidLocomotor>,
     mut hind_eat: ResMut<HindEat>, 
     mut serotonin_eat: ResMut<Serotonin<HindEat>>, 
     mut serotonin_search: ResMut<Serotonin<HindSearch>>, 
@@ -170,8 +170,8 @@ impl Plugin for MidMovePlugin {
     fn build(&self, app: &mut App) {
         assert!(app.contains_plugin::<HindMovePlugin>(), "MidMove requires HindMove");
 
-        app.init_resource::<MidMove>();
-        app.event::<MidMoveEvent>();
+        app.init_resource::<MidLocomotor>();
+        app.event::<MidLocomotorEvent>();
 
         app.system(Tick, update_mid_motor);
     }

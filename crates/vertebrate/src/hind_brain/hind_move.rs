@@ -319,7 +319,7 @@ impl HindMove {
 
         let mut turn = Turn::Unit(0.);
         
-        // TODO: should be driven by outside such as H.sum
+        // TODO: should be driven by outside such as H.sum/MLR
         let mut kind = self.forward_r5.take();
 
         // ARTR in ARS r3 has lowest-priority turn
@@ -333,7 +333,6 @@ impl HindMove {
 
         // optic - nMLF
         if let Some(optic_kind) = self.optic().action() {
-            println!("Optic Action: {:?}", optic_kind);
             kind = optic_kind;
         }
 

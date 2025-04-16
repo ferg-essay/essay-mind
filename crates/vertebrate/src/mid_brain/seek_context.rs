@@ -16,7 +16,7 @@ use crate::{
     util::{Seconds, Ticks}
 };
 
-use super::{MidMove, SeekInput};
+use super::{MidLocomotor, SeekInput};
 
 // 
 // midbrain tegmental seek: fish V.pt - posterior tuberculum to MLR
@@ -33,7 +33,7 @@ use super::{MidMove, SeekInput};
 
 fn update_seek<I: SeekInput, C: SeekContext, M: MotiveTrait>(
     mut seek: ResMut<MidSeekContext<I, C>>,
-    mid_move: Res<MidMove>,
+    mid_move: Res<MidLocomotor>,
     mut hind_move: ResMut<HindMove>,
     mut avoid: ResMut<MotiveAvoid>,
     input: Res<I>,
