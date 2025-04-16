@@ -333,6 +333,7 @@ impl HindMove {
 
         // optic - nMLF
         if let Some(optic_kind) = self.optic().action() {
+            println!("Optic Action: {:?}", optic_kind);
             kind = optic_kind;
         }
 

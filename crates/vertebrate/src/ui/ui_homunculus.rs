@@ -12,8 +12,10 @@ use ui_graphics::ViewPlugin;
 use crate::{
     body::Body, 
     hind_brain::{HindMove, MoveKind}, 
-    taxis::Taxis, 
-    tectum::TectumMap,
+    mid_brain::{
+        taxis::Taxis, 
+        tectum::TectumMap,
+    },
     util::Turn 
 };
 

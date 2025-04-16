@@ -6,10 +6,13 @@ use mind_ecs::{AppTick, Tick};
 use crate::{
     hind_brain::{HindMove, HindMovePlugin}, 
     hippocampus::Engram64, 
-    mid_brain::MidSeekPlugin, 
+    mid_brain::{
+        taxis::chemotaxis::{Avoid, Seek}, 
+        MidSeekPlugin, 
+    },
     motive::{Motive, MotiveAvoid, MotiveTrait, Motives}, 
     subpallium::{StriatumTimeout, StriatumValue}, 
-    taxis::chemotaxis::{Avoid, Seek}, 
+    
     util::{Seconds, Ticks}
 };
 

@@ -7,8 +7,6 @@ pub mod motive;
 pub mod olfactory;
 pub mod retina;
 pub mod subpallium;
-pub mod taxis;
-pub mod tectum;
 pub mod ui;
 pub mod util;
 pub mod world;

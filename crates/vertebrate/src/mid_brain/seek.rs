@@ -7,7 +7,7 @@ use crate::{
     hind_brain::{HindMove, HindMovePlugin},
     motive::{Motive, MotiveAvoid, MotiveTrait, Motives}, 
     subpallium::{StriatumTimeout, StriatumValue}, 
-    taxis::chemotaxis::{Avoid, Seek}, 
+    mid_brain::taxis::chemotaxis::{Avoid, Seek}, 
     util::{EgoVector, Seconds}
 };
 

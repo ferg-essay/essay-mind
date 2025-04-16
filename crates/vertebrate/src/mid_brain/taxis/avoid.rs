@@ -4,7 +4,7 @@ use mind_ecs::Tick;
 use crate::{
     hind_brain::{HindMove, HindMovePlugin}, 
     motive::{Motive, Motives}, 
-    taxis::chemotaxis::Avoid, 
+    mid_brain::taxis::chemotaxis::Avoid, 
     util::{Seconds, Timeout}
 };
 

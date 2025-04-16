@@ -1,23 +1,29 @@
-use std::time::Duration;
-
-use essay_graphics::ui::Ui;
-use essay_plot::api::{Color, Colors, Point};
+use essay_plot::api::{Color, Colors};
 use log::LevelFilter;
 use vertebrate::{
-    body::{Body, BodyEat}, builder::AnimalBuilder, hind_brain::{AvoidHerePlugin, HindAvoid, HindEat, HindMove, HindSearch, MoveKind, Serotonin}, motive::{
+    body::{Body, BodyEat}, 
+    builder::AnimalBuilder, 
+    hind_brain::{AvoidHerePlugin, HindAvoid, HindEat, HindMove, HindSearch, MoveKind, Serotonin}, 
+    motive::{
         Dwell, Forage, Motive, MotiveEat, MotiveTrait, Sleep, Wake
-    }, olfactory::{odor_place::OdorPlacePlugin, olfactory_bulb::OlfactoryBulb}, retina::Retina, taxis::{
-        chemotaxis::Chemotaxis, 
-        phototaxis::Phototaxis
-    }, ui::{
-        ui_attention::UiAttentionPlugin, ui_bar::UiBarPlugin, ui_body::{UiBodyPlugin, UiBodyTrailPlugin}, ui_camera::UiCameraPlugin, ui_emoji::Emoji, ui_graph::UiGraphPlugin, ui_heatmap::UiHeatmapPlugin, ui_homunculus::UiHomunculusPlugin, ui_lateral_line::UiLateralLinePlugin, ui_motive::UiMotivePlugin, ui_retina::UiRetinaPlugin, ui_run_control::UiRunControl, ui_table::UiTablePlugin, ui_world_hex::{Pattern, UiWorldHexPlugin}, ui_world_map::UiWorldPlugin
-    }, util::{self, Seconds}, world::{
-        FoodKind, FoodPlugin, OdorKind, OdorPlugin, World, WorldHexPlugin, WorldHexTrait, WorldPlugin
+    }, 
+    olfactory::{odor_place::OdorPlacePlugin, olfactory_bulb::OlfactoryBulb}, 
+    retina::Retina, 
+    ui::{
+        ui_attention::UiAttentionPlugin, ui_body::UiBodyPlugin, ui_emoji::Emoji,
+        ui_heatmap::UiHeatmapPlugin, ui_homunculus::UiHomunculusPlugin, 
+        ui_lateral_line::UiLateralLinePlugin, ui_motive::UiMotivePlugin, 
+        ui_retina::UiRetinaPlugin, ui_run_control::UiRunControl, ui_table::UiTablePlugin, 
+        ui_world_hex::{Pattern, UiWorldHexPlugin}, ui_world_map::UiWorldPlugin
+    }, 
+    util::{self, Seconds}, 
+    world::{
+        FoodKind, FoodPlugin, OdorKind, OdorPlugin, WorldHexPlugin, WorldHexTrait, WorldPlugin
     }
 };
-use essay_ecs::{app::Update, core::{Res, ResMut}, prelude::App};
+use essay_ecs::prelude::App;
 use mind_ecs::TickSchedulePlugin;
-use ui_graphics::ui_canvas::{UiBuilder, UiPos, UiSubBuilder};
+use ui_graphics::ui_canvas::{UiBuilder, UiSubBuilder};
 
 // 
 
@@ -68,6 +74,7 @@ pub fn main() {
         .eye_angle(util::Angle::Deg(45.));
 
     animal.seek().seek(false);
+    animal.tectum_looming().enable(false);
 
     // animal.hind_eat();
 

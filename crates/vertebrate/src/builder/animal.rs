@@ -6,12 +6,15 @@ use crate::{
     body::{BodyEatPlugin, BodyPlugin}, 
     hind_brain::{lateral_line2::LateralLine2Plugin, HindAvoidPlugin, HindEat, HindEatPlugin, HindMovePlugin, HindSearchPlugin}, 
     hippocampus::HippocampusPlugin, 
-    mid_brain::{MidMovePlugin, MidSeekContextPlugin, MidSeekPlugin}, 
+    mid_brain::{
+        taxis::{klinotaxis::KlinotaxisPlugin, TaxisAvoidPlugin}, 
+        tectum::{TectumLoomingPlugin, TectumPlugin},
+        MidMovePlugin, MidSeekContextPlugin, MidSeekPlugin
+    }, 
     motive::{Dwell, Forage, Motive, MotiveAvoidPlugin, MotiveEatPlugin, MotiveForagePlugin, MotiveSleepPlugin}, 
     olfactory::{odor_place::OdorPlace, olfactory_bulb::{OlfactoryBulb, OlfactoryBulbPlugin}, OlfactoryCortexPlugin}, 
     retina::RetinaPlugin, 
-    taxis::{klinotaxis::KlinotaxisPlugin, TaxisAvoidPlugin}, 
-    tectum::{TectumLoomingPlugin, TectumPlugin}, util::Seconds 
+    util::Seconds 
 };
 
 pub struct AnimalBuilder {
@@ -27,6 +30,8 @@ pub struct AnimalBuilder {
     olfactory_bulb: OlfactoryBulbPlugin,
     olfactory_cortex: OlfactoryCortexPlugin,
     retina: RetinaPlugin,
+
+    tectum_looming: TectumLoomingPlugin,
 
     is_motive_eating: bool,
     is_mid_seek: bool,
@@ -47,10 +52,11 @@ impl AnimalBuilder {
             hind_search: HindSearchPlugin::new(),
 
             lateral_line: LateralLine2Plugin,
-
             olfactory_bulb: OlfactoryBulbPlugin::new(),
             olfactory_cortex: OlfactoryCortexPlugin::new(),
             retina: RetinaPlugin::new(),
+
+            tectum_looming: TectumLoomingPlugin::new(),
 
             is_motive_eating: true,
             is_mid_seek: false,
@@ -66,6 +72,10 @@ impl AnimalBuilder {
 
     pub fn olfactory(&mut self) -> &mut OlfactoryBulbPlugin {
         &mut self.olfactory_bulb
+    }
+
+    pub fn tectum_looming(&mut self) -> &mut TectumLoomingPlugin {
+        &mut self.tectum_looming
     }
 
     pub fn retina(&mut self) -> &mut RetinaPlugin {
@@ -106,7 +116,7 @@ impl AnimalBuilder {
         app.plugin(self.retina);
 
         app.plugin(TectumPlugin::new().striatum());
-        app.plugin(TectumLoomingPlugin::new());
+        app.plugin(self.tectum_looming);
 
         app.plugin(self.olfactory_cortex);
 
