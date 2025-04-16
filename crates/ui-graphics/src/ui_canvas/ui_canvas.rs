@@ -10,8 +10,10 @@ use essay_graphics::{
 use essay_plot::api::{input::Input, renderer, Bounds, Color, Path, PathStyle};
 use winit::event_loop::EventLoop;
 
+use crate::ui_canvas::winit_loop::main_loop;
+
 use super::{WgpuCanvas, CanvasView};
-use super::winit_loop::{main_loop, WinitEvents};
+use super::winit_loop::{WinitEvents};
 
 fn ui_canvas_pre_update(mut ui_canvas: ResMut<UiCanvas>) {
     ui_canvas.init_view();
@@ -46,6 +48,7 @@ impl UiBuilder {
         assert!(! app.contains_resource::<UiCanvas>(), "UiCanvas already exists");
 
         let time = Duration::from_millis(30);
+
         let mut page = PageBuilder::new();
 
         let mut builder = UiSubBuilder {
@@ -263,6 +266,10 @@ impl UiCanvas {
 
     pub(crate) fn input_mut(&mut self) -> &mut Input {
         self.canvas.input_mut()
+    }
+
+    pub fn input(&self) -> &Input {
+        self.canvas.input()
     }
 
     pub(crate) fn draw(&mut self) {

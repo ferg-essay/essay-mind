@@ -10,7 +10,7 @@ use vertebrate::{
         chemotaxis::Chemotaxis, 
         phototaxis::Phototaxis
     }, ui::{
-        ui_attention::UiAttentionPlugin, ui_bar::UiBarPlugin, ui_body::{UiBodyPlugin, UiBodyTrailPlugin}, ui_camera::UiCameraPlugin, ui_emoji::Emoji, ui_graph::UiGraphPlugin, ui_heatmap::UiHeatmapPlugin, ui_homunculus::UiHomunculusPlugin, ui_lateral_line::UiLateralLinePlugin, ui_motive::UiMotivePlugin, ui_retina::UiRetinaPlugin, ui_table::UiTablePlugin, ui_world_hex::{Pattern, UiWorldHexPlugin}, ui_world_map::UiWorldPlugin
+        ui_attention::UiAttentionPlugin, ui_bar::UiBarPlugin, ui_body::{UiBodyPlugin, UiBodyTrailPlugin}, ui_camera::UiCameraPlugin, ui_emoji::Emoji, ui_graph::UiGraphPlugin, ui_heatmap::UiHeatmapPlugin, ui_homunculus::UiHomunculusPlugin, ui_lateral_line::UiLateralLinePlugin, ui_motive::UiMotivePlugin, ui_retina::UiRetinaPlugin, ui_run_control::UiRunControl, ui_table::UiTablePlugin, ui_world_hex::{Pattern, UiWorldHexPlugin}, ui_world_map::UiWorldPlugin
     }, util::{self, Seconds}, world::{
         FoodKind, FoodPlugin, OdorKind, OdorPlugin, World, WorldHexPlugin, WorldHexTrait, WorldPlugin
     }
@@ -298,6 +298,8 @@ fn ui_builder(app: &mut App) {
             });
         });
     });
+
+    app.plugin(UiRunControl);
 }
 
 

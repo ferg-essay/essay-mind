@@ -69,11 +69,31 @@ pub struct PostMenu;
 pub struct TickConfig {
     n_ticks: usize,
     state: TickState,
+    is_run: bool,
+    one_tick: bool,
 }
 
 impl TickConfig {
+    pub fn is_run(&mut self) -> bool {
+        if self.one_tick {
+            self.one_tick = false;
+            true
+        } else {
+            self.is_run
+        }
+    }
+
     pub fn set_n_ticks(&mut self, n_ticks: usize) {
         self.n_ticks = n_ticks;
+    }
+
+    pub fn toggle_run(&mut self) {
+        self.is_run = ! self.is_run;
+    }
+
+    pub fn one_tick(&mut self) {
+        self.is_run = false;
+        self.one_tick = true;
     }
 }
 
@@ -108,6 +128,8 @@ impl TickSchedulePlugin {
         TickConfig {
             n_ticks: self.ticks_per_update,
             state: TickState::Default,
+            is_run: true,
+            one_tick: false,
         }
     }
 }
@@ -175,11 +197,14 @@ fn tick_system(
         TickState::Default => {
             store.run_schedule_optional(PreUpdate)?;
             
-            let n_ticks = store.resource::<TickConfig>().n_ticks;
-            for _ in 0..n_ticks {
-                store.run_schedule_optional(PreTick)?;
-                store.run_schedule_optional(Tick)?;
-                store.run_schedule_optional(PostTick)?;
+            let is_run = store.resource_mut::<TickConfig>().is_run();
+            if is_run {
+                let n_ticks = store.resource::<TickConfig>().n_ticks;
+                for _ in 0..n_ticks {
+                    store.run_schedule_optional(PreTick)?;
+                    store.run_schedule_optional(Tick)?;
+                    store.run_schedule_optional(PostTick)?;
+                }
             }
 
             store.run_schedule_optional(AfterTicks)?;

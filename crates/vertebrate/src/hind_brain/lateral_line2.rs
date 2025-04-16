@@ -54,7 +54,7 @@ impl LateralLine {
         let pos = body.pos();
         let heading = body.dir();
 
-        let affine = affine2d::rotate(heading.to_radians())
+        let affine = affine2d::rotate(heading.to_turn().to_radians())
             .translate(pos.x(), pos.y()
         );
 
@@ -159,10 +159,6 @@ impl SensorBuilder {
 
 impl From<(SensorBuilder, SensorBuilder)> for LateralLine {
     fn from((head, tail): (SensorBuilder, SensorBuilder)) -> Self {
-        println!("HeadLeft {:?}", head.left);
-        println!("HeadRight {:?}", head.right);
-        println!("TailLeft {:?}", tail.left);
-        println!("TailRight {:?}", tail.right);
         let head_left_rays = Tensor::from(&head.left);
         let head_right_rays = Tensor::from(&head.right);
 
@@ -248,7 +244,7 @@ impl Plugin for LateralLine2Plugin {
 
         let mut tail = SensorBuilder::new(0.75, 2., 3); 
         tail.add_ray(0., Heading::Unit(0.25));
-        tail.add_ray(0., Heading::Unit(0.325));
+        tail.add_ray(0., Heading::Unit(0.375));
         tail.add_ray(0., Heading::Unit(0.50));
 
         let lateral_line = LateralLine::from((head, tail));

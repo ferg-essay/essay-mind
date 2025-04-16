@@ -15,7 +15,7 @@ use essay_ecs::{prelude::*, core::error::{Error, Result}};
 
 use super::{ui_canvas::UiWindowEvent, UiCanvas};
 
-pub fn main_loop(app: App, _tick_ms: Duration, _ticks_per_cycle: usize) -> Result<()> {
+pub(crate) fn main_loop(app: App, _tick_ms: Duration, _ticks_per_cycle: usize) -> Result<()> {
     let mut app = app;
 
     let event_loop = app.remove_resource_non_send::<EventLoop<()>>().unwrap();
@@ -71,19 +71,23 @@ impl MainLoopHandle for AppHandle {
     fn about_to_wait(&mut self) -> renderer::Result<()> {
         self.last_start_time = Some(Instant::now());
 
-        match self.app.tick() {
+        let result = match self.app.tick() {
             Ok(_) => Ok(()),
             Err(err) => {
                 self.result.lock().unwrap().err = Some(err);
                 Err("internal app error".into())
             }
-        }
+        };
+
+        self.input_mut().update_after_draw();
             /*
         self.app.tick().unwrap_or_else(|err| {
             result_inner.lock().unwrap().err = Some(err);
             window_target.exit();
         });
         */
+
+        result
     }
 
     fn get_wait_until(&mut self) -> Option<Instant> {

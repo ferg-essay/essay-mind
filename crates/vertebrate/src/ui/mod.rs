@@ -1,3 +1,4 @@
+pub mod ui_run_control;
 pub mod ui_world_hex;
 pub mod ui_emoji;
 pub mod ui_camera;
