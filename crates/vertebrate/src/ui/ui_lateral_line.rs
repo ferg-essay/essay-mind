@@ -1,27 +1,14 @@
-use std::cell::RefCell;
-
-use mind_ecs::AfterTicks;
 use renderer::{Canvas, Drawable, Renderer};
 use essay_ecs::prelude::*;
 use essay_graphics::{api, layout::{View, ViewArc}};
-use essay_plot::{
-    artist::paths::Unit, palette::{ColorMap, EssayColors}, prelude::*
-};
+use essay_plot::prelude::*;
 
 use ui_graphics::ViewPlugin;
+
 use crate::{
-    body::Body, 
-    hind_brain::{lateral_line2::{LateralLine, Ray, Segment}, HindMove, MoveKind}, 
-    mid_brain::{
-        taxis::Taxis, 
-        tectum::TectumMap,
-    },
-    util::Turn 
+    hind_brain::lateral_line::{LateralLine, Ray, Segment},
+    util::Heading
 };
-
-use crate::util::{Angle, Heading};
-
-use super::ui_emoji::Emoji;
 
 fn update_ui_lateral_line(
     mut ui_lateral_line: ResMut<View<UiLateralLine>>,
@@ -62,10 +49,10 @@ impl UiLateralLine {
 
         for ray in head_rays {
             let heading = ray.heading();
-            head_right_rays.push(UiRay::new(heading, ray.n()));
+            head_right_rays.push(UiRay::new(heading));
 
             let heading = Heading::Unit(- heading.to_unit());
-            head_left_rays.push(UiRay::new(heading, ray.n()));
+            head_left_rays.push(UiRay::new(heading));
         }
 
         let head_left_sensors = head_left_rays.iter().map(|_| 0.).collect();
@@ -76,10 +63,10 @@ impl UiLateralLine {
 
         for ray in tail_rays {
             let heading = ray.heading();
-            tail_right_rays.push(UiRay::new(heading, ray.n()));
+            tail_right_rays.push(UiRay::new(heading));
 
             let heading = Heading::Unit(- heading.to_unit());
-            tail_left_rays.push(UiRay::new(heading, ray.n()));
+            tail_left_rays.push(UiRay::new(heading));
         }
 
         let tail_left_sensors = tail_left_rays.iter().map(|_| 0.).collect();
@@ -128,14 +115,6 @@ impl Drawable for UiLateralLine {
         if ui.pos() != self.pos {
             self.resize(ui.pos().with_aspect(1.));
         }
-
-        /*
-        let mut head_sensor = Vec::<f32>::new();
-        head_sensor.resize(self.head_left_sensors.len(), 0.9);
-
-        let mut tail_sensor = Vec::<f32>::new();
-        tail_sensor.resize(self.tail_left_sensors.len(), 0.05);
-        */
 
         let center = api::Point(ui.pos().xmid(), ui.pos().ymid());
 
@@ -197,19 +176,16 @@ fn draw_rays(
 
 struct UiRay {
     heading: Heading,
-    f: f32,
 
     point: api::Point,
 }
 
 impl UiRay {
-    fn new(heading: Heading, n: usize) -> Self {
+    fn new(heading: Heading) -> Self {
         let (sin, cos) = heading.sin_cos();
-        println!("Ray: {:?} {},{}", heading, cos, sin);
 
         Self {
             heading,
-            f: ((n + 1) as f32).recip(),
             point: api::Point(cos, sin),
         }
     }
@@ -220,10 +196,6 @@ impl UiRay {
         let (x0, y0) = (pos.xmid(), pos.ymid());
 
         self.point = [x0 + w2 * cos, y0 + h2 * sin].into();
-    }
-
-    fn max(&self) -> Point {
-        self.point
     }
 
     fn value(&self, center: Point, value: f32) -> Point {
