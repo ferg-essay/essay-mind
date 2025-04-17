@@ -73,6 +73,15 @@ impl LateralLine {
             Segment::TailRight => &self.tail_right_sensors,
         }
     }
+
+    pub fn max(&self, segment: Segment) -> f32 {
+        match segment {
+            Segment::HeadLeft => &self.head_left_sensors,
+            Segment::HeadRight => &self.head_right_sensors,
+            Segment::TailLeft => &self.tail_left_sensors,
+            Segment::TailRight => &self.tail_right_sensors,
+        }.iter().fold(0., |s, v| s.max(*v))
+    }
 }
 
 fn update_sensors(rays: &Tensor, affine: &Affine2d, world: &World) -> Vec<f32> {
@@ -237,12 +246,14 @@ pub struct LateralLine2Plugin;
 
 impl Plugin for LateralLine2Plugin {
     fn build(&self, app: &mut App) {
-        let mut head = SensorBuilder::new(0.25, 2., 3); 
+        let ray_len = 1.25;
+
+        let mut head = SensorBuilder::new(0.25, ray_len, 5); 
         head.add_ray(0., Heading::Unit(0.));
         head.add_ray(0., Heading::Unit(0.125));
         head.add_ray(0., Heading::Unit(0.25));
 
-        let mut tail = SensorBuilder::new(0.75, 2., 3); 
+        let mut tail = SensorBuilder::new(0.75, ray_len, 5); 
         tail.add_ray(0., Heading::Unit(0.25));
         tail.add_ray(0., Heading::Unit(0.375));
         tail.add_ray(0., Heading::Unit(0.50));

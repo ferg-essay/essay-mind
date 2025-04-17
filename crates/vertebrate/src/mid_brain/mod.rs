@@ -1,3 +1,4 @@
+pub mod pretectum;
 mod mid_locomotor;
 mod seek;
 mod seek_context;

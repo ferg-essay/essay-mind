@@ -7,9 +7,7 @@ use crate::{
     hind_brain::{lateral_line::LateralLine2Plugin, HindAvoidPlugin, HindEat, HindEatPlugin, HindMovePlugin, HindSearchPlugin}, 
     hippocampus::HippocampusPlugin, 
     mid_brain::{
-        taxis::{klinotaxis::KlinotaxisPlugin, TaxisAvoidPlugin}, 
-        tectum::{TectumLoomingPlugin, TectumPlugin},
-        MidMovePlugin, MidSeekContextPlugin, MidSeekPlugin
+        pretectum::lateral_line::PretectumLateralLinePlugin, taxis::{klinotaxis::KlinotaxisPlugin, TaxisAvoidPlugin}, tectum::{TectumLoomingPlugin, TectumPlugin}, MidMovePlugin, MidSeekContextPlugin, MidSeekPlugin
     }, 
     motive::{Dwell, Forage, Motive, MotiveAvoidPlugin, MotiveEatPlugin, MotiveForagePlugin, MotiveSleepPlugin}, 
     olfactory::{odor_place::OdorPlace, olfactory_bulb::{OlfactoryBulb, OlfactoryBulbPlugin}, OlfactoryCortexPlugin}, 
@@ -32,6 +30,7 @@ pub struct AnimalBuilder {
     retina: RetinaPlugin,
 
     tectum_looming: TectumLoomingPlugin,
+    pretectum_lateral_line: PretectumLateralLinePlugin,
 
     is_motive_eating: bool,
     is_mid_seek: bool,
@@ -57,6 +56,7 @@ impl AnimalBuilder {
             retina: RetinaPlugin::new(),
 
             tectum_looming: TectumLoomingPlugin::new(),
+            pretectum_lateral_line: PretectumLateralLinePlugin::new(),
 
             is_motive_eating: true,
             is_mid_seek: false,
@@ -76,6 +76,10 @@ impl AnimalBuilder {
 
     pub fn tectum_looming(&mut self) -> &mut TectumLoomingPlugin {
         &mut self.tectum_looming
+    }
+
+    pub fn pretectum_lateral_line(&mut self) -> &mut PretectumLateralLinePlugin {
+        &mut self.pretectum_lateral_line
     }
 
     pub fn retina(&mut self) -> &mut RetinaPlugin {
@@ -117,6 +121,7 @@ impl AnimalBuilder {
 
         app.plugin(TectumPlugin::new().striatum());
         app.plugin(self.tectum_looming);
+        app.plugin(self.pretectum_lateral_line);
 
         app.plugin(self.olfactory_cortex);
 
