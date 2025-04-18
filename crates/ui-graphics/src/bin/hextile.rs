@@ -1,7 +1,5 @@
-use essay_plot::wgpu::WgpuMainLoop;
-use essay_graphics::{api::form::{Shape, ShapeId}, layout::MainLoop};
-use renderer::{Canvas, Drawable, Renderer};
-use essay_graphics::{prelude::*};
+use essay_graphics::{api::form::ShapeId, layout::MainLoop};
+use essay_plot::api::{renderer::{self, Canvas, Drawable, Renderer}, Bounds, Color, Mesh2d};
 use ui_graphics::{HexSliceGenerator, TexId, TextureBuilder, TextureGenerator};
 
 fn main() { 
@@ -58,7 +56,7 @@ fn main() {
 
 struct ShapeView {
     form: Mesh2d,
-    form_id: Option<ShapeId>,
+    _form_id: Option<ShapeId>,
     texture: TextureGenerator,
 
     is_dirty: bool,
@@ -68,7 +66,7 @@ impl ShapeView {
     fn new(form: Mesh2d, texture: TextureGenerator) -> Self {
         Self {
             form,
-            form_id: None,
+            _form_id: None,
             texture,
             is_dirty: true,
         }

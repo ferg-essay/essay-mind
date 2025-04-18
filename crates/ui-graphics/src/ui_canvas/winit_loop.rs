@@ -102,7 +102,7 @@ impl MainLoopHandle for AppHandle {
     }
 }
 
-pub fn main_loop_old(mut app: App, tick_ms: Duration, ticks_per_cycle: usize) -> Result<()> {
+pub fn _main_loop_old(mut app: App, tick_ms: Duration, ticks_per_cycle: usize) -> Result<()> {
     // env_logger::init();
 
     let timer_length = tick_ms; // Duration::from_millis(100);

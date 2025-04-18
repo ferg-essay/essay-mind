@@ -78,7 +78,7 @@ impl<T: WorldHexTrait + Eq + Hash> UiWorldHex<T> {
         }
     }
 
-    pub fn update_render(&mut self, renderer: &mut dyn Renderer, world: &WorldHex<T>) {
+    pub fn update_render(&mut self, _ui: &mut dyn Renderer, world: &WorldHex<T>) {
         if self.update_count < world.update_count() {
             self.update_count = world.update_count() + 1;
 

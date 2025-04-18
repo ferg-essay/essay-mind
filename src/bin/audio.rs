@@ -3,7 +3,7 @@ use std::collections::VecDeque;
 use audio::AudioReader;
 use essay_plot::{api::JoinStyle, artist::{Norm, Norms}, chart::{Chart, Figure}, palette::EssayColors};
 use essay_tensor::{
-    array::{stack, stack_axis}, 
+    array::stack_axis, 
     signal::rfft_norm, 
     tensor::Tensor
 };

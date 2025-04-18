@@ -76,21 +76,6 @@ impl RetinaView {
     }
 
     fn set_pos(&mut self, pos: Bounds<Canvas>) {
-        if pos == self.pos_canvas {
-            return;
-        }
-
-        let w = 0.5 * (pos.width() - 5.);
-        let h = pos.height();
-
-        let s = w.min(h);
-
-        let y0 = pos.ymin() + 0.5 * (h - s);
-
-        let pos_left = Bounds::<Canvas>::from(([pos.xmin(), y0], [s, s]));
-
-        let pos_right = Bounds::<Canvas>::from(([pos.xmin() + s + 5., y0], [s, s]));
-
         self.pos_canvas = pos.clone();
     }
 }
@@ -154,24 +139,6 @@ fn build_grid(size: usize, pos: &Bounds<Canvas>, colors: &Tensor<u32>) -> Mesh2d
     }
 
     mesh
-}
-
-fn add_square(
-    vertices: &mut Vec<[f32; 2]>, 
-    triangles: &mut Vec<[u32; 3]>, 
-    x0: f32, 
-    y0: f32, 
-    x1: f32, 
-    y1: f32) {
-    let v0 = vertices.len() as u32;
-
-    vertices.push([x0, y0]);
-    vertices.push([x1, y0]);
-    vertices.push([x0, y1]);
-    vertices.push([x1, y1]);
-
-    triangles.push([v0 + 0, v0 + 1, v0 + 2]);
-    triangles.push([v0 + 3, v0 + 2, v0 + 1]);
 }
 
 pub struct UiRetinaPlugin {

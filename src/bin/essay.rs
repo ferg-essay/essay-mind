@@ -10,11 +10,7 @@ use vertebrate::{
     olfactory::{odor_place::OdorPlacePlugin, olfactory_bulb::OlfactoryBulb}, 
     retina::Retina, 
     ui::{
-        ui_attention::UiAttentionPlugin, ui_body::UiBodyPlugin, ui_emoji::Emoji,
-        ui_heatmap::UiHeatmapPlugin, ui_homunculus::UiHomunculusPlugin, 
-        ui_lateral_line::UiLateralLinePlugin, ui_motive::UiMotivePlugin, 
-        ui_retina::UiRetinaPlugin, ui_run_control::UiRunControl, ui_table::UiTablePlugin, 
-        ui_world_hex::{Pattern, UiWorldHexPlugin}, ui_world_map::UiWorldPlugin
+        ui_attention::UiAttentionPlugin, ui_body::UiBodyPlugin, ui_emoji::Emoji, ui_heatmap::UiHeatmapPlugin, ui_homunculus::UiHomunculusPlugin, ui_lateral_line::UiLateralLinePlugin, ui_motive::UiMotivePlugin, ui_retina::UiRetinaPlugin, ui_run_control::UiRunControl, ui_table::UiTablePlugin, ui_trail::UiTrailPlugin, ui_world_hex::{Pattern, UiWorldHexPlugin}, ui_world_map::UiWorldPlugin
     }, 
     util::{self, Seconds}, 
     world::{
@@ -117,8 +113,6 @@ pub fn world_lateral_line(w: usize, h: usize) -> WorldPlugin {
 }
 
 pub fn world_empty(w: usize, h: usize) -> WorldPlugin {
-    let h1 = h / 2 - 1;
-    let w1 = w / 3 - 1;
     WorldPlugin::new(w, h)
 }
 
@@ -285,7 +279,8 @@ fn ui_builder(app: &mut App) {
             ui.plugin((
                 hex,
                 UiWorldPlugin::new(),
-                UiBodyPlugin::new()
+                UiBodyPlugin::new(),
+                UiTrailPlugin::new(),
             ));
 
         
