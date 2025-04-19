@@ -211,6 +211,16 @@ impl HindMove {
     }
 
     #[inline]
+    pub fn is_obstacle(&self) -> bool {
+        self.action_kind().is_obstacle()
+    }
+
+    #[inline]
+    pub fn is_avoid(&self) -> bool {
+        self.action_kind().is_avoid()
+    }
+
+    #[inline]
     pub fn is_stop(&self) -> bool {
         self.action_kind().is_stop()
     }
@@ -718,11 +728,25 @@ impl MoveKind {
         }
     }
 
-
     fn is_stop(&self) -> bool {
         match self {
             MoveKind::None => true,
             MoveKind::Halt => true,
+            _ => false
+        }
+    }
+
+    fn is_obstacle(&self) -> bool {
+        match self {
+            MoveKind::Escape(_) => true,
+            MoveKind::UTurn(_) => true,
+            _ => false
+        }
+    }
+
+    fn is_avoid(&self) -> bool {
+        match self {
+            MoveKind::Avoid => true,
             _ => false
         }
     }

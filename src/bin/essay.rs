@@ -10,7 +10,7 @@ use vertebrate::{
     olfactory::{odor_place::OdorPlacePlugin, olfactory_bulb::OlfactoryBulb}, 
     retina::Retina, 
     ui::{
-        ui_attention::UiAttentionPlugin, ui_body::UiBodyPlugin, ui_emoji::Emoji, ui_heatmap::UiHeatmapPlugin, ui_homunculus::UiHomunculusPlugin, ui_lateral_line::UiLateralLinePlugin, ui_motive::UiMotivePlugin, ui_retina::UiRetinaPlugin, ui_run_control::UiRunControl, ui_table::UiTablePlugin, ui_trail::UiTrailPlugin, ui_world_hex::{Pattern, UiWorldHexPlugin}, ui_world_map::UiWorldPlugin
+        ui_attention::UiAttentionPlugin, ui_body::UiBodyPlugin, ui_emoji::Emoji, ui_heatmap::UiHeatmapPlugin, ui_homunculus::UiHomunculusPlugin, ui_lateral_line::UiLateralLinePlugin, ui_motive::UiMotivePlugin, ui_radar::UiRadarPlugin, ui_retina::UiRetinaPlugin, ui_run_control::UiRunControl, ui_table::UiTablePlugin, ui_trail::UiTrailPlugin, ui_world_hex::{Pattern, UiWorldHexPlugin}, ui_world_map::UiWorldPlugin
     }, 
     util::{self, Seconds}, 
     world::{
@@ -238,10 +238,10 @@ fn ui_builder(app: &mut App) {
                 // ui.view(UiGraphPlugin::new()
                 //    .item("v", |b: &Body| b.speed())
                 // );
-                ui.plugin(UiTablePlugin::new()
-                    .item("v", |b: &Body| b.speed())
-                    .item("hd", |b: &Body| b.head_dir().to_unit())
-                );
+                //ui.plugin(UiTablePlugin::new()
+                //    .item("v", |b: &Body| b.speed())
+                //    .item("hd", |b: &Body| b.head_dir().to_unit())
+                //);
 
                 ui.canvas::<Dummy>();
 
@@ -257,6 +257,7 @@ fn ui_builder(app: &mut App) {
 
                 ui.plugin(UiLateralLinePlugin::new());
 
+                ui_radar(ui);
                 ui_motive(ui);
             });
 
@@ -424,5 +425,28 @@ fn ui_motive(ui: &mut UiSubBuilder) {
         .item(Emoji::FaceCowboy, |m: &Serotonin<HindSearch>| m.active_value())
         .item(Emoji::ForkAndKnife, |m: &Serotonin<HindEat>| m.active_value())
         .item(Emoji::Warning, |m: &Serotonin<HindAvoid>| m.active_value())
+    );
+}
+
+fn ui_radar(ui: &mut UiSubBuilder) {
+    ui.plugin(UiRadarPlugin::new()
+        .item(0., Emoji::Coffee, |m: &Sleep| {
+            if m.is_forage() { 
+                1. 
+            } else if m.is_wake() { 
+                0.5 
+            } else {
+                0.
+            }
+        })
+        .item(30., Emoji::DirectHit, |m: &HindMove| if m.action_kind() == MoveKind::Seek { 1. } else { 0. })
+        .item(60., Emoji::MagnifyingGlassLeft, |m: &Motive<Dwell>| m.value())
+        .item(90., Emoji::Footprints, |m: &HindMove| if m.action_kind() == MoveKind::Roam { 1. } else { 0. })
+        .item(135., Emoji::ForkAndKnife, |m: &Serotonin<HindEat>| m.active_value())
+        .item(180., Emoji::FaceSleeping, |m: &Sleep| if m.is_wake() { 0. } else { 1. })
+        .item(270., Emoji::NoEntry, |m: &HindMove| {
+            if m.is_obstacle() || m.is_avoid() { 1. } else { 0. }
+        })
+        .item(315., Emoji::Warning, |m: &Serotonin<HindAvoid>| m.active_value())
     );
 }

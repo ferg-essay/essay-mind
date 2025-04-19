@@ -8,6 +8,7 @@ pub mod ui_heatmap;
 pub mod ui_homunculus;
 pub mod ui_lateral_line;
 pub mod ui_motive;
+pub mod ui_radar;
 pub mod ui_retina;
 pub mod ui_run_control;
 pub mod ui_table;
