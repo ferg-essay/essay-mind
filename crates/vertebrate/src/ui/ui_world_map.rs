@@ -1,6 +1,7 @@
 use essay_ecs::core::Query;
 use essay_ecs::prelude::*;
 use essay_graphics::layout::{View, ViewArc};
+use essay_plot::api::path_style::MeshStyle;
 use essay_plot::{prelude::*, artist::paths};
 use essay_tensor::tensor::Tensor;
 use renderer::{Canvas, Drawable, Renderer};
@@ -134,35 +135,6 @@ impl UiWorld {
 }
 
 impl Coord for UiWorld {}
-
-struct UiFood {
-    xy: Tensor,
-    sizes: Tensor,
-    colors: Tensor<u32>,
-}
-
-impl From<&Wall> for Color {
-    fn from(value: &Wall) -> Self {
-        match value {
-            Wall::Empty => Color::from_hsv(0.25, 0.0, 0.98).with_alpha(0.1),
-            Wall::Food => Color::from("green"),
-            Wall::Wall => Color::from("dark beige"),
-
-            Wall::FloorLight => Color(0xf8f8f800),
-            Wall::FloorDark => Color::from(0x606060),
-        }
-    }
-}
-
-impl From<OdorInnate> for Color {
-    fn from(value: OdorInnate) -> Self {
-        match value {
-            OdorInnate::Food => Color::from("green"),
-            OdorInnate::Avoid => Color::from("red"),
-            OdorInnate::None => Color::from("purple"),
-        }
-    }
-}
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Phase)]
 pub struct DrawWorld;
@@ -321,11 +293,61 @@ impl Drawable for UiWorldView {
                 let style = PathStyle::new();
                 // TODO:
                 //ui.draw_markers(&star, &style, &xy, &food.sizes, &food.colors, &style)?;
+                ui.draw_markers(&star, &style, &food.to_marker_style(&self.to_canvas))?;
         
             }
         }
 
         Ok(())
+    }
+}
+
+struct UiFood {
+    xy: Tensor,
+    sizes: Tensor,
+    colors: Tensor<u32>,
+}
+
+impl UiFood {
+    fn to_marker_style(&self, to_canvas: &Affine2d) -> Vec<MeshStyle> {
+        self.xy.iter_row().enumerate().map(|(i, xy)| {
+            let size_len = self.sizes.len();
+            let size = self.sizes[i % size_len];
+
+            let color_len = self.colors.len();
+            let color = Color(self.colors[i % color_len]);
+
+            let Point(x, y) = to_canvas.transform_point(Point(xy[0], xy[1]));
+
+            MeshStyle {
+                affine: affine2d::scale(size, size)
+                    .translate(x, y),
+                color,
+            }
+        }).collect()
+    }
+}
+
+impl From<&Wall> for Color {
+    fn from(value: &Wall) -> Self {
+        match value {
+            Wall::Empty => Color::from_hsv(0.25, 0.0, 0.98).with_alpha(0.1),
+            Wall::Food => Color::from("green"),
+            Wall::Wall => Color::from("dark beige"),
+
+            Wall::FloorLight => Color(0xf8f8f800),
+            Wall::FloorDark => Color::from(0x606060),
+        }
+    }
+}
+
+impl From<OdorInnate> for Color {
+    fn from(value: OdorInnate) -> Self {
+        match value {
+            OdorInnate::Food => Color::from("green"),
+            OdorInnate::Avoid => Color::from("red"),
+            OdorInnate::None => Color::from("purple"),
+        }
     }
 }
 
