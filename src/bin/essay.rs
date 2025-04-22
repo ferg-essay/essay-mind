@@ -3,7 +3,7 @@ use log::LevelFilter;
 use vertebrate::{
     body::{Body, BodyEat}, 
     builder::AnimalBuilder, 
-    hind_brain::{AvoidHerePlugin, HindAvoid, HindEat, HindMove, HindSearch, MoveKind, Serotonin}, 
+    hind_brain::{ra_thigmotaxis::Thigmotaxis, AvoidHerePlugin, HindAvoid, HindEat, HindMove, HindSearch, MoveKind, Serotonin}, 
     motive::{
         Dwell, Forage, Motive, MotiveEat, MotiveTrait, Sleep, Wake
     }, 
@@ -36,7 +36,7 @@ pub fn main() {
     );
 
     let mut place = WorldHexPlugin::<PlaceKind>::new(w, h);
-    place.circle((2., 4.), 3., PlaceKind::AvoidA);
+    place.circle((10., 4.), 3., PlaceKind::AvoidA);
     app.plugin(place);
 
     app.plugin(OdorPlacePlugin::<PlaceKind>::new()
@@ -442,11 +442,11 @@ fn ui_radar(ui: &mut UiSubBuilder) {
         .item(30., Emoji::DirectHit, |m: &HindMove| if m.action_kind() == MoveKind::Seek { 1. } else { 0. })
         .item(60., Emoji::MagnifyingGlassLeft, |m: &Motive<Dwell>| m.value())
         .item(90., Emoji::Footprints, |m: &HindMove| if m.action_kind() == MoveKind::Roam { 1. } else { 0. })
-        .item(135., Emoji::ForkAndKnife, |m: &Serotonin<HindEat>| m.active_value())
+        .item(135., Emoji::Shark, |m: &Thigmotaxis| m.active_value())
         .item(180., Emoji::FaceSleeping, |m: &Sleep| if m.is_wake() { 0. } else { 1. })
-        .item(270., Emoji::NoEntry, |m: &HindMove| {
+        .item(240., Emoji::NoEntry, |m: &HindMove| {
             if m.is_obstacle() || m.is_avoid() { 1. } else { 0. }
         })
-        .item(315., Emoji::Warning, |m: &Serotonin<HindAvoid>| m.active_value())
+        .item(300., Emoji::Warning, |m: &Serotonin<HindAvoid>| m.active_value())
     );
 }

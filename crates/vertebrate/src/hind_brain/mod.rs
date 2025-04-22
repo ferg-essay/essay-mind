@@ -1,11 +1,12 @@
-mod rpb_avoid_place;
-mod rpb_avoid;
 mod hind_eat;
 mod hind_locomotor;
-mod ra_search;
 pub mod lateral_line;
-mod serotonin;
+mod ra_search;
+pub mod ra_thigmotaxis;
+mod rpb_avoid_place;
+mod rpb_avoid;
 mod r4_startle;
+mod serotonin;
 
 pub use rpb_avoid_place::{AvoidHere, AvoidHerePlugin};
 

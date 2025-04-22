@@ -140,6 +140,9 @@ pub struct HindMove {
     // r1 ARS/ARRN - sensory integration
     _sensor_r1: SensorArs,
 
+    // r1.a - anterior turns
+    ante_r1: AnteHind,
+
     // r3 ARTR/HBO - hindbrain oscillator - random walk
     oscillator_r3: Option<OscillatorArs>,
 
@@ -179,6 +182,8 @@ impl HindMove {
     fn new() -> Self {
         Self {
             optic_mid: OpticMid::new(),
+
+            ante_r1: AnteHind::new(),
 
             _sensor_r1: SensorArs::new(),
 
@@ -230,6 +235,14 @@ impl HindMove {
     //
 
     ///
+    /// R1.a anterior hindbrain - modeled as weak
+    /// 
+    #[inline]
+    pub fn ante(&mut self) -> &mut AnteHind {
+        &mut self.ante_r1
+    }
+
+    ///
     /// Optic locomotion: nMLF
     /// 
     #[inline]
@@ -278,6 +291,7 @@ impl HindMove {
 
     fn pre_update(&mut self) {
         self.action.update();
+        self.ante_r1.update();
         self.optic_mid.update();
         self.is_disable.update();
 
@@ -341,11 +355,17 @@ impl HindMove {
         //     }
         // }
 
+        // thigmotaxis - R1.a
+        if let Some(ante_kind) = self.ante().action() {
+            kind = ante_kind;
+        }
+
         // optic - nMLF
         if let Some(optic_kind) = self.optic().action() {
             kind = optic_kind;
         }
 
+        // r6 chx10 overrides nmlf 
         if let Some(turn_r6) = self.turn_r6.take() {
             turn = turn_r6;
         }
@@ -470,6 +490,41 @@ struct SensorArs {
 impl SensorArs {
     fn new() -> Self {
         Self {
+        }
+    }
+}
+
+pub struct AnteHind {
+    attract: DecayValue,
+    attract_kind: MoveKind,
+}
+
+impl AnteHind {
+    fn new() -> Self {
+        let mut attract = DecayValue::default();
+        attract.set_threshold(0.4);
+
+        Self {
+            attract,
+            attract_kind: MoveKind::None,
+        }
+    }
+
+    fn update(&mut self){
+        self.attract.update();
+    }
+
+    pub fn thigmotaxis(&mut self, turn: Turn) {
+        self.attract.set_max(0.8);
+
+        self.attract_kind = MoveKind::Thigmotaxis(turn);
+    }
+
+    fn action(&self) -> Option<MoveKind> {
+        if self.attract.is_active() {
+            Some(self.attract_kind)
+        } else {
+            None
         }
     }
 }
@@ -690,6 +745,7 @@ pub enum MoveKind {
     Roam,
     Seek,
     Avoid,
+    Thigmotaxis(Turn),
     Escape(Turn),
     UTurn(Turn),
     Startle,
@@ -707,6 +763,7 @@ impl MoveKind {
         match self {
             MoveKind::None => MoveKind::Seek,
             MoveKind::Roam => MoveKind::Seek,
+            MoveKind::Thigmotaxis(_) => MoveKind::Seek,
             _ => *self
         }
     }
@@ -716,6 +773,7 @@ impl MoveKind {
             MoveKind::None => MoveKind::Avoid,
             MoveKind::Roam => MoveKind::Avoid,
             MoveKind::Seek => MoveKind::Avoid,
+            MoveKind::Thigmotaxis(_) => MoveKind::Seek,
             _ => *self
         }
     }
@@ -755,6 +813,7 @@ impl MoveKind {
         match self {
             MoveKind::None => 0.,
             MoveKind::Halt => 0.,
+            MoveKind::Thigmotaxis(_) => 0.5,
             MoveKind::Roam => 0.5,
             MoveKind::Seek => 0.5,
             MoveKind::Avoid => 0.75,
@@ -779,6 +838,9 @@ impl MoveKind {
             }
             MoveKind::Roam | MoveKind::Seek => {
                 Some(Action::new(*self, 0.5, turn, Seconds(1.)))
+            }
+            MoveKind::Thigmotaxis(turn) => {
+                Some(Action::new(*self, 0.5, *turn, Seconds(0.5)))
             }
             MoveKind::Avoid => {
                 Some(Action::new(*self, 0.75, turn, Seconds(1.)))

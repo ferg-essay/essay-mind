@@ -28,7 +28,7 @@ impl DecayValue {
     }
 
     pub fn fill_time(mut self, ticks: impl Into<Ticks>) -> Self {
-        let ticks = ticks.into();
+        let ticks: Ticks = ticks.into();
 
         self.fill = 1. / ticks.ticks().max(1) as f32;
 

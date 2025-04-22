@@ -7,6 +7,7 @@ use essay_plot::{
     chart::PolarChart, config::ConfigArc, plot::{radar, RadarOpt}, 
 };
 
+use mind_ecs::{PostTick, Tick};
 use ui_graphics::ViewPlugin;
 
 use super::ui_emoji::Emoji;
@@ -123,7 +124,7 @@ impl Plugin for UiRadarPlugin {
         if let Some(radar) = &self.radar {
             app.insert_resource(radar.clone());
 
-            app.system(Update, update_radar);
+            app.system(PostTick, update_radar);
         }
     }
 }
@@ -154,7 +155,7 @@ impl<T: Default + Send + Sync + 'static> PluginItem for Item<T> {
 
         let fun = self.fun.take().unwrap();
 
-        app.system(PostUpdate, 
+        app.system(Update, 
             move |mut radar: ResMut<RadarView>, item: Res<T>| {
                 let value = fun(item.get());
                 radar.set_value(id, value);
