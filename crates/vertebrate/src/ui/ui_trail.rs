@@ -1,4 +1,4 @@
-use essay_ecs::{app::{App, Plugin, Update}, core::{Res, ResMut}};
+use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}};
 use essay_graphics::{api, layout::{View, ViewArc}};
 use essay_plot::api::{renderer::{self, Drawable, Renderer}, Bounds, Path, PathCode, PathStyle};
 use mind_ecs::Tick;

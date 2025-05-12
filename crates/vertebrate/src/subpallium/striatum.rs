@@ -1,6 +1,6 @@
 use mind_ecs::AppTick;
 
-use crate::util::{Seconds, Ticks};
+use crate::util::{Seconds, Ticks, TimeoutValue};
 
 pub struct StriatumTimeout {
     ltd_rise: f32,
@@ -104,4 +104,65 @@ pub enum StriatumValue {
     None,
     Active,
     Avoid,
+}
+
+#[derive(Copy, Clone, Default, PartialEq, Debug)]
+pub struct StriatumId(usize);
+
+pub struct StriatumExclusive {
+    active: TimeoutValue<StriatumId>,
+
+    last_id: usize,
+}
+
+impl StriatumExclusive {
+    pub fn alloc_id(&mut self) -> StriatumId {
+        let id = self.last_id + 1;
+        self.last_id = id;
+
+        StriatumId(id)
+    }
+
+    pub fn active_id(&mut self, tick: &AppTick) -> Option<StriatumId> {
+        self.active.update_ticks(tick.ticks());
+
+        self.active.value().clone()
+    }
+
+    pub fn is_active(&mut self, id: StriatumId, tick: &AppTick) -> bool {
+        self.active.update_ticks(tick.ticks());
+
+        self.active.value().map_or(false, |active_id| active_id == id)
+    }
+
+    pub fn update(&mut self, id: StriatumId, tick: &AppTick) -> bool {
+        self.active.update_ticks(tick.ticks());
+
+        if let Some(active_id) = self.active.value() {
+            *active_id == id
+        } else if ! self.active.is_active() {
+            self.active.set(id);
+            true
+        } else {
+            false
+        }
+    }
+
+    pub fn init(&mut self, id: StriatumId, tick: &AppTick) {
+        self.active.update_ticks(tick.ticks());
+
+        if ! self.active.is_active() {
+            self.active.set(id);
+        }
+    }
+}
+
+impl Default for StriatumExclusive {
+    fn default() -> Self {
+        Self {
+            active: TimeoutValue::new(Seconds(1.)),
+            last_id: 0,
+        }
+
+    }
 }

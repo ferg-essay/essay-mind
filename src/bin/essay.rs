@@ -1,16 +1,23 @@
 use essay_plot::api::{Color, Colors};
 use log::LevelFilter;
 use vertebrate::{
-    body::{Body, BodyEat}, 
+    body::BodyEat,
     builder::AnimalBuilder, 
-    hind_brain::{r1_thigmotaxis::{Thigmotaxis, ThigmotaxisStrategy}, ArtrR2, AvoidHerePlugin, HindAvoid, HindEat, HindMove, MoveKind, Serotonin}, 
+    hind_brain::{
+        r1_thigmotaxis::{Thigmotaxis, ThigmotaxisStrategy}, 
+        ArtrR2, AvoidHerePlugin, HindAvoid, HindEat, HindMove, MoveKind, Serotonin
+    }, mid_brain::tectum::ThigmotaxisTectum, 
     motive::{
         Dwell, Forage, Motive, MotiveEat, MotiveTrait, Sleep, Wake
     }, 
     olfactory::{odor_place::OdorPlacePlugin, olfactory_bulb::OlfactoryBulb}, 
     retina::Retina, 
     ui::{
-        ui_attention::UiAttentionPlugin, ui_body::UiBodyPlugin, ui_emoji::Emoji, ui_heatmap::UiHeatmapPlugin, ui_homunculus::{Orient, UiHomunculusPlugin}, ui_lateral_line::UiLateralLinePlugin, ui_motive::UiMotivePlugin, ui_radar::UiRadarPlugin, ui_retina::UiRetinaPlugin, ui_run_control::UiRunControl, ui_table::UiTablePlugin, ui_trail::UiTrailPlugin, ui_world_hex::{Pattern, UiWorldHexPlugin}, ui_world_map::UiWorldPlugin
+        ui_attention::UiAttentionPlugin, ui_body::UiBodyPlugin, ui_emoji::Emoji, ui_heatmap::UiHeatmapPlugin, 
+        ui_homunculus::{Orient, UiHomunculusPlugin}, 
+        ui_lateral_line::UiLateralLinePlugin, ui_motive::UiMotivePlugin, ui_radar::UiRadarPlugin, ui_retina::UiRetinaPlugin, ui_run_control::UiRunControl, ui_trail::UiTrailPlugin, 
+        ui_world_hex::{Pattern, UiWorldHexPlugin}, 
+        ui_world_map::UiWorldPlugin
     }, 
     util::{self, Heading, Seconds, Turn}, 
     world::{
@@ -52,7 +59,7 @@ pub fn main() {
         .avoid(PlaceKind::AvoidB, true)
     );
 
-    let mut food = FoodPlugin::new();
+    let food = FoodPlugin::new();
     //food.gen_count(1).gen_radius(2.).gen_value(Seconds(120.)).gen_kind(FoodKind::Poor);
     app.plugin(food);
 
@@ -71,8 +78,17 @@ pub fn main() {
 
     animal.seek().seek(false);
     animal.tectum_looming().enable(false);
-    animal.hind_thigmotaxis()
+    
+    animal.tectum_thigmotaxis()
         .enable(true)
+        .turn(Turn::Unit(0.15))
+        .inhibited_value(0.5)
+        .memory_time(Seconds(2.0))
+        .timeout(Seconds(30.))
+        .timeout_recover(Seconds(15.));
+
+    animal.hind_thigmotaxis()
+        .enable(false)
         .strategy(ThigmotaxisStrategy::Artr)
         .turn(Turn::Unit(0.15))
         .inhibited_value(0.5)
@@ -252,6 +268,20 @@ fn ui_homunculus(ui: &mut UiSubBuilder) {
         })
         .orient(|taxis: &Thigmotaxis| {
             if taxis.right_active() {
+                Some(Orient(Heading::Unit(0.2), 1.))
+            } else {
+                None
+            }
+        })
+        .orient(|taxis: &ThigmotaxisTectum| {
+            if taxis.active_left() {
+                Some(Orient(Heading::Unit(-0.20), 1.))
+            } else {
+                None
+            }
+        })
+        .orient(|taxis: &ThigmotaxisTectum| {
+            if taxis.active_right() {
                 Some(Orient(Heading::Unit(0.2), 1.))
             } else {
                 None
@@ -479,7 +509,8 @@ fn ui_radar(ui: &mut UiSubBuilder) {
         .item(30., Emoji::DirectHit, |m: &HindMove| if m.action_kind() == MoveKind::Seek { 1. } else { 0. })
         .item(60., Emoji::MagnifyingGlassLeft, |m: &Motive<Dwell>| m.value())
         .item(90., Emoji::Footprints, |m: &HindMove| if m.action_kind() == MoveKind::Roam { 1. } else { 0. })
-        .item(135., Emoji::Shark, |m: &Thigmotaxis| m.active_value())
+        //.item(135., Emoji::Shark, |m: &Thigmotaxis| m.active_value())
+        .item(135., Emoji::Shark, |m: &ThigmotaxisTectum| m.active_value())
         .item(180., Emoji::FaceSleeping, |m: &Sleep| if m.is_wake() { 0. } else { 1. })
         .item(240., Emoji::NoEntry, |m: &HindMove| {
             if m.is_obstacle() || m.is_avoid() { 1. } else { 0. }

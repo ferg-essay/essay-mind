@@ -282,7 +282,7 @@ impl Drawable for UiWorldView {
         if let Some(food) = &self.food {
             if food.xy.len() > 0 {
                 //println!("XY {:?}", food.xy);
-                let xy = &self.to_canvas.transform(&food.xy);
+                //let xy = &self.to_canvas.transform(&food.xy);
 
                 let star: Path<Canvas> = paths::unit_star(8, 0.6)
                     .transform(&self.to_canvas_view);

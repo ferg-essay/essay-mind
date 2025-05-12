@@ -2,7 +2,7 @@ use essay_ecs::{core::ResMut, prelude::{App, Plugin}};
 use mind_ecs::PreTick;
 
 use crate::util::{
-    Angle, DecayValue, Heading
+    DecayValue, Heading
 };
 
 pub struct TectumMap {

@@ -12,7 +12,7 @@ use crate::{
     mid_brain::{
         pretectum::lateral_line::PretectumLateralLinePlugin, 
         taxis::{klinotaxis::KlinotaxisPlugin, TaxisAvoidPlugin}, 
-        tectum::{TectumLoomingPlugin, TectumPlugin}, 
+        tectum::{TectumLoomingPlugin, TectumPlugin, TectumThigmotaxisPlugin}, 
         MidMovePlugin, MidSeekContextPlugin, MidSeekPlugin
     }, 
     motive::{Dwell, Forage, Motive, MotiveAvoidPlugin, MotiveEatPlugin, MotiveForagePlugin, MotiveSleepPlugin}, 
@@ -36,6 +36,7 @@ pub struct AnimalBuilder {
     retina: RetinaPlugin,
 
     tectum_looming: TectumLoomingPlugin,
+    tectum_thigmotaxis: TectumThigmotaxisPlugin,
     pretectum_lateral_line: PretectumLateralLinePlugin,
 
     is_motive_eating: bool,
@@ -61,6 +62,7 @@ impl AnimalBuilder {
             olfactory_cortex: OlfactoryCortexPlugin::new(),
             retina: RetinaPlugin::new(),
 
+            tectum_thigmotaxis: TectumThigmotaxisPlugin::new(),
             tectum_looming: TectumLoomingPlugin::new(),
             pretectum_lateral_line: PretectumLateralLinePlugin::new(),
 
@@ -100,6 +102,10 @@ impl AnimalBuilder {
         &mut self.hind_thigmotaxis
     }
 
+    pub fn tectum_thigmotaxis(&mut self) -> &mut TectumThigmotaxisPlugin {
+        &mut self.tectum_thigmotaxis
+    }
+
     pub fn motive(&mut self) -> MotiveBuilder {
         MotiveBuilder {
             builder: self,
@@ -128,6 +134,8 @@ impl AnimalBuilder {
         app.plugin(self.hind_eat);
         app.plugin(self.hind_move);
         app.plugin(self.hind_thigmotaxis);
+
+        app.plugin(self.tectum_thigmotaxis);
 
         app.plugin(TectumPlugin::new().striatum());
         app.plugin(self.tectum_looming);

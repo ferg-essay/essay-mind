@@ -12,10 +12,7 @@ use ui_graphics::ViewPlugin;
 use crate::{
     body::Body, 
     hind_brain::{HindMove, MoveKind}, 
-    mid_brain::{
-        taxis::Taxis, 
-        tectum::TectumMap,
-    },
+    mid_brain::taxis::Taxis, 
     util::Turn 
 };
 
@@ -383,7 +380,7 @@ impl UiOrient {
 
     fn value(&self) -> Vec<f32> {
         self.pos.iter().zip(&self.neg)
-            .map(|(p, n)| 0.5 * (n.min(1.) - p.min(1.)) + 0.5)
+            .map(|(p, n)| (0.5 * (n.min(1.) - p.min(1.)) + 0.5).clamp(0.05, 0.95))
             .collect()
     }
 }
