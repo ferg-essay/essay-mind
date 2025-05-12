@@ -1,7 +1,7 @@
 use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}};
 use mind_ecs::Tick;
 
-use crate::{hind_brain::{lateral_line::{LateralLine2Plugin, Segment}, r1_thigmotaxis_artr::{update_thigmaxis_artr, ThigmotaxisArtr}, HindMovePlugin}, util::{DecayValue, HalfLife, Seconds, Turn}};
+use crate::{hind_brain::{lateral_line::{LateralLine2Plugin, Segment}, r1_thigmotaxis_artr::{update_thigmaxis_artr, ThigmotaxisArtr}, HindMovePlugin}, util::{DecayValue, HalfLife, Seconds, Ticks, Turn}};
 
 use super::{lateral_line::LateralLine, HindMove};
 
@@ -79,7 +79,8 @@ impl Thigmotaxis {
     const MAX_THRESHOLD: f32 = 0.4;
 
     fn new(plugin: &HindThigmotaxisPlugin) -> Self {
-        let half_life = plugin.memory_time;
+        //let half_life = plugin.memory_time;
+        let half_life = Ticks(4);
 
         Thigmotaxis {
             turn: plugin.turn,
@@ -104,6 +105,24 @@ impl Thigmotaxis {
         self.right.set(value);
     }
 
+    // todo: currently used as a UI hack
+    pub(super) fn set_left(&mut self, value: f32) {
+        self.left.set(value);
+    }
+
+    // todo: currently used as a UI hack
+    pub(super) fn set_right(&mut self, value: f32) {
+        self.right.set(value);
+    }
+
+    pub fn left_active(&self) -> bool {
+        self.left.is_active()
+    }
+
+    pub fn right_active(&self) -> bool {
+        self.right.is_active()
+    }
+
     fn turn(&self, head: f32) -> Turn {
         Turn::Unit(self.turn.to_unit() * (Thigmotaxis::MAX_THRESHOLD - head))
     }
@@ -119,6 +138,8 @@ pub struct HindThigmotaxisPlugin {
     pub(super) memory_time: HalfLife,
     pub(super) inhibited_value: f32,
     pub(super) turn: Turn,
+    pub(super) timeout: Option<Ticks>,
+    pub(super) timeout_recover: Option<Ticks>,
 
     strategy: ThigmotaxisStrategy,
 }
@@ -159,6 +180,18 @@ impl HindThigmotaxisPlugin {
 
         self
     }
+
+    pub fn timeout(&mut self, ticks: impl Into<Ticks>) -> &mut Self {
+        self.timeout = Some(ticks.into());
+
+        self
+    }
+
+    pub fn timeout_recover(&mut self, ticks: impl Into<Ticks>) -> &mut Self {
+        self.timeout_recover = Some(ticks.into());
+
+        self
+    }
 }
 
 impl Default for HindThigmotaxisPlugin {
@@ -169,6 +202,8 @@ impl Default for HindThigmotaxisPlugin {
             turn: Turn::Unit(0.1),
             inhibited_value: 1.,
             strategy: ThigmotaxisStrategy::Artr,
+            timeout: None,
+            timeout_recover: None,
         }
     }
 }

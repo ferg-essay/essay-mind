@@ -39,7 +39,7 @@ impl TectumMap {
         self.neg_map[i].set_max(value);
     }
 
-    pub fn pos(&mut self, dir: Angle, value: f32) {
+    pub fn pos(&mut self, dir: Heading, value: f32) {
         let i = (Self::N as f32 * dir.to_unit()).floor() as usize;
 
         self.pos_map[i].set_max(value);

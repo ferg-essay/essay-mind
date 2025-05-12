@@ -40,13 +40,15 @@ impl StriatumTimeout {
     }
 
     pub fn ltd(mut self, time: impl Into<Ticks>) -> Self {
-        self.ltd_rise = 1. / time.into().ticks().max(1) as f32;
+        let time: Ticks = time.into();
+        self.ltd_rise = 1. / time.ticks().max(1) as f32;
 
         self
     }
 
     pub fn decay(mut self, time: impl Into<Ticks>) -> Self {
-        self.ltd_decay = 1. / time.into().ticks().max(1) as f32;
+        let time: Ticks = time.into();
+        self.ltd_decay = 1. / time.ticks().max(1) as f32;
 
         self
     }
