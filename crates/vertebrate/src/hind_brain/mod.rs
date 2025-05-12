@@ -1,15 +1,18 @@
-mod avoid_place;
-mod hind_avoid;
 mod hind_eat;
-mod hind_move;
-mod hind_search;
+mod hind_locomotor;
 pub mod lateral_line;
+pub mod levy_walk;
+mod r2_artr;
+pub mod r1_thigmotaxis;
+pub mod r1_thigmotaxis_artr;
+mod rpb_avoid_place;
+mod rpb_avoid;
+mod r4_startle;
 mod serotonin;
-mod startle;
 
-pub use avoid_place::{AvoidHere, AvoidHerePlugin};
+pub use rpb_avoid_place::{AvoidHere, AvoidHerePlugin};
 
-pub use hind_avoid::{
+pub use rpb_avoid::{
     HindAvoid, HindAvoidPlugin,
 };
 
@@ -17,15 +20,13 @@ pub use hind_eat::{
     HindEat, HindEatPlugin, 
 };
 
-pub use hind_move::{
+pub use hind_locomotor::{
     HindMove,
     HindMovePlugin,
     MoveKind,
 };
 
-pub use hind_search::{
-    HindSearchPlugin, HindSearch,
-};
+pub use r2_artr::ArtrR2;
 
 pub use serotonin::{
     Serotonin, SerotoninManager, SerotoninTrait

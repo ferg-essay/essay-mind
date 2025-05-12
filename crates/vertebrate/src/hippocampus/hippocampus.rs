@@ -2,7 +2,10 @@ use essay_ecs::{app::{App, Plugin}, core::ResMut};
 use mind_ecs::Tick;
 use util::random::Rand64;
 
-use crate::{taxis::{TaxisAvoid, TaxisAvoidPlugin}, util::Ticks};
+use crate::{
+    mid_brain::taxis::{TaxisAvoid, TaxisAvoidPlugin}, 
+    util::Ticks
+};
 
 use super::{Sequence128, Sequence128Builder};
 

@@ -10,8 +10,10 @@ use essay_graphics::{
 use essay_plot::api::{input::Input, renderer, Bounds, Color, Path, PathStyle};
 use winit::event_loop::EventLoop;
 
+use crate::ui_canvas::winit_loop::main_loop;
+
 use super::{WgpuCanvas, CanvasView};
-use super::winit_loop::{main_loop, WinitEvents};
+use super::winit_loop::{WinitEvents};
 
 fn ui_canvas_pre_update(mut ui_canvas: ResMut<UiCanvas>) {
     ui_canvas.init_view();
@@ -46,6 +48,7 @@ impl UiBuilder {
         assert!(! app.contains_resource::<UiCanvas>(), "UiCanvas already exists");
 
         let time = Duration::from_millis(30);
+
         let mut page = PageBuilder::new();
 
         let mut builder = UiSubBuilder {
@@ -265,6 +268,10 @@ impl UiCanvas {
         self.canvas.input_mut()
     }
 
+    pub fn input(&self) -> &Input {
+        self.canvas.input()
+    }
+
     pub(crate) fn draw(&mut self) {
         if let Some(view) = &self.view {
             self.canvas.draw(
@@ -383,44 +390,35 @@ impl<T: ViewPlugin + 'static> IntoViewPlugin for T {
     }
 }
 
-impl<T1, T2> IntoViewPlugin for (T1, T2)
-where
-    T1: IntoViewPlugin,
-    T2: IntoViewPlugin,
-{
-    fn build_view(&mut self, app: &mut App) -> Option<ViewArc> {
-        layer_arc(&[
-            self.0.build_view(app),
-            self.1.build_view(app),
-        ])
-    }
-
-    fn build(self, app: &mut App) {
-        self.0.build(app);
-        self.1.build(app);
-    }
-}
-
-impl<T1, T2, T3> IntoViewPlugin for (T1, T2, T3)
-where
-    T1: IntoViewPlugin,
-    T2: IntoViewPlugin,
-    T3: IntoViewPlugin,
-{
-    fn build_view(&mut self, app: &mut App) -> Option<ViewArc> {
-        layer_arc(&[
-            self.0.build_view(app),
-            self.1.build_view(app),
-            self.2.build_view(app),
-        ])
-    }
-
-    fn build(self, app: &mut App) {
-        self.0.build(app);
-        self.1.build(app);
-        self.2.build(app);
+macro_rules! view_comma {
+    ($($id:ident,)*) => {
+        #[allow(non_snake_case)]
+        impl<$($id,)*> IntoViewPlugin for ($($id,)*)
+        where $(
+            $id: IntoViewPlugin,
+        )*
+        {
+            fn build_view(&mut self, app: &mut App) -> Option<ViewArc> {
+                let ($($id,)*) = self;
+                layer_arc(&[ $(
+                    $id.build_view(app),
+                )* ])
+            }
+        
+            fn build(self, app: &mut App) { 
+                let ($($id,)*) = self;
+                $(
+                    $id.build(app);
+                )*
+            }
+        }
     }
 }
+
+view_comma!(T1, T2,);
+view_comma!(T1, T2, T3,);
+view_comma!(T1, T2, T3, T4,);
+view_comma!(T1, T2, T3, T4, T5,);
 
 fn layer_arc(views: &[Option<ViewArc>]) -> Option<ViewArc> {
     let mut vec = Vec::<ViewArc>::new();

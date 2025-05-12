@@ -12,8 +12,10 @@ use ui_graphics::ViewPlugin;
 use crate::{
     body::Body, 
     hind_brain::{HindMove, MoveKind}, 
-    taxis::Taxis, 
-    tectum::TectumMap,
+    mid_brain::{
+        taxis::Taxis, 
+        tectum::TectumMap,
+    },
     util::Turn 
 };
 
@@ -82,6 +84,7 @@ pub fn ui_homunculus_draw(
             MoveKind::Roam => { Emoji::Footprints },
             MoveKind::Seek => { Emoji::DirectHit },
             MoveKind::Avoid => { Emoji::NoEntry },
+            MoveKind::Thigmotaxis(_) => { Emoji::Shark },
             MoveKind::Escape(_) | MoveKind::UTurn(_) => { 
                 Emoji::NoEntry }
             MoveKind::Startle => {

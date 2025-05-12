@@ -5,6 +5,8 @@ use crate::{hind_brain::HindMove, retina::Retina, util::{DecayValue, Seconds, Tu
 
 use super::looming::LoomingStrategy;
 
+// Pretectum looming - currently copy of tectum looming
+
 // LoomingZebrafishMtl is an older looming strategy based around the
 // Zebrafish M.tl torus longitidunus for maintaining average light
 
@@ -103,12 +105,12 @@ impl Looming {
     }
 }
 
-pub struct LoomingBilateral;
+pub struct LoomingZebrafishMtl;
 
-impl LoomingStrategy for LoomingBilateral {
+impl LoomingStrategy for LoomingZebrafishMtl {
     fn build(&self, app: &mut App) {
         if ! app.contains_resource::<Retina>() {
-            panic!("LoomingBilateral requires Retina");
+            panic!("Looming requires Retina");
         }
 
         app.insert_resource(Looming::new());

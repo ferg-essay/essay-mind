@@ -63,7 +63,7 @@ impl Into<Seconds> for Ticks {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Default, Debug)]
 pub struct HalfLife(pub f32);
 
 impl HalfLife {

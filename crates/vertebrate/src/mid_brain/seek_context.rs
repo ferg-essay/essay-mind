@@ -6,14 +6,17 @@ use mind_ecs::{AppTick, Tick};
 use crate::{
     hind_brain::{HindMove, HindMovePlugin}, 
     hippocampus::Engram64, 
-    mid_brain::MidSeekPlugin, 
+    mid_brain::{
+        taxis::chemotaxis::{Avoid, Seek}, 
+        MidSeekPlugin, 
+    },
     motive::{Motive, MotiveAvoid, MotiveTrait, Motives}, 
     subpallium::{StriatumTimeout, StriatumValue}, 
-    taxis::chemotaxis::{Avoid, Seek}, 
+    
     util::{Seconds, Ticks}
 };
 
-use super::{MidMove, SeekInput};
+use super::{MidLocomotor, SeekInput};
 
 // 
 // midbrain tegmental seek: fish V.pt - posterior tuberculum to MLR
@@ -30,7 +33,7 @@ use super::{MidMove, SeekInput};
 
 fn update_seek<I: SeekInput, C: SeekContext, M: MotiveTrait>(
     mut seek: ResMut<MidSeekContext<I, C>>,
-    mid_move: Res<MidMove>,
+    mid_move: Res<MidLocomotor>,
     mut hind_move: ResMut<HindMove>,
     mut avoid: ResMut<MotiveAvoid>,
     input: Res<I>,

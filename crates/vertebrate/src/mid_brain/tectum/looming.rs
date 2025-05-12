@@ -8,12 +8,14 @@ pub trait LoomingStrategy {
 
 pub struct TectumLoomingPlugin {
     strategy: Box<dyn LoomingStrategy>,
+    is_enable: bool,
 }
 
 impl TectumLoomingPlugin {
     pub fn new() -> Self {
         Self {
             strategy: Box::new(LoomingZebrafishMtl),
+            is_enable: true,
         }
     }
 
@@ -22,10 +24,18 @@ impl TectumLoomingPlugin {
 
         self
     }
+
+    pub fn enable(&mut self, is_enable: bool) -> &mut Self {
+        self.is_enable = is_enable;
+
+        self
+    }
 }
 
 impl Plugin for TectumLoomingPlugin {
     fn build(&self, app: &mut App) {
-        self.strategy.build(app);
+        if self.is_enable {
+            self.strategy.build(app);
+        }
     }
 }

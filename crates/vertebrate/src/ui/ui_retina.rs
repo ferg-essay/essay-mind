@@ -51,12 +51,8 @@ fn fill_colors(data: Tensor) -> Tensor<u32> {
 struct RetinaView {
     size: usize,
 
-    //left_vertices: Tensor,
-    //left_triangles: Tensor<u32>,
     left_colors: Tensor<u32>,
 
-    //right_vertices: Tensor,
-    //right_triangles: Tensor<u32>,
     right_colors: Tensor<u32>,
 
     pos_canvas: Bounds<Canvas>,
@@ -64,8 +60,6 @@ struct RetinaView {
 
 impl RetinaView {
     fn new(size: usize) -> Self {
-        // let (vertices, triangles) = build_grid(size, &Bounds::from([100., 100.]));
-
         let mut colors = Vec::<u32>::new();
         colors.resize(size * size, Color::from("red").to_rgba()); 
         let colors = Tensor::from(colors);
@@ -73,12 +67,8 @@ impl RetinaView {
         Self {
             size: size,
 
-            //left_vertices: vertices.clone(),
-            //left_triangles: triangles.clone(),
             left_colors: colors.clone(),
 
-            //right_vertices: vertices.clone(),
-            //right_triangles: triangles.clone(),
             right_colors: colors.clone(),
 
             pos_canvas: Bounds::none(),
@@ -86,31 +76,6 @@ impl RetinaView {
     }
 
     fn set_pos(&mut self, pos: Bounds<Canvas>) {
-        if pos == self.pos_canvas {
-            return;
-        }
-
-        let w = 0.5 * (pos.width() - 5.);
-        let h = pos.height();
-
-        let s = w.min(h);
-
-        let y0 = pos.ymin() + 0.5 * (h - s);
-
-        let pos_left = Bounds::<Canvas>::from(([pos.xmin(), y0], [s, s]));
-
-        //let (vertices, triangles) = build_grid(self.size, &pos_left);
-        
-        //self.left_vertices = vertices;
-        //self.left_triangles = triangles;
-
-        let pos_right = Bounds::<Canvas>::from(([pos.xmin() + s + 5., y0], [s, s]));
-
-        //let (vertices, triangles) = build_grid(self.size, &pos_right);
-        
-        //self.right_vertices = vertices;
-        //self.right_triangles = triangles;
-
         self.pos_canvas = pos.clone();
     }
 }
@@ -136,21 +101,6 @@ impl Drawable for RetinaView {
         let right = build_grid(self.size, &pos_right, &self.right_colors);
         ui.draw_mesh2d_color(&right)?;
 
-
-        // TODO:
-        /*
-        renderer.draw_triangles(
-            &self.left_vertices,
-            &self.left_colors,
-            &self.left_triangles,
-        )?;
-
-        renderer.draw_triangles(
-            &self.right_vertices,
-            &self.right_colors,
-            &self.right_triangles,
-        )?;
-        */
         
         Ok(())
     }
@@ -189,24 +139,6 @@ fn build_grid(size: usize, pos: &Bounds<Canvas>, colors: &Tensor<u32>) -> Mesh2d
     }
 
     mesh
-}
-
-fn add_square(
-    vertices: &mut Vec<[f32; 2]>, 
-    triangles: &mut Vec<[u32; 3]>, 
-    x0: f32, 
-    y0: f32, 
-    x1: f32, 
-    y1: f32) {
-    let v0 = vertices.len() as u32;
-
-    vertices.push([x0, y0]);
-    vertices.push([x1, y0]);
-    vertices.push([x0, y1]);
-    vertices.push([x1, y1]);
-
-    triangles.push([v0 + 0, v0 + 1, v0 + 2]);
-    triangles.push([v0 + 3, v0 + 2, v0 + 1]);
 }
 
 pub struct UiRetinaPlugin {

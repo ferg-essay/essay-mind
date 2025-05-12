@@ -4,14 +4,21 @@ use mind_ecs::Tick;
 
 use crate::{
     body::{BodyEatPlugin, BodyPlugin}, 
-    hind_brain::{HindAvoidPlugin, HindEat, HindEatPlugin, HindMovePlugin, HindSearchPlugin}, 
+    hind_brain::{
+        lateral_line::LateralLine2Plugin, r1_thigmotaxis::HindThigmotaxisPlugin, 
+        HindAvoidPlugin, HindEat, HindEatPlugin, HindMovePlugin,
+    }, 
     hippocampus::HippocampusPlugin, 
-    mid_brain::{MidMovePlugin, MidSeekContextPlugin, MidSeekPlugin}, 
+    mid_brain::{
+        pretectum::lateral_line::PretectumLateralLinePlugin, 
+        taxis::{klinotaxis::KlinotaxisPlugin, TaxisAvoidPlugin}, 
+        tectum::{TectumLoomingPlugin, TectumPlugin}, 
+        MidMovePlugin, MidSeekContextPlugin, MidSeekPlugin
+    }, 
     motive::{Dwell, Forage, Motive, MotiveAvoidPlugin, MotiveEatPlugin, MotiveForagePlugin, MotiveSleepPlugin}, 
     olfactory::{odor_place::OdorPlace, olfactory_bulb::{OlfactoryBulb, OlfactoryBulbPlugin}, OlfactoryCortexPlugin}, 
     retina::RetinaPlugin, 
-    taxis::{klinotaxis::KlinotaxisPlugin, TaxisAvoidPlugin}, 
-    tectum::{TectumLoomingPlugin, TectumPlugin}, util::Seconds 
+    util::Seconds 
 };
 
 pub struct AnimalBuilder {
@@ -21,11 +28,15 @@ pub struct AnimalBuilder {
     hind_avoid: HindAvoidPlugin,
     hind_eat: HindEatPlugin,
     hind_move: HindMovePlugin,
-    hind_search: HindSearchPlugin,
+    hind_thigmotaxis: HindThigmotaxisPlugin,
 
+    lateral_line: LateralLine2Plugin,
     olfactory_bulb: OlfactoryBulbPlugin,
     olfactory_cortex: OlfactoryCortexPlugin,
     retina: RetinaPlugin,
+
+    tectum_looming: TectumLoomingPlugin,
+    pretectum_lateral_line: PretectumLateralLinePlugin,
 
     is_motive_eating: bool,
     is_mid_seek: bool,
@@ -43,11 +54,15 @@ impl AnimalBuilder {
             hind_avoid: HindAvoidPlugin::new(),
             hind_eat: HindEatPlugin::new(),
             hind_move: HindMovePlugin,
-            hind_search: HindSearchPlugin::new(),
+            hind_thigmotaxis: HindThigmotaxisPlugin::new(),
 
+            lateral_line: LateralLine2Plugin,
             olfactory_bulb: OlfactoryBulbPlugin::new(),
             olfactory_cortex: OlfactoryCortexPlugin::new(),
             retina: RetinaPlugin::new(),
+
+            tectum_looming: TectumLoomingPlugin::new(),
+            pretectum_lateral_line: PretectumLateralLinePlugin::new(),
 
             is_motive_eating: true,
             is_mid_seek: false,
@@ -57,8 +72,20 @@ impl AnimalBuilder {
         }
     }
 
+    pub fn lateral_line(&mut self) -> &mut LateralLine2Plugin {
+        &mut self.lateral_line
+    }
+
     pub fn olfactory(&mut self) -> &mut OlfactoryBulbPlugin {
         &mut self.olfactory_bulb
+    }
+
+    pub fn tectum_looming(&mut self) -> &mut TectumLoomingPlugin {
+        &mut self.tectum_looming
+    }
+
+    pub fn pretectum_lateral_line(&mut self) -> &mut PretectumLateralLinePlugin {
+        &mut self.pretectum_lateral_line
     }
 
     pub fn retina(&mut self) -> &mut RetinaPlugin {
@@ -67,6 +94,10 @@ impl AnimalBuilder {
 
     pub fn hind_eat(&mut self) -> &mut HindEatPlugin {
         &mut self.hind_eat
+    }
+
+    pub fn hind_thigmotaxis(&mut self) -> &mut HindThigmotaxisPlugin {
+        &mut self.hind_thigmotaxis
     }
 
     pub fn motive(&mut self) -> MotiveBuilder {
@@ -89,16 +120,18 @@ impl AnimalBuilder {
         app.plugin(self.body);
         app.plugin(self.body_eat);
 
-        app.plugin(self.hind_avoid);
-        app.plugin(self.hind_eat);
-        app.plugin(self.hind_move);
-        app.plugin(self.hind_search);
-
+        app.plugin(self.lateral_line);
         app.plugin(self.olfactory_bulb);
         app.plugin(self.retina);
 
+        app.plugin(self.hind_avoid);
+        app.plugin(self.hind_eat);
+        app.plugin(self.hind_move);
+        app.plugin(self.hind_thigmotaxis);
+
         app.plugin(TectumPlugin::new().striatum());
-        app.plugin(TectumLoomingPlugin::new());
+        app.plugin(self.tectum_looming);
+        app.plugin(self.pretectum_lateral_line);
 
         app.plugin(self.olfactory_cortex);
 

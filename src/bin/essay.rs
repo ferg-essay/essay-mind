@@ -1,38 +1,25 @@
-use std::time::Duration;
-
-use essay_graphics::ui::Ui;
-use essay_plot::api::{Color, Colors, Point};
+use essay_plot::api::{Color, Colors};
 use log::LevelFilter;
 use vertebrate::{
     body::{Body, BodyEat}, 
     builder::AnimalBuilder, 
-    hind_brain::{AvoidHerePlugin, HindAvoid, HindEat, HindMove, HindSearch, MoveKind, Serotonin}, 
+    hind_brain::{r1_thigmotaxis::{Thigmotaxis, ThigmotaxisStrategy}, ArtrR2, AvoidHerePlugin, HindAvoid, HindEat, HindMove, MoveKind, Serotonin}, 
     motive::{
         Dwell, Forage, Motive, MotiveEat, MotiveTrait, Sleep, Wake
     }, 
     olfactory::{odor_place::OdorPlacePlugin, olfactory_bulb::OlfactoryBulb}, 
-    taxis::{
-        chemotaxis::Chemotaxis, 
-        phototaxis::Phototaxis
-    }, 
+    retina::Retina, 
     ui::{
-        ui_attention::UiAttentionPlugin, 
-        ui_body::{UiBodyPlugin, UiBodyTrailPlugin}, 
-        ui_camera::UiCameraPlugin, ui_emoji::Emoji, ui_graph::UiGraphPlugin, 
-        ui_heatmap::UiHeatmapPlugin, ui_homunculus::UiHomunculusPlugin, 
-        ui_motive::UiMotivePlugin, ui_bar::UiBarPlugin, 
-        ui_retina::UiRetinaPlugin, ui_table::UiTablePlugin, 
-        ui_world_hex::{Pattern, UiWorldHexPlugin}, 
-        ui_world_map::UiWorldPlugin
+        ui_attention::UiAttentionPlugin, ui_body::UiBodyPlugin, ui_emoji::Emoji, ui_heatmap::UiHeatmapPlugin, ui_homunculus::UiHomunculusPlugin, ui_lateral_line::UiLateralLinePlugin, ui_motive::UiMotivePlugin, ui_radar::UiRadarPlugin, ui_retina::UiRetinaPlugin, ui_run_control::UiRunControl, ui_table::UiTablePlugin, ui_trail::UiTrailPlugin, ui_world_hex::{Pattern, UiWorldHexPlugin}, ui_world_map::UiWorldPlugin
     }, 
-    util::{self, Seconds}, 
+    util::{self, Seconds, Turn}, 
     world::{
-        FoodKind, FoodPlugin, OdorKind, OdorPlugin, World, WorldHexPlugin, WorldHexTrait, WorldPlugin
+        FoodKind, FoodPlugin, OdorKind, OdorPlugin, WorldHexPlugin, WorldHexTrait, WorldPlugin
     }
 };
-use essay_ecs::{app::Update, core::{Res, ResMut}, prelude::App};
+use essay_ecs::prelude::App;
 use mind_ecs::TickSchedulePlugin;
-use ui_graphics::ui_canvas::{UiBuilder, UiPos, UiSubBuilder};
+use ui_graphics::ui_canvas::{UiBuilder, UiSubBuilder};
 
 // 
 
@@ -43,25 +30,13 @@ pub fn main() {
 
     app.plugin(TickSchedulePlugin::new().ticks(2));
 
-    let (w, h) = (15, 11);
-    // let odor_r = 2;
-    app.plugin(world_roam(w, h)
-        //.loc_odor(2, 4, 3, OdorKind::FoodA)
-
-       //.loc_odor(2, 10, 3, OdorKind::FoodB)
-
-        //.loc_odor(8, 4, 3, OdorKind::FoodA)
-
-        //.loc_odor(8, 10, 3, OdorKind::FoodB)
-
-        //.loc_odor(14, 10, 3, OdorKind::FoodA)
-        //.odor_r(15, 5, 4, OdorType::FoodA)
-
-        //.food_odor_r(14, 4, FoodKind::Plain, odor_r, OdorType::FoodA)
+    let (w, h) = (21, 13);
+    
+    app.plugin(world_thigmotaxis(w, h)
     );
 
     let mut place = WorldHexPlugin::<PlaceKind>::new(w, h);
-    place.circle((2., 4.), 3., PlaceKind::AvoidA);
+    place.circle((w as f32 - 7., 4.), 3., PlaceKind::AvoidA);
     app.plugin(place);
 
     app.plugin(OdorPlacePlugin::<PlaceKind>::new()
@@ -78,21 +53,30 @@ pub fn main() {
     );
 
     let mut food = FoodPlugin::new();
-    food.gen_count(1).gen_radius(2.).gen_value(Seconds(120.)).gen_kind(FoodKind::Poor);
+    //food.gen_count(1).gen_radius(2.).gen_value(Seconds(120.)).gen_kind(FoodKind::Poor);
     app.plugin(food);
 
     let mut animal = AnimalBuilder::new();
+
+    animal.lateral_line();
 
     animal.olfactory()
         .odor(OdorKind::FoodA)
         .odor(OdorKind::FoodB);
 
     animal.retina()
-        .size(8)
-        .fov(util::Angle::Deg(120.))
+        .size(Retina::SIZE as u32)
+        .fov(util::Angle::Deg(150.))// fov
         .eye_angle(util::Angle::Deg(45.));
 
     animal.seek().seek(false);
+    animal.tectum_looming().enable(false);
+    animal.hind_thigmotaxis()
+        .enable(true)
+        .strategy(ThigmotaxisStrategy::Artr)
+        .turn(Turn::Unit(0.15))
+        .inhibited_value(0.5)
+        .memory_time(Seconds(1.0));
 
     // animal.hind_eat();
 
@@ -126,30 +110,25 @@ impl Default for PlaceKind {
 
 impl WorldHexTrait for PlaceKind {}
 
-pub fn world_lateral_line() -> WorldPlugin {
-    let w = 15;
-    let h = 11;
-
+pub fn world_lateral_line(w: usize, h: usize) -> WorldPlugin {
     let h1 = h / 2 - 1;
-
-    // let w1 = w / 2;
-    // let w2 = w1;
-
+    let w1 = w / 3 - 1;
     WorldPlugin::new(w, h)
-        .wall((2, 0), (1, h1 + 1))
-        .wall((5, h1), (1, h - h1))
-        .wall((8, 0), (1, h1 + 2))
-        //.wall(((w - 1) / 2, h - h1), (2, h1))
-        //.floor((0, 0), (w1, h), FloorType::Light)
-        //.floor((w2, 0), (w - w2, h), FloorType::Dark)
+        .wall((w1, 0), (1, h1 + 1))
+        .wall((2 * w1, h1), (1, h - h1))
 }
 
-pub fn world_roam(w: usize, h: usize) -> WorldPlugin {
+pub fn world_thigmotaxis(w: usize, h: usize) -> WorldPlugin {
     let h1 = h / 2 - 1;
+    let w1 = w / 3 - 1;
     WorldPlugin::new(w, h)
-    .wall((2, 0), (1, h1 + 1))
-    .wall((5, h1), (1, h - h1))
-    .wall((8, 0), (1, h1 + 2))
+        .wall((w1, 0), (1, h1 + 1))
+        .wall((w1 - 2, 3 * h / 4), (2, 2))
+        .wall((2 * w1, h1), (1, h - h1))
+}
+
+pub fn world_empty(w: usize, h: usize) -> WorldPlugin {
+    WorldPlugin::new(w, h)
 }
 
 pub fn world_food_and_non_food(app: &mut App) {
@@ -257,6 +236,7 @@ fn ui_homunculus(ui: &mut UiSubBuilder) {
         .item(Emoji::DirectHit, |m: &HindMove| m.action_kind() == MoveKind::Seek)
         .item(Emoji::Warning, |m: &HindMove| m.action_kind() == MoveKind::Avoid)
         .item(Emoji::MagnifyingGlassLeft, |m: &Motive<Dwell>| m.is_active())
+        .item(Emoji::Shark, |m: &Thigmotaxis| m.is_active())
         .item(Emoji::Footprints, |m: &HindMove| m.action_kind() == MoveKind::Roam)
         .item(Emoji::FaceSleeping, |m: &Motive<Wake>| ! m.is_active())
     );
@@ -274,22 +254,26 @@ fn ui_builder(app: &mut App) {
                 // ui.view(UiGraphPlugin::new()
                 //    .item("v", |b: &Body| b.speed())
                 // );
-                ui.plugin(UiTablePlugin::new()
-                    .item("v", |b: &Body| b.speed())
-                    .item("hd", |b: &Body| b.head_dir().to_unit())
-                );
+                //ui.plugin(UiTablePlugin::new()
+                //    .item("v", |b: &Body| b.speed())
+                //    .item("hd", |b: &Body| b.head_dir().to_unit())
+                //);
 
                 ui.canvas::<Dummy>();
 
+                /*
                 let mut button = false;
-                
                 ui.app().system(Update, move |mut ui: UiPos<Dummy>, body: Res<Body>| {
                     ui.draw(|ui| {
                         ui.label(&format!("head {}", body.head_dir().to_unit()));
                         ui.button("press", button).onclick(|| button=!button);
                     });
                 });
+                */
 
+                ui.plugin(UiLateralLinePlugin::new());
+
+                ui_radar(ui);
                 ui_motive(ui);
             });
 
@@ -304,15 +288,19 @@ fn ui_builder(app: &mut App) {
             let alpha = 0.4;
             let mut hex = UiWorldHexPlugin::new();
             hex.tile(PlaceKind::None);
-            hex.tile(PlaceKind::FoodA).pattern(Pattern::CheckerBoard(8), Color::from("red").with_alpha(alpha));
+            hex.tile(PlaceKind::FoodA).pattern(Pattern::CheckerBoard(8), Color::from("aquamarine").with_alpha(alpha));
             hex.tile(PlaceKind::FoodB).pattern(Pattern::CheckerBoard(8), Color::from("teal").with_alpha(alpha));
             hex.tile(PlaceKind::OtherA).pattern(Pattern::CheckerBoard(8), Color::from("orange").with_alpha(alpha));
-            hex.tile(PlaceKind::AvoidA).pattern(Pattern::CheckerBoard(4), Color::from("purple").with_alpha(alpha));
+            hex.tile(PlaceKind::AvoidA).pattern(Pattern::CheckerBoard(4), Color::from("red").with_alpha(alpha));
+
+            let mut trail = UiTrailPlugin::new();
+            trail.len(512);
 
             ui.plugin((
                 hex,
                 UiWorldPlugin::new(),
-                UiBodyPlugin::new()
+                UiBodyPlugin::new(),
+                trail,
             ));
 
         
@@ -332,6 +320,8 @@ fn ui_builder(app: &mut App) {
             });
         });
     });
+
+    app.plugin(UiRunControl);
 }
 
 
@@ -451,8 +441,31 @@ fn ui_motive(ui: &mut UiSubBuilder) {
         .item(Emoji::FaceVomiting, |m: &BodyEat| m.sickness())
         // .item(Emoji::FaceAstonished, |m: &Motive<Hunger>| m.value())
         .row()
-        .item(Emoji::FaceCowboy, |m: &Serotonin<HindSearch>| m.active_value())
+        .item(Emoji::FaceCowboy, |m: &Serotonin<ArtrR2>| m.active_value())
         .item(Emoji::ForkAndKnife, |m: &Serotonin<HindEat>| m.active_value())
         .item(Emoji::Warning, |m: &Serotonin<HindAvoid>| m.active_value())
+    );
+}
+
+fn ui_radar(ui: &mut UiSubBuilder) {
+    ui.plugin(UiRadarPlugin::new()
+        .item(0., Emoji::Coffee, |m: &Sleep| {
+            if m.is_forage() { 
+                1. 
+            } else if m.is_wake() { 
+                0.5 
+            } else {
+                0.
+            }
+        })
+        .item(30., Emoji::DirectHit, |m: &HindMove| if m.action_kind() == MoveKind::Seek { 1. } else { 0. })
+        .item(60., Emoji::MagnifyingGlassLeft, |m: &Motive<Dwell>| m.value())
+        .item(90., Emoji::Footprints, |m: &HindMove| if m.action_kind() == MoveKind::Roam { 1. } else { 0. })
+        .item(135., Emoji::Shark, |m: &Thigmotaxis| m.active_value())
+        .item(180., Emoji::FaceSleeping, |m: &Sleep| if m.is_wake() { 0. } else { 1. })
+        .item(240., Emoji::NoEntry, |m: &HindMove| {
+            if m.is_obstacle() || m.is_avoid() { 1. } else { 0. }
+        })
+        .item(300., Emoji::Warning, |m: &Serotonin<HindAvoid>| m.active_value())
     );
 }

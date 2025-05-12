@@ -7,11 +7,11 @@ use crate::{
     hind_brain::{HindMove, HindMovePlugin},
     motive::{Motive, MotiveAvoid, MotiveTrait, Motives}, 
     subpallium::{StriatumTimeout, StriatumValue}, 
-    taxis::chemotaxis::{Avoid, Seek}, 
+    mid_brain::taxis::chemotaxis::{Avoid, Seek}, 
     util::{EgoVector, Seconds}
 };
 
-use super::MidMove;
+use super::MidLocomotor;
 
 // 
 // midbrain tegmental seek: fish V.pt - posterior tuberculum to MLR
@@ -63,7 +63,7 @@ impl<I: SeekInput, M: MotiveTrait> MidSeekPlugin<I, M> {
 
 fn update_seek<I: SeekInput, M: MotiveTrait>(
     mut seek: ResMut<MidSeek<I>>,
-    mid_move: Res<MidMove>,
+    mid_move: Res<MidLocomotor>,
     mut hind_move: ResMut<HindMove>,
     mut avoid: ResMut<MotiveAvoid>,
     input: Res<I>,

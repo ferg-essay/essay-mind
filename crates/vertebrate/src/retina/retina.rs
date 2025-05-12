@@ -66,7 +66,7 @@ pub struct Retina {
 
 impl Retina {
     pub const HEIGHT : f32 = 0.3;
-    pub const SIZE : usize = 8;
+    pub const SIZE : usize = 16; // 8;
 
     fn new(size: u32) -> Self {
         let width = (2 * size).max(64);

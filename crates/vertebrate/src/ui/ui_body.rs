@@ -3,11 +3,9 @@ use std::f32::consts::TAU;
 use essay_ecs::prelude::*;
 use essay_graphics::layout::{View, ViewArc};
 use essay_plot::api::renderer::{self, Drawable, Renderer};
-use essay_plot::api::{Affine2d, Bounds, CapStyle, Color, JoinStyle, Path, PathCode, PathStyle};
+use essay_plot::api::{Affine2d, Bounds, CapStyle, Color, JoinStyle, Path, PathStyle};
 use essay_plot::artist::Markers;
 use essay_plot::artist::paths::Unit;
-mod plot { pub use essay_plot::prelude::*; }
-use renderer::Canvas;
 
 use ui_graphics::ViewPlugin;
 use crate::body::Body;
@@ -194,75 +192,6 @@ impl Drawable for UiBodyView {
     }
 }
 
-/*
-pub fn update_trail(
-    mut ui_trail: ResMut<UiTrail>,
-    body: Res<Body>,
-) {
-    ui_trail.add(Point(body.pos().0, body.pos().1));
-}
-
-pub fn draw_trail(
-    ui_trail: Res<UiTrail>,
-    ui_world: Res<UiWorld>,
-    mut ui: ResMut<UiCanvas>
-) {
-    // ui_trail.add(body.pos());
-
-    let transform = Affine2d::eye();
-    let transform = ui_world.to_canvas().matmul(&transform);
-
-    let trail: Path<Canvas> = ui_trail.path(4).transform(&transform);
-
-    let mut style = PathStyle::new();
-    style.color("midnight blue");
-
-    ui.draw_path(&trail, &style);
-}
-*/
-
-#[allow(unused)]
-pub struct UiTrail {
-    points: Vec<plot::Point>,
-    head: usize,
-}
-
-impl UiTrail {
-    fn new(size: usize) -> Self {
-        assert!(size > 0);
-
-        let mut points = Vec::new();
-        points.resize(size, plot::Point(0., 0.));
-
-        Self {
-            points,
-            head: 0,
-        }
-    }
-
-    fn _add(&mut self, point: impl Into<plot::Point>) -> &mut Self {
-        self.points[self.head] = point.into();
-
-        self.head = (self.head + 1) % self.points.len();
-
-        self
-    }
-
-    fn _path(&self, step: usize) -> Path<Canvas> {
-        let mut path_codes = Vec::<PathCode>::new();
-
-        path_codes.push(PathCode::MoveTo(self.points[self.head]));
-
-        let len = self.points.len();
-
-        for i in (step - 1..len).step_by(step) {
-            path_codes.push(PathCode::LineTo(self.points[(self.head + i) % len]));
-        }
-
-        Path::new(path_codes)
-    }
-}
-
 pub enum Key {
     PFood,
     Turn,
@@ -300,18 +229,6 @@ impl Plugin for UiBodyPlugin {
                 app.insert_resource(UiBody { view: view.clone() });
                 app.system(Update, draw_body); // .phase(DrawAgent));
             }
-        }
-    }
-}
-
-pub struct UiBodyTrailPlugin;
-
-impl Plugin for UiBodyTrailPlugin {
-    fn build(&self, app: &mut App) {
-        if app.contains_plugin::<UiWorldPlugin>() {
-            app.insert_resource(UiTrail::new(400));
-            // app.system(PostTick, update_trail);
-            // app.system(Update, draw_trail.phase(DrawAgent));
         }
     }
 }
