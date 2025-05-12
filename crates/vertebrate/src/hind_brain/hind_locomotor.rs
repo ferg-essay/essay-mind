@@ -1,5 +1,6 @@
 use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}};
 use mind_ecs::Tick;
+use util::random::random_uniform;
 
 use crate::{
     body::{Body, BodyPlugin}, 
@@ -7,7 +8,7 @@ use crate::{
     util::{DecayValue, Seconds, Ticks, TimeoutValue, Turn}
 };
 
-use super::{ra_search::OscillatorArs, r4_startle::StartleR4, HindEat};
+use super::{r4_startle::StartleR4, ArtrR2, HindEat};
 
 //
 // Barandela et al 2023 - Lamprey early R.mrrn only from M.nmlf, DLR, MLR
@@ -135,27 +136,24 @@ fn update_hind_move(
 /// 
 pub struct HindMove {
     // mid - nMLF - opto-motor, OKR, OMR, visual hunting, phototaxis, looming
-    optic_mid: OpticMid,
+    optic_mb: OpticMid,
 
-    // r1 ARS/ARRN - sensory integration
-    _sensor_r1: SensorArs,
+    // r1.a - sensory integration/anterior turns
+    ante_r1: AnteR1,
 
-    // r1.a - anterior turns
-    ante_r1: AnteHind,
-
-    // r3 ARTR/HBO - hindbrain oscillator - random walk
-    oscillator_r3: Option<OscillatorArs>,
+    // r2 ARTR/HBO - hindbrain oscillator - random walk
+    artr_r2: ArtrR2,
 
     // r4 Mauthner cell - acoustic startle escape
     startle_r4: Option<StartleR4>,
 
     // r5/r6 MRS/MRRN - Zebrafish MiD2
     // mammal LPGi
-    forward_r5: ForwardMrs,
+    forward_r5: ForwardR5,
 
     // r5/r6 - Zebrafish RoV3, MiV1, MiV2
     // mammal Gi
-    turn_r6: TurnMrs,
+    turn_r5: TurnR5,
 
     // S.nr or lateral (eat) disable of movement
     is_disable: TimeoutValue<bool>,
@@ -181,18 +179,16 @@ impl HindMove {
 
     fn new() -> Self {
         Self {
-            optic_mid: OpticMid::new(),
+            optic_mb: OpticMid::new(),
 
-            ante_r1: AnteHind::new(),
+            ante_r1: AnteR1::new(),
 
-            _sensor_r1: SensorArs::new(),
-
-            oscillator_r3: None,
+            artr_r2: ArtrR2::new(),
 
             startle_r4: None,
 
-            forward_r5: ForwardMrs::new(),
-            turn_r6: TurnMrs::new(),
+            forward_r5: ForwardR5::new(),
+            turn_r5: TurnR5::new(),
 
             is_disable: TimeoutValue::default(),
 
@@ -235,19 +231,27 @@ impl HindMove {
     //
 
     ///
-    /// R1.a anterior hindbrain - modeled as weak
-    /// 
-    #[inline]
-    pub fn ante(&mut self) -> &mut AnteHind {
-        &mut self.ante_r1
-    }
-
-    ///
     /// Optic locomotion: nMLF
     /// 
     #[inline]
     pub fn optic(&mut self) -> &mut OpticMid {
-        &mut self.optic_mid
+        &mut self.optic_mb
+    }
+
+    ///
+    /// R1.a anterior hindbrain - modeled as weak
+    /// 
+    #[inline]
+    pub fn ante(&mut self) -> &mut AnteR1 {
+        &mut self.ante_r1
+    }
+
+    ///
+    /// R2.artr anterior hindbrain turning region
+    /// 
+    #[inline]
+    pub fn artr(&self) -> &ArtrR2 {
+        &self.artr_r2
     }
 
     #[inline]
@@ -277,12 +281,12 @@ impl HindMove {
 
     #[inline]
     pub fn turn(&mut self, turn: impl Into<Turn>) {
-        self.turn_r6.turn(turn.into());
+        self.turn_r5.turn(turn.into());
     }
 
     #[inline]
     pub fn turn_if_new(&mut self, turn: impl Into<Turn>) {
-        self.turn_r6.turn_if_new(turn.into());
+        self.turn_r5.turn_if_new(turn.into());
     }
 
     //
@@ -292,7 +296,8 @@ impl HindMove {
     fn pre_update(&mut self) {
         self.action.update();
         self.ante_r1.update();
-        self.optic_mid.update();
+        self.artr_r2.update();
+        self.optic_mb.update();
         self.is_disable.update();
 
         self.ss_forward = 0.;
@@ -346,33 +351,27 @@ impl HindMove {
         // TODO: should be driven by outside such as H.sum/MLR
         let mut kind = self.forward_r5.take();
 
-        // ARTR in ARS r3 has lowest-priority turn
-        // if kind.is_random_turn() {
-        //     if let Some(oscillator) = &mut self.oscillator_r3 {
-        //         if let Some(next_turn) = oscillator.next_turn() {
-        //             turn = next_turn;
-        //         }
-        //     }
-        // }
+        // ARTR - R1.a
+        turn = self.artr_r2.next_turn().unwrap_or(turn);
 
         // thigmotaxis - R1.a
-        if let Some(ante_kind) = self.ante().action() {
-            kind = ante_kind;
+        kind = self.ante().action().unwrap_or(kind);
+
+        if random_uniform() < 0.5 {
+            turn = Turn::Unit(0.);
         }
 
         // optic - nMLF
-        if let Some(optic_kind) = self.optic().action() {
-            kind = optic_kind;
-        }
+        kind = self.optic().action().unwrap_or(kind);
 
         // r6 chx10 overrides nmlf 
-        if let Some(turn_r6) = self.turn_r6.take() {
-            turn = turn_r6;
-        }
+        turn = self.turn_r5.take().unwrap_or(turn);
         
         // CPG can only change on certain phases
         if self.action.allow_override(kind) {
             if let Some(action) = kind.action(turn) {
+                self.artr_r2.on_turn(turn);
+
                 self.action = action;
             }
         }
@@ -484,22 +483,12 @@ impl Default for HindMove {
     }
 }
 
-struct SensorArs {
-}
-
-impl SensorArs {
-    fn new() -> Self {
-        Self {
-        }
-    }
-}
-
-pub struct AnteHind {
+pub struct AnteR1 {
     attract: DecayValue,
     attract_kind: MoveKind,
 }
 
-impl AnteHind {
+impl AnteR1 {
     fn new() -> Self {
         let mut attract = DecayValue::default();
         attract.set_threshold(0.4);
@@ -585,11 +574,11 @@ impl _AvoidMrrn {
     }
 }
 
-struct ForwardMrs {
+struct ForwardR5 {
     kind: MoveKind,
 }
 
-impl ForwardMrs {
+impl ForwardR5 {
     fn new() -> Self {
         Self {
             kind: MoveKind::None
@@ -620,11 +609,11 @@ impl ForwardMrs {
     }
 }
 
-struct TurnMrs {
+struct TurnR5 {
     turn: Option<Turn>
 }
 
-impl TurnMrs {
+impl TurnR5 {
     fn new() -> Self {
         Self {
             turn: None,
@@ -808,6 +797,15 @@ impl MoveKind {
             _ => false
         }
     }
+    
+    fn turn(&self) -> Option<Turn> {
+        match self {
+            MoveKind::Thigmotaxis(turn) => Some(*turn),
+            MoveKind::Escape(turn) => Some(*turn),
+            MoveKind::UTurn(turn) => Some(*turn),
+            _ => None,
+        }
+    }
 
     fn _speed(&self) -> f32 {
         match self {
@@ -865,7 +863,7 @@ impl Plugin for HindMovePlugin {
         assert!(app.contains_plugin::<BodyPlugin>(), "HindLocomotionPlugin requires BodyPlugin");
 
         let mut hind_move = HindMove::new();
-        hind_move.oscillator_r3 = Some(OscillatorArs::new());
+        // hind_move.artr_r2 = Some(OscillatorArs::new());
         hind_move.startle_r4 = Some(StartleR4::new());
 
         app.insert_resource(hind_move);

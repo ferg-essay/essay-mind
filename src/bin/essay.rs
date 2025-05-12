@@ -3,7 +3,7 @@ use log::LevelFilter;
 use vertebrate::{
     body::{Body, BodyEat}, 
     builder::AnimalBuilder, 
-    hind_brain::{ra_thigmotaxis::Thigmotaxis, AvoidHerePlugin, HindAvoid, HindEat, HindMove, HindSearch, MoveKind, Serotonin}, 
+    hind_brain::{r1_thigmotaxis::{Thigmotaxis, ThigmotaxisStrategy}, ArtrR2, AvoidHerePlugin, HindAvoid, HindEat, HindMove, MoveKind, Serotonin}, 
     motive::{
         Dwell, Forage, Motive, MotiveEat, MotiveTrait, Sleep, Wake
     }, 
@@ -12,7 +12,7 @@ use vertebrate::{
     ui::{
         ui_attention::UiAttentionPlugin, ui_body::UiBodyPlugin, ui_emoji::Emoji, ui_heatmap::UiHeatmapPlugin, ui_homunculus::UiHomunculusPlugin, ui_lateral_line::UiLateralLinePlugin, ui_motive::UiMotivePlugin, ui_radar::UiRadarPlugin, ui_retina::UiRetinaPlugin, ui_run_control::UiRunControl, ui_table::UiTablePlugin, ui_trail::UiTrailPlugin, ui_world_hex::{Pattern, UiWorldHexPlugin}, ui_world_map::UiWorldPlugin
     }, 
-    util::{self, Seconds}, 
+    util::{self, Seconds, Turn}, 
     world::{
         FoodKind, FoodPlugin, OdorKind, OdorPlugin, WorldHexPlugin, WorldHexTrait, WorldPlugin
     }
@@ -30,13 +30,13 @@ pub fn main() {
 
     app.plugin(TickSchedulePlugin::new().ticks(2));
 
-    let (w, h) = (15, 11);
+    let (w, h) = (21, 13);
     
-    app.plugin(world_lateral_line(w, h)
+    app.plugin(world_thigmotaxis(w, h)
     );
 
     let mut place = WorldHexPlugin::<PlaceKind>::new(w, h);
-    place.circle((10., 4.), 3., PlaceKind::AvoidA);
+    place.circle((w as f32 - 7., 4.), 3., PlaceKind::AvoidA);
     app.plugin(place);
 
     app.plugin(OdorPlacePlugin::<PlaceKind>::new()
@@ -53,7 +53,7 @@ pub fn main() {
     );
 
     let mut food = FoodPlugin::new();
-    food.gen_count(1).gen_radius(2.).gen_value(Seconds(120.)).gen_kind(FoodKind::Poor);
+    //food.gen_count(1).gen_radius(2.).gen_value(Seconds(120.)).gen_kind(FoodKind::Poor);
     app.plugin(food);
 
     let mut animal = AnimalBuilder::new();
@@ -71,6 +71,12 @@ pub fn main() {
 
     animal.seek().seek(false);
     animal.tectum_looming().enable(false);
+    animal.hind_thigmotaxis()
+        .enable(true)
+        .strategy(ThigmotaxisStrategy::Artr)
+        .turn(Turn::Unit(0.15))
+        .inhibited_value(0.5)
+        .memory_time(Seconds(1.0));
 
     // animal.hind_eat();
 
@@ -108,8 +114,17 @@ pub fn world_lateral_line(w: usize, h: usize) -> WorldPlugin {
     let h1 = h / 2 - 1;
     let w1 = w / 3 - 1;
     WorldPlugin::new(w, h)
-    .wall((w1, 0), (1, h1 + 1))
-    .wall((2 * w1, h1), (1, h - h1))
+        .wall((w1, 0), (1, h1 + 1))
+        .wall((2 * w1, h1), (1, h - h1))
+}
+
+pub fn world_thigmotaxis(w: usize, h: usize) -> WorldPlugin {
+    let h1 = h / 2 - 1;
+    let w1 = w / 3 - 1;
+    WorldPlugin::new(w, h)
+        .wall((w1, 0), (1, h1 + 1))
+        .wall((w1 - 2, 3 * h / 4), (2, 2))
+        .wall((2 * w1, h1), (1, h - h1))
 }
 
 pub fn world_empty(w: usize, h: usize) -> WorldPlugin {
@@ -221,6 +236,7 @@ fn ui_homunculus(ui: &mut UiSubBuilder) {
         .item(Emoji::DirectHit, |m: &HindMove| m.action_kind() == MoveKind::Seek)
         .item(Emoji::Warning, |m: &HindMove| m.action_kind() == MoveKind::Avoid)
         .item(Emoji::MagnifyingGlassLeft, |m: &Motive<Dwell>| m.is_active())
+        .item(Emoji::Shark, |m: &Thigmotaxis| m.is_active())
         .item(Emoji::Footprints, |m: &HindMove| m.action_kind() == MoveKind::Roam)
         .item(Emoji::FaceSleeping, |m: &Motive<Wake>| ! m.is_active())
     );
@@ -272,16 +288,19 @@ fn ui_builder(app: &mut App) {
             let alpha = 0.4;
             let mut hex = UiWorldHexPlugin::new();
             hex.tile(PlaceKind::None);
-            hex.tile(PlaceKind::FoodA).pattern(Pattern::CheckerBoard(8), Color::from("red").with_alpha(alpha));
+            hex.tile(PlaceKind::FoodA).pattern(Pattern::CheckerBoard(8), Color::from("aquamarine").with_alpha(alpha));
             hex.tile(PlaceKind::FoodB).pattern(Pattern::CheckerBoard(8), Color::from("teal").with_alpha(alpha));
             hex.tile(PlaceKind::OtherA).pattern(Pattern::CheckerBoard(8), Color::from("orange").with_alpha(alpha));
-            hex.tile(PlaceKind::AvoidA).pattern(Pattern::CheckerBoard(4), Color::from("purple").with_alpha(alpha));
+            hex.tile(PlaceKind::AvoidA).pattern(Pattern::CheckerBoard(4), Color::from("red").with_alpha(alpha));
+
+            let mut trail = UiTrailPlugin::new();
+            trail.len(512);
 
             ui.plugin((
                 hex,
                 UiWorldPlugin::new(),
                 UiBodyPlugin::new(),
-                UiTrailPlugin::new(),
+                trail,
             ));
 
         
@@ -422,7 +441,7 @@ fn ui_motive(ui: &mut UiSubBuilder) {
         .item(Emoji::FaceVomiting, |m: &BodyEat| m.sickness())
         // .item(Emoji::FaceAstonished, |m: &Motive<Hunger>| m.value())
         .row()
-        .item(Emoji::FaceCowboy, |m: &Serotonin<HindSearch>| m.active_value())
+        .item(Emoji::FaceCowboy, |m: &Serotonin<ArtrR2>| m.active_value())
         .item(Emoji::ForkAndKnife, |m: &Serotonin<HindEat>| m.active_value())
         .item(Emoji::Warning, |m: &Serotonin<HindAvoid>| m.active_value())
     );

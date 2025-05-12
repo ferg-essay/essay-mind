@@ -6,10 +6,34 @@ use essay_ecs::{
 use mind_ecs::Tick;
 
 use crate::{
-    hind_brain::{HindEat, HindMove, HindMovePlugin, HindSearch, Serotonin}, 
+    hind_brain::{HindEat, HindMove, HindMovePlugin, ArtrR2, Serotonin}, 
     motive::{Dwell, Motive, Wake}, 
     util::Command
 };
+
+fn update_mid_motor(
+    mut mid_motor: ResMut<MidLocomotor>,
+    mut hind_eat: ResMut<HindEat>, 
+    mut serotonin_eat: ResMut<Serotonin<HindEat>>, 
+    mut serotonin_search: ResMut<Serotonin<ArtrR2>>, 
+    mut hind_move: ResMut<HindMove>, 
+    wake: Res<Motive<Wake>>,
+    dwell: Res<Motive<Dwell>>,
+) {
+    mid_motor.pre_update();
+
+    if wake.is_active() {
+        mid_motor.update(
+            dwell.get(), 
+            hind_move.get_mut(), 
+            hind_eat.get_mut(),
+            serotonin_eat.get_mut(),
+            serotonin_search.get_mut(),
+        );
+    } else {
+        mid_motor.clear();
+    }
+}
 
 pub struct MidLocomotor {
     commands: Command<MidLocomotorEvent>,
@@ -56,7 +80,7 @@ impl MidLocomotor {
         hind_move: &mut HindMove,
         hind_eat: &mut HindEat,
         serotonin_eat: &mut Serotonin<HindEat>,
-        serotonin_search: &mut Serotonin<HindSearch>,
+        serotonin_search: &mut Serotonin<ArtrR2>,
     ) {
         for event in self.commands() {
             match event {
@@ -64,7 +88,7 @@ impl MidLocomotor {
                     self.on_eat(hind_move, serotonin_eat);
                 },
                 MidLocomotorEvent::Roam => {
-                    self.on_roam(hind_eat, serotonin_search);
+                    self.on_roam(hind_eat, hind_move, serotonin_search);
                 }
                 MidLocomotorEvent::Avoid => {
                     self.on_avoid(hind_move, hind_eat);
@@ -79,11 +103,12 @@ impl MidLocomotor {
     fn on_roam(
         &mut self, 
         hind_eat: &HindEat,
-        serotonin_search: &mut Serotonin<HindSearch>,
+        hind_move: &mut HindMove,
+        serotonin_search: &mut Serotonin<ArtrR2>,
     ) {
         // H.stn managed transition waits for eat to stop before roam
         if ! hind_eat.is_eating() {
-            // hind_move.roam();
+            hind_move.roam();
             serotonin_search.excite(1.);
         }
     }
@@ -138,30 +163,6 @@ enum MidLocomotorEvent {
     Roam,
     Avoid,
     Seek,
-}
-
-fn update_mid_motor(
-    mut mid_motor: ResMut<MidLocomotor>,
-    mut hind_eat: ResMut<HindEat>, 
-    mut serotonin_eat: ResMut<Serotonin<HindEat>>, 
-    mut serotonin_search: ResMut<Serotonin<HindSearch>>, 
-    mut hind_move: ResMut<HindMove>, 
-    wake: Res<Motive<Wake>>,
-    dwell: Res<Motive<Dwell>>,
-) {
-    mid_motor.pre_update();
-
-    if wake.is_active() {
-        mid_motor.update(
-            dwell.get(), 
-            hind_move.get_mut(), 
-            hind_eat.get_mut(),
-            serotonin_eat.get_mut(),
-            serotonin_search.get_mut(),
-        );
-    } else {
-        mid_motor.clear();
-    }
 }
 
 pub struct MidMovePlugin;

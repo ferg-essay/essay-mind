@@ -15,6 +15,13 @@ fn key_listen(canvas: Res<UiCanvas>, mut ticks: ResMut<TickConfig>) {
                 match key {
                     Key::Space => { ticks.toggle_run(); }
                     Key::T => { ticks.one_tick(); }
+                    Key::N1 => { ticks.set_n_ticks(1); }
+                    Key::N2 => { ticks.set_n_ticks(2); }
+                    Key::N3 => { ticks.set_n_ticks(3); }
+                    Key::N4 => { ticks.set_n_ticks(4); }
+                    Key::N5 => { ticks.set_n_ticks(5); }
+                    Key::N6 => { ticks.set_n_ticks(6); }
+                    Key::N7 => { ticks.set_n_ticks(7); }
                     _ => {}
                 }
             }

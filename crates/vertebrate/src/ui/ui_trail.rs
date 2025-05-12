@@ -1,6 +1,7 @@
 use essay_ecs::{app::{App, Plugin, Update}, core::{Res, ResMut}};
 use essay_graphics::{api, layout::{View, ViewArc}};
 use essay_plot::api::{renderer::{self, Drawable, Renderer}, Bounds, Path, PathCode, PathStyle};
+use mind_ecs::Tick;
 use ui_graphics::ViewPlugin;
 
 use crate::{body::Body, util::Point};
@@ -111,13 +112,21 @@ impl Drawable for UiTrailView {
     
 pub struct UiTrailPlugin {
     view: Option<View<UiTrailView>>,
+    len: usize,
 }
     
 impl UiTrailPlugin {
     pub fn new() -> Self {
         Self {
             view: None,
+            len: 256,
         }
+    }
+
+    pub fn len(&mut self, len: usize) -> &mut Self {
+        self.len = len;
+
+        self
     }
 }
     
@@ -133,11 +142,11 @@ impl Plugin for UiTrailPlugin {
     fn build(&self, app: &mut App) {
         if app.contains_plugin::<UiWorldPlugin>() {
             if let Some(view) = &self.view {
-                app.insert_resource(UiTrail::new(view.clone(), 256));
+                app.insert_resource(UiTrail::new(view.clone(), self.len));
                 let world = app.resource::<UiWorld>().bounds();
                 let mut view  = view.clone();
                 view.write(|v| v.world_bounds = world);
-                app.system(Update, update_trail); // .phase(DrawAgent));
+                app.system(Tick, update_trail); // .phase(DrawAgent));
             }
         }
     }

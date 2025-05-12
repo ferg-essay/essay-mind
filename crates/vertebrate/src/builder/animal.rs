@@ -4,10 +4,16 @@ use mind_ecs::Tick;
 
 use crate::{
     body::{BodyEatPlugin, BodyPlugin}, 
-    hind_brain::{lateral_line::LateralLine2Plugin, ra_thigmotaxis::HindThigmotaxisPlugin, HindAvoidPlugin, HindEat, HindEatPlugin, HindMovePlugin, HindSearchPlugin}, 
+    hind_brain::{
+        lateral_line::LateralLine2Plugin, r1_thigmotaxis::HindThigmotaxisPlugin, 
+        HindAvoidPlugin, HindEat, HindEatPlugin, HindMovePlugin,
+    }, 
     hippocampus::HippocampusPlugin, 
     mid_brain::{
-        pretectum::lateral_line::PretectumLateralLinePlugin, taxis::{klinotaxis::KlinotaxisPlugin, TaxisAvoidPlugin}, tectum::{TectumLoomingPlugin, TectumPlugin}, MidMovePlugin, MidSeekContextPlugin, MidSeekPlugin
+        pretectum::lateral_line::PretectumLateralLinePlugin, 
+        taxis::{klinotaxis::KlinotaxisPlugin, TaxisAvoidPlugin}, 
+        tectum::{TectumLoomingPlugin, TectumPlugin}, 
+        MidMovePlugin, MidSeekContextPlugin, MidSeekPlugin
     }, 
     motive::{Dwell, Forage, Motive, MotiveAvoidPlugin, MotiveEatPlugin, MotiveForagePlugin, MotiveSleepPlugin}, 
     olfactory::{odor_place::OdorPlace, olfactory_bulb::{OlfactoryBulb, OlfactoryBulbPlugin}, OlfactoryCortexPlugin}, 
@@ -22,7 +28,6 @@ pub struct AnimalBuilder {
     hind_avoid: HindAvoidPlugin,
     hind_eat: HindEatPlugin,
     hind_move: HindMovePlugin,
-    hind_search: HindSearchPlugin,
     hind_thigmotaxis: HindThigmotaxisPlugin,
 
     lateral_line: LateralLine2Plugin,
@@ -49,8 +54,7 @@ impl AnimalBuilder {
             hind_avoid: HindAvoidPlugin::new(),
             hind_eat: HindEatPlugin::new(),
             hind_move: HindMovePlugin,
-            hind_search: HindSearchPlugin::new(),
-            hind_thigmotaxis: HindThigmotaxisPlugin,
+            hind_thigmotaxis: HindThigmotaxisPlugin::new(),
 
             lateral_line: LateralLine2Plugin,
             olfactory_bulb: OlfactoryBulbPlugin::new(),
@@ -92,6 +96,10 @@ impl AnimalBuilder {
         &mut self.hind_eat
     }
 
+    pub fn hind_thigmotaxis(&mut self) -> &mut HindThigmotaxisPlugin {
+        &mut self.hind_thigmotaxis
+    }
+
     pub fn motive(&mut self) -> MotiveBuilder {
         MotiveBuilder {
             builder: self,
@@ -119,7 +127,6 @@ impl AnimalBuilder {
         app.plugin(self.hind_avoid);
         app.plugin(self.hind_eat);
         app.plugin(self.hind_move);
-        app.plugin(self.hind_search);
         app.plugin(self.hind_thigmotaxis);
 
         app.plugin(TectumPlugin::new().striatum());

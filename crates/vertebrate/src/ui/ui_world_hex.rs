@@ -315,7 +315,7 @@ impl Drawable for HexView {
 
         if let Some(texture) = &self.tex_id {
             if let Some(shape) = &self.shape {
-                renderer.draw_mesh2d(&shape, *texture, &[(Color::from("azure"), (&self.camera)).into()])
+                renderer.draw_mesh2d(&shape, *texture, &[(Color::from("white"), (&self.camera)).into()])
                 //renderer.draw_mesh2d(&shape, TextureId::default(), &[(Color::from("azure"), (&self.camera)).into()])
             } else {
                 Ok(())

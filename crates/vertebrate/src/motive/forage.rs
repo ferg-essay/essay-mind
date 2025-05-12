@@ -4,7 +4,7 @@ use essay_ecs::{
 };
 use mind_ecs::{AppTick, Tick};
 use crate::{
-    hind_brain::{HindAvoid, HindEat, HindSearch, Serotonin}, 
+    hind_brain::{HindAvoid, HindEat, ArtrR2, Serotonin}, 
     mid_brain::{MidLocomotor, MidMovePlugin}, 
     motive::eat::MotiveEatPlugin, 
     olfactory::{OdorCortex, OlfactoryCortexPlugin}, 
@@ -24,7 +24,7 @@ fn update_forage(
     mut foraging: ResMut<Motive<Forage>>,
     serotonin_avoid: Res<Serotonin<HindAvoid>>,
     mut serotonin_eat: ResMut<Serotonin<HindEat>>,
-    mut serotonin_search: ResMut<Serotonin<HindSearch>>,
+    mut serotonin_search: ResMut<Serotonin<ArtrR2>>,
     tick: Res<AppTick>,
     sleep: Res<Sleep>,
 ) {
@@ -65,7 +65,7 @@ fn update_forage(
         foraging.set_max(1.);
 
         // H.sum activation for roaming
-        // mid_move.roam();
+        mid_move.roam();
         serotonin_search.excite(1.);
         serotonin_eat.excite(0.);
     }

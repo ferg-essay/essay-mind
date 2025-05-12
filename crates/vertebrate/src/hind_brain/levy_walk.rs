@@ -8,10 +8,10 @@ use super::{HindMove, Serotonin, SerotoninTrait};
 
 // Karpenko et al 2020 - ARTR oscillator 20s period
 
-fn update_hind_search(
-    mut hind_search: ResMut<HindSearch>,
+fn update_artr(
+    mut hind_search: ResMut<ArtrR2>,
     mut hind_move: ResMut<HindMove>,
-    serotonin_search: Res<Serotonin<HindSearch>>,
+    serotonin_search: Res<Serotonin<ArtrR2>>,
 ) {
     if ! serotonin_search.is_active() {
         return;
@@ -25,10 +25,10 @@ fn update_hind_search(
     }
 }
 
-pub struct HindSearch {
+pub struct ArtrR2 {
 }
 
-impl HindSearch {
+impl ArtrR2 {
     const ROAM_LOW : f32 = 1.;
     const ROAM_HIGH : f32 = 5.;
 
@@ -64,7 +64,7 @@ impl HindSearch {
     }
 }
 
-impl SerotoninTrait for HindSearch {}
+impl SerotoninTrait for ArtrR2 {}
 
 // Karpenko et al 2020 - ARTR oscillator 20s period
 pub struct OscillatorArs {
@@ -122,14 +122,14 @@ impl Plugin for HindSearchPlugin {
     fn build(&self, app: &mut App) {
         assert!(app.contains_plugin::<BodyEatPlugin>(), "HindEatPlugin requires BodyEatPlugin");
 
-        SerotoninManager::insert::<HindSearch>(app, self.search_time);
+        SerotoninManager::insert::<ArtrR2>(app, self.search_time);
 
-        let hind_search = HindSearch::new();
+        let hind_search = ArtrR2::new();
 
         // hind_search.is_eating = TimeoutValue::new(self.search_time);
 
         app.insert_resource(hind_search);
 
-        app.system(Tick, update_hind_search);
+        app.system(Tick, update_artr);
     }
 }

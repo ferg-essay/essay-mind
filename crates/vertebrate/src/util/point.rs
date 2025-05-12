@@ -425,6 +425,12 @@ impl PartialEq for Turn {
     }
 }
 
+impl Default for Turn {
+    fn default() -> Self {
+        Turn::Unit(0.)
+    }
+}
+
 impl From<f32> for Turn {
     #[inline]
     fn from(value: f32) -> Self {
