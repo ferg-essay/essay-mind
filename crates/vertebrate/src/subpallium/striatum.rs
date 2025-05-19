@@ -135,17 +135,28 @@ impl StriatumExclusive {
         self.active.value().map_or(false, |active_id| active_id == id)
     }
 
-    pub fn update(&mut self, id: StriatumId, tick: &AppTick) -> bool {
+    pub fn is_idle(&self) -> bool {
+        self.active.value().is_none()
+    }
+
+    pub fn is_update(&mut self, id: StriatumId, tick: &AppTick) -> bool {
         self.active.update_ticks(tick.ticks());
 
         if let Some(active_id) = self.active.value() {
             *active_id == id
-        } else if ! self.active.is_active() {
-            self.active.set(id);
-            true
         } else {
-            false
+            ! self.active.is_active()
         }
+    }
+
+    pub fn update_id(&mut self, id: StriatumId, tick: &AppTick) {
+        self.active.update_ticks(tick.ticks());
+
+        self.active.set(id);
+    }
+
+    pub fn update(&mut self, tick: &AppTick) {
+        self.active.update_ticks(tick.ticks());
     }
 
     pub fn init(&mut self, id: StriatumId, tick: &AppTick) {

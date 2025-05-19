@@ -58,7 +58,7 @@ impl ThigmotaxisArtr {
         self.left.memory.is_active() || self.right.memory.is_active()
     }
 
-    fn active_value(&self) -> f32 {
+    fn _active_value(&self) -> f32 {
         self.left.memory.active_value().max(self.right.memory.active_value())
     }
 

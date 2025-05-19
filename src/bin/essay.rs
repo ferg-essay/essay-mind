@@ -6,7 +6,7 @@ use vertebrate::{
     hind_brain::{
         r1_thigmotaxis::{Thigmotaxis, ThigmotaxisStrategy}, 
         ArtrR2, AvoidHerePlugin, HindAvoid, HindEat, HindMove, MoveKind, Serotonin
-    }, mid_brain::tectum::ThigmotaxisTectum, 
+    }, mid_brain::tectum::OrientTectum, 
     motive::{
         Dwell, Forage, Motive, MotiveEat, MotiveTrait, Sleep, Wake
     }, 
@@ -77,6 +77,10 @@ pub fn main() {
         .eye_angle(util::Angle::Deg(45.));
 
     animal.seek().seek(false);
+
+    animal.pretectum_obstacle().enable(true);
+    animal.pretectum_lateral_line().enable(true);
+
     animal.tectum_looming().enable(false);
     
     animal.tectum_thigmotaxis()
@@ -88,8 +92,8 @@ pub fn main() {
         .timeout_recover(Seconds(15.));
 
     animal.hind_thigmotaxis()
-        .enable(false)
-        .strategy(ThigmotaxisStrategy::Artr)
+        .enable(true)
+        .strategy(ThigmotaxisStrategy::Direct)
         .turn(Turn::Unit(0.15))
         .inhibited_value(0.5)
         .memory_time(Seconds(1.0))
@@ -143,7 +147,7 @@ pub fn world_thigmotaxis(w: usize, h: usize) -> WorldPlugin {
         .wall((w1, 0), (1, h1 + 1))
         .wall((1, h1 + 3), (2, 2))
         .wall((5, h1 + 3), (2, 2))
-        .wall((9, h1 + 3), (2, 2))
+        //.wall((9, h1 + 3), (2, 2))
         .wall((2 * w1, h1), (1, h - h1))
 }
 
@@ -273,14 +277,14 @@ fn ui_homunculus(ui: &mut UiSubBuilder) {
                 None
             }
         })
-        .orient(|taxis: &ThigmotaxisTectum| {
+        .orient(|taxis: &OrientTectum| {
             if taxis.active_left() {
                 Some(Orient(Heading::Unit(-0.20), 1.))
             } else {
                 None
             }
         })
-        .orient(|taxis: &ThigmotaxisTectum| {
+        .orient(|taxis: &OrientTectum| {
             if taxis.active_right() {
                 Some(Orient(Heading::Unit(0.2), 1.))
             } else {
@@ -510,7 +514,7 @@ fn ui_radar(ui: &mut UiSubBuilder) {
         .item(60., Emoji::MagnifyingGlassLeft, |m: &Motive<Dwell>| m.value())
         .item(90., Emoji::Footprints, |m: &HindMove| if m.action_kind() == MoveKind::Roam { 1. } else { 0. })
         //.item(135., Emoji::Shark, |m: &Thigmotaxis| m.active_value())
-        .item(135., Emoji::Shark, |m: &ThigmotaxisTectum| m.active_value())
+        .item(135., Emoji::Shark, |m: &OrientTectum| m.active_value())
         .item(180., Emoji::FaceSleeping, |m: &Sleep| if m.is_wake() { 0. } else { 1. })
         .item(240., Emoji::NoEntry, |m: &HindMove| {
             if m.is_obstacle() || m.is_avoid() { 1. } else { 0. }

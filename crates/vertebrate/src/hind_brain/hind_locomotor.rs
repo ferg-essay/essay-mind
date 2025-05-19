@@ -798,7 +798,7 @@ impl MoveKind {
         }
     }
     
-    fn turn(&self) -> Option<Turn> {
+    fn _turn(&self) -> Option<Turn> {
         match self {
             MoveKind::Thigmotaxis(turn) => Some(*turn),
             MoveKind::Escape(turn) => Some(*turn),

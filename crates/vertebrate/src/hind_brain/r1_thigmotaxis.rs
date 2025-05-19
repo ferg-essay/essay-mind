@@ -1,23 +1,38 @@
 use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}};
-use mind_ecs::Tick;
+use mind_ecs::{AppTick, Tick};
 
-use crate::{hind_brain::{lateral_line::{LateralLine2Plugin, Segment}, r1_thigmotaxis_artr::{update_thigmaxis_artr, ThigmotaxisArtr}, HindMovePlugin}, util::{DecayValue, HalfLife, Seconds, Ticks, Turn}};
+use crate::{hind_brain::{lateral_line::{LateralLine2Plugin, Segment}, r1_thigmotaxis_artr::{update_thigmaxis_artr, ThigmotaxisArtr}, HindMovePlugin}, subpallium::{StriatumExclusive, StriatumId, StriatumTimeout}, util::{DecayValue, HalfLife, Seconds, Ticks, Turn}};
 
-use super::{lateral_line::LateralLine, HindMove};
+use super::{lateral_line::LateralLine, r2_artr::Side, HindMove};
 
 fn update_thigmaxis_direct(
     mut hind_move: ResMut<HindMove>,
     mut thigmotaxis: ResMut<Thigmotaxis>,
     lateral_line: Res<LateralLine>,
+    tick: Res<AppTick>,
 ) {
-    thigmotaxis.update();
+    thigmotaxis.update(lateral_line.as_ref(), tick.as_ref());
 
-    let mut left_turn = None;
-    let mut right_turn = None;
+    let turn_left = thigmotaxis.left.turn(lateral_line.as_ref());
+    let turn_right = thigmotaxis.right.turn(lateral_line.as_ref());
+
+    if turn_left.is_some() && turn_right.is_some() {
+        // todo
+    } else if let Some(turn) = turn_left {
+        hind_move.turn(turn);
+    } else if let Some(turn) = turn_right {
+        hind_move.turn(turn);
+    }
+
+    // thigmotaxis.update();
+
+    //let mut left_turn = None;
+    //let mut right_turn = None;
 
     let left_head = lateral_line.max(Segment::HeadLeft);
     let left_trunk = lateral_line.max(Segment::TailLeft);
 
+    /*
     if left_head > 0. || left_trunk > 0. {
         if ! thigmotaxis.right.is_active() {
             thigmotaxis.left.set_max(1.);
@@ -60,19 +75,34 @@ fn update_thigmaxis_direct(
     } else if let Some(turn) = right_turn {
         hind_move.ante().thigmotaxis(turn);
     }
+    */
 }
 
-#[derive(Default)]
 pub struct Thigmotaxis {
     // max turn rate
-    turn: Turn, 
-
-    // inhibited value
-    inhibited_value: f32,
+    // turn: Turn, 
 
     // memory of thigmotaxis side.
-    left: DecayValue,
-    right: DecayValue,
+    left: ThigmotaxisSide,
+    right: ThigmotaxisSide,
+
+    ui_left: DecayValue,
+    ui_right: DecayValue,
+
+}
+
+impl Default for Thigmotaxis {
+    fn default() -> Self {
+        let left = ThigmotaxisSide::default(Side::Left);
+        let right = ThigmotaxisSide::default(Side::Right);
+
+        Self { 
+            left,
+            right,
+            ui_left: Default::default(), 
+            ui_right: Default::default() 
+        }
+    }
 }
 
 impl Thigmotaxis {
@@ -83,54 +113,184 @@ impl Thigmotaxis {
         let half_life = Ticks(4);
 
         Thigmotaxis {
-            turn: plugin.turn,
-            inhibited_value: plugin.inhibited_value,
+            left: ThigmotaxisSide::new(Side::Left, plugin), // half_life, plugin.turn),
+            right: ThigmotaxisSide::new(Side::Right, plugin),
+            // exclusive,
 
-            left: DecayValue::new(half_life),
-            right: DecayValue::new(half_life),
+            ui_left: DecayValue::new(half_life),
+            ui_right: DecayValue::new(half_life),
         }
     }
 
     pub fn is_active(&self) -> bool {
-        self.left.is_active() || self.right.is_active()
+        self.ui_left.is_active() || self.ui_right.is_active()
     }
 
     pub fn active_value(&self) -> f32 {
-        self.left.active_value().max(self.right.active_value())
+        self.ui_left.active_value().max(self.ui_right.active_value())
     }
 
     // todo: currently used as a UI hack
-    pub(super) fn set_value(&mut self, value: f32) {
-        self.left.set(value);
-        self.right.set(value);
+    pub(super) fn _set_value(&mut self, value: f32) {
+        self.ui_left.set(value);
+        self.ui_right.set(value);
     }
 
     // todo: currently used as a UI hack
     pub(super) fn set_left(&mut self, value: f32) {
-        self.left.set(value);
+        self.ui_left.set(value);
     }
 
     // todo: currently used as a UI hack
     pub(super) fn set_right(&mut self, value: f32) {
-        self.right.set(value);
+        self.ui_right.set(value);
     }
 
     pub fn left_active(&self) -> bool {
-        self.left.is_active()
+        self.ui_left.is_active()
     }
 
     pub fn right_active(&self) -> bool {
-        self.right.is_active()
+        self.ui_right.is_active()
     }
 
     fn turn(&self, head: f32) -> Turn {
-        Turn::Unit(self.turn.to_unit() * (Thigmotaxis::MAX_THRESHOLD - head))
+        // Turn::Unit(self.turn.to_unit() * (Thigmotaxis::MAX_THRESHOLD - head))
+        todo!()
     }
 
-    fn update(&mut self)  {
-        self.left.update();
-        self.right.update();
+    fn update(
+        &mut self, 
+        lateral_line: &LateralLine,
+        tick: &AppTick,
+    )  {
+        self.ui_left.update();
+        self.ui_right.update();
+        /*
+        self.exclusive.update(tick);
+        
+        if self.exclusive.is_active(self.left.id, tick) {
+            if self.left.update(lateral_line, tick) {
+                self.exclusive.update_id(self.left.id, tick);
+            }
+        } else if self.exclusive.is_active(self.right.id, tick) {
+            if self.right.update(lateral_line, tick) {
+                self.exclusive.update_id(self.right.id, tick);
+            }
+        } else if self.exclusive.is_idle() {
+
+        }
+        */
     }
+}
+
+struct ThigmotaxisSide {
+    side: Side,
+
+    ll_target: f32,
+    turn_max: f32,
+
+    // memory of thigmotaxis side.
+    memory: DecayValue,
+
+    // id: StriatumId,
+    timeout: StriatumTimeout,
+}
+
+impl ThigmotaxisSide {
+    fn new(
+        side: Side,
+        plugin: &HindThigmotaxisPlugin,
+    ) -> Self {
+        let half_life = plugin.memory_time;
+        let mut timeout = StriatumTimeout::new();
+
+        if let Some(ticks) = plugin.timeout {
+            timeout = timeout.ltd(ticks);
+        }
+
+        if let Some(ticks) = plugin.timeout_recover {
+            timeout = timeout.decay(ticks);
+        }
+
+        // let id = exclusive.alloc_id();
+
+        Self {
+            side,
+            ll_target: 0.6,
+            turn_max: plugin.turn.to_unit(),
+            memory: DecayValue::new(half_life),
+
+            // id,
+            timeout,
+        }
+    }
+
+    fn default(
+        side: Side,
+    ) -> Self {
+        let half_life = HalfLife::default();
+        Self {
+            side,
+            ll_target: 0.5,
+            turn_max: Turn::Unit(0.25).to_unit(),
+            memory: DecayValue::new(half_life),
+            timeout: StriatumTimeout::new(),
+            // id: StriatumId::default(),
+        }
+    }
+
+    fn update(
+        &mut self, 
+        lateral_line: &LateralLine,
+        tick: &AppTick,
+    ) -> bool {
+        self.memory.update();
+
+        let head = lateral_line.max(head(self.side));
+
+        if head > 0. || self.memory.is_active() {
+            if ! self.timeout.is_active(tick) {
+                self.memory.set(0.);
+            } else if head > 0. {
+                self.memory.set_max(1.);
+            }
+        }
+
+        self.memory.is_active()
+    }
+
+    // turn pressure
+    fn turn(&self, lateral_line: &LateralLine) -> Option<Turn> {
+        if self.memory.is_active() {
+            let head = lateral_line.max(head(self.side));
+
+            let delta = self.ll_target - head;
+
+            let turn = match self.side {
+                Side::Left => Turn::Unit(- 0.5 * delta * self.turn_max),
+                Side::Right => Turn::Unit(0.5 * delta * self.turn_max),
+            };
+
+            Some(turn)
+        } else {
+            None
+        }
+    }
+}
+
+fn head(side: Side) -> Segment {
+    match side {
+        Side::Left => Segment::HeadLeft,
+        Side::Right => Segment::HeadRight,
+    }    
+}
+
+fn _tail(side: Side) -> Segment {
+    match side {
+        Side::Left => Segment::TailLeft,
+        Side::Right => Segment::TailRight,
+    }    
 }
 
 pub struct HindThigmotaxisPlugin {

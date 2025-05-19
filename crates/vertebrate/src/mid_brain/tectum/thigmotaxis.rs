@@ -5,19 +5,19 @@ use crate::{
     hind_brain::{
         lateral_line::{LateralLine, LateralLine2Plugin, Segment},
         HindMove, HindMovePlugin
-    }, subpallium::{StriatumExclusive, StriatumId, StriatumTimeout}, util::{DecayValue, HalfLife, Seconds, Side, Ticks, Turn}
+    }, subpallium::{StriatumExclusive, StriatumId, StriatumTimeout}, util::{DecayValue, HalfLife, Seconds, Ticks, Turn}
 };
 
-fn update_orient_tectum(
+fn update_thigmotaxis_tectum(
     mut hind_move: ResMut<HindMove>,
-    mut orient: ResMut<OrientTectum>,
+    mut thigmotaxis: ResMut<ThigmotaxisTectum>,
     lateral_line: Res<LateralLine>,
     tick: Res<AppTick>,
 ) {
-    orient.update(lateral_line.as_ref(), tick.as_ref());
+    thigmotaxis.update(lateral_line.as_ref(), tick.as_ref());
 
-    let turn_left = orient.left.turn(lateral_line.as_ref());
-    let turn_right = orient.right.turn(lateral_line.as_ref());
+    let turn_left = thigmotaxis.left.turn(lateral_line.as_ref());
+    let turn_right = thigmotaxis.right.turn(lateral_line.as_ref());
 
     if turn_left.is_some() && turn_right.is_some() {
         // todo
@@ -37,20 +37,20 @@ fn update_orient_tectum(
     */
 }
 
-pub struct OrientTectum {
+pub struct ThigmotaxisTectum {
     // memory of thigmotaxis side.
-    left: OrientSide,
-    right: OrientSide,
+    left: ThigmotaxisSide,
+    right: ThigmotaxisSide,
     exclusive: StriatumExclusive,
 }
 
-impl OrientTectum {
-    pub(super) fn new(plugin: &TectumOrientPlugin) -> Self {
+impl ThigmotaxisTectum {
+    pub(super) fn new(plugin: &TectumThigmotaxisPlugin) -> Self {
         let mut exclusive = StriatumExclusive::default();
         
-        OrientTectum {
-            left: OrientSide::new(Side::Left, &mut exclusive, plugin), // half_life, plugin.turn),
-            right: OrientSide::new(Side::Right, &mut exclusive, plugin),
+        ThigmotaxisTectum {
+            left: ThigmotaxisSide::new(Side::Left, &mut exclusive, plugin), // half_life, plugin.turn),
+            right: ThigmotaxisSide::new(Side::Right, &mut exclusive, plugin),
             exclusive,
         }
     }
@@ -93,17 +93,17 @@ impl OrientTectum {
     }
 }
 
-impl Default for OrientTectum {
+impl Default for ThigmotaxisTectum {
     fn default() -> Self {
         Self {
-            left: OrientSide::default(Side::Left),
-            right: OrientSide::default(Side::Right),
+            left: ThigmotaxisSide::default(Side::Left),
+            right: ThigmotaxisSide::default(Side::Right),
             exclusive: StriatumExclusive::default(),
         }
     }
 }
 
-struct OrientSide {
+struct ThigmotaxisSide {
     side: Side,
 
     ll_target: f32,
@@ -116,11 +116,11 @@ struct OrientSide {
     timeout: StriatumTimeout,
 }
 
-impl OrientSide {
+impl ThigmotaxisSide {
     fn new(
         side: Side,
         exclusive: &mut StriatumExclusive,
-        plugin: &TectumOrientPlugin,
+        plugin: &TectumThigmotaxisPlugin,
     ) -> Self {
         let half_life = plugin.memory_time;
         let mut timeout = StriatumTimeout::new();
@@ -213,7 +213,7 @@ fn _tail(side: Side) -> Segment {
     }    
 }
 
-pub struct TectumOrientPlugin {
+pub struct TectumThigmotaxisPlugin {
     pub(super) is_enable: bool,
     pub(super) memory_time: HalfLife,
     pub(super) inhibited_value: f32,
@@ -222,7 +222,7 @@ pub struct TectumOrientPlugin {
     pub(super) timeout_recover: Option<Ticks>,
 }
 
-impl TectumOrientPlugin {
+impl TectumThigmotaxisPlugin {
     pub fn new() -> Self {
         Self::default()
     }
@@ -265,7 +265,7 @@ impl TectumOrientPlugin {
     }
 }
 
-impl Default for TectumOrientPlugin {
+impl Default for TectumThigmotaxisPlugin {
     fn default() -> Self {
         Self { 
             is_enable: true, 
@@ -278,14 +278,20 @@ impl Default for TectumOrientPlugin {
     }
 }
 
-impl Plugin for TectumOrientPlugin {
+impl Plugin for TectumThigmotaxisPlugin {
     fn build(&self, app: &mut App) {
         assert!(app.contains_plugin::<HindMovePlugin>(), "TectumThigmotaxis requires HindLocomotion");
         assert!(app.contains_plugin::<LateralLine2Plugin>(), "TectumThigmotaxis requires LateralLine");
 
         if self.is_enable {
-            app.insert_resource(OrientTectum::new(&self));
-            app.system(Tick, update_orient_tectum);
+            app.insert_resource(ThigmotaxisTectum::new(&self));
+            app.system(Tick, update_thigmotaxis_tectum);
         }
     }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+enum Side {
+    Left,
+    Right
 }

@@ -1,43 +1,20 @@
 use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}};
 use mind_ecs::Tick;
 
-use crate::{hind_brain::{lateral_line::{LateralLine, Segment}, HindMove}, util::Turn};
+use crate::{
+    hind_brain::{lateral_line::{LateralLine, Segment}}, 
+    mid_brain::pretectum::obstacle::ObstaclePretectum, type_short,
+};
 
 fn lateral_line_update(
     lateral_line: Res<LateralLine>,
-    pt_lateral_line: Res<PretectumLateralLine>,
-    mut hind_move: ResMut<HindMove>
+    mut obstacle: ResMut<ObstaclePretectum>,
 ) {
     let head_left = lateral_line.max(Segment::HeadLeft);
+    obstacle.set_max_left(head_left);
+
     let head_right = lateral_line.max(Segment::HeadRight);
-
-    if pt_lateral_line.threshold < head_left || pt_lateral_line.threshold < head_right {
-        if head_right < head_left {
-            hind_move.optic().escape(PretectumLateralLine::TURN);
-            hind_move.set_ss_left(0.75);
-        } else {
-            hind_move.optic().escape(- PretectumLateralLine::TURN);
-            hind_move.set_ss_right(0.75);
-        }
-    }
-}
-
-
-struct PretectumLateralLine {
-    pub threshold: f32,
-}
-
-impl PretectumLateralLine {
-    const THRESHOLD : f32 = 0.5;
-
-    const TURN : Turn = Turn::Unit(0.10);
-    const _U_TURN : Turn = Turn::Unit(0.40);
-
-    fn new() -> Self {
-        Self {
-            threshold: Self::THRESHOLD,
-        }
-    }
+    obstacle.set_max_right(head_right);
 }
 
 pub struct PretectumLateralLinePlugin {
@@ -61,11 +38,12 @@ impl PretectumLateralLinePlugin {
 impl Plugin for PretectumLateralLinePlugin {
     fn build(&self, app: &mut App) {
         if self.is_enable {
-            if ! app.contains_resource::<LateralLine>() {
-                panic!("PretectumLateralLine requires LateralLine");
-            }
-    
-            app.insert_resource(PretectumLateralLine::new());
+            assert!(app.contains_resource::<LateralLine>(),
+                "{} requires LateralLine", type_short!(Self)
+            );
+            assert!(app.contains_resource::<ObstaclePretectum>(),
+                "{} requires ObstaclePretectum", type_short!(Self)
+            );
     
             app.system(Tick, lateral_line_update);
         }
