@@ -18,6 +18,7 @@ fn body_update(
 ) {
     body.update(world.get());
 
+    /*
     if body.is_collide_left() {
         touch_event.send(Touch::CollideLeft);
     } 
@@ -25,6 +26,7 @@ fn body_update(
     if body.is_collide_right() {
         touch_event.send(Touch::CollideRight);
     }
+    */
 }
 
 ///

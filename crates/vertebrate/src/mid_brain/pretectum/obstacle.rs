@@ -15,6 +15,7 @@ fn obstacle_update(
 
 pub struct ObstaclePretectum {
     threshold: f32, 
+    startle: f32,
 
     obstacle_left: DecayValue,
     obstacle_right: DecayValue,
@@ -24,6 +25,7 @@ pub struct ObstaclePretectum {
 
 impl ObstaclePretectum {
     const THRESHOLD : f32 = 0.5;
+    const STARTLE : f32 = 0.9;
 
     const TURN : Turn = Turn::Unit(0.10);
     const _U_TURN : Turn = Turn::Unit(0.40);
@@ -31,6 +33,7 @@ impl ObstaclePretectum {
     fn new() -> Self {
         Self {
             threshold: Self::THRESHOLD,
+            startle: Self::STARTLE,
 
             obstacle_left: DecayValue::new(Ticks(2)),
             obstacle_right: DecayValue::new(Ticks(2)),
@@ -47,6 +50,14 @@ impl ObstaclePretectum {
         if self.is_enable { self.obstacle_right.value() } else { 0. }
     }
 
+    pub fn forward(&self) -> f32 {
+        if self.is_enable { 
+            self.obstacle_left.value().min(self.obstacle_right.value())
+        } else { 
+            0. 
+        }
+    }
+
     pub fn set_max_left(&mut self, value: f32) {
         self.obstacle_left.set_max(value);
     }
@@ -58,6 +69,14 @@ impl ObstaclePretectum {
     fn update(&mut self, hind_move: &mut HindMove) {
         let left = self.left();
         let right = self.right();
+
+        if self.startle <= left {
+            hind_move.startle().escape_left(left);
+        }
+
+        if self.startle <= right {
+            hind_move.startle().escape_right(right);
+        }
 
         if self.threshold < left || self.threshold < right {
             if right < left {

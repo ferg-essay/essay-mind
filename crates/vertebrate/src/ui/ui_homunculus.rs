@@ -12,7 +12,7 @@ use ui_graphics::ViewPlugin;
 use crate::{
     body::Body, 
     hind_brain::{HindMove, MoveKind}, 
-    mid_brain::taxis::Taxis, 
+    mid_brain::{pretectum::ObstaclePretectum, taxis::Taxis}, 
     util::Turn 
 };
 
@@ -24,6 +24,7 @@ pub fn ui_homunculus_draw(
     mut ui_homunculus: ResMut<UiHomunculus>,
     body: Res<Body>,
     hind_move: Res<HindMove>,
+    obstacle: Res<ObstaclePretectum>,
     taxis: Res<Taxis>,
     mut orient: ResMut<UiOrient>,
 ) {
@@ -62,9 +63,12 @@ pub fn ui_homunculus_draw(
         v.mo_left = hind_move.mo_left();
         v.mo_right = hind_move.mo_right();
 
-        v.ss_forward = hind_move.ss_forward();
-        v.ss_head_left = hind_move.ss_left();
-        v.ss_head_right = hind_move.ss_right();
+        //v.ss_forward = hind_move.ss_forward();
+        //v.ss_head_left = hind_move.ss_left();
+        //v.ss_head_right = hind_move.ss_right();
+        v.ss_forward = 0.5 + 0.5 * obstacle.forward();
+        v.ss_head_left = 0.5 + 0.5 * obstacle.left();
+        v.ss_head_right = 0.5 + 0.5 * obstacle.right();
 
         v.orient_values = orient.value();
         v.approach_values = approach_values;

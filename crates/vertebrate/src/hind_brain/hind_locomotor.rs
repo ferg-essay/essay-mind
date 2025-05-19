@@ -145,7 +145,7 @@ pub struct HindMove {
     artr_r2: ArtrR2,
 
     // r4 Mauthner cell - acoustic startle escape
-    startle_r4: Option<StartleR4>,
+    startle_r4: StartleR4,
 
     // r5/r6 MRS/MRRN - Zebrafish MiD2
     // mammal LPGi
@@ -185,7 +185,7 @@ impl HindMove {
 
             artr_r2: ArtrR2::new(),
 
-            startle_r4: None,
+            startle_r4: StartleR4::new(),
 
             forward_r5: ForwardR5::new(),
             turn_r5: TurnR5::new(),
@@ -236,6 +236,14 @@ impl HindMove {
     #[inline]
     pub fn optic(&mut self) -> &mut OpticMid {
         &mut self.optic_mb
+    }
+
+    ///
+    /// Startle R4 Mauthner cell
+    /// 
+    #[inline]
+    pub fn startle(&mut self) -> &mut StartleR4 {
+        &mut self.startle_r4
     }
 
     ///
@@ -318,19 +326,17 @@ impl HindMove {
         self.pre_update();
 
         // Startle Mauthner cell in r4
-        if let Some(startle) = &mut self.startle_r4 {
-            startle.update(body);
+        self.startle_r4.update(body);
 
-            self.ss_forward = startle.ss_forward().max(self.ss_forward);
-            self.ss_left = startle.ss_left().max(self.ss_left);
-            self.ss_right = startle.ss_right().max(self.ss_right);
+        self.ss_forward = self.startle_r4.ss_forward().max(self.ss_forward);
+        self.ss_left = self.startle_r4.ss_left().max(self.ss_left);
+        self.ss_right = self.startle_r4.ss_right().max(self.ss_right);
 
-            if self.action.allow_startle() {
-                if let Some(action) = startle.next_action() {
-                    self.action = action;
-                    self.send_action(body);
-                    return true;
-                }
+        if self.action.allow_startle() {
+            if let Some(action) = self.startle_r4.next_action() {
+                self.action = action;
+                self.send_action(body);
+                return true;
             }
         }
 
@@ -864,7 +870,7 @@ impl Plugin for HindMovePlugin {
 
         let mut hind_move = HindMove::new();
         // hind_move.artr_r2 = Some(OscillatorArs::new());
-        hind_move.startle_r4 = Some(StartleR4::new());
+        hind_move.startle_r4 = StartleR4::new();
 
         app.insert_resource(hind_move);
 

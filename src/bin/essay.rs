@@ -79,6 +79,7 @@ pub fn main() {
     animal.seek().seek(false);
 
     animal.pretectum_obstacle().enable(true);
+    animal.pretectum_touch().enable(true);
     animal.pretectum_lateral_line().enable(true);
 
     animal.tectum_looming().enable(false);
