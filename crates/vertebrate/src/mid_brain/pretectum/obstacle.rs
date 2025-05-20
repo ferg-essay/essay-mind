@@ -2,15 +2,15 @@ use essay_ecs::{app::{App, Plugin}, core::ResMut};
 use mind_ecs::Tick;
 
 use crate::{
-    hind_brain::HindMove, 
-    util::{DecayValue, Ticks, Turn}
+    hind_brain::HindMove, mid_brain::tectum::OrientTectum, util::{DecayValue, Ticks, Turn}
 };
 
 fn obstacle_update(
     mut obstacle: ResMut<ObstaclePretectum>,
+    mut orient: ResMut<OrientTectum>,
     mut hind_move: ResMut<HindMove>
 ) {
-    obstacle.update(hind_move.get_mut());
+    obstacle.update(orient.get_mut(), hind_move.get_mut());
 }
 
 pub struct ObstaclePretectum {
@@ -66,9 +66,16 @@ impl ObstaclePretectum {
         self.obstacle_right.set_max(value);
     }
 
-    fn update(&mut self, hind_move: &mut HindMove) {
+    fn update(
+        &mut self, 
+        orient: &mut OrientTectum,
+        hind_move: &mut HindMove
+    ) {
         let left = self.left();
         let right = self.right();
+
+        orient.set_obstacle_left(left);
+        orient.set_obstacle_right(right);
 
         if self.startle <= left {
             hind_move.startle().escape_left(left);

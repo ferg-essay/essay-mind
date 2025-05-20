@@ -13,20 +13,9 @@ use crate::world::World;
 /// 
 fn body_update(
     mut body: ResMut<Body>,
-    mut touch_event: OutEvent<Touch>,
     world: Res<World>,
 ) {
     body.update(world.get());
-
-    /*
-    if body.is_collide_left() {
-        touch_event.send(Touch::CollideLeft);
-    } 
-    
-    if body.is_collide_right() {
-        touch_event.send(Touch::CollideRight);
-    }
-    */
 }
 
 ///

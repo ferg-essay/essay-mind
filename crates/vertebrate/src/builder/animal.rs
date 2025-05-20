@@ -12,7 +12,7 @@ use crate::{
     mid_brain::{
         pretectum::{lateral_line::PretectumLateralLinePlugin, ObstaclePretectumPlugin, PretectumTouchPlugin}, 
         taxis::{klinotaxis::KlinotaxisPlugin, TaxisAvoidPlugin}, 
-        tectum::{TectumLoomingPlugin, TectumOrientPlugin, TectumPlugin}, 
+        tectum::{TectumLateralLinePlugin, TectumLoomingPlugin, TectumOrientPlugin, TectumPlugin}, 
         MidMovePlugin, MidSeekContextPlugin, MidSeekPlugin
     }, 
     motive::{Dwell, Forage, Motive, MotiveAvoidPlugin, MotiveEatPlugin, MotiveForagePlugin, MotiveSleepPlugin}, 
@@ -40,7 +40,9 @@ pub struct AnimalBuilder {
     pretectum_lateral_line: PretectumLateralLinePlugin,
 
     tectum_looming: TectumLoomingPlugin,
-    tectum_thigmotaxis: TectumOrientPlugin,
+
+    tectum_orient: TectumOrientPlugin,
+    tectum_lateral_line: TectumLateralLinePlugin,
 
     is_motive_eating: bool,
     is_mid_seek: bool,
@@ -69,7 +71,9 @@ impl AnimalBuilder {
             pretectum_touch: PretectumTouchPlugin::new(),
             pretectum_lateral_line: PretectumLateralLinePlugin::new(),
 
-            tectum_thigmotaxis: TectumOrientPlugin::new(),
+            tectum_orient: TectumOrientPlugin::new(),
+            tectum_lateral_line: TectumLateralLinePlugin::new(),
+
             tectum_looming: TectumLoomingPlugin::new(),
 
             is_motive_eating: true,
@@ -100,6 +104,14 @@ impl AnimalBuilder {
         &mut self.pretectum_lateral_line
     }
 
+    pub fn tectum_orient(&mut self) -> &mut TectumOrientPlugin {
+        &mut self.tectum_orient
+    }
+
+    pub fn tectum_lateral_line(&mut self) -> &mut TectumLateralLinePlugin {
+        &mut self.tectum_lateral_line
+    }
+
     pub fn tectum_looming(&mut self) -> &mut TectumLoomingPlugin {
         &mut self.tectum_looming
     }
@@ -114,10 +126,6 @@ impl AnimalBuilder {
 
     pub fn hind_thigmotaxis(&mut self) -> &mut HindThigmotaxisPlugin {
         &mut self.hind_thigmotaxis
-    }
-
-    pub fn tectum_thigmotaxis(&mut self) -> &mut TectumOrientPlugin {
-        &mut self.tectum_thigmotaxis
     }
 
     pub fn motive(&mut self) -> MotiveBuilder {
@@ -153,7 +161,8 @@ impl AnimalBuilder {
         app.plugin(self.pretectum_touch);
         app.plugin(self.pretectum_lateral_line);
 
-        app.plugin(self.tectum_thigmotaxis);
+        app.plugin(self.tectum_orient);
+        app.plugin(self.tectum_lateral_line);
 
         app.plugin(TectumPlugin::new().striatum());
         app.plugin(self.tectum_looming);

@@ -1,3 +1,4 @@
+mod striatum2;
 mod basal_forebrain;
 mod gate;
 mod striatum;

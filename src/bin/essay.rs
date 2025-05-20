@@ -84,7 +84,7 @@ pub fn main() {
 
     animal.tectum_looming().enable(false);
     
-    animal.tectum_thigmotaxis()
+    animal.tectum_orient()
         .enable(true)
         .turn(Turn::Unit(0.15))
         .inhibited_value(0.5)

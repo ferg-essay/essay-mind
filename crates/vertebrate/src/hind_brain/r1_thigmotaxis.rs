@@ -154,11 +154,6 @@ impl Thigmotaxis {
         self.ui_right.is_active()
     }
 
-    fn turn(&self, head: f32) -> Turn {
-        // Turn::Unit(self.turn.to_unit() * (Thigmotaxis::MAX_THRESHOLD - head))
-        todo!()
-    }
-
     fn update(
         &mut self, 
         lateral_line: &LateralLine,
