@@ -3,7 +3,7 @@ use mind_ecs::Tick;
 
 use crate::{
     hind_brain::{lateral_line::{LateralLine, Segment}}, 
-    mid_brain::pretectum::ObstaclePretectum, type_short,
+    type_short,
 };
 
 use super::OrientTectum;

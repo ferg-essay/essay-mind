@@ -1,8 +1,6 @@
 use core::{fmt, hash};
 use std::{
-    cell::RefCell, 
-    hash::{DefaultHasher, Hasher}, 
-    rc::Rc
+    cell::RefCell, hash::{DefaultHasher, Hasher}, marker::PhantomData, rc::Rc
 };
 
 pub struct LruCache<K, V> {
@@ -12,6 +10,8 @@ pub struct LruCache<K, V> {
     head: Option<Item<K, V>>,
     tail: Option<Item<K, V>>,
 }
+
+unsafe impl<K: Send, V: Send> Send for LruCache<K, V> {}
 
 impl<K, V> LruCache<K, V> {
     pub fn new(n_lru: usize) -> Self {
@@ -157,7 +157,7 @@ where
     }
 }
 
-pub struct Entry<'a, K, V> {
+pub struct Entry<'a, K: 'static, V: 'static> {
     cache: &'a LruCache<K, V>,
     bucket: usize,
     pos: usize,

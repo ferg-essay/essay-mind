@@ -8,4 +8,4 @@ pub use basal_forebrain::{AttendId, AttendValue, BasalForebrain};
 pub use gate::{Gate, StriatumGate};
 pub use mosaic::{Mosaic, MosaicType};
 pub use striatum::{StriatumTimeout, StriatumValue, StriatumId, StriatumExclusive};
-pub use striatum2::{Striatum, StriatumValue2};
+pub use striatum2::{StriatumSide, Striatum, StriatumValue2};

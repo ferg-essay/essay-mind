@@ -2,27 +2,69 @@ use std::marker::PhantomData;
 
 use mind_ecs::AppTick;
 
-use crate::{hippocampus::Engram64, util::{lru_cache::LruCache, Seconds, Ticks, TimeoutValue}};
+use crate::{hippocampus::Engram64, util::{lru_cache::LruCache, Seconds, Ticks}};
 
 use super::MosaicType;
 
 pub struct Striatum<T: MosaicType> {
+    left: StriatumSide<T>,
+    right: StriatumSide<T>,
+}
+
+impl<T: MosaicType> Striatum<T> {
+    pub fn new() -> Self {
+        Self {
+            left: StriatumSide::new(),
+            right: StriatumSide::new(),
+        }
+    }
+
+    pub fn timeout(&mut self, time: impl Into<Ticks>) -> &mut Self {
+        let time = time.into();
+
+        self.left.timeout(time);
+        self.right.timeout(time);
+
+        self
+    }
+
+    pub fn recover(&mut self, time: impl Into<Ticks>) -> &mut Self {
+        let time = time.into();
+
+        self.left.recover(time);
+        self.right.recover(time);
+
+        self
+    }
+
+    pub fn left_mut(&mut self) -> &mut StriatumSide<T> {
+        &mut self.left
+    }
+
+    pub fn right_mut(&mut self) -> &mut StriatumSide<T> {
+        &mut self.right
+    }
+}
+
+pub struct StriatumSide<T: MosaicType> {
     timeout: f32,
     recover: f32,
 
-    sustain_threshold: f32,
+    init_threshold: f32,
 
     active_gap: Ticks,
 
     cache: LruCache<Engram64, Item>,
 
     engram: Option<Engram64>,
-    next_engram: Option<Engram64>,
+    _next_engram: Option<Engram64>,
 
-    marker: PhantomData<T>,
+    marker: PhantomData<fn(T)>,
 }
 
-impl<T: MosaicType> Striatum<T> {
+//unsafe impl<T: MosaicType> Sync for Striatum<T> {}
+
+impl<T: MosaicType> StriatumSide<T> {
     const BUILDUP : f32 = 25.;
     const DECAY : f32 = 1.5 * Self::BUILDUP;
 
@@ -35,27 +77,35 @@ impl<T: MosaicType> Striatum<T> {
             recover: 1. / decay.ticks().max(1) as f32,
 
             active_gap: Ticks(3),
-            sustain_threshold: 0.5,
+            init_threshold: 0.,
 
             cache: LruCache::new(16),
 
             engram: None,
-            next_engram: None,
+            _next_engram: None,
 
             marker: Default::default(),
         }
     }
 
-    pub fn timeout(mut self, time: impl Into<Ticks>) -> Self {
+    pub fn timeout(&mut self, time: impl Into<Ticks>) -> &mut Self {
         let time: Ticks = time.into();
         self.timeout = 1. / time.ticks().max(1) as f32;
 
         self
     }
 
-    pub fn recover(mut self, time: impl Into<Ticks>) -> Self {
+    pub fn recover(&mut self, time: impl Into<Ticks>) -> &mut Self {
         let time: Ticks = time.into();
         self.recover = 1. / time.ticks().max(1) as f32;
+
+        self
+    }
+
+    pub fn init_threshold(&mut self, init_threshold: f32) -> &mut Self {
+        assert!(0. <= init_threshold && init_threshold <= 1.);
+
+        self.init_threshold = init_threshold;
 
         self
     }
@@ -85,7 +135,7 @@ impl<T: MosaicType> Striatum<T> {
                 // decay timeout since last time
                 v.timeout = (v.timeout - (now - last_time) as f32 * self.recover).max(0.);
 
-                if v.timeout <= 1. - self.sustain_threshold {
+                if v.timeout <= self.init_threshold {
                     v.last_active = now;
                     v.timeout = (v.timeout + self.timeout).min(1.);
 
