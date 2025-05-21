@@ -1,3 +1,4 @@
+pub mod lru_cache;
 pub mod dyn_key;
 mod base64;
 mod command;

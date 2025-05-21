@@ -1,24 +1,28 @@
+use std::marker::PhantomData;
+
 use mind_ecs::AppTick;
 
-use crate::util::{Seconds, Ticks, TimeoutValue};
+use crate::{hippocampus::Engram64, util::{lru_cache::LruCache, Seconds, Ticks, TimeoutValue}};
 
-pub struct StriatumTimeout {
-    ltd_rise: f32,
-    ltd_decay: f32,
+use super::MosaicType;
 
-    // hysteresis
-    threshold_high: f32,
-    threshold_low: f32,
+pub struct Striatum<T: MosaicType> {
+    timeout: f32,
+    recover: f32,
+
+    sustain_threshold: f32,
 
     active_gap: Ticks,
 
-    ltd: f32,
+    cache: LruCache<Engram64, Item>,
 
-    last_active: u64,
-    last_time: u64,
+    engram: Option<Engram64>,
+    next_engram: Option<Engram64>,
+
+    marker: PhantomData<T>,
 }
 
-impl StriatumTimeout {
+impl<T: MosaicType> Striatum<T> {
     const BUILDUP : f32 = 25.;
     const DECAY : f32 = 1.5 * Self::BUILDUP;
 
@@ -27,153 +31,101 @@ impl StriatumTimeout {
         let decay : Ticks = Seconds(Self::DECAY).into();
 
         Self {
-            ltd_rise: 1. / ltd.ticks().max(1) as f32,
-            ltd_decay: 1. / decay.ticks().max(1) as f32,
-            threshold_high: 0.9,
-            threshold_low: 0.1,
-            active_gap: Ticks(3),
+            timeout: 1. / ltd.ticks().max(1) as f32,
+            recover: 1. / decay.ticks().max(1) as f32,
 
-            ltd: 0.,
+            active_gap: Ticks(3),
+            sustain_threshold: 0.5,
+
+            cache: LruCache::new(16),
+
+            engram: None,
+            next_engram: None,
+
+            marker: Default::default(),
+        }
+    }
+
+    pub fn timeout(mut self, time: impl Into<Ticks>) -> Self {
+        let time: Ticks = time.into();
+        self.timeout = 1. / time.ticks().max(1) as f32;
+
+        self
+    }
+
+    pub fn recover(mut self, time: impl Into<Ticks>) -> Self {
+        let time: Ticks = time.into();
+        self.recover = 1. / time.ticks().max(1) as f32;
+
+        self
+    }
+
+    pub fn active(&mut self, tick: &AppTick) -> StriatumValue2 {
+        let now = tick.ticks();
+
+        let engram = self.get_engram();
+
+        let mut entry = self.cache.get_or_insert(engram, || Item::new());
+
+        entry.write(|v| {
+            let last_time = v.last_time;
+            v.last_time = now;
+        
+            // continuation of active
+            if (now - v.last_active) < self.active_gap.ticks() as u64 {
+                v.timeout = (v.timeout + self.timeout).min(1.);
+
+                if v.timeout < 1. {
+                    v.last_active = now;
+                    StriatumValue2::Active
+                } else {
+                    StriatumValue2::Timeout
+                }
+            } else {
+                // decay timeout since last time
+                v.timeout = (v.timeout - (now - last_time) as f32 * self.recover).max(0.);
+
+                if v.timeout <= 1. - self.sustain_threshold {
+                    v.last_active = now;
+                    v.timeout = (v.timeout + self.timeout).min(1.);
+
+                    StriatumValue2::Active
+                } else {
+                    StriatumValue2::Timeout
+                }
+            }
+        })
+    }
+
+    fn get_engram(&self) -> Engram64 {
+        self.engram.map_or(Engram64::default(), |v| v.clone())
+    }
+
+    pub fn is_active(&mut self, tick: &AppTick) -> bool {
+        self.active(tick) == StriatumValue2::Active
+    } 
+}
+
+struct Item {
+    timeout: f32,
+
+    last_active: u64,
+    last_time: u64,
+}
+
+impl Item {
+    fn new() -> Self {
+        Self {
+            timeout: 0.,
             last_active: 0,
             last_time: 0,
         }
     }
-
-    pub fn ltd(mut self, time: impl Into<Ticks>) -> Self {
-        let time: Ticks = time.into();
-        self.ltd_rise = 1. / time.ticks().max(1) as f32;
-
-        self
-    }
-
-    pub fn decay(mut self, time: impl Into<Ticks>) -> Self {
-        let time: Ticks = time.into();
-        self.ltd_decay = 1. / time.ticks().max(1) as f32;
-
-        self
-    }
-
-    pub fn active(&mut self, tick: &AppTick) -> StriatumValue {
-        let now = tick.ticks();
-
-        let last_time = self.last_time;
-        self.last_time = now;
-
-        let delta = now - last_time;
-
-        let last_active = self.last_active;
-        self.last_active = now;
-
-        let is_active = (now - last_active) < self.active_gap.ticks() as u64;
-
-        if is_active {
-            // continuation of active
-            self.ltd += self.ltd_rise * delta as f32;
-
-            // active not yet timed out
-            if self.ltd <= self.threshold_high {
-                StriatumValue::Active
-            } else {
-                StriatumValue::Avoid
-            }
-        } else {
-            // attempted new active
-            self.ltd = (self.ltd - self.ltd_decay * delta as f32).max(0.);
-
-            if self.ltd <= self.threshold_low {
-                StriatumValue::Active
-            } else {
-                StriatumValue::None
-            }
-        }
-    }
-
-    pub fn is_active(&mut self, tick: &AppTick) -> bool {
-        self.active(tick) == StriatumValue::Active
-    } 
-
-    pub fn is_valid(&self, tick: &AppTick) -> bool {
-        let delta = (tick.ticks() - self.last_time) as f32;
-
-        delta < self.ltd_decay.recip()
-    }
 }
 
 #[derive(Debug, PartialEq)]
-pub enum StriatumValue {
+pub enum StriatumValue2 {
     None,
     Active,
-    Avoid,
-}
-
-#[derive(Copy, Clone, Default, PartialEq, Debug)]
-pub struct StriatumId(usize);
-
-pub struct StriatumExclusive {
-    active: TimeoutValue<StriatumId>,
-
-    last_id: usize,
-}
-
-impl StriatumExclusive {
-    pub fn alloc_id(&mut self) -> StriatumId {
-        let id = self.last_id + 1;
-        self.last_id = id;
-
-        StriatumId(id)
-    }
-
-    pub fn active_id(&mut self, tick: &AppTick) -> Option<StriatumId> {
-        self.active.update_ticks(tick.ticks());
-
-        self.active.value().clone()
-    }
-
-    pub fn is_active(&mut self, id: StriatumId, tick: &AppTick) -> bool {
-        self.active.update_ticks(tick.ticks());
-
-        self.active.value().map_or(false, |active_id| active_id == id)
-    }
-
-    pub fn is_idle(&self) -> bool {
-        self.active.value().is_none()
-    }
-
-    pub fn is_update(&mut self, id: StriatumId, tick: &AppTick) -> bool {
-        self.active.update_ticks(tick.ticks());
-
-        if let Some(active_id) = self.active.value() {
-            *active_id == id
-        } else {
-            ! self.active.is_active()
-        }
-    }
-
-    pub fn update_id(&mut self, id: StriatumId, tick: &AppTick) {
-        self.active.update_ticks(tick.ticks());
-
-        self.active.set(id);
-    }
-
-    pub fn update(&mut self, tick: &AppTick) {
-        self.active.update_ticks(tick.ticks());
-    }
-
-    pub fn init(&mut self, id: StriatumId, tick: &AppTick) {
-        self.active.update_ticks(tick.ticks());
-
-        if ! self.active.is_active() {
-            self.active.set(id);
-        }
-    }
-}
-
-impl Default for StriatumExclusive {
-    fn default() -> Self {
-        Self {
-            active: TimeoutValue::new(Seconds(1.)),
-            last_id: 0,
-        }
-
-    }
+    Timeout,
 }

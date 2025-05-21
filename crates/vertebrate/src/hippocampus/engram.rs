@@ -70,6 +70,12 @@ impl Engram64 {
     }
 }
 
+impl Default for Engram64 {
+    fn default() -> Self {
+        Self(Default::default())
+    }
+}
+
 impl fmt::Display for Engram64 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut is_digit = f.sign_aware_zero_pad();
