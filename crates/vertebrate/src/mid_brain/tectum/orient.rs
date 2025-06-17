@@ -14,11 +14,15 @@ fn update_orient_tectum(
     mut hind_move: ResMut<HindMove>,
     mut orient: ResMut<OrientTectum>,
     mut striatum: ResMut<Striatum<OrientTectum>>,
+    mut sustain: ResMut<Sustain>,
     tick: Res<AppTick>,
 ) {
-    orient.update(hind_move.get_mut(), striatum.get_mut(), tick.as_ref());
+    sustain.get_mut().update(orient.get_mut(), striatum.get_mut(), tick.as_ref());
+
+    orient.update(hind_move.get_mut(), striatum.get_mut(), sustain.get_mut(), tick.as_ref());
 }
 
+#[derive(Default)]
 pub struct OrientTectum {
     turn_max: f32,
 
@@ -26,7 +30,7 @@ pub struct OrientTectum {
     left: OrientSide,
     right: OrientSide,
 
-    memory: TimeoutValue<Side>,
+    active: Option<Side>,
 }
 
 impl OrientTectum {
@@ -35,24 +39,24 @@ impl OrientTectum {
             turn_max: plugin.turn.to_unit(),
             left: OrientSide::default(), // half_life, plugin.turn),
             right: OrientSide::default(),
-            memory: TimeoutValue::new(Ticks(plugin.memory_time.ticks() as usize)),
+            active: None,
         }
     }
 
     pub fn is_active(&self) -> bool {
-        self.memory.is_active()
+        self.active.is_some()
     }
 
     pub fn active_left(&self) -> bool {
-        self.memory.value().map_or(false, |v| v == Side::Left)
+        self.active == Some(Side::Left)
     }
 
     pub fn active_right(&self) -> bool {
-        self.memory.value().map_or(false, |v| v == Side::Right)
+        self.active == Some(Side::Right)
     }
 
     pub fn active_value(&self) -> f32 {
-        self.memory.get_timeout() as f32
+        if self.active.is_some() { 1. } else { 0. }
     }
 
     pub fn add_orient_left(&mut self, value: f32) {
@@ -71,80 +75,59 @@ impl OrientTectum {
         self.right.obstacle.set(value);
     }
 
+    fn left_mut(&mut self) -> &mut OrientSide {
+        &mut self.left
+    }
+
+    fn right_mut(&mut self) -> &mut OrientSide {
+        &mut self.right
+    }
+
     fn update(
         &mut self, 
         hind_move: &mut HindMove,
         striatum: &mut Striatum<OrientTectum>,
+        sustain: &mut Sustain,
         tick: &AppTick,
     )  {
-        let mut left = self.left.value();
-        let mut right = self.right.value();
+        let left = self.left.value();
+        let right = self.right.value();
 
-        let mut left_turn = self.left.turn();
-        let mut right_turn = self.right.turn();
+        let left_turn = self.left.turn();
+        let right_turn = self.right.turn();
 
         self.left.update();
         self.right.update();
 
-        if &Some(Side::Left) == self.memory.value() {
-            if left == 0. {
-                left = 1.;
-                left_turn = 0.25;
-            }
-
-            if striatum.left_mut().active(tick) == StriatumValue2::Timeout {
-                left = 0.;
-                self.memory.clear();
-            }
-        }
-
-        if &Some(Side::Right) == self.memory.value() {
-            if right == 0. {
-                right = 1.;
-                right_turn = 0.25;
-            }
-            
-            if striatum.right_mut().active(tick) == StriatumValue2::Timeout {
-                right = 0.;
-                self.memory.clear();
-            }
-        }
+        self.active = None;
 
         if right < left {
             if striatum.left_mut().active(tick) == StriatumValue2::Active {
-                self.memory.set(Side::Left);
+                sustain.left.active.set(1.);
+                self.active = Some(Side::Left);
                 let turn = Turn::Unit(- left_turn * self.turn_max);
                 hind_move.turn(turn);
             }
         } else if right > 0. {
             if striatum.right_mut().active(tick) == StriatumValue2::Active {
-                self.memory.set(Side::Right);
+                sustain.right.active.set(1.);
+                self.active = Some(Side::Right);
                 let turn = Turn::Unit(right_turn * self.turn_max);
                 hind_move.turn(turn);
             }
-        }
-
-        self.memory.update();
-    }
-}
-
-impl Default for OrientTectum {
-    fn default() -> Self {
-        Self {
-            left: OrientSide::default(),
-            right: OrientSide::default(),
-            turn_max: 0.,
-            memory: TimeoutValue::new(Ticks(2)),
         }
     }
 }
 
 impl MosaicType for OrientTectum {}
 
+#[derive(Default)]
 struct OrientSide {
     value: DecayValue,
-
     obstacle: DecayValue,
+
+    excite: f32,
+    inhibit: f32,
 }
 
 impl OrientSide {
@@ -153,11 +136,14 @@ impl OrientSide {
     }
 
     fn value(&self) -> f32 {
-        self.value.active_value()
+        let excite = self.excite.min(0.25);
+        let value = self.value.active_value().max(excite);
+
+        (value - self.inhibit).max(0.)
     }
 
     fn turn(&self) -> f32 {
-        (self.value.active_value() - self.obstacle.active_value()).max(0.)
+        (self.value() - self.obstacle.active_value()).max(0.)
     }
 
     fn update(
@@ -165,14 +151,96 @@ impl OrientSide {
     ) {
         self.obstacle.update();
         self.value.update();
+
+        self.excite = 0.;
+        self.inhibit = 0.;
+    }
+    
+    fn excite(&mut self, value: f32) {
+        self.excite = value;
+    }
+    
+    fn inhibit(&mut self, value: f32) {
+        self.inhibit = value;
     }
 }
 
-impl Default for OrientSide {
-    fn default() -> Self {
-        Self { 
-            value: Default::default(), 
-            obstacle: Default::default() 
+#[derive(Default)]
+struct Sustain {
+    left: SustainSide,
+    right: SustainSide,
+}
+
+impl Sustain {
+    pub(super) fn new(plugin: &TectumOrientPlugin) -> Self {
+        Self {
+            left: SustainSide::new(plugin),
+            right: SustainSide::new(plugin),
+        }
+    }
+    
+    fn update(
+        &mut self, 
+        orient: &mut OrientTectum, 
+        striatum: &mut Striatum<OrientTectum>, 
+        tick: &AppTick
+    ) {
+        let left = self.left.active.value();
+        let right = self.right.active.value();
+        let common = left.min(right);
+
+        self.left.active.set(left - common);
+        self.right.active.set(right - common);
+
+        let left = self.left.active.active_value();
+        let right = self.right.active.active_value();
+
+        if left > 0. {
+            match striatum.left_mut().active(tick) {
+                StriatumValue2::None => {}
+                StriatumValue2::Active => {
+                    // PPT excite ipsilateral attention
+                    orient.left_mut().excite(left);
+                    // PPT inhibit contralateral attention via S.nr
+                    orient.right_mut().inhibit(left);
+                }
+                StriatumValue2::Timeout => {
+                    orient.left_mut().inhibit(1.);
+                    self.left.active.set(0.);
+                }
+            }
+        }
+
+        if right > 0. {
+            match striatum.right_mut().active(tick) {
+                StriatumValue2::None => {}
+                StriatumValue2::Active => {
+                    // PPT excite ipsilateral attention
+                    orient.right_mut().excite(right);
+                    // PPT inhibit contralateral attention via S.nr
+                    orient.left_mut().inhibit(right);
+                }
+                StriatumValue2::Timeout => {
+                    orient.right_mut().inhibit(1.);
+                    self.right.active.set(0.);
+                }
+            }
+        }
+
+        self.left.active.update();
+        self.right.active.update();
+    }
+}
+
+#[derive(Default)]
+struct SustainSide {
+    active: DecayValue,
+}
+
+impl SustainSide {
+    fn new(plugin: &TectumOrientPlugin) -> Self {
+        Self {
+            active: DecayValue::new(plugin.memory_time),
         }
     }
 }
@@ -254,6 +322,7 @@ impl Plugin for TectumOrientPlugin {
 
             app.insert_resource(OrientTectum::new(&self));
             app.insert_resource(striatum);
+            app.insert_resource(Sustain::new(&self));
             // TODO: striatum update
             app.system(Tick, update_orient_tectum);
         }

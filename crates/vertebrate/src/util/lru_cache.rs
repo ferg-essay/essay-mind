@@ -1,6 +1,6 @@
 use core::{fmt, hash};
 use std::{
-    cell::RefCell, hash::{DefaultHasher, Hasher}, marker::PhantomData, rc::Rc
+    cell::RefCell, hash::{DefaultHasher, Hasher}, rc::Rc
 };
 
 pub struct LruCache<K, V> {
@@ -41,9 +41,7 @@ where
     ) -> Entry<K, V> {
         let bucket = self.bucket(&key);
 
-        let pos = self.pos(bucket, &key);
-
-        let pos = match pos {
+        let pos = match self.pos(bucket, &key) {
             Some(pos) => {
                 let item = self.buckets[bucket][pos].clone();
 
@@ -70,6 +68,27 @@ where
             cache: self,
             bucket,
             pos
+        }
+    }
+
+    pub fn get(&mut self, key: K) -> Option<Entry<K, V>> {
+        let bucket = self.bucket(&key);
+
+        match self.pos(bucket, &key) {
+            Some(pos) => {
+                let item = self.buckets[bucket][pos].clone();
+
+                self.update_lru(item);
+
+                Some(Entry {
+                    cache: self,
+                    bucket,
+                    pos
+                })
+            },
+            None => {
+                None
+            },
         }
     }
 
@@ -166,6 +185,10 @@ pub struct Entry<'a, K: 'static, V: 'static> {
 impl<K, V> Entry<'_, K, V> {
     pub fn write<R>(&mut self, f: impl FnOnce(&mut V) -> R) -> R {
         f(&mut self.cache.buckets[self.bucket][self.pos].0.borrow_mut().value)
+    }
+
+    pub fn read<R>(&self, f: impl FnOnce(&V) -> R) -> R {
+        f(&self.cache.buckets[self.bucket][self.pos].0.borrow().value)
     }
 }
 

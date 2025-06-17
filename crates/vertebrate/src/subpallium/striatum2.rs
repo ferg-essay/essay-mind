@@ -123,7 +123,7 @@ impl<T: MosaicType> StriatumSide<T> {
         
             // continuation of active
             if (now - v.last_active) < self.active_gap.ticks() as u64 {
-                v.timeout = (v.timeout + self.timeout).min(1.);
+                v.timeout = (v.timeout + self.timeout * (now - last_time) as f32).min(1.);
 
                 if v.timeout < 1. {
                     v.last_active = now;
@@ -145,6 +145,38 @@ impl<T: MosaicType> StriatumSide<T> {
                 }
             }
         })
+    }
+
+    pub fn state(&mut self, tick: &AppTick) -> StriatumValue2 {
+        let now = tick.ticks();
+
+        let engram = self.get_engram();
+
+        if let Some(entry) = self.cache.get(engram) {
+            entry.read(|v| {
+                // continuation of active
+                if (now - v.last_active) < self.active_gap.ticks() as u64 {
+                    let timeout = (v.timeout + self.timeout).min(1.);
+
+                    if timeout < 1. {
+                        StriatumValue2::Active
+                    } else {
+                        StriatumValue2::Timeout
+                    }
+                } else {
+                    // decay timeout since last time
+                    let timeout = (v.timeout - (now - v.last_time) as f32 * self.recover).max(0.);
+
+                    if timeout <= self.init_threshold {
+                        StriatumValue2::None
+                    } else {
+                        StriatumValue2::Timeout
+                    }
+                }
+            })
+        } else {
+            StriatumValue2::None
+        }
     }
 
     fn get_engram(&self) -> Engram64 {
