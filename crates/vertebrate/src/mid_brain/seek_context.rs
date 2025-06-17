@@ -10,7 +10,7 @@ use crate::{
         taxis::chemotaxis::{Avoid, Seek}, 
         MidSeekPlugin, 
     },
-    motive::{Motive, MotiveAvoid, MotiveTrait, Motives}, 
+    hypothalamus::{Motive, MotiveAvoid, MotiveTrait, Motives}, 
     subpallium::{StriatumTimeout, StriatumValue}, 
     
     util::{Seconds, Ticks}

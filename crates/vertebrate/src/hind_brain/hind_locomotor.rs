@@ -4,7 +4,7 @@ use util::random::random_uniform;
 
 use crate::{
     body::{Body, BodyPlugin}, 
-    motive::{Motive, Wake}, 
+    hypothalamus::{Motive, Wake}, 
     util::{DecayValue, Seconds, Ticks, TimeoutValue, Turn}
 };
 

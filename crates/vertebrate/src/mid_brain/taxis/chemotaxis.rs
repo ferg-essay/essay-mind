@@ -8,7 +8,7 @@ use mind_ecs::Tick;
 use crate::{
     body::Body, 
     hind_brain::{HindMove, HindMovePlugin}, 
-    motive::{Motive, MotiveTrait, Motives, Sated, Wake}, 
+    hypothalamus::{Motive, MotiveTrait, Motives, Sated, Wake}, 
     olfactory::olfactory_bulb::{ObEvent, OlfactoryBulb}, 
     util::{Heading, Seconds} 
 };

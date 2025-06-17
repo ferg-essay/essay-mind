@@ -6,7 +6,7 @@ use mind_ecs::{AppTick, Tick};
 use crate::{
     hind_brain::{HindAvoid, HindEat, ArtrR2, Serotonin}, 
     mid_brain::{MidLocomotor, MidMovePlugin}, 
-    motive::eat::MotiveEatPlugin, 
+    hypothalamus::eat::MotiveEatPlugin, 
     olfactory::{OdorCortex, OlfactoryCortexPlugin}, 
     subpallium::StriatumTimeout, 
     util::{DecayValue, Seconds}

@@ -4,7 +4,7 @@ use mind_ecs::Tick;
 use crate::{
     body::BodyEat, 
     hind_brain::{HindEat, HindEatPlugin, Serotonin}, 
-    motive::{Dwell, Eat, Motives, Sated}, 
+    hypothalamus::{Dwell, Eat, Motives, Sated}, 
     util::{Seconds, TimeoutValue}
 };
 

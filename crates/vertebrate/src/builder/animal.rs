@@ -15,7 +15,7 @@ use crate::{
         tectum::{TectumLateralLinePlugin, TectumLoomingPlugin, TectumOrientPlugin, TectumPlugin}, 
         MidMovePlugin, MidSeekContextPlugin, MidSeekPlugin
     }, 
-    motive::{Dwell, Forage, Motive, MotiveAvoidPlugin, MotiveEatPlugin, MotiveForagePlugin, MotiveSleepPlugin}, 
+    hypothalamus::{Dwell, Forage, Motive, MotiveAvoidPlugin, MotiveEatPlugin, MotiveForagePlugin, MotiveSleepPlugin}, 
     olfactory::{odor_place::OdorPlace, olfactory_bulb::{OlfactoryBulb, OlfactoryBulbPlugin}, OlfactoryCortexPlugin}, 
     retina::RetinaPlugin, 
     util::Seconds 

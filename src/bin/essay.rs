@@ -7,7 +7,7 @@ use vertebrate::{
         r1_thigmotaxis::{Thigmotaxis, ThigmotaxisStrategy}, 
         ArtrR2, AvoidHerePlugin, HindAvoid, HindEat, HindMove, MoveKind, Serotonin
     }, mid_brain::tectum::OrientTectum, 
-    motive::{
+    hypothalamus::{
         Dwell, Forage, Motive, MotiveEat, MotiveTrait, Sleep, Wake
     }, 
     olfactory::{odor_place::OdorPlacePlugin, olfactory_bulb::OlfactoryBulb}, 
