@@ -7,7 +7,7 @@ use crate::{
         HindMove, HindMovePlugin
     }, 
     subpallium::{MosaicType, Striatum, StriatumValue2}, 
-    util::{DecayValue, HalfLife, Seconds, Side, Ticks, TimeoutValue, Turn}
+    util::{DecayValue, HalfLife, Seconds, Side, Ticks, Turn}
 };
 
 fn update_orient_tectum(
