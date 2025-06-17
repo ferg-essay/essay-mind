@@ -4,10 +4,10 @@ use essay_tensor::tensor::Tensor;
 use essay_ecs::prelude::*;
 use essay_graphics::layout::ViewArc;
 use essay_plot::{
-    chart::PolarChart, config::ConfigArc, plot::{radar, RadarOpt}, 
+    chart::PolarChart, config::ConfigArc, plot::RadarOpt, 
 };
 
-use mind_ecs::{PostTick, Tick};
+use mind_ecs::PostTick;
 use ui_graphics::ViewPlugin;
 
 use super::ui_emoji::Emoji;

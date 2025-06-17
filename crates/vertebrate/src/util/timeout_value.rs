@@ -126,6 +126,12 @@ impl<V> TimeoutValue<V> {
     }
 
     #[inline]
+    pub fn clear(&mut self) {
+        self.timeout = 0;
+        self.value = None;
+    }
+
+    #[inline]
     pub fn update(&mut self) -> &Option<V> {
         self.last_ticks += 1;
         self.timeout = self.timeout.saturating_sub(1);

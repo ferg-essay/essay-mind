@@ -12,16 +12,70 @@ use ui_graphics::ViewPlugin;
 use crate::{
     body::Body, 
     hind_brain::{HindMove, MoveKind}, 
-    mid_brain::{
-        taxis::Taxis, 
-        tectum::TectumMap,
-    },
+    mid_brain::{pretectum::ObstaclePretectum, taxis::Taxis}, 
     util::Turn 
 };
 
 use crate::util::{Angle, Heading};
 
 use super::ui_emoji::Emoji;
+
+pub fn ui_homunculus_draw(
+    mut ui_homunculus: ResMut<UiHomunculus>,
+    body: Res<Body>,
+    hind_move: Res<HindMove>,
+    obstacle: Res<ObstaclePretectum>,
+    taxis: Res<Taxis>,
+    mut orient: ResMut<UiOrient>,
+) {
+    let next_emoji = if let Some(next_emoji) = ui_homunculus.next_emoji() {
+        next_emoji
+    } else {
+        match hind_move.action_kind() {
+            MoveKind::None => { Emoji::FaceThinking },
+            MoveKind::Halt => { Emoji::Candy }, // TODO:
+            MoveKind::Roam => { Emoji::Footprints },
+            MoveKind::Seek => { Emoji::DirectHit },
+            MoveKind::Avoid => { Emoji::NoEntry },
+            MoveKind::Thigmotaxis(_) => { Emoji::Shark },
+            MoveKind::Escape(_) | MoveKind::UTurn(_) => { 
+                Emoji::NoEntry }
+            MoveKind::Startle => {
+                Emoji::FaceOpenMouth
+            }
+        }
+    };
+
+    let approach_dir = taxis.approach_dir();
+    let value = approach_dir.value();
+    let n = UiHomunculus::N_DIR;
+    let approach_values = approach_vec(n, body.head_dir(), value);
+
+    ui_homunculus.view.write(|v| {
+        v.body_turn = body.turn();
+        v.body_head_dir = body.head_dir();
+
+        v.next_emoji = next_emoji;
+
+        v.mo_freeze = hind_move.is_freeze();
+
+        v.mo_forward = hind_move.mo_forward();
+        v.mo_left = hind_move.mo_left();
+        v.mo_right = hind_move.mo_right();
+
+        //v.ss_forward = hind_move.ss_forward();
+        //v.ss_head_left = hind_move.ss_left();
+        //v.ss_head_right = hind_move.ss_right();
+        v.ss_forward = 0.5 + 0.5 * obstacle.forward();
+        v.ss_head_left = 0.5 + 0.5 * obstacle.left();
+        v.ss_head_right = 0.5 + 0.5 * obstacle.right();
+
+        v.orient_values = orient.value();
+        v.approach_values = approach_values;
+    });
+
+    orient.reset();
+}
 
 #[derive(Component)]
 pub struct UiHomunculus {
@@ -68,57 +122,6 @@ struct EmojiValue {
     is_active: bool,
 }
 
-pub fn ui_homunculus_draw(
-    mut ui_homunculus: ResMut<UiHomunculus>,
-    body: Res<Body>,
-    hind_move: Res<HindMove>,
-    taxis: Res<Taxis>,
-    tectum: Res<TectumMap>,
-) {
-    let next_emoji = if let Some(next_emoji) = ui_homunculus.next_emoji() {
-        next_emoji
-    } else {
-        match hind_move.action_kind() {
-            MoveKind::None => { Emoji::FaceThinking },
-            MoveKind::Halt => { Emoji::Candy }, // TODO:
-            MoveKind::Roam => { Emoji::Footprints },
-            MoveKind::Seek => { Emoji::DirectHit },
-            MoveKind::Avoid => { Emoji::NoEntry },
-            MoveKind::Thigmotaxis(_) => { Emoji::Shark },
-            MoveKind::Escape(_) | MoveKind::UTurn(_) => { 
-                Emoji::NoEntry }
-            MoveKind::Startle => {
-                Emoji::FaceOpenMouth
-            }
-        }
-    };
-
-    let approach_dir = taxis.approach_dir();
-    let value = approach_dir.value();
-    let n = UiHomunculus::N_DIR;
-    let approach_values = approach_vec(n, body.head_dir(), value);
-
-    ui_homunculus.view.write(|v| {
-        v.body_turn = body.turn();
-        v.body_head_dir = body.head_dir();
-
-        v.next_emoji = next_emoji;
-
-        v.mo_freeze = hind_move.is_freeze();
-
-        v.mo_forward = hind_move.mo_forward();
-        v.mo_left = hind_move.mo_left();
-        v.mo_right = hind_move.mo_right();
-
-        v.ss_forward = hind_move.ss_forward();
-        v.ss_head_left = hind_move.ss_left();
-        v.ss_head_right = hind_move.ss_right();
-
-        v.tectum_values = tectum.values();
-        v.approach_values = approach_values;
-    });
-}
-
 pub struct UiHomunculusView {
     body_head_dir: Heading,
     body_turn: Turn,
@@ -135,7 +138,7 @@ pub struct UiHomunculusView {
 
     next_emoji: Emoji,
 
-    tectum_values: Vec<f32>,
+    orient_values: Vec<f32>,
     approach_values: Vec<f32>,
 
     bounds: Bounds<Unit>,
@@ -167,7 +170,7 @@ impl UiHomunculusView {
         inner_dir.set_head(false);
         
         let mut outer_dir = HeadDir::new(UiHomunculus::N_DIR, 1.);
-        outer_dir.set_colors(EssayColors::OrangeBlue.into());
+        outer_dir.set_colors(sensorimotor_colormap());
         outer_dir.set_head(false);
 
         Self {
@@ -176,7 +179,7 @@ impl UiHomunculusView {
 
             next_emoji: Emoji::Crab,
             approach_values: Vec::new(),
-            tectum_values: Vec::new(),
+            orient_values: Vec::new(),
 
             ss_forward: 0.,
             ss_head_left: 0.,
@@ -322,7 +325,7 @@ impl Drawable for UiHomunculusView {
         self.head_dir.draw(ui, &values)?;
 
         self.inner_dir.draw(ui, &self.approach_values)?;
-        self.outer_dir.draw(ui, &self.tectum_values)?;
+        self.outer_dir.draw(ui, &self.orient_values)?;
 
         // let path_style = PathStyle::new();
 
@@ -349,6 +352,55 @@ impl Drawable for UiHomunculusView {
         ui.draw_path(&paths.outline, &style)?;
 
         Ok(())
+    }
+}
+
+pub struct UiOrient {
+    pos: Vec<f32>,
+    neg: Vec<f32>,
+}
+
+impl UiOrient {
+    pub fn pos(&mut self, dir: Heading, value: f32) {
+        // TODO: fix heading
+        let dir = (dir.to_unit() + 0.25) % 1.;
+        let i = (UiHomunculus::N_DIR as f32 * dir).floor() as usize;
+
+        self.pos[i] += value;
+    }
+
+    pub fn neg(&mut self, dir: Heading, value: f32) {
+        // TODO: fix heading
+        let dir = (dir.to_unit() + 0.25) % 1.;
+        let i = (UiHomunculus::N_DIR as f32 * dir).floor() as usize;
+
+        self.neg[i] += value;
+    }
+
+    fn reset(&mut self) {
+        self.pos.fill(0.);
+        self.neg.fill(0.);
+    }
+
+    fn value(&self) -> Vec<f32> {
+        self.pos.iter().zip(&self.neg)
+            .map(|(p, n)| (0.5 * (n.min(1.) - p.min(1.)) + 0.5).clamp(0.05, 0.95))
+            .collect()
+    }
+}
+
+impl Default for UiOrient {
+    fn default() -> Self {
+        let mut pos = Vec::new();
+        pos.resize(UiHomunculus::N_DIR, 0.);
+
+        let mut neg = Vec::new();
+        neg.resize(UiHomunculus::N_DIR, 0.);
+
+        Self { 
+            pos, 
+            neg
+        }
     }
 }
 
@@ -623,19 +675,22 @@ impl HeadDir {
 
             // TODO: fix sign
             let (x0, x1, xm) = (-x0, -x1, -xm);
-            /*
-            let path = Path::<Unit>::move_to(x0 * h1, y0 * h1)
-                .line_to(x1 * h1, y1 * h1)
-                .line_to(x1 * h2, y1 * h2)
-                .close_poly(x0 * h2, y0 * h2)
-                .to_path();
-            */
-            let path = Path::<Unit>::move_to(x1 * h1, y1 * h1)
-                .bezier2_to([xm * (h1 + hm), ym * (h1 + hm)], [x0 * h1, y0 * h1])
-                .line_to(x0 * h2, y0 * h2)
-                .bezier2_to([xm * (h2 + hm), ym * (h2 + hm)], [x1 * h2, y1 * h2])
-                .close_poly(x1 * h1, y1 * h1)
-                .to_path();
+
+            let bezier = false;
+            let path = if bezier {
+                Path::<Unit>::move_to(x1 * h1, y1 * h1)
+                    .bezier2_to([xm * (h1 + hm), ym * (h1 + hm)], [x0 * h1, y0 * h1])
+                    .line_to(x0 * h2, y0 * h2)
+                    .bezier2_to([xm * (h2 + hm), ym * (h2 + hm)], [x1 * h2, y1 * h2])
+                    .close_poly(x1 * h1, y1 * h1)
+                    .to_path()
+            } else {
+                Path::<Unit>::move_to(x0 * h1, y0 * h1)
+                    .line_to(x1 * h1, y1 * h1)
+                    .line_to(x1 * h2, y1 * h2)
+                    .close_poly(x0 * h2, y0 * h2)
+                    .to_path()
+            };
 
             unit_paths.push(path);
         }
@@ -722,7 +777,8 @@ fn approach_vec(n: usize, dir: Heading, value: f32) -> Vec<f32> {
 //
 
 pub struct UiHomunculusPlugin {
-    emoji_items: Vec<Box<dyn PluginItem>>,
+    emoji_items: Vec<Box<dyn EmojiUpdateTrait>>,
+    orient_items: Vec<Box<dyn OrientUpdateTrait>>,
 
     view: Option<View<UiHomunculusView>>,
 }
@@ -731,25 +787,41 @@ impl UiHomunculusPlugin {
     pub fn new() -> Self {
         Self {
             emoji_items: Vec::new(),
+            orient_items: Vec::new(),
             view: None,
         }
     }
 
-    pub fn item<T>(
+    pub fn emoji<T>(
         mut self, 
         emoji: Emoji,
         fun: impl Fn(&T) -> bool + Send + Sync + 'static
     ) -> Self
     where T: Default + Send + Sync + 'static
     {
-        self.emoji_items.push(Box::new(Item {
+        self.emoji_items.push(Box::new(EmojiUpdate {
             emoji,
             fun: RefCell::new(Some(Box::new(fun)))
         }));
 
         self
     }
+
+    pub fn orient<T>(
+        mut self, 
+        fun: impl Fn(&T) -> Option<Orient> + Send + Sync + 'static
+    ) -> Self
+    where T: Default + Send + Sync + 'static
+    {
+        self.orient_items.push(Box::new(OrientUpdate {
+            fun: RefCell::new(Some(Box::new(fun)))
+        }));
+
+        self
+    }
 }
+
+pub struct Orient(pub Heading, pub f32);
 
 impl ViewPlugin for UiHomunculusPlugin {
     fn view(&mut self, _app: &mut App) -> Option<&ViewArc> {
@@ -767,9 +839,14 @@ impl Plugin for UiHomunculusPlugin {
             app.init_resource::<Taxis>();
 
             app.insert_resource(ui_homunculus);
+            app.insert_resource(UiOrient::default());
 
             for (i, item) in self.emoji_items.iter().enumerate() {
                 item.system(i, app);
+            }
+
+            for item in self.orient_items.iter() {
+                item.system(app);
             }
 
             app.system(AfterTicks, ui_homunculus_draw);
@@ -777,17 +854,16 @@ impl Plugin for UiHomunculusPlugin {
     }
 }
 
-
-struct Item<T: Send + Sync + 'static> {
+struct EmojiUpdate<T: Send + Sync + 'static> {
     emoji: Emoji,
     fun: RefCell<Option<Box<dyn Fn(&T) -> bool + Send + Sync + 'static>>>,
 }
 
-trait PluginItem {
+trait EmojiUpdateTrait {
     fn system(&self, id: usize, app: &mut App);
 }
 
-impl<T: Default + Send + Sync + 'static> PluginItem for Item<T> {
+impl<T: Default + Send + Sync + 'static> EmojiUpdateTrait for EmojiUpdate<T> {
     fn system(&self, id: usize, app: &mut App) {
         app.init_resource::<T>();
 
@@ -797,6 +873,34 @@ impl<T: Default + Send + Sync + 'static> PluginItem for Item<T> {
         app.system(PostUpdate, 
             move |mut hom: ResMut<UiHomunculus>, item: Res<T>| {
                 hom.emoji(id, emoji, fun(item.get()));
+            }
+        );
+    }
+}
+
+struct OrientUpdate<T: Send + Sync + 'static> {
+    fun: RefCell<Option<Box<dyn Fn(&T) -> Option<Orient> + Send + Sync + 'static>>>,
+}
+
+trait OrientUpdateTrait {
+    fn system(&self, app: &mut App);
+}
+
+impl<T: Default + Send + Sync + 'static> OrientUpdateTrait for OrientUpdate<T> {
+    fn system(&self, app: &mut App) {
+        app.init_resource::<T>();
+
+        let fun = self.fun.take().unwrap();
+
+        app.system(PostUpdate, 
+            move |mut orient: ResMut<UiOrient>, item: Res<T>| {
+                if let Some(Orient(heading, value)) = fun(item.get()) {
+                    if value >= 0. {
+                        orient.pos(heading, value);
+                    } else {
+                        orient.neg(heading, - value);
+                    }
+                }
             }
         );
     }

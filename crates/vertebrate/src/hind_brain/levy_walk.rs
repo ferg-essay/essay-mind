@@ -79,7 +79,7 @@ impl OscillatorArs {
     
     const ALPHA : f32 = 2.;
 
-    pub(super) fn new() -> Self {
+    pub(super) fn _new() -> Self {
         Self {
         }
     }

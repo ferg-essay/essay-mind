@@ -120,6 +120,13 @@ impl DecayValue {
     }
 
     #[inline]
+    pub fn set_over_threshold_max(&mut self, value: f32) {
+        assert!(0. <= value && value <= 1.);
+
+        self.value = self.value.max(value + self.threshold).clamp(0., 1.);
+    }
+
+    #[inline]
     pub fn set_max_threshold(&mut self) {
         self.value = self.value.max(self.threshold);
     }

@@ -1,18 +1,25 @@
 use essay_plot::api::{Color, Colors};
 use log::LevelFilter;
 use vertebrate::{
-    body::{Body, BodyEat}, 
+    body::BodyEat,
     builder::AnimalBuilder, 
-    hind_brain::{r1_thigmotaxis::{Thigmotaxis, ThigmotaxisStrategy}, ArtrR2, AvoidHerePlugin, HindAvoid, HindEat, HindMove, MoveKind, Serotonin}, 
+    hind_brain::{
+        r1_thigmotaxis::{Thigmotaxis, ThigmotaxisStrategy}, 
+        ArtrR2, AvoidHerePlugin, HindAvoid, HindEat, HindMove, MoveKind, Serotonin
+    }, mid_brain::tectum::OrientTectum, 
     motive::{
         Dwell, Forage, Motive, MotiveEat, MotiveTrait, Sleep, Wake
     }, 
     olfactory::{odor_place::OdorPlacePlugin, olfactory_bulb::OlfactoryBulb}, 
     retina::Retina, 
     ui::{
-        ui_attention::UiAttentionPlugin, ui_body::UiBodyPlugin, ui_emoji::Emoji, ui_heatmap::UiHeatmapPlugin, ui_homunculus::UiHomunculusPlugin, ui_lateral_line::UiLateralLinePlugin, ui_motive::UiMotivePlugin, ui_radar::UiRadarPlugin, ui_retina::UiRetinaPlugin, ui_run_control::UiRunControl, ui_table::UiTablePlugin, ui_trail::UiTrailPlugin, ui_world_hex::{Pattern, UiWorldHexPlugin}, ui_world_map::UiWorldPlugin
+        ui_attention::UiAttentionPlugin, ui_body::UiBodyPlugin, ui_emoji::Emoji, ui_heatmap::UiHeatmapPlugin, 
+        ui_homunculus::{Orient, UiHomunculusPlugin}, 
+        ui_lateral_line::UiLateralLinePlugin, ui_motive::UiMotivePlugin, ui_radar::UiRadarPlugin, ui_retina::UiRetinaPlugin, ui_run_control::UiRunControl, ui_trail::UiTrailPlugin, 
+        ui_world_hex::{Pattern, UiWorldHexPlugin}, 
+        ui_world_map::UiWorldPlugin
     }, 
-    util::{self, Seconds, Turn}, 
+    util::{self, Heading, Seconds, Turn}, 
     world::{
         FoodKind, FoodPlugin, OdorKind, OdorPlugin, WorldHexPlugin, WorldHexTrait, WorldPlugin
     }
@@ -52,7 +59,7 @@ pub fn main() {
         .avoid(PlaceKind::AvoidB, true)
     );
 
-    let mut food = FoodPlugin::new();
+    let food = FoodPlugin::new();
     //food.gen_count(1).gen_radius(2.).gen_value(Seconds(120.)).gen_kind(FoodKind::Poor);
     app.plugin(food);
 
@@ -70,13 +77,29 @@ pub fn main() {
         .eye_angle(util::Angle::Deg(45.));
 
     animal.seek().seek(false);
+
+    animal.pretectum_obstacle().enable(true);
+    animal.pretectum_touch().enable(true);
+    animal.pretectum_lateral_line().enable(true);
+
     animal.tectum_looming().enable(false);
-    animal.hind_thigmotaxis()
+    
+    animal.tectum_orient()
         .enable(true)
-        .strategy(ThigmotaxisStrategy::Artr)
         .turn(Turn::Unit(0.15))
         .inhibited_value(0.5)
-        .memory_time(Seconds(1.0));
+        .memory_time(Seconds(2.0))
+        .timeout(Seconds(30.))
+        .timeout_recover(Seconds(15.));
+
+    animal.hind_thigmotaxis()
+        .enable(true)
+        .strategy(ThigmotaxisStrategy::Direct)
+        .turn(Turn::Unit(0.15))
+        .inhibited_value(0.5)
+        .memory_time(Seconds(1.0))
+        .timeout(Seconds(120.))
+        .timeout_recover(Seconds(15.));
 
     // animal.hind_eat();
 
@@ -123,7 +146,9 @@ pub fn world_thigmotaxis(w: usize, h: usize) -> WorldPlugin {
     let w1 = w / 3 - 1;
     WorldPlugin::new(w, h)
         .wall((w1, 0), (1, h1 + 1))
-        .wall((w1 - 2, 3 * h / 4), (2, 2))
+        .wall((1, h1 + 3), (2, 2))
+        .wall((5, h1 + 3), (2, 2))
+        //.wall((9, h1 + 3), (2, 2))
         .wall((2 * w1, h1), (1, h - h1))
 }
 
@@ -230,15 +255,43 @@ fn ui_eat(ui: &mut UiBuilder) {
 
 fn ui_homunculus(ui: &mut UiSubBuilder) {
     ui.plugin(UiHomunculusPlugin::new()
-        .item(Emoji::FaceVomiting, |m: &HindEat| m.is_vomiting())
-        .item(Emoji::FaceGrimacing, |m: &HindEat| m.is_gaping())
-        .item(Emoji::ForkAndKnife, |m: &HindEat| m.is_eating())
-        .item(Emoji::DirectHit, |m: &HindMove| m.action_kind() == MoveKind::Seek)
-        .item(Emoji::Warning, |m: &HindMove| m.action_kind() == MoveKind::Avoid)
-        .item(Emoji::MagnifyingGlassLeft, |m: &Motive<Dwell>| m.is_active())
-        .item(Emoji::Shark, |m: &Thigmotaxis| m.is_active())
-        .item(Emoji::Footprints, |m: &HindMove| m.action_kind() == MoveKind::Roam)
-        .item(Emoji::FaceSleeping, |m: &Motive<Wake>| ! m.is_active())
+        .emoji(Emoji::FaceVomiting, |m: &HindEat| m.is_vomiting())
+        .emoji(Emoji::FaceGrimacing, |m: &HindEat| m.is_gaping())
+        .emoji(Emoji::ForkAndKnife, |m: &HindEat| m.is_eating())
+        .emoji(Emoji::DirectHit, |m: &HindMove| m.action_kind() == MoveKind::Seek)
+        .emoji(Emoji::Warning, |m: &HindMove| m.action_kind() == MoveKind::Avoid)
+        .emoji(Emoji::MagnifyingGlassLeft, |m: &Motive<Dwell>| m.is_active())
+        .emoji(Emoji::Shark, |m: &Thigmotaxis| m.is_active())
+        .emoji(Emoji::Footprints, |m: &HindMove| m.action_kind() == MoveKind::Roam)
+        .emoji(Emoji::FaceSleeping, |m: &Motive<Wake>| ! m.is_active())
+        .orient(|taxis: &Thigmotaxis| {
+            if taxis.left_active() {
+                Some(Orient(Heading::Unit(-0.20), 1.))
+            } else {
+                None
+            }
+        })
+        .orient(|taxis: &Thigmotaxis| {
+            if taxis.right_active() {
+                Some(Orient(Heading::Unit(0.2), 1.))
+            } else {
+                None
+            }
+        })
+        .orient(|taxis: &OrientTectum| {
+            if taxis.active_left() {
+                Some(Orient(Heading::Unit(-0.20), 1.))
+            } else {
+                None
+            }
+        })
+        .orient(|taxis: &OrientTectum| {
+            if taxis.active_right() {
+                Some(Orient(Heading::Unit(0.2), 1.))
+            } else {
+                None
+            }
+        })
     );
 }
 
@@ -461,7 +514,8 @@ fn ui_radar(ui: &mut UiSubBuilder) {
         .item(30., Emoji::DirectHit, |m: &HindMove| if m.action_kind() == MoveKind::Seek { 1. } else { 0. })
         .item(60., Emoji::MagnifyingGlassLeft, |m: &Motive<Dwell>| m.value())
         .item(90., Emoji::Footprints, |m: &HindMove| if m.action_kind() == MoveKind::Roam { 1. } else { 0. })
-        .item(135., Emoji::Shark, |m: &Thigmotaxis| m.active_value())
+        //.item(135., Emoji::Shark, |m: &Thigmotaxis| m.active_value())
+        .item(135., Emoji::Shark, |m: &OrientTectum| m.active_value())
         .item(180., Emoji::FaceSleeping, |m: &Sleep| if m.is_wake() { 0. } else { 1. })
         .item(240., Emoji::NoEntry, |m: &HindMove| {
             if m.is_obstacle() || m.is_avoid() { 1. } else { 0. }

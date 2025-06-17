@@ -1,8 +1,11 @@
+mod mosaic;
+mod striatum2;
 mod basal_forebrain;
 mod gate;
-pub mod striatum;
-mod timeout;
+mod striatum;
 
 pub use basal_forebrain::{AttendId, AttendValue, BasalForebrain};
 pub use gate::{Gate, StriatumGate};
-pub use timeout::{StriatumTimeout, StriatumValue};
+pub use mosaic::{Mosaic, MosaicType};
+pub use striatum::{StriatumTimeout, StriatumValue, StriatumId, StriatumExclusive};
+pub use striatum2::{StriatumSide, Striatum, StriatumValue2};

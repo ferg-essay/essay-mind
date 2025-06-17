@@ -1,13 +1,16 @@
 use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}};
 use mind_ecs::{AppTick, Tick};
 
-use crate::{hind_brain::{lateral_line::{LateralLine2Plugin, Segment}, r1_thigmotaxis_artr::{update_thigmaxis_artr, ThigmotaxisArtr}, HindMovePlugin}, subpallium::{StriatumExclusive, StriatumId, StriatumTimeout}, util::{DecayValue, HalfLife, Seconds, Ticks, Turn}};
+use crate::{
+    hind_brain::{
+        lateral_line::{LateralLine, LateralLine2Plugin, Segment},
+        HindMove, HindMovePlugin
+    }, subpallium::{StriatumExclusive, StriatumId, StriatumTimeout}, util::{DecayValue, HalfLife, Seconds, Ticks, Turn}
+};
 
-use super::{lateral_line::LateralLine, r2_artr::Side, HindMove};
-
-fn update_thigmaxis_direct(
+fn update_thigmotaxis_tectum(
     mut hind_move: ResMut<HindMove>,
-    mut thigmotaxis: ResMut<Thigmotaxis>,
+    mut thigmotaxis: ResMut<ThigmotaxisTectum>,
     lateral_line: Res<LateralLine>,
     tick: Res<AppTick>,
 ) {
@@ -24,134 +27,48 @@ fn update_thigmaxis_direct(
         hind_move.turn(turn);
     }
 
-    // thigmotaxis.update();
-
-    //let mut left_turn = None;
-    //let mut right_turn = None;
-
-    let left_head = lateral_line.max(Segment::HeadLeft);
-    let left_trunk = lateral_line.max(Segment::TailLeft);
-
     /*
-    if left_head > 0. || left_trunk > 0. {
-        if ! thigmotaxis.right.is_active() {
-            thigmotaxis.left.set_max(1.);
-        } else {
-            let inhibited_value = thigmotaxis.inhibited_value;
-            thigmotaxis.right.set_max(inhibited_value);
-        }
+    if thigmotaxis.is_active() {
+        //thigmotaxis_ui.set_value(thigmotaxis.active_value());
     }
 
-    if thigmotaxis.left.is_active()
-    && left_head < Thigmotaxis::MAX_THRESHOLD
-    && (left_head < left_trunk || left_head == 0.) {
-        left_turn = Some(- thigmotaxis.turn(left_head));
-        //hind_move.ante().thigmotaxis(Turn::Unit(0.95));
-    }
-
-    let right_head = lateral_line.max(Segment::HeadRight);
-    let right_trunk = lateral_line.max(Segment::TailRight);
-
-    if right_head > 0. || right_trunk > 0. {
-        if ! thigmotaxis.left.is_active() {
-            thigmotaxis.right.set_max(1.);
-        } else {
-            let inhibited_value = thigmotaxis.inhibited_value;
-            thigmotaxis.right.set_max(inhibited_value);
-        }
-    }
-
-    if thigmotaxis.right.is_active()
-    && right_head < Thigmotaxis::MAX_THRESHOLD
-    && (right_head < right_trunk || right_head == 0.) {
-        right_turn = Some(thigmotaxis.turn(right_head));
-        //hind_move.ante().thigmotaxis(Turn::Unit(0.05));
-    }
-
-    if left_turn.is_some() && right_turn.is_some() {
-        // decide left/right bias or disable thigmotaxis
-    } else if let Some(turn) = left_turn {
-        hind_move.ante().thigmotaxis(turn);
-    } else if let Some(turn) = right_turn {
-        hind_move.ante().thigmotaxis(turn);
-    }
+    thigmotaxis_ui.set_left(if turn_left.is_some() { 1. } else { 0. });
+    thigmotaxis_ui.set_right(if turn_right.is_some() { 1. } else { 0. });
     */
 }
 
-pub struct Thigmotaxis {
-    // max turn rate
-    // turn: Turn, 
-
+pub struct ThigmotaxisTectum {
     // memory of thigmotaxis side.
     left: ThigmotaxisSide,
     right: ThigmotaxisSide,
-
-    ui_left: DecayValue,
-    ui_right: DecayValue,
-
+    exclusive: StriatumExclusive,
 }
 
-impl Default for Thigmotaxis {
-    fn default() -> Self {
-        let left = ThigmotaxisSide::default(Side::Left);
-        let right = ThigmotaxisSide::default(Side::Right);
-
-        Self { 
-            left,
-            right,
-            ui_left: Default::default(), 
-            ui_right: Default::default() 
-        }
-    }
-}
-
-impl Thigmotaxis {
-    const MAX_THRESHOLD: f32 = 0.4;
-
-    fn new(plugin: &HindThigmotaxisPlugin) -> Self {
-        //let half_life = plugin.memory_time;
-        let half_life = Ticks(4);
-
-        Thigmotaxis {
-            left: ThigmotaxisSide::new(Side::Left, plugin), // half_life, plugin.turn),
-            right: ThigmotaxisSide::new(Side::Right, plugin),
-            // exclusive,
-
-            ui_left: DecayValue::new(half_life),
-            ui_right: DecayValue::new(half_life),
+impl ThigmotaxisTectum {
+    pub(super) fn new(plugin: &TectumThigmotaxisPlugin) -> Self {
+        let mut exclusive = StriatumExclusive::default();
+        
+        ThigmotaxisTectum {
+            left: ThigmotaxisSide::new(Side::Left, &mut exclusive, plugin), // half_life, plugin.turn),
+            right: ThigmotaxisSide::new(Side::Right, &mut exclusive, plugin),
+            exclusive,
         }
     }
 
     pub fn is_active(&self) -> bool {
-        self.ui_left.is_active() || self.ui_right.is_active()
+        self.left.memory.is_active() || self.right.memory.is_active()
+    }
+
+    pub fn active_left(&self) -> bool {
+        self.left.memory.is_active()
+    }
+
+    pub fn active_right(&self) -> bool {
+        self.right.memory.is_active()
     }
 
     pub fn active_value(&self) -> f32 {
-        self.ui_left.active_value().max(self.ui_right.active_value())
-    }
-
-    // todo: currently used as a UI hack
-    pub(super) fn _set_value(&mut self, value: f32) {
-        self.ui_left.set(value);
-        self.ui_right.set(value);
-    }
-
-    // todo: currently used as a UI hack
-    pub(super) fn set_left(&mut self, value: f32) {
-        self.ui_left.set(value);
-    }
-
-    // todo: currently used as a UI hack
-    pub(super) fn set_right(&mut self, value: f32) {
-        self.ui_right.set(value);
-    }
-
-    pub fn left_active(&self) -> bool {
-        self.ui_left.is_active()
-    }
-
-    pub fn right_active(&self) -> bool {
-        self.ui_right.is_active()
+        self.left.memory.active_value().max(self.right.memory.active_value())
     }
 
     fn update(
@@ -159,11 +76,8 @@ impl Thigmotaxis {
         lateral_line: &LateralLine,
         tick: &AppTick,
     )  {
-        self.ui_left.update();
-        self.ui_right.update();
-        /*
         self.exclusive.update(tick);
-        
+        /*
         if self.exclusive.is_active(self.left.id, tick) {
             if self.left.update(lateral_line, tick) {
                 self.exclusive.update_id(self.left.id, tick);
@@ -179,6 +93,16 @@ impl Thigmotaxis {
     }
 }
 
+impl Default for ThigmotaxisTectum {
+    fn default() -> Self {
+        Self {
+            left: ThigmotaxisSide::default(Side::Left),
+            right: ThigmotaxisSide::default(Side::Right),
+            exclusive: StriatumExclusive::default(),
+        }
+    }
+}
+
 struct ThigmotaxisSide {
     side: Side,
 
@@ -188,14 +112,15 @@ struct ThigmotaxisSide {
     // memory of thigmotaxis side.
     memory: DecayValue,
 
-    // id: StriatumId,
+    id: StriatumId,
     timeout: StriatumTimeout,
 }
 
 impl ThigmotaxisSide {
     fn new(
         side: Side,
-        plugin: &HindThigmotaxisPlugin,
+        exclusive: &mut StriatumExclusive,
+        plugin: &TectumThigmotaxisPlugin,
     ) -> Self {
         let half_life = plugin.memory_time;
         let mut timeout = StriatumTimeout::new();
@@ -208,7 +133,7 @@ impl ThigmotaxisSide {
             timeout = timeout.decay(ticks);
         }
 
-        // let id = exclusive.alloc_id();
+        let id = exclusive.alloc_id();
 
         Self {
             side,
@@ -216,7 +141,7 @@ impl ThigmotaxisSide {
             turn_max: plugin.turn.to_unit(),
             memory: DecayValue::new(half_life),
 
-            // id,
+            id,
             timeout,
         }
     }
@@ -231,7 +156,7 @@ impl ThigmotaxisSide {
             turn_max: Turn::Unit(0.25).to_unit(),
             memory: DecayValue::new(half_life),
             timeout: StriatumTimeout::new(),
-            // id: StriatumId::default(),
+            id: StriatumId::default(),
         }
     }
 
@@ -288,18 +213,16 @@ fn _tail(side: Side) -> Segment {
     }    
 }
 
-pub struct HindThigmotaxisPlugin {
+pub struct TectumThigmotaxisPlugin {
     pub(super) is_enable: bool,
     pub(super) memory_time: HalfLife,
     pub(super) inhibited_value: f32,
     pub(super) turn: Turn,
     pub(super) timeout: Option<Ticks>,
     pub(super) timeout_recover: Option<Ticks>,
-
-    strategy: ThigmotaxisStrategy,
 }
 
-impl HindThigmotaxisPlugin {
+impl TectumThigmotaxisPlugin {
     pub fn new() -> Self {
         Self::default()
     }
@@ -318,13 +241,6 @@ impl HindThigmotaxisPlugin {
 
     pub fn turn(&mut self, turn: impl Into<Turn>) -> &mut Self {
         self.turn = turn.into();
-
-        self
-    }
-
-
-    pub fn strategy(&mut self, strategy: ThigmotaxisStrategy) -> &mut Self {
-        self.strategy = strategy;
 
         self
     }
@@ -349,42 +265,33 @@ impl HindThigmotaxisPlugin {
     }
 }
 
-impl Default for HindThigmotaxisPlugin {
+impl Default for TectumThigmotaxisPlugin {
     fn default() -> Self {
         Self { 
             is_enable: true, 
             memory_time: Seconds(1.).into(),
             turn: Turn::Unit(0.1),
             inhibited_value: 1.,
-            strategy: ThigmotaxisStrategy::Artr,
             timeout: None,
             timeout_recover: None,
         }
     }
 }
 
-impl Plugin for HindThigmotaxisPlugin {
+impl Plugin for TectumThigmotaxisPlugin {
     fn build(&self, app: &mut App) {
-        assert!(app.contains_plugin::<HindMovePlugin>(), "HindThigmotaxis requires HindLocomotion");
-        assert!(app.contains_plugin::<LateralLine2Plugin>(), "HindThigmotaxis requires LateralLine");
+        assert!(app.contains_plugin::<HindMovePlugin>(), "TectumThigmotaxis requires HindLocomotion");
+        assert!(app.contains_plugin::<LateralLine2Plugin>(), "TectumThigmotaxis requires LateralLine");
 
         if self.is_enable {
-            match self.strategy {
-                ThigmotaxisStrategy::Direct => {
-                    app.insert_resource(Thigmotaxis::new(&self));
-                    app.system(Tick, update_thigmaxis_direct);
-                }
-                ThigmotaxisStrategy::Artr => {
-                    app.insert_resource(ThigmotaxisArtr::new(&self));
-                    app.system(Tick, update_thigmaxis_artr);
-                }
-            }
+            app.insert_resource(ThigmotaxisTectum::new(&self));
+            app.system(Tick, update_thigmotaxis_tectum);
         }
     }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub enum ThigmotaxisStrategy {
-    Direct,
-    Artr
+enum Side {
+    Left,
+    Right
 }

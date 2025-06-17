@@ -3,25 +3,33 @@ use mind_ecs::Tick;
 
 use crate::{
     hind_brain::{lateral_line::{LateralLine, Segment}}, 
-    mid_brain::pretectum::obstacle::ObstaclePretectum, type_short,
+    type_short,
 };
+
+use super::OrientTectum;
 
 fn lateral_line_update(
     lateral_line: Res<LateralLine>,
-    mut obstacle: ResMut<ObstaclePretectum>,
+    mut orient: ResMut<OrientTectum>,
 ) {
     let head_left = lateral_line.max(Segment::HeadLeft);
-    obstacle.set_max_left(head_left);
+    if head_left > 0. {
+        orient.add_orient_left(head_left);
+    }
+    //orient.set_max_left(head_left);
 
     let head_right = lateral_line.max(Segment::HeadRight);
-    obstacle.set_max_right(head_right);
+    if head_right > 0. {
+        orient.add_orient_right(head_right);
+    }
+    //orient.set_max_right(head_right);
 }
 
-pub struct PretectumLateralLinePlugin {
+pub struct TectumLateralLinePlugin {
     is_enable: bool,
 }
 
-impl PretectumLateralLinePlugin {
+impl TectumLateralLinePlugin {
     pub fn new() -> Self {
         Self {
             is_enable: true,
@@ -35,14 +43,14 @@ impl PretectumLateralLinePlugin {
     }
 }
 
-impl Plugin for PretectumLateralLinePlugin {
+impl Plugin for TectumLateralLinePlugin {
     fn build(&self, app: &mut App) {
         if self.is_enable {
             assert!(app.contains_resource::<LateralLine>(),
                 "{} requires LateralLine", type_short!(Self)
             );
-            assert!(app.contains_resource::<ObstaclePretectum>(),
-                "{} requires ObstaclePretectum", type_short!(Self)
+            assert!(app.contains_resource::<OrientTectum>(),
+                "{} requires ObstacleTectum", type_short!(Self)
             );
     
             app.system(Tick, lateral_line_update);

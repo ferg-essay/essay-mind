@@ -10,9 +10,9 @@ use crate::{
     }, 
     hippocampus::HippocampusPlugin, 
     mid_brain::{
-        pretectum::lateral_line::PretectumLateralLinePlugin, 
+        pretectum::{lateral_line::PretectumLateralLinePlugin, ObstaclePretectumPlugin, PretectumTouchPlugin}, 
         taxis::{klinotaxis::KlinotaxisPlugin, TaxisAvoidPlugin}, 
-        tectum::{TectumLoomingPlugin, TectumPlugin}, 
+        tectum::{TectumLateralLinePlugin, TectumLoomingPlugin, TectumOrientPlugin, TectumPlugin}, 
         MidMovePlugin, MidSeekContextPlugin, MidSeekPlugin
     }, 
     motive::{Dwell, Forage, Motive, MotiveAvoidPlugin, MotiveEatPlugin, MotiveForagePlugin, MotiveSleepPlugin}, 
@@ -35,8 +35,14 @@ pub struct AnimalBuilder {
     olfactory_cortex: OlfactoryCortexPlugin,
     retina: RetinaPlugin,
 
-    tectum_looming: TectumLoomingPlugin,
+    pretectum_obstacle: ObstaclePretectumPlugin,
+    pretectum_touch: PretectumTouchPlugin,
     pretectum_lateral_line: PretectumLateralLinePlugin,
+
+    tectum_looming: TectumLoomingPlugin,
+
+    tectum_orient: TectumOrientPlugin,
+    tectum_lateral_line: TectumLateralLinePlugin,
 
     is_motive_eating: bool,
     is_mid_seek: bool,
@@ -61,8 +67,14 @@ impl AnimalBuilder {
             olfactory_cortex: OlfactoryCortexPlugin::new(),
             retina: RetinaPlugin::new(),
 
-            tectum_looming: TectumLoomingPlugin::new(),
+            pretectum_obstacle: ObstaclePretectumPlugin::new(),
+            pretectum_touch: PretectumTouchPlugin::new(),
             pretectum_lateral_line: PretectumLateralLinePlugin::new(),
+
+            tectum_orient: TectumOrientPlugin::new(),
+            tectum_lateral_line: TectumLateralLinePlugin::new(),
+
+            tectum_looming: TectumLoomingPlugin::new(),
 
             is_motive_eating: true,
             is_mid_seek: false,
@@ -80,12 +92,28 @@ impl AnimalBuilder {
         &mut self.olfactory_bulb
     }
 
-    pub fn tectum_looming(&mut self) -> &mut TectumLoomingPlugin {
-        &mut self.tectum_looming
+    pub fn pretectum_obstacle(&mut self) -> &mut ObstaclePretectumPlugin {
+        &mut self.pretectum_obstacle
+    }
+
+    pub fn pretectum_touch(&mut self) -> &mut PretectumTouchPlugin {
+        &mut self.pretectum_touch
     }
 
     pub fn pretectum_lateral_line(&mut self) -> &mut PretectumLateralLinePlugin {
         &mut self.pretectum_lateral_line
+    }
+
+    pub fn tectum_orient(&mut self) -> &mut TectumOrientPlugin {
+        &mut self.tectum_orient
+    }
+
+    pub fn tectum_lateral_line(&mut self) -> &mut TectumLateralLinePlugin {
+        &mut self.tectum_lateral_line
+    }
+
+    pub fn tectum_looming(&mut self) -> &mut TectumLoomingPlugin {
+        &mut self.tectum_looming
     }
 
     pub fn retina(&mut self) -> &mut RetinaPlugin {
@@ -129,9 +157,15 @@ impl AnimalBuilder {
         app.plugin(self.hind_move);
         app.plugin(self.hind_thigmotaxis);
 
+        app.plugin(self.pretectum_obstacle);
+        app.plugin(self.pretectum_touch);
+        app.plugin(self.pretectum_lateral_line);
+
+        app.plugin(self.tectum_orient);
+        app.plugin(self.tectum_lateral_line);
+
         app.plugin(TectumPlugin::new().striatum());
         app.plugin(self.tectum_looming);
-        app.plugin(self.pretectum_lateral_line);
 
         app.plugin(self.olfactory_cortex);
 
