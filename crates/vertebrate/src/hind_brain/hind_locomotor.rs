@@ -3,9 +3,7 @@ use mind_ecs::Tick;
 use util::random::random_uniform;
 
 use crate::{
-    body::{Body, BodyPlugin}, 
-    hypothalamus::{Motive, Wake}, 
-    util::{DecayValue, Seconds, Ticks, TimeoutValue, Turn}
+    body::{Body, BodyPlugin}, hind_brain::Serotonin, hypothalamus::{Motive, Wake}, util::{DecayValue, Seconds, Ticks, TimeoutValue, Turn}
 };
 
 use super::{r4_startle::StartleR4, ArtrR2, HindEat};
@@ -93,19 +91,12 @@ fn update_hind_move(
 
     // Acoustic startle in r4 Mauthner cells is an immediate reflex
     if hind_move.update_startle(body.get_mut()) {
-        return;
+    } else if ! wake.is_active() {
+    } else if hind_eat.is_active() {
+        // lateral inhibition by hindbrain eating circuits
+    } else {
+        hind_move.update_voluntary_move(body.get_mut());
     }
-
-    if ! wake.is_active() {
-        return;
-    }
-
-    // lateral inhibition by hindbrain eating circuits
-    if hind_eat.is_active() {
-        return;
-    }
-
-    hind_move.update_voluntary_move(body.get_mut());
 }
 
 
@@ -353,9 +344,17 @@ impl HindMove {
         }
 
         let mut turn = Turn::Unit(0.);
+
+        let mut kind = if self.ante_r1.is_roam() {
+            MoveKind::Roam
+        } else {
+            MoveKind::None
+        };
         
         // TODO: should be driven by outside such as H.sum/MLR
-        let mut kind = self.forward_r5.take();
+        if ! self.forward_r5.kind.is_stop() {
+            kind = self.forward_r5.kind;
+        }
 
         // ARTR - R1.a
         turn = self.artr_r2.next_turn().unwrap_or(turn);
@@ -377,7 +376,6 @@ impl HindMove {
         if self.action.allow_override(kind) {
             if let Some(action) = kind.action(turn) {
                 self.artr_r2.on_turn(turn);
-
                 self.action = action;
             }
         }
@@ -490,6 +488,7 @@ impl Default for HindMove {
 }
 
 pub struct AnteR1 {
+    roam: DecayValue,
     attract: DecayValue,
     attract_kind: MoveKind,
 }
@@ -499,7 +498,10 @@ impl AnteR1 {
         let mut attract = DecayValue::default();
         attract.set_threshold(0.4);
 
+        let roam  = DecayValue::new(Seconds(2.));
+
         Self {
+            roam,
             attract,
             attract_kind: MoveKind::None,
         }
@@ -507,6 +509,15 @@ impl AnteR1 {
 
     fn update(&mut self){
         self.attract.update();
+        self.roam.update();
+    }
+
+    fn is_roam(&self) -> bool {
+        self.roam.is_active()
+    }
+
+    pub fn roam(&mut self, value: f32) {
+        self.roam.add(value);
     }
 
     pub fn thigmotaxis(&mut self, turn: Turn) {
@@ -873,6 +884,7 @@ impl Plugin for HindMovePlugin {
         hind_move.startle_r4 = StartleR4::new();
 
         app.insert_resource(hind_move);
+        app.init_resource::<Serotonin<ArtrR2>>();
 
         app.system(Tick, update_hind_move);
     }

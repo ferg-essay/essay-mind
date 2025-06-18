@@ -264,6 +264,10 @@ impl TectumOrientPlugin {
 
         self
     }
+    
+    pub(crate) fn is_enable(&self) -> bool {
+        self.is_enable
+    }
 
     pub fn memory_time(&mut self, timeout: impl Into<HalfLife>) -> &mut Self {
         self.memory_time = timeout.into();

@@ -113,9 +113,29 @@ impl MotiveTrait for Alarm {}
 pub struct Dwell;
 impl MotiveTrait for Dwell {}
 
-pub struct MotiveForagePlugin;
+pub struct HypForagePlugin {
+    is_enable: bool,
+}
 
-impl Plugin for MotiveForagePlugin {
+impl HypForagePlugin {
+    pub fn new() -> Self {
+        Self {
+            is_enable: true,
+        }
+    }
+
+    pub fn enable(&mut self, is_enable: bool) -> &mut Self {
+        self.is_enable = is_enable;
+
+        self
+    }
+
+    pub fn is_enable(&self) -> bool {
+        self.is_enable
+    }
+}
+
+impl Plugin for HypForagePlugin {
     fn build(&self, app: &mut App) {
         assert!(app.contains_plugin::<MidMovePlugin>(), "MotiveForage requires MidMove");
         assert!(app.contains_plugin::<MotiveEatPlugin>(), "MotiveForage requires MotiveEat");

@@ -39,7 +39,7 @@ impl<T: SerotoninTrait> Serotonin<T> {
 
     #[inline]
     pub fn set_half_life(&mut self, half_life: impl Into<HalfLife>) -> &mut Self {
-        self.value.set_half_life(half_life);
+        self.value.set_decay(half_life);
 
         self
     }

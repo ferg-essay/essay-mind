@@ -1,4 +1,7 @@
-use essay_ecs::{app::{App, Plugin, Startup}, core::{entity::EntityId, Commands, Component, Query, Res}};
+use essay_ecs::{
+    app::{App, Plugin, Startup}, 
+    core::{entity::EntityId, Commands, Component, Query, Res}
+};
 use mind_ecs::Tick;
 use util::random::Rand32;
 
@@ -249,6 +252,14 @@ impl Plugin for FoodPlugin {
         self.create_food(app);
 
         app.insert_resource(self.gen.clone());
+
+        let is_base_food = true;
+        if is_base_food {
+            let mut food = Food::new(Point(0., 0.));
+            // food.kind = FoodKind::Poor;
+
+            app.get_mut_resource::<World>().unwrap().set_base_food(Some(food));
+        }
 
         app.system(Tick, update_food);
     }

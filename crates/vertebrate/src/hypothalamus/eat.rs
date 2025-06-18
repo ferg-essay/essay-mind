@@ -397,7 +397,7 @@ impl MotiveEat {
         let mut cgrp_sated: f32 = body_eat.sated_cck();
 
         // S.am suppression of cgrp_bitter
-        if body_eat.sweet() > 0. {
+        if body_eat.taste_sweet() > 0. {
             cgrp_sated -= 0.75;
         }
 
@@ -413,7 +413,7 @@ impl MotiveEat {
             self.is_cgrp_sated.set(true);
         }
 
-        if body_eat.bitter() > 0. || hind_eat.is_gaping() {
+        if body_eat.taste_bitter() > 0. || hind_eat.is_gaping() {
             self.is_cgrp_bitter.set(true);
         }
 
