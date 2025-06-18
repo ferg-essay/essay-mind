@@ -4,7 +4,7 @@ use vertebrate::{
     body::BodyEat, builder::AnimalBuilder, hind_brain::{
         r1_thigmotaxis::{Thigmotaxis, ThigmotaxisStrategy}, ArtrR2, AvoidHerePlugin, EatStrategy, HindAvoid, HindEat, HindMove, MoveKind, Serotonin
     }, hypothalamus::{
-        Dwell, Forage, Motive, MotiveEat, MotiveTrait, Sleep, Wake
+        Dwell, Forage, Motive, HypEat, MotiveTrait, Sleep, Wake
     }, mid_brain::tectum::OrientTectum, olfactory::{odor_place::OdorPlacePlugin, olfactory_bulb::OlfactoryBulb}, retina::Retina, ui::{
         ui_attention::UiAttentionPlugin, ui_body::UiBodyPlugin, ui_emoji::Emoji, ui_heatmap::UiHeatmapPlugin, 
         ui_homunculus::{Orient, UiHomunculusPlugin}, 
@@ -267,7 +267,7 @@ fn ui_builder(app: &mut App) {
                 //    .item("hd", |b: &Body| b.head_dir().to_unit())
                 //);
 
-                ui.canvas::<Dummy>();
+                //ui.canvas::<Dummy>();
 
                 /*
                 let mut button = false;
@@ -344,6 +344,7 @@ fn ui_homunculus(ui: &mut UiSubBuilder) {
         .emoji(Emoji::Shark, |m: &Thigmotaxis| m.is_active())
         .emoji(Emoji::Footprints, |m: &HindMove| m.action_kind() == MoveKind::Roam)
         .emoji(Emoji::FaceSleeping, |m: &Motive<Wake>| ! m.is_active())
+        .emoji(Emoji::CookedRice, |m: &BodyEat| m.is_eating())
         .orient(|taxis: &Thigmotaxis| {
             if taxis.left_active() {
                 Some(Orient(Heading::Unit(-0.20), 1.))
@@ -493,13 +494,14 @@ fn ui_radar_food(ui: &mut UiSubBuilder) {
                 0.
             }
         })
+        .item(30., Emoji::FaceDelicious, |m: &HypEat| if m.is_arc_mor() { 1. } else { 0. })
         .item(60., Emoji::Candy, |m: &BodyEat| m.taste_sweet())
         .item(90., Emoji::Cheese, |m: &BodyEat| m.taste_umami())
         .item(120., Emoji::Lemon, |m: &BodyEat| m.taste_bitter())
         .item(150., Emoji::FaceVomiting, |m: &BodyEat| m.sickness())
         .item(180., Emoji::FaceSleeping, |m: &Sleep| if m.is_wake() { 0. } else { 1. })
 
-        .item(215., Emoji::ForkAndKnife, |m: &BodyEat| if m.is_eating() { 1. } else { 0. })
+        .item(215., Emoji::CookedRice, |m: &BodyEat| m.gut_food())
         .item(270., Emoji::Pig, |m: &BodyEat| m.sated_stretch())
         .item(315., Emoji::ForkAndKnife, |m: &HindEat| if m.is_eating() { 1. } else { 0. })
     );
@@ -528,10 +530,10 @@ fn ui_motive(ui: &mut UiSubBuilder) {
         .row()
         .item(Emoji::FaceCowboy, |m: &Motive<Forage>| m.value())
         .item(Emoji::ForkAndKnife, |m: &HindEat| if m.is_eating() { 1. } else { 0. })
-        .item(Emoji::Pig, |m: &MotiveEat| m.sated())
+        .item(Emoji::Pig, |m: &HypEat| m.sated())
         .item(Emoji::FaceGrimacing, |m: &HindEat| if m.is_gaping() { 1. } else { 0. })
         .item(Emoji::FaceVomiting, |m: &HindEat| if m.is_vomiting() { 1. } else { 0. })
-        .item(Emoji::Warning, |m: &MotiveEat| if m.is_alarm() { 1. } else { 0. })
+        .item(Emoji::Warning, |m: &HypEat| if m.is_alarm() { 1. } else { 0. })
         .row()
         .item(Emoji::Candy, |m: &BodyEat| m.taste_sweet())
         .item(Emoji::Cheese, |m: &BodyEat| m.taste_umami())

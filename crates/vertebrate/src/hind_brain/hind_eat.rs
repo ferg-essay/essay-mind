@@ -6,7 +6,7 @@ use essay_ecs::{
 use mind_ecs::Tick;
 
 use crate::{
-    body::{BodyEat, BodyEatPlugin}, hind_brain::SerotoninManager, hypothalamus::Sleep, util::{Seconds, Ticks, TimeoutValue} 
+    body::{BodyEat, BodyEatPlugin}, hind_brain::SerotoninManager, hypothalamus::Sleep, util::{DelayValue, Seconds, Ticks, TimeoutValue} 
 };
 
 use super::{HindMove, Serotonin, SerotoninTrait};
@@ -103,16 +103,26 @@ fn mammal_feed(
 fn filter_feed(
     hind_move: Res<HindMove>,
     mut body_eat: ResMut<BodyEat>,
-    hind_eat: Res<HindEat>,
+    mut hind_eat: ResMut<HindEat>,
     sleep: Res<Sleep>,
 ) {
     if sleep.is_sleep() {
+        hind_eat.start_eating.clear();
     } else if hind_move.is_active() {
+        hind_eat.start_eating.clear();
     } else if hind_eat.is_vomiting() || hind_eat.is_gaping() {
+        hind_eat.start_eating.clear();
     } else if body_eat.is_sated_stretch() {
+        hind_eat.start_eating.clear();
     } else {
-        body_eat.eat();
+        hind_eat.start_eating.set(true);
+        
+        if hind_eat.start_eating.is_active() {
+            body_eat.eat();
+        }
     }
+
+    hind_eat.start_eating.update();
 }
 
 ///
@@ -126,6 +136,8 @@ pub struct HindEat {
     is_stop_request: TimeoutValue<bool>,
 
     is_eating: TimeoutValue<bool>,
+
+    start_eating: DelayValue<bool>,
 
     // Mouse gaping is a reflexive orofacial expression to expel food in
     // the mouth, functionally like spitting
@@ -186,6 +198,7 @@ impl Default for HindEat {
     fn default() -> Self {
         Self {  
             is_stop_request: TimeoutValue::new(Seconds(1.)),
+            start_eating: DelayValue::new(Seconds(1.)),
             is_eating: TimeoutValue::new(Seconds(2.)),
             is_gaping: TimeoutValue::new(Seconds(5.)),
             is_vomiting: TimeoutValue::new(Seconds(15.)),

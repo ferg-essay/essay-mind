@@ -13,14 +13,14 @@ use crate::{
 };
 
 use super::{
-    eat::MotiveEat, Motive,MotiveTrait, Motives, Sleep,
+    eat::HypEat, Motive,MotiveTrait, Motives, Sleep,
 };
 
 fn update_forage(
     mut forage: ResMut<Forage>,
     odor_cortex: Res<OdorCortex>,
     mid_move: Res<MidLocomotor>,
-    mut motive_eat: ResMut<MotiveEat>,
+    mut motive_eat: ResMut<HypEat>,
     mut foraging: ResMut<Motive<Forage>>,
     serotonin_avoid: Res<Serotonin<HindAvoid>>,
     mut serotonin_eat: ResMut<Serotonin<HindEat>>,

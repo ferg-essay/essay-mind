@@ -4,7 +4,8 @@ use essay_ecs::{
 };
 use mind_ecs::{AppTick, Tick};
 use crate::{
-    hind_brain::{HindMove, HindMovePlugin},
+    hind_brain::{HindMove, HindMovePlugin}, 
+    hypothalamus::HypEat, 
     subpallium::{MosaicType, Striatum, StriatumTimeout}, 
     util::{DecayValue, Seconds}
 };
@@ -16,6 +17,7 @@ use super::{
 fn update_roam(
     mut hyp_move: ResMut<HypMove>,
     mut hind_move: ResMut<HindMove>,
+    hyp_eat: Res<HypEat>,
     tick: Res<AppTick>,
     sleep: Res<Sleep>,
 ) {
@@ -23,10 +25,10 @@ fn update_roam(
 
     if sleep.is_sleep() {
         return;
-    }
-    
-    // suppressed by eating and satiation and food zone
-    if hyp_move.roam_striatum.left_mut().is_active(tick.get()) {
+    } else if hyp_eat.is_arc_mor() {
+        // morphine suppresses roaming
+    } else if hyp_move.roam_striatum.left_mut().is_active(tick.get()) {
+        // suppressed by eating and satiation and food zone
         hind_move.ante().roam(1.);
     }
 }

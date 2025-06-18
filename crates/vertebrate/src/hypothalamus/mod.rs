@@ -6,7 +6,7 @@ mod hyp_locomotor;
 mod sleep;
 
 pub use avoid::{MotiveAvoid, MotiveAvoidPlugin};
-pub use eat::{MotiveEat, MotiveEatPlugin};
+pub use eat::{HypEat, MotiveEatPlugin};
 pub use forage::{Alarm, Eat, Dwell, Forage, HypForagePlugin, Roam, Sated};
 pub use motive::{Motive, Motives, MotiveTrait, Surprise};
 pub use hyp_locomotor::HypMovePlugin;
