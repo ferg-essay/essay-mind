@@ -352,9 +352,7 @@ impl HindMove {
         };
         
         // TODO: should be driven by outside such as H.sum/MLR
-        if ! self.forward_r5.kind.is_stop() {
-            kind = self.forward_r5.kind;
-        }
+        kind = self.forward_r5.take().or(kind);
 
         // ARTR - R1.a
         turn = self.artr_r2.next_turn().unwrap_or(turn);
@@ -706,6 +704,10 @@ impl Action {
 
     fn update(&mut self) {
         self.elapsed = Ticks(self.elapsed.ticks() + 1);
+
+        if ! self.is_active() {
+            self.kind = MoveKind::None;
+        }        
     }
 
     fn is_active(&self) -> bool {
@@ -812,6 +814,14 @@ impl MoveKind {
         match self {
             MoveKind::Avoid => true,
             _ => false
+        }
+    }
+
+    fn or(self, other: MoveKind) -> Self {
+        match self {
+            MoveKind::None => other,
+            MoveKind::Halt => other,
+            _ => self
         }
     }
     

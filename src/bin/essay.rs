@@ -4,7 +4,7 @@ use vertebrate::{
     body::BodyEat, builder::AnimalBuilder, hind_brain::{
         r1_thigmotaxis::{Thigmotaxis, ThigmotaxisStrategy}, ArtrR2, AvoidHerePlugin, EatStrategy, HindAvoid, HindEat, HindMove, MoveKind, Serotonin
     }, hypothalamus::{
-        Dwell, Forage, Motive, HypEat, MotiveTrait, Sleep, Wake
+        Dwell, Forage, HypEat, Motive, MotiveTrait, Sleep, Wake
     }, mid_brain::tectum::OrientTectum, olfactory::{odor_place::OdorPlacePlugin, olfactory_bulb::OlfactoryBulb}, retina::Retina, ui::{
         ui_attention::UiAttentionPlugin, ui_body::UiBodyPlugin, ui_emoji::Emoji, ui_heatmap::UiHeatmapPlugin, 
         ui_homunculus::{Orient, UiHomunculusPlugin}, 
@@ -12,7 +12,7 @@ use vertebrate::{
         ui_world_hex::{Pattern, UiWorldHexPlugin}, 
         ui_world_map::UiWorldPlugin
     }, util::{self, Heading, Seconds, Turn}, world::{
-        FoodKind, FoodPlugin, OdorKind, OdorPlugin, WorldHexPlugin, WorldHexTrait, WorldPlugin
+        Food, FoodKind, FoodPlugin, OdorKind, OdorPlugin, WorldHexPlugin, WorldHexTrait, WorldPlugin
     }
 };
 use essay_ecs::prelude::App;
@@ -50,8 +50,9 @@ pub fn main() {
         .avoid(PlaceKind::AvoidB, true)
     );
 
-    let food = FoodPlugin::new();
-    //food.gen_count(1).gen_radius(2.).gen_value(Seconds(120.)).gen_kind(FoodKind::Poor);
+    let mut food = FoodPlugin::new();
+    food.gen_count(2).gen_radius(3.).gen_value(Seconds(240.)).gen_kind(FoodKind::Plain);
+    food.base_food(FoodKind::None);
     app.plugin(food);
 
     let mut animal = AnimalBuilder::new();

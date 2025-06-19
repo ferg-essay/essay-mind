@@ -1,5 +1,7 @@
 use essay_ecs::app::{App, Plugin};
 
+use crate::{util::Point, world::{Food, FoodKind}};
+
 use super::{FloorType, World, Wall};
 
 pub struct WorldPlugin {

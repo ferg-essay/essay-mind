@@ -10,8 +10,7 @@ use crate::{
     }, 
     hippocampus::HippocampusPlugin, 
     hypothalamus::{
-        Dwell, Forage, HypForagePlugin, HypMovePlugin, Motive, 
-        MotiveAvoidPlugin, MotiveEatPlugin, MotiveSleepPlugin
+        Dwell, FoodZonePlugin, Forage, HypForagePlugin, HypMovePlugin, Motive, MotiveAvoidPlugin, MotiveEatPlugin, MotiveSleepPlugin
     }, 
     mid_brain::{
         pretectum::{lateral_line::PretectumLateralLinePlugin, ObstaclePretectumPlugin, PretectumTouchPlugin}, 
@@ -51,7 +50,8 @@ pub struct AnimalBuilder {
     tectum_lateral_line: TectumLateralLinePlugin,
 
     hyp_forage: HypForagePlugin,
-    hyp_roam: HypMovePlugin,
+    hyp_move: HypMovePlugin,
+    hyp_food_zone: FoodZonePlugin,
 
     is_motive_eating: bool,
     is_mid_seek: bool,
@@ -86,7 +86,8 @@ impl AnimalBuilder {
             tectum_looming: TectumLoomingPlugin::new(),
 
             hyp_forage: HypForagePlugin::new(),
-            hyp_roam: HypMovePlugin::new(),
+            hyp_move: HypMovePlugin::new(),
+            hyp_food_zone: FoodZonePlugin::new(),
 
             is_motive_eating: true,
             is_mid_seek: false,
@@ -148,6 +149,14 @@ impl AnimalBuilder {
         &mut self.hyp_forage
     }
 
+    pub fn hyp_move(&mut self) -> &mut HypMovePlugin {
+        &mut self.hyp_move
+    }
+
+    pub fn hyp_food_zone(&mut self) -> &mut FoodZonePlugin {
+        &mut self.hyp_food_zone
+    }
+
     pub fn motive(&mut self) -> MotiveBuilder {
         MotiveBuilder {
             builder: self,
@@ -191,6 +200,8 @@ impl AnimalBuilder {
 
         app.plugin(self.olfactory_cortex);
 
+        app.plugin(self.hyp_food_zone);
+        
         if self.is_motive_eating {
             app.plugin(MidMovePlugin);
             app.plugin(MotiveEatPlugin);
@@ -199,8 +210,8 @@ impl AnimalBuilder {
             }
         }
 
-        if self.hyp_roam.is_enable() {
-            app.plugin(self.hyp_roam);
+        if self.hyp_move.is_enable() {
+            app.plugin(self.hyp_move);
         }
 
         if self.is_mid_seek {

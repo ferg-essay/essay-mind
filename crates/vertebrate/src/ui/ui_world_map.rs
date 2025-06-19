@@ -249,6 +249,25 @@ impl Drawable for UiWorldView {
 
         self.resize(&pos);
 
+        if let Some(food) = &self.food {
+            if food.xy.len() > 0 {
+                //println!("XY {:?}", food.xy);
+                //let xy = &self.to_canvas.transform(&food.xy);
+
+                let star: Path<Canvas> = paths::unit_star(8, 0.6)
+                    .transform(&self.to_canvas_view);
+
+                if self.food_x != food.xy[0] {
+                    self.food_x = food.xy[0];
+                }
+                let style = PathStyle::new();
+                // TODO:
+                //ui.draw_markers(&star, &style, &xy, &food.sizes, &food.colors, &style)?;
+                ui.draw_markers(&star, &style, &food.to_marker_style(&self.to_canvas))?;
+        
+            }
+        }
+
         if self.image.is_none() {
             if let Some(colors) = &self.colors {
                 self.image = Some(ui.create_texture_rgba8(colors));
@@ -277,25 +296,6 @@ impl Drawable for UiWorldView {
             );
 
             ui.draw_mesh2d(&mesh, *image, &[Color::white().with_alpha(1.).into()])?;
-        }
-
-        if let Some(food) = &self.food {
-            if food.xy.len() > 0 {
-                //println!("XY {:?}", food.xy);
-                //let xy = &self.to_canvas.transform(&food.xy);
-
-                let star: Path<Canvas> = paths::unit_star(8, 0.6)
-                    .transform(&self.to_canvas_view);
-
-                if self.food_x != food.xy[0] {
-                    self.food_x = food.xy[0];
-                }
-                let style = PathStyle::new();
-                // TODO:
-                //ui.draw_markers(&star, &style, &xy, &food.sizes, &food.colors, &style)?;
-                ui.draw_markers(&star, &style, &food.to_marker_style(&self.to_canvas))?;
-        
-            }
         }
 
         Ok(())
