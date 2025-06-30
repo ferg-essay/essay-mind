@@ -1,3 +1,4 @@
+//mod filter_feed;
 mod hind_eat;
 mod hind_locomotor;
 pub mod lateral_line;
@@ -10,14 +11,12 @@ mod rpb_avoid;
 mod r4_startle;
 mod serotonin;
 
-pub use rpb_avoid_place::{AvoidHere, AvoidHerePlugin};
-
-pub use rpb_avoid::{
-    HindAvoid, HindAvoidPlugin,
-};
+//pub use filter_feed::{
+//    FilterFeed, HindFilterFeedPlugin, 
+//};
 
 pub use hind_eat::{
-    HindEat, HindEatPlugin, 
+    HindEat, HindEatPlugin, EatStrategy,
 };
 
 pub use hind_locomotor::{
@@ -27,6 +26,12 @@ pub use hind_locomotor::{
 };
 
 pub use r2_artr::ArtrR2;
+
+pub use rpb_avoid_place::{AvoidHere, AvoidHerePlugin};
+
+pub use rpb_avoid::{
+    HindAvoid, HindAvoidPlugin,
+};
 
 pub use serotonin::{
     Serotonin, SerotoninManager, SerotoninTrait

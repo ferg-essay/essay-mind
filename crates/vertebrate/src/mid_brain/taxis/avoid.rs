@@ -3,7 +3,7 @@ use mind_ecs::Tick;
 
 use crate::{
     hind_brain::{HindMove, HindMovePlugin}, 
-    motive::{Motive, Motives}, 
+    hypothalamus::{Motive, Motives}, 
     mid_brain::taxis::chemotaxis::Avoid, 
     util::{Seconds, Timeout}
 };

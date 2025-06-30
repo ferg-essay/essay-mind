@@ -14,7 +14,7 @@ use crate::{
         taxis::chemotaxis::{Avoid, Seek}, 
         SeekInput, 
     },
-    motive::{Motive, MotiveTrait, Motives}, 
+    hypothalamus::{Motive, MotiveTrait, Motives}, 
     subpallium::{Gate, StriatumGate}, 
     util::{DecayValue, Seconds, Turn}
 };

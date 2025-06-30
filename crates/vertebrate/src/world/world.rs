@@ -1,11 +1,13 @@
 use std::ops::{Index, IndexMut};
 
-use crate::util::Point;
+use crate::{util::Point, world::Food};
 
 pub struct World {
     width: usize,
     height: usize,
     cells: Vec<Wall>,
+
+    base_food: Option<Food>,
 }
 
 impl World {
@@ -18,6 +20,7 @@ impl World {
             width,
             height,
             cells: values,
+            base_food: None,
         }
     }
 
@@ -34,6 +37,15 @@ impl World {
     #[inline]
     pub fn height(&self) -> usize {
         self.height
+    }
+
+    #[inline]
+    pub fn base_food(&self) -> &Option<Food> {
+        &self.base_food
+    }
+
+    pub(crate) fn set_base_food(&mut self, food: Option<Food>) {
+        self.base_food = food;
     }
 }
 

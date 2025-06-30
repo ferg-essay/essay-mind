@@ -7,7 +7,7 @@ use crate::{
         HindMove, HindMovePlugin
     }, 
     subpallium::{MosaicType, Striatum, StriatumValue2}, 
-    util::{DecayValue, HalfLife, Seconds, Side, Ticks, TimeoutValue, Turn}
+    util::{DecayValue, HalfLife, Seconds, Side, Ticks, Turn}
 };
 
 fn update_orient_tectum(
@@ -263,6 +263,10 @@ impl TectumOrientPlugin {
         self.is_enable = is_enable;
 
         self
+    }
+    
+    pub(crate) fn is_enable(&self) -> bool {
+        self.is_enable
     }
 
     pub fn memory_time(&mut self, timeout: impl Into<HalfLife>) -> &mut Self {

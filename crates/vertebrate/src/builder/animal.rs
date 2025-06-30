@@ -6,19 +6,24 @@ use crate::{
     body::{BodyEatPlugin, BodyPlugin}, 
     hind_brain::{
         lateral_line::LateralLine2Plugin, r1_thigmotaxis::HindThigmotaxisPlugin, 
-        HindAvoidPlugin, HindEat, HindEatPlugin, HindMovePlugin,
+        HindAvoidPlugin, HindEat, HindEatPlugin, HindMovePlugin
     }, 
     hippocampus::HippocampusPlugin, 
+    hypothalamus::{
+        Dwell, FoodZonePlugin, Forage, HypForagePlugin, HypMovePlugin, Motive, MotiveAvoidPlugin, MotiveEatPlugin, MotiveSleepPlugin
+    }, 
     mid_brain::{
         pretectum::{lateral_line::PretectumLateralLinePlugin, ObstaclePretectumPlugin, PretectumTouchPlugin}, 
         taxis::{klinotaxis::KlinotaxisPlugin, TaxisAvoidPlugin}, 
         tectum::{TectumLateralLinePlugin, TectumLoomingPlugin, TectumOrientPlugin, TectumPlugin}, 
         MidMovePlugin, MidSeekContextPlugin, MidSeekPlugin
     }, 
-    motive::{Dwell, Forage, Motive, MotiveAvoidPlugin, MotiveEatPlugin, MotiveForagePlugin, MotiveSleepPlugin}, 
-    olfactory::{odor_place::OdorPlace, olfactory_bulb::{OlfactoryBulb, OlfactoryBulbPlugin}, OlfactoryCortexPlugin}, 
-    retina::RetinaPlugin, 
-    util::Seconds 
+    olfactory::{
+        odor_place::OdorPlace, 
+        olfactory_bulb::{OlfactoryBulb, OlfactoryBulbPlugin}, 
+        OlfactoryCortexPlugin
+    }, 
+    retina::RetinaPlugin, util::Seconds 
 };
 
 pub struct AnimalBuilder {
@@ -44,6 +49,10 @@ pub struct AnimalBuilder {
     tectum_orient: TectumOrientPlugin,
     tectum_lateral_line: TectumLateralLinePlugin,
 
+    hyp_forage: HypForagePlugin,
+    hyp_move: HypMovePlugin,
+    hyp_food_zone: FoodZonePlugin,
+
     is_motive_eating: bool,
     is_mid_seek: bool,
     is_mid_klinotaxis: bool,
@@ -55,7 +64,7 @@ impl AnimalBuilder {
     pub fn new() -> Self {
         Self {
             body: BodyPlugin::new(),
-            body_eat: BodyEatPlugin,
+            body_eat: BodyEatPlugin::new(),
 
             hind_avoid: HindAvoidPlugin::new(),
             hind_eat: HindEatPlugin::new(),
@@ -76,12 +85,20 @@ impl AnimalBuilder {
 
             tectum_looming: TectumLoomingPlugin::new(),
 
+            hyp_forage: HypForagePlugin::new(),
+            hyp_move: HypMovePlugin::new(),
+            hyp_food_zone: FoodZonePlugin::new(),
+
             is_motive_eating: true,
             is_mid_seek: false,
             is_mid_klinotaxis: false,
 
             dwell: None,
         }
+    }
+
+    pub fn body_eat(&mut self) -> &mut BodyEatPlugin {
+        &mut self.body_eat
     }
 
     pub fn lateral_line(&mut self) -> &mut LateralLine2Plugin {
@@ -128,6 +145,18 @@ impl AnimalBuilder {
         &mut self.hind_thigmotaxis
     }
 
+    pub fn hyp_forage(&mut self) -> &mut HypForagePlugin {
+        &mut self.hyp_forage
+    }
+
+    pub fn hyp_move(&mut self) -> &mut HypMovePlugin {
+        &mut self.hyp_move
+    }
+
+    pub fn hyp_food_zone(&mut self) -> &mut FoodZonePlugin {
+        &mut self.hyp_food_zone
+    }
+
     pub fn motive(&mut self) -> MotiveBuilder {
         MotiveBuilder {
             builder: self,
@@ -161,18 +190,28 @@ impl AnimalBuilder {
         app.plugin(self.pretectum_touch);
         app.plugin(self.pretectum_lateral_line);
 
-        app.plugin(self.tectum_orient);
-        app.plugin(self.tectum_lateral_line);
+        if self.tectum_orient.is_enable() {
+            app.plugin(self.tectum_orient);
+            app.plugin(self.tectum_lateral_line);
+        }
 
         app.plugin(TectumPlugin::new().striatum());
         app.plugin(self.tectum_looming);
 
         app.plugin(self.olfactory_cortex);
 
+        app.plugin(self.hyp_food_zone);
+        
         if self.is_motive_eating {
             app.plugin(MidMovePlugin);
             app.plugin(MotiveEatPlugin);
-            app.plugin(MotiveForagePlugin);
+            if self.hyp_forage.is_enable() {
+                app.plugin(self.hyp_forage);
+            }
+        }
+
+        if self.hyp_move.is_enable() {
+            app.plugin(self.hyp_move);
         }
 
         if self.is_mid_seek {

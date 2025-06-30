@@ -7,6 +7,23 @@ use crate::util::{Seconds, Ticks};
 
 use super::motive::{Motive, MotiveTrait, Motives};
 
+fn update_sleep(
+    mut circadian: ResMut<Sleep>,
+    mut wake: ResMut<Motive<Wake>>,
+    mut sleep: ResMut<Motive<Sleep>>
+) {
+    circadian.update();
+
+    match circadian.get_state() {
+        CircadianState::Sleep => {
+            if ! wake.is_active() {
+                sleep.set_max(1.);
+            }
+        },
+        CircadianState::Wake => wake.set_max(1.),
+    }
+}
+
 pub struct Sleep {
     circadian: Circadian,
 
@@ -151,23 +168,6 @@ impl Default for Circadian {
 enum CircadianState {
     Sleep,
     Wake
-}
-
-fn update_sleep(
-    mut circadian: ResMut<Sleep>,
-    mut wake: ResMut<Motive<Wake>>,
-    mut sleep: ResMut<Motive<Sleep>>
-) {
-    circadian.update();
-
-    match circadian.get_state() {
-        CircadianState::Sleep => {
-            if ! wake.is_active() {
-                sleep.set_max(1.);
-            }
-        },
-        CircadianState::Wake => wake.set_max(1.),
-    }
 }
 
 pub struct Wake;

@@ -47,7 +47,14 @@ impl DecayValue {
     }
 
     #[inline]
-    pub fn set_half_life(&mut self, half_life: impl Into<HalfLife>) {
+    pub fn decay_time(mut self, half_life: impl Into<HalfLife>) -> Self {
+        self.decay = half_life.into().decay();
+
+        self
+    }
+
+    #[inline]
+    pub fn set_decay(&mut self, half_life: impl Into<HalfLife>) {
         self.decay = half_life.into().decay();
     }
 

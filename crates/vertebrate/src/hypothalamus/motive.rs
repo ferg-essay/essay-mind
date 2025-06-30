@@ -1,6 +1,7 @@
 use std::{marker::PhantomData, ops::Deref};
 
 use essay_ecs::{app::{App, PreUpdate}, core::ResMut};
+use mind_ecs::PreTick;
 
 use crate::util::{DecayValue, HalfLife, Ticks};
 
@@ -102,7 +103,7 @@ impl Motives {
         app.insert_resource(motive);
 
         if is_new {
-            app.system(PreUpdate, 
+            app.system(PreTick, 
                 move |mut motive: ResMut<Motive<T>>| {
                     motive.update();
             });

@@ -16,7 +16,7 @@ pub use dir_gradient::DirGradient;
 pub use ego_vector::EgoVector;
 pub use point::{Point, Angle, Heading, Turn, Line};
 pub use ticks::{Ticks, TickDelta, Seconds, HalfLife};
-pub use timeout_value::{Timeout, TimeoutValue};
+pub use timeout_value::{Timeout, TimeoutValue, DelayValue};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Side {

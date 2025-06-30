@@ -1,11 +1,10 @@
+mod attention;
 mod lateral_line;
-mod thigmotaxis;
-mod ppt;
 mod orient;
 mod looming_zebrafish_mtl;
 mod looming;
 mod tectum_map;
-mod attention;
+mod thigmotaxis;
 
 pub use looming::TectumLoomingPlugin;
 

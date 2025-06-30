@@ -55,25 +55,25 @@ impl ThigmotaxisTectum {
         }
     }
 
-    pub fn is_active(&self) -> bool {
+    pub fn _is_active(&self) -> bool {
         self.left.memory.is_active() || self.right.memory.is_active()
     }
 
-    pub fn active_left(&self) -> bool {
+    pub fn _active_left(&self) -> bool {
         self.left.memory.is_active()
     }
 
-    pub fn active_right(&self) -> bool {
+    pub fn _active_right(&self) -> bool {
         self.right.memory.is_active()
     }
 
-    pub fn active_value(&self) -> f32 {
+    pub fn _active_value(&self) -> f32 {
         self.left.memory.active_value().max(self.right.memory.active_value())
     }
 
     fn update(
         &mut self, 
-        lateral_line: &LateralLine,
+        _lateral_line: &LateralLine,
         tick: &AppTick,
     )  {
         self.exclusive.update(tick);
@@ -112,7 +112,7 @@ struct ThigmotaxisSide {
     // memory of thigmotaxis side.
     memory: DecayValue,
 
-    id: StriatumId,
+    _id: StriatumId,
     timeout: StriatumTimeout,
 }
 
@@ -141,7 +141,7 @@ impl ThigmotaxisSide {
             turn_max: plugin.turn.to_unit(),
             memory: DecayValue::new(half_life),
 
-            id,
+            _id: id,
             timeout,
         }
     }
@@ -156,10 +156,11 @@ impl ThigmotaxisSide {
             turn_max: Turn::Unit(0.25).to_unit(),
             memory: DecayValue::new(half_life),
             timeout: StriatumTimeout::new(),
-            id: StriatumId::default(),
+            _id: StriatumId::default(),
         }
     }
 
+    #[allow(unused)]
     fn update(
         &mut self, 
         lateral_line: &LateralLine,
@@ -216,49 +217,49 @@ fn _tail(side: Side) -> Segment {
 pub struct TectumThigmotaxisPlugin {
     pub(super) is_enable: bool,
     pub(super) memory_time: HalfLife,
-    pub(super) inhibited_value: f32,
+    pub(super) _inhibited_value: f32,
     pub(super) turn: Turn,
     pub(super) timeout: Option<Ticks>,
     pub(super) timeout_recover: Option<Ticks>,
 }
 
 impl TectumThigmotaxisPlugin {
-    pub fn new() -> Self {
+    pub fn _new() -> Self {
         Self::default()
     }
 
-    pub fn enable(&mut self, is_enable: bool) -> &mut Self {
+    pub fn _enable(&mut self, is_enable: bool) -> &mut Self {
         self.is_enable = is_enable;
 
         self
     }
 
-    pub fn memory_time(&mut self, timeout: impl Into<HalfLife>) -> &mut Self {
+    pub fn _memory_time(&mut self, timeout: impl Into<HalfLife>) -> &mut Self {
         self.memory_time = timeout.into();
 
         self
     }
 
-    pub fn turn(&mut self, turn: impl Into<Turn>) -> &mut Self {
+    pub fn _turn(&mut self, turn: impl Into<Turn>) -> &mut Self {
         self.turn = turn.into();
 
         self
     }
 
     // lateral inhibition value when both sides have lateral line values
-    pub fn inhibited_value(&mut self, value: f32) -> &mut Self {
-        self.inhibited_value = value;
+    pub fn _inhibited_value(&mut self, value: f32) -> &mut Self {
+        self._inhibited_value = value;
 
         self
     }
 
-    pub fn timeout(&mut self, ticks: impl Into<Ticks>) -> &mut Self {
+    pub fn _timeout(&mut self, ticks: impl Into<Ticks>) -> &mut Self {
         self.timeout = Some(ticks.into());
 
         self
     }
 
-    pub fn timeout_recover(&mut self, ticks: impl Into<Ticks>) -> &mut Self {
+    pub fn _timeout_recover(&mut self, ticks: impl Into<Ticks>) -> &mut Self {
         self.timeout_recover = Some(ticks.into());
 
         self
@@ -271,7 +272,7 @@ impl Default for TectumThigmotaxisPlugin {
             is_enable: true, 
             memory_time: Seconds(1.).into(),
             turn: Turn::Unit(0.1),
-            inhibited_value: 1.,
+            _inhibited_value: 1.,
             timeout: None,
             timeout_recover: None,
         }

@@ -1,4 +1,7 @@
-use essay_ecs::{app::{App, Plugin, Startup}, core::{entity::EntityId, Commands, Component, Query, Res}};
+use essay_ecs::{
+    app::{App, Plugin, Startup}, 
+    core::{entity::EntityId, Commands, Component, Query, Res}
+};
 use mind_ecs::Tick;
 use util::random::Rand32;
 
@@ -54,6 +57,7 @@ pub struct Food {
     kind: FoodKind,
     value: f32,
     radius: f32,
+    
     probability: f32,
 }
 
@@ -140,6 +144,7 @@ impl Default for FoodGenerator {
 pub struct FoodPlugin {
     food: Vec<Food>,
     gen: FoodGenerator,
+    base_food: FoodKind,
 }
 
 impl FoodPlugin {
@@ -147,6 +152,7 @@ impl FoodPlugin {
         Self {
             food: Vec::default(),
             gen: FoodGenerator::default(),
+            base_food: FoodKind::None,
         }
     }
 
@@ -230,6 +236,12 @@ impl FoodPlugin {
         //self
     }
 
+    pub fn base_food(&mut self, kind: FoodKind) -> &mut Self {
+        self.base_food = kind;
+
+        self
+    }
+
     fn create_food(&self, app: &mut App) {
         let mut foods : Vec<Food> = self.food.clone();
 
@@ -249,6 +261,13 @@ impl Plugin for FoodPlugin {
         self.create_food(app);
 
         app.insert_resource(self.gen.clone());
+
+        if self.base_food != FoodKind::None {
+            let mut food = Food::new(Point(0., 0.));
+            food.kind = self.base_food;
+
+            app.get_mut_resource::<World>().unwrap().set_base_food(Some(food));
+        }
 
         app.system(Tick, update_food);
     }

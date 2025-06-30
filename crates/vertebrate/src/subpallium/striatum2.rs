@@ -6,12 +6,12 @@ use crate::{hippocampus::Engram64, util::{lru_cache::LruCache, Seconds, Ticks}};
 
 use super::MosaicType;
 
-pub struct Striatum<T: MosaicType> {
+pub struct Striatum<T> {
     left: StriatumSide<T>,
     right: StriatumSide<T>,
 }
 
-impl<T: MosaicType> Striatum<T> {
+impl<T> Striatum<T> {
     pub fn new() -> Self {
         Self {
             left: StriatumSide::new(),
@@ -46,7 +46,7 @@ impl<T: MosaicType> Striatum<T> {
     }
 }
 
-pub struct StriatumSide<T: MosaicType> {
+pub struct StriatumSide<T> {
     timeout: f32,
     recover: f32,
 
@@ -64,7 +64,7 @@ pub struct StriatumSide<T: MosaicType> {
 
 //unsafe impl<T: MosaicType> Sync for Striatum<T> {}
 
-impl<T: MosaicType> StriatumSide<T> {
+impl<T> StriatumSide<T> {
     const BUILDUP : f32 = 25.;
     const DECAY : f32 = 1.5 * Self::BUILDUP;
 

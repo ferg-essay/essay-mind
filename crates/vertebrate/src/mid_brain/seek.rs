@@ -5,7 +5,7 @@ use mind_ecs::{AppTick, Tick};
 
 use crate::{
     hind_brain::{HindMove, HindMovePlugin},
-    motive::{Motive, MotiveAvoid, MotiveTrait, Motives}, 
+    hypothalamus::{Motive, MotiveAvoid, MotiveTrait, Motives}, 
     subpallium::{StriatumTimeout, StriatumValue}, 
     mid_brain::taxis::chemotaxis::{Avoid, Seek}, 
     util::{EgoVector, Seconds}

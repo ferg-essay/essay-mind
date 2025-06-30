@@ -7,7 +7,7 @@ use mind_ecs::Tick;
 
 use crate::{
     hind_brain::{HindEat, HindMove, HindMovePlugin, ArtrR2, Serotonin}, 
-    motive::{Dwell, Motive, Wake}, 
+    hypothalamus::{Dwell, Motive, Wake}, 
     util::Command
 };
 

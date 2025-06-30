@@ -3,8 +3,8 @@ use mind_ecs::Tick;
 
 use crate::{
     body::BodyEat, 
-    hind_brain::{HindEat, HindEatPlugin, Serotonin}, 
-    motive::{Dwell, Eat, Motives, Sated}, 
+    hind_brain::{HindEat, HindEatPlugin, HindMove, Serotonin}, 
+    hypothalamus::{Dwell, Eat, Motives, Sated}, 
     util::{Seconds, TimeoutValue}
 };
 
@@ -231,15 +231,16 @@ use super::Sleep;
 /// 
 
 fn update_eat(
-    mut motive_eat: ResMut<MotiveEat>,
+    mut motive_eat: ResMut<HypEat>,
     hind_eat: Res<HindEat>,
+    hind_move: Res<HindMove>,
     mut serotonin_eat: ResMut<Serotonin<HindEat>>,
     body_eat: Res<BodyEat>,
     sleep: Res<Sleep>,
 ) {
     motive_eat.pre_update();
 
-    motive_eat.update_hunger(body_eat.get(), hind_eat.get(), sleep.get());
+    motive_eat.update_hunger(body_eat.get(), hind_eat.get(), hind_move.get(), sleep.get());
 
     if sleep.is_sleep()
     || ! motive_eat.is_food_zone()
@@ -254,7 +255,7 @@ fn update_eat(
     // TODO: check current moving
 }
 
-pub struct MotiveEat {
+pub struct HypEat {
     // food_zone derives from H.l (Forage)
     is_food_zone: TimeoutValue<bool>,
 
@@ -262,7 +263,10 @@ pub struct MotiveEat {
     is_cck_sated: TimeoutValue<bool>,
 
     // H.arc AgRP hunger motivation
-    is_agrp_hungry: TimeoutValue<bool>,
+    is_arc_agrp: TimeoutValue<bool>,
+
+    // H.arc POMC MOR - endorphin
+    is_arc_mor: TimeoutValue<bool>, 
 
     // H.pv satiation
     is_pv_sated: TimeoutValue<bool>,
@@ -279,7 +283,7 @@ pub struct MotiveEat {
     is_cgrp_sick: TimeoutValue<bool>,
 }
 
-impl MotiveEat {
+impl HypEat {
     fn is_food_zone(&self) -> bool {
         self.is_food_zone.value_or(false)
     }
@@ -310,10 +314,16 @@ impl MotiveEat {
         self.is_cgrp_sated.value_or(false)
     }
 
-    /// AgRP hunger - seek hunger
+    /// H.arc AgRP hunger - seek hunger
     #[inline]
-    pub fn is_hungry_agrp(&self) -> bool {
-        self.is_agrp_hungry.value_or(false)
+    pub fn is_arc_agrp(&self) -> bool {
+        self.is_arc_agrp.value_or(false)
+    }
+
+    /// H.arc MOR - while receiving nutrients from gut
+    #[inline]
+    pub fn is_arc_mor(&self) -> bool {
+        self.is_arc_mor.value_or(false)
     }
 
     /// H.pv satiation - driven by H.arc
@@ -343,9 +353,9 @@ impl MotiveEat {
     fn pre_update(&mut self) {
         self.is_food_zone.update();
 
-
         self.is_cck_sated.update();
-        self.is_agrp_hungry.update();
+        self.is_arc_agrp.update();
+        self.is_arc_mor.update();
         self.is_pv_sated.update();
         self.is_cgrp_bitter.update();
         self.is_cgrp_sated.update();
@@ -356,6 +366,7 @@ impl MotiveEat {
         &mut self,
         body_eat: &BodyEat,
         hind_eat: &HindEat,
+        hind_move: &HindMove,
         sleep: &Sleep
     ) {
         // R.pb CCK sated signal extends body signal
@@ -365,19 +376,30 @@ impl MotiveEat {
 
         // H.arc AgRP hunger
         if sleep.is_sleep() {
-            self.is_agrp_hungry.set(false);
+            self.is_arc_agrp.set(false);
         } else if self.is_food_zone() {
             // H.l food zone immediately suppresses AgRP
-            self.is_agrp_hungry.set(false);
+            self.is_arc_agrp.set(false);
         } else if body_eat.glucose() > 0.5 {
-            self.is_agrp_hungry.set(false);
+            self.is_arc_agrp.set(false);
         //} else if body_eat.glucose_low() {
         //    self.is_agrp_hungry.set(true);
         } else if sleep.is_forage() {
             // Circadian forage time in morning activates AgRP
-            self.is_agrp_hungry.set(true);
+            self.is_arc_agrp.set(true);
         } else if body_eat.glucose() <= 0. {
-            self.is_agrp_hungry.set(true);
+            self.is_arc_agrp.set(true);
+        }
+
+        // H.arc β-endorphin
+        if sleep.is_sleep() {
+            self.is_arc_mor.clear();
+        } else if hind_move.is_active() {
+            self.is_arc_mor.clear();
+        } else if body_eat.gut_food() > 0.5 {
+            self.is_arc_mor.set(true);
+        } else {
+            self.is_arc_mor.clear();
         }
 
         if self.is_cck_sated.value_or(false) {
@@ -387,7 +409,7 @@ impl MotiveEat {
         }
 
         // H.pv MC4 satiation, defaults to true
-        if self.is_hungry_agrp() {
+        if self.is_arc_agrp() {
             self.is_pv_sated.set(false);
         } else if body_eat.sated_cck() > 0. {
             self.is_pv_sated.set(true);
@@ -397,7 +419,7 @@ impl MotiveEat {
         let mut cgrp_sated: f32 = body_eat.sated_cck();
 
         // S.am suppression of cgrp_bitter
-        if body_eat.sweet() > 0. {
+        if body_eat.taste_sweet() > 0. {
             cgrp_sated -= 0.75;
         }
 
@@ -405,7 +427,7 @@ impl MotiveEat {
 
         // AgRP suppresses CCK and bitter
         // TODO: But H.arc.AgRP not directly to R.pb CGRP?
-        if self.is_hungry_agrp() {
+        if self.is_arc_agrp() {
             cgrp_sated = 0.;
         }
 
@@ -413,7 +435,7 @@ impl MotiveEat {
             self.is_cgrp_sated.set(true);
         }
 
-        if body_eat.bitter() > 0. || hind_eat.is_gaping() {
+        if body_eat.taste_bitter() > 0. || hind_eat.is_gaping() {
             self.is_cgrp_bitter.set(true);
         }
 
@@ -425,14 +447,15 @@ impl MotiveEat {
     }
 }
 
-impl Default for MotiveEat {
+impl Default for HypEat {
     fn default() -> Self {
         // R.pb activation has long sustain ~30s
 
         Self { 
             is_food_zone: Default::default(), 
             is_cck_sated: TimeoutValue::new(Seconds(30.)),
-            is_agrp_hungry: TimeoutValue::new(Seconds(30.)),
+            is_arc_agrp: TimeoutValue::new(Seconds(30.)),
+            is_arc_mor: TimeoutValue::new(Seconds(1.)),
             is_pv_sated: TimeoutValue::new(Seconds(30.)),
             sated: 0.,
 
@@ -454,7 +477,7 @@ impl Plugin for MotiveEatPlugin {
 
         Motives::insert::<Dwell>(app, Seconds(4.));
 
-        app.insert_resource(MotiveEat::default());
+        app.insert_resource(HypEat::default());
 
         app.system(Tick, update_eat);
     }

@@ -1,4 +1,4 @@
-use std::cell::RefCell;
+use std::{cell::RefCell, marker::PhantomData};
 
 use essay_tensor::tensor::Tensor;
 use essay_ecs::prelude::*;
@@ -12,22 +12,24 @@ use ui_graphics::ViewPlugin;
 
 use super::ui_emoji::Emoji;
 
-fn update_radar(mut radar: ResMut<RadarView>) {
+fn update_radar<M: 'static>(mut radar: ResMut<RadarView<M>>) {
     radar.update();
 }
 
-#[derive(Clone)]
-pub struct RadarView {
+pub struct RadarView<M> {
     radar: RadarOpt,
     items: Vec<f32>,
+
+    marker: PhantomData<fn(M)>,
 }
 
-impl RadarView {
+impl<M> RadarView<M> {
     pub fn new(radar: RadarOpt) -> Self {
         Self {
             radar,
 
             items: Vec::new(),
+            marker: PhantomData::default(),
         }
     }
 
@@ -48,23 +50,37 @@ impl RadarView {
     }
 }
 
+impl<M: 'static> Clone for RadarView<M> {
+    fn clone(&self) -> Self {
+        Self { 
+            radar: self.radar.clone(), 
+            items: self.items.clone(), 
+            marker: self.marker.clone()
+         }
+    }
+}
+
 //
 // UiMotivePlugin
 //
 
-pub struct UiRadarPlugin {
+pub struct UiRadarPlugin<M> {
     items: Vec<Box<dyn PluginItem>>,
 
     polar: Option<PolarChart>,
-    radar: Option<RadarView>,
+    radar: Option<RadarView<M>>,
+
+    marker: PhantomData<fn(M)>,
 }
 
-impl UiRadarPlugin {
+impl<M: 'static> UiRadarPlugin<M> {
     pub fn new() -> Self {
         Self {
             items: Vec::new(),
             polar: None,
             radar: None,
+
+            marker: Default::default(),
         }
     }
 
@@ -75,17 +91,18 @@ impl UiRadarPlugin {
         fun: impl Fn(&T) -> f32 + Send + Sync + 'static
     ) -> Self
     where T: Default + Send + Sync + 'static {
-        self.items.push(Box::new(Item {
+        self.items.push(Box::new(Item::<T, M> {
             x,
             emoji,
-            fun: RefCell::new(Some(Box::new(fun)))
+            fun: RefCell::new(Some(Box::new(fun))),
+            marker: Default::default(),
         }));
 
         self
     }
 }
 
-impl ViewPlugin for UiRadarPlugin {
+impl<M: 'static> ViewPlugin for UiRadarPlugin<M> {
     fn view(&mut self, app: &mut App) -> Option<&ViewArc> {
         let mut polar = PolarChart::new(&ConfigArc::default());
 
@@ -119,12 +136,12 @@ impl ViewPlugin for UiRadarPlugin {
     }
 }
 
-impl Plugin for UiRadarPlugin {
+impl<M: 'static> Plugin for UiRadarPlugin<M> {
     fn build(&self, app: &mut App) {
         if let Some(radar) = &self.radar {
             app.insert_resource(radar.clone());
 
-            app.system(PostTick, update_radar);
+            app.system(PostTick, update_radar::<M>);
         }
     }
 }
@@ -135,13 +152,15 @@ trait PluginItem {
     fn system(&self, id: usize, app: &mut App);
 }
 
-struct Item<T: Send + Sync + 'static> {
+struct Item<T: Send + Sync + 'static, M> {
     x: f32,
     emoji: Emoji,
     fun: RefCell<Option<Box<dyn Fn(&T) -> f32 + Send + Sync + 'static>>>,
+
+    marker: PhantomData<fn(M)>,
 }
 
-impl<T: Default + Send + Sync + 'static> PluginItem for Item<T> {
+impl<T: Default + Send + Sync + 'static, M: 'static> PluginItem for Item<T, M> {
     fn x(&self) -> f32 {
         self.x
     }
@@ -156,7 +175,7 @@ impl<T: Default + Send + Sync + 'static> PluginItem for Item<T> {
         let fun = self.fun.take().unwrap();
 
         app.system(Update, 
-            move |mut radar: ResMut<RadarView>, item: Res<T>| {
+            move |mut radar: ResMut<RadarView<M>>, item: Res<T>| {
                 let value = fun(item.get());
                 radar.set_value(id, value);
             }

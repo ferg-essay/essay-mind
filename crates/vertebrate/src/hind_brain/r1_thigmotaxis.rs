@@ -1,7 +1,15 @@
 use essay_ecs::{app::{App, Plugin}, core::{Res, ResMut}};
 use mind_ecs::{AppTick, Tick};
 
-use crate::{hind_brain::{lateral_line::{LateralLine2Plugin, Segment}, r1_thigmotaxis_artr::{update_thigmaxis_artr, ThigmotaxisArtr}, HindMovePlugin}, subpallium::{StriatumExclusive, StriatumId, StriatumTimeout}, util::{DecayValue, HalfLife, Seconds, Ticks, Turn}};
+use crate::{
+    hind_brain::{
+        lateral_line::{LateralLine2Plugin, Segment}, 
+        r1_thigmotaxis_artr::{update_thigmaxis_artr, ThigmotaxisArtr}, 
+        HindMovePlugin
+    }, 
+    subpallium::StriatumTimeout, 
+    util::{DecayValue, HalfLife, Seconds, Ticks, Turn}
+};
 
 use super::{lateral_line::LateralLine, r2_artr::Side, HindMove};
 
@@ -29,8 +37,8 @@ fn update_thigmaxis_direct(
     //let mut left_turn = None;
     //let mut right_turn = None;
 
-    let left_head = lateral_line.max(Segment::HeadLeft);
-    let left_trunk = lateral_line.max(Segment::TailLeft);
+    //let left_head = lateral_line.max(Segment::HeadLeft);
+    //let left_trunk = lateral_line.max(Segment::TailLeft);
 
     /*
     if left_head > 0. || left_trunk > 0. {
@@ -106,7 +114,7 @@ impl Default for Thigmotaxis {
 }
 
 impl Thigmotaxis {
-    const MAX_THRESHOLD: f32 = 0.4;
+    const _MAX_THRESHOLD: f32 = 0.4;
 
     fn new(plugin: &HindThigmotaxisPlugin) -> Self {
         //let half_life = plugin.memory_time;
@@ -156,8 +164,8 @@ impl Thigmotaxis {
 
     fn update(
         &mut self, 
-        lateral_line: &LateralLine,
-        tick: &AppTick,
+        _lateral_line: &LateralLine,
+        _tick: &AppTick,
     )  {
         self.ui_left.update();
         self.ui_right.update();
@@ -189,7 +197,7 @@ struct ThigmotaxisSide {
     memory: DecayValue,
 
     // id: StriatumId,
-    timeout: StriatumTimeout,
+    _timeout: StriatumTimeout,
 }
 
 impl ThigmotaxisSide {
@@ -217,7 +225,7 @@ impl ThigmotaxisSide {
             memory: DecayValue::new(half_life),
 
             // id,
-            timeout,
+            _timeout: timeout,
         }
     }
 
@@ -230,12 +238,12 @@ impl ThigmotaxisSide {
             ll_target: 0.5,
             turn_max: Turn::Unit(0.25).to_unit(),
             memory: DecayValue::new(half_life),
-            timeout: StriatumTimeout::new(),
+            _timeout: StriatumTimeout::new(),
             // id: StriatumId::default(),
         }
     }
 
-    fn update(
+    fn _update(
         &mut self, 
         lateral_line: &LateralLine,
         tick: &AppTick,
@@ -245,7 +253,7 @@ impl ThigmotaxisSide {
         let head = lateral_line.max(head(self.side));
 
         if head > 0. || self.memory.is_active() {
-            if ! self.timeout.is_active(tick) {
+            if ! self._timeout.is_active(tick) {
                 self.memory.set(0.);
             } else if head > 0. {
                 self.memory.set_max(1.);

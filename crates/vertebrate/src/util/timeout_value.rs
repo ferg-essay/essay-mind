@@ -175,3 +175,110 @@ impl<V> Default for TimeoutValue<V> {
         Self::new(Ticks(3))
     }
 }
+
+/// DelayValue returns a value after a delay
+/// 
+/// DelayValue would be used to simulate a system with a minimal timeout
+pub struct DelayValue<V> {
+    timeout: u32,
+    value: Option<V>,
+    last_ticks: u64,
+
+    // config
+    threshold: u32,
+}
+
+impl<V> DelayValue<V> {
+    ///
+    /// half_life in ticks
+    /// 
+    pub fn new(timeout: impl Into<Ticks>) -> Self {
+        Self {
+            threshold: timeout.into().ticks() as u32,
+            timeout: 0,
+            value: None,
+            last_ticks: 0,
+        }
+    }
+
+    pub fn set_timeout(mut self, timeout: impl Into<Ticks>) -> Self {
+        self.threshold = timeout.into().ticks() as u32;
+
+        self
+    }
+
+    #[inline]
+    pub fn get_timeout(&self) -> u32 {
+        self.threshold
+    }
+
+    #[inline]
+    pub fn value(&self) -> &Option<V> {
+        if self.is_active() {
+            &self.value
+        } else {
+            &None
+        }
+    }
+
+    #[inline]
+    pub fn is_active(&self) -> bool {
+        self.threshold <= self.timeout
+    }
+
+    #[inline]
+    pub fn set(&mut self, value: V) {
+        self.value = Some(value);
+    }
+
+    #[inline]
+    pub fn clear(&mut self) {
+        self.timeout = 0;
+        self.value = None;
+    }
+
+    #[inline]
+    pub fn update(&mut self) -> &Option<V> {
+        self.last_ticks += 1;
+
+        if self.value.is_some() {
+            self.timeout += 1;
+        }
+
+        if self.threshold <= self.timeout {
+            &self.value
+        } else {
+            &None
+        }
+    }
+
+    #[inline]
+    pub fn update_ticks(&mut self, ticks: u64) {
+        let delta_ticks = (ticks - self.last_ticks) as u32;
+        self.last_ticks = ticks;
+        
+        if self.value.is_some() {
+            self.timeout += delta_ticks;
+        }
+    }
+}
+
+impl<V: Clone> DelayValue<V> {
+    #[inline]
+    pub fn value_or(&self, default: V) -> V {
+        if self.is_active() {
+            match &self.value {
+                Some(value) => value.clone(),
+                None => default,
+            }
+        } else {
+            default
+        }
+    }
+}
+
+impl<V> Default for DelayValue<V> {
+    fn default() -> Self {
+        Self::new(Ticks(3))
+    }
+}

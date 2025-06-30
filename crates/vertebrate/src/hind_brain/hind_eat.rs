@@ -1,12 +1,12 @@
 use essay_ecs::{
     app::{App, Plugin}, 
-    core::ResMut
+    core::{Res, ResMut}
 };
 
 use mind_ecs::Tick;
 
 use crate::{
-    body::{BodyEat, BodyEatPlugin}, hind_brain::SerotoninManager, util::{Seconds, Ticks, TimeoutValue} 
+    body::{BodyEat, BodyEatPlugin}, hind_brain::SerotoninManager, hypothalamus::Sleep, util::{DelayValue, Seconds, Ticks, TimeoutValue} 
 };
 
 use super::{HindMove, Serotonin, SerotoninTrait};
@@ -46,45 +46,86 @@ use super::{HindMove, Serotonin, SerotoninTrait};
 // [Šestak and Domazet-Lošo 2015] Early vertebrates fast-swimming filter feeders.
 //
 
-
 fn update_hind_eat(
     mut hind_eat: ResMut<HindEat>,
-    mut hind_move: ResMut<HindMove>,
-    mut body_eat: ResMut<BodyEat>,
+    body_eat: Res<BodyEat>,
+    hind_move: Res<HindMove>,
     mut serotonin_eat: ResMut<Serotonin<HindEat>>,
 ) {
     hind_eat.pre_update();
+
+    if serotonin_eat.is_active() && body_eat.sated_leptin() <= 0. && body_eat.taste_food() > 0. {
+        serotonin_eat.excite(1.);
+    }
+
+    //if body_eat.is_eating() {
+    //    hind_eat.is_eating.set(true);
+    //}
 
     if hind_eat.is_stop_request() {
         hind_eat.is_eating.set(false);
     }
 
-    if serotonin_eat.is_active() && body_eat.sated_leptin() <= 0. && body_eat.food() > 0. {
-        serotonin_eat.excite(1.);
-    }
-
-    if serotonin_eat.is_active() {
-        hind_eat.is_eating.set(true);
+    if hind_move.is_active() {
+        hind_eat.is_eating.set(false);
     }
 
     if body_eat.sickness() > 0. {
         // rodent lack vomiting
         hind_eat.is_vomiting.set(true);
-    } else if body_eat.bitter() > 0. {
+        hind_eat.is_eating.set(false);
+    } else if body_eat.taste_bitter() > 0. {
         // rodent gaping is in R.nts
         hind_eat.is_gaping.set(true);
+        hind_eat.is_eating.set(false);
     }
+}
 
-    // R.my blocking of movement while gaping or vomiting
-    if hind_eat.is_vomiting() || hind_eat.is_gaping() {
-        hind_move.halt();
+fn mammal_feed(
+    mut hind_eat: ResMut<HindEat>,
+    hind_move: Res<HindMove>,
+    mut body_eat: ResMut<BodyEat>,
+    serotonin_eat: Res<Serotonin<HindEat>>,
+    sleep: Res<Sleep>,
+) {
+    if sleep.is_sleep() {
+        // sleeping
+    } else if hind_eat.is_vomiting() || hind_eat.is_gaping() {
+        // R.my blocking of movement while gaping or vomiting
     } else if hind_move.is_active() {
         // lateral inhibition
     } else if serotonin_eat.is_active() {
+        hind_eat.is_eating.set(true);
         body_eat.eat();
     }
 }
 
+fn filter_feed(
+    hind_move: Res<HindMove>,
+    mut body_eat: ResMut<BodyEat>,
+    mut hind_eat: ResMut<HindEat>,
+    sleep: Res<Sleep>,
+) {
+    if sleep.is_sleep() {
+        hind_eat.start_eating.clear();
+    } else if hind_move.is_active() {
+        hind_eat.start_eating.clear();
+    } else if hind_eat.is_vomiting() || hind_eat.is_gaping() {
+        hind_eat.start_eating.clear();
+        /*
+    } else if body_eat.is_sated_stretch() {
+        hind_eat.start_eating.clear();
+        */
+    } else {
+        hind_eat.start_eating.set(true);
+        
+        if hind_eat.start_eating.is_active() || body_eat.gut_food() > 0. {
+            body_eat.eat();
+        }
+    }
+
+    hind_eat.start_eating.update();
+}
 
 ///
 /// HindEat corresponds to Phox2b correlates of adult tunicate Ciona brain,
@@ -97,6 +138,8 @@ pub struct HindEat {
     is_stop_request: TimeoutValue<bool>,
 
     is_eating: TimeoutValue<bool>,
+
+    start_eating: DelayValue<bool>,
 
     // Mouse gaping is a reflexive orofacial expression to expel food in
     // the mouth, functionally like spitting
@@ -157,6 +200,7 @@ impl Default for HindEat {
     fn default() -> Self {
         Self {  
             is_stop_request: TimeoutValue::new(Seconds(1.)),
+            start_eating: DelayValue::new(Seconds(1.)),
             is_eating: TimeoutValue::new(Seconds(2.)),
             is_gaping: TimeoutValue::new(Seconds(5.)),
             is_vomiting: TimeoutValue::new(Seconds(15.)),
@@ -169,14 +213,28 @@ impl SerotoninTrait for HindEat {}
 
 pub struct HindEatPlugin {
     eat_time: Ticks,
+    strategy: EatStrategy,
 }
 
 impl HindEatPlugin {
     pub fn new() -> Self {
         Self {
             eat_time: Seconds(2.).into(),
+            strategy: EatStrategy::Mammal,
         }
     }
+
+    pub fn strategy(&mut self, strategy: EatStrategy) -> &mut Self {
+        self.strategy = strategy;
+
+        self
+    }
+}
+
+#[derive(Copy, Clone, PartialEq, Debug)]
+pub enum EatStrategy {
+    FilterFeed,
+    Mammal,
 }
 
 impl Plugin for HindEatPlugin {
@@ -192,5 +250,14 @@ impl Plugin for HindEatPlugin {
         app.insert_resource(hind_eat);
 
         app.system(Tick, update_hind_eat);
+
+        match self.strategy {
+            EatStrategy::FilterFeed => {
+                app.system(Tick, filter_feed);
+            }
+            EatStrategy::Mammal => {
+                app.system(Tick, mammal_feed);
+            }
+        }
     }
 }
