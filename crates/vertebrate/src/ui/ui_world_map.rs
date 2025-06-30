@@ -257,13 +257,20 @@ impl Drawable for UiWorldView {
                 let star: Path<Canvas> = paths::unit_star(8, 0.6)
                     .transform(&self.to_canvas_view);
 
+                let circle: Path<Canvas> = paths::circle()
+                    .transform(&self.to_canvas_view);
+
                 if self.food_x != food.xy[0] {
                     self.food_x = food.xy[0];
                 }
-                let style = PathStyle::new();
+                let mut style = PathStyle::new();
                 // TODO:
-                //ui.draw_markers(&star, &style, &xy, &food.sizes, &food.colors, &style)?;
+                //style.alpha(0.5);
+
                 ui.draw_markers(&star, &style, &food.to_marker_style(&self.to_canvas))?;
+
+                //ui.draw_markers(&star, &style, &xy, &food.sizes, &food.colors, &style)?;
+                //ui.draw_markers(&star, &style, &food.to_marker_style(&self.to_canvas))?;
         
             }
         }

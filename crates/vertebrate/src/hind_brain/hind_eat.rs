@@ -112,12 +112,14 @@ fn filter_feed(
         hind_eat.start_eating.clear();
     } else if hind_eat.is_vomiting() || hind_eat.is_gaping() {
         hind_eat.start_eating.clear();
+        /*
     } else if body_eat.is_sated_stretch() {
         hind_eat.start_eating.clear();
+        */
     } else {
         hind_eat.start_eating.set(true);
         
-        if hind_eat.start_eating.is_active() {
+        if hind_eat.start_eating.is_active() || body_eat.gut_food() > 0. {
             body_eat.eat();
         }
     }

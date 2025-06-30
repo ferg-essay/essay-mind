@@ -342,7 +342,7 @@ fn ui_homunculus(ui: &mut UiSubBuilder) {
         .emoji(Emoji::DirectHit, |m: &HindMove| m.action_kind() == MoveKind::Seek)
         .emoji(Emoji::Warning, |m: &HindMove| m.action_kind() == MoveKind::Avoid)
         .emoji(Emoji::MagnifyingGlassLeft, |m: &Motive<Dwell>| m.is_active())
-        .emoji(Emoji::Shark, |m: &Thigmotaxis| m.is_active())
+        .emoji(Emoji::RailwayTrack, |m: &Thigmotaxis| m.is_active())
         .emoji(Emoji::Footprints, |m: &HindMove| m.action_kind() == MoveKind::Roam)
         .emoji(Emoji::FaceSleeping, |m: &Motive<Wake>| ! m.is_active())
         .emoji(Emoji::CookedRice, |m: &BodyEat| m.is_eating())
@@ -475,7 +475,7 @@ fn ui_radar_move(ui: &mut UiSubBuilder) {
         .item(60., Emoji::MagnifyingGlassLeft, |m: &Motive<Dwell>| m.value())
         .item(90., Emoji::Footprints, |m: &HindMove| if m.action_kind() == MoveKind::Roam { 1. } else { 0. })
         //.item(135., Emoji::Shark, |m: &Thigmotaxis| m.active_value())
-        .item(135., Emoji::Shark, |m: &OrientTectum| m.active_value())
+        .item(135., Emoji::Brick, |m: &OrientTectum| m.active_value())
         .item(180., Emoji::FaceSleeping, |m: &Sleep| if m.is_wake() { 0. } else { 1. })
         .item(240., Emoji::NoEntry, |m: &HindMove| {
             if m.is_obstacle() || m.is_avoid() { 1. } else { 0. }
@@ -495,14 +495,14 @@ fn ui_radar_food(ui: &mut UiSubBuilder) {
                 0.
             }
         })
-        .item(30., Emoji::FaceDelicious, |m: &HypEat| if m.is_arc_mor() { 1. } else { 0. })
-        .item(60., Emoji::Candy, |m: &BodyEat| m.taste_sweet())
-        .item(90., Emoji::Cheese, |m: &BodyEat| m.taste_umami())
-        .item(120., Emoji::Lemon, |m: &BodyEat| m.taste_bitter())
-        .item(150., Emoji::FaceVomiting, |m: &BodyEat| m.sickness())
+        .item(30., Emoji::Candy, |m: &BodyEat| m.taste_sweet())
+        .item(60., Emoji::Cheese, |m: &BodyEat| m.taste_umami())
+        .item(90., Emoji::Lemon, |m: &BodyEat| m.taste_bitter())
+        .item(120., Emoji::FaceVomiting, |m: &BodyEat| m.sickness())
         .item(180., Emoji::FaceSleeping, |m: &Sleep| if m.is_wake() { 0. } else { 1. })
 
-        .item(215., Emoji::CookedRice, |m: &BodyEat| m.gut_food())
+        .item(210., Emoji::FaceDelicious, |m: &HypEat| if m.is_arc_mor() { 1. } else { 0. })
+        .item(240., Emoji::CookedRice, |m: &BodyEat| m.gut_food())
         .item(270., Emoji::Pig, |m: &BodyEat| m.sated_stretch())
         .item(315., Emoji::ForkAndKnife, |m: &HindEat| if m.is_eating() { 1. } else { 0. })
     );

@@ -525,8 +525,11 @@ impl AnteR1 {
     }
 
     fn action(&self) -> Option<MoveKind> {
+        // TODO: disable with MOR
         if self.attract.is_active() {
             Some(self.attract_kind)
+        } else if self.roam.is_active() {
+            Some(MoveKind::Roam)
         } else {
             None
         }
